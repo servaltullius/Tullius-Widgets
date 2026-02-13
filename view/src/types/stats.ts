@@ -22,10 +22,29 @@ export interface Movement {
   speedMult: number;
 }
 
+export interface PlayerInfo {
+  level: number;
+  gold: number;
+  carryWeight: number;
+  maxCarryWeight: number;
+  health: number;
+  magicka: number;
+  stamina: number;
+}
+
+export interface AlertData {
+  healthPct: number;
+  magickaPct: number;
+  staminaPct: number;
+  carryPct: number;
+}
+
 export interface CombatStats {
   resistances: Resistances;
   defense: Defense;
   offense: Offense;
   movement: Movement;
+  playerInfo: PlayerInfo;
+  alertData: AlertData;
   isInCombat: boolean;
 }

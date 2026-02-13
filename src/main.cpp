@@ -1,15 +1,97 @@
 #include "PrismaUI_API.h"
 #include "StatsCollector.h"
 #include <keyhandler/keyhandler.h>
+#include <atomic>
+#include <chrono>
+#include <filesystem>
+#include <algorithm>
+
+// Escape single quotes for safe JS string embedding
+static std::string EscapeForJS(const std::string& input) {
+    std::string result;
+    result.reserve(input.size());
+    for (char c : input) {
+        if (c == '\'') result += "\\'";
+        else if (c == '\\') result += "\\\\";
+        else result += c;
+    }
+    return result;
+}
 
 PRISMA_UI_API::IVPrismaUI1* PrismaUI = nullptr;
 static PrismaView view = 0;
+static std::atomic<bool> gameLoaded{false};
 
-static void SendStatsToView() {
+// Throttle: minimum 250ms between updates
+static std::chrono::steady_clock::time_point lastUpdateTime{};
+static constexpr auto UPDATE_INTERVAL = std::chrono::milliseconds(250);
+
+// --- Settings Persistence ---
+static constexpr auto SETTINGS_DIR = "Data/SKSE/Plugins";
+
+static std::filesystem::path GetSettingsPath() {
+    return std::filesystem::path(SETTINGS_DIR) / "TulliusWidgets.json";
+}
+
+static std::filesystem::path GetPresetPath() {
+    return std::filesystem::path(SETTINGS_DIR) / "TulliusWidgets_preset.json";
+}
+
+static void SaveSettings(const char* jsonData) {
+    std::ofstream file(GetSettingsPath());
+    if (file.is_open()) {
+        file << jsonData;
+        logger::info("Settings saved");
+    }
+}
+
+static std::string LoadSettings() {
+    auto path = GetSettingsPath();
+    if (!std::filesystem::exists(path)) return "";
+    std::ifstream file(path);
+    if (!file.is_open()) return "";
+    return std::string((std::istreambuf_iterator<char>(file)),
+                        std::istreambuf_iterator<char>());
+}
+
+static void SendHUDColorToView() {
     if (!PrismaUI || !view) return;
+    uint32_t color = 0xFFFFFF;  // default white
+    auto ini = RE::INISettingCollection::GetSingleton();
+    if (ini) {
+        auto setting = ini->GetSetting("iHUDColorDefault:Interface");
+        if (setting) {
+            color = static_cast<uint32_t>(setting->GetSInt()) & 0xFFFFFF;
+        }
+    }
+    char hex[16];
+    std::snprintf(hex, sizeof(hex), "#%06x", color);
+    std::string script = std::string("setHUDColor('") + hex + "')";
+    PrismaUI->Invoke(view, script.c_str());
+    logger::info("HUD color sent: {}", hex);
+}
+
+static void SendSettingsToView() {
+    if (!PrismaUI || !view) return;
+    std::string json = LoadSettings();
+    if (json.empty()) return;
+    std::string script = "updateSettings('" + EscapeForJS(json) + "')";
+    PrismaUI->Invoke(view, script.c_str());
+    logger::info("Saved settings sent to view");
+}
+
+static void SendStatsToView(bool force = false) {
+    if (!PrismaUI || !view || !gameLoaded) return;
+
+    if (!force) {
+        auto now = std::chrono::steady_clock::now();
+        if (now - lastUpdateTime < UPDATE_INTERVAL) return;
+        lastUpdateTime = now;
+    }
 
     std::string stats = TulliusWidgets::StatsCollector::CollectStats();
-    PrismaUI->Invoke(view, "updateStats('" + stats + "')");
+    std::string script = "updateStats('" + EscapeForJS(stats) + "')";
+    PrismaUI->Invoke(view, script.c_str());
 }
 
 class CombatEventSink : public RE::BSTEventSink<RE::TESCombatEvent> {
@@ -32,8 +114,12 @@ public:
         return &singleton;
     }
 
-    RE::BSEventNotifyControl ProcessEvent(const RE::TESEquipEvent*, RE::BSTEventSource<RE::TESEquipEvent>*) override {
-        SendStatsToView();
+    RE::BSEventNotifyControl ProcessEvent(const RE::TESEquipEvent* event, RE::BSTEventSource<RE::TESEquipEvent>*) override {
+        if (!event) return RE::BSEventNotifyControl::kContinue;
+        auto player = RE::PlayerCharacter::GetSingleton();
+        if (player && event->actor.get() == player) {
+            SendStatsToView(true);  // Force: equip changes are important
+        }
         return RE::BSEventNotifyControl::kContinue;
     }
 };
@@ -45,8 +131,67 @@ public:
         return &singleton;
     }
 
-    RE::BSEventNotifyControl ProcessEvent(const RE::TESActiveEffectApplyRemoveEvent*, RE::BSTEventSource<RE::TESActiveEffectApplyRemoveEvent>*) override {
-        SendStatsToView();
+    RE::BSEventNotifyControl ProcessEvent(const RE::TESActiveEffectApplyRemoveEvent* event, RE::BSTEventSource<RE::TESActiveEffectApplyRemoveEvent>*) override {
+        if (!event) return RE::BSEventNotifyControl::kContinue;
+        // Only update for effects targeting the player
+        auto player = RE::PlayerCharacter::GetSingleton();
+        if (player && event->target.get() == player) {
+            SendStatsToView();
+        }
+        return RE::BSEventNotifyControl::kContinue;
+    }
+};
+
+static constexpr std::array kHiddenMenus = {
+    "InventoryMenu"sv,  "MagicMenu"sv,      "MapMenu"sv,
+    "StatsMenu"sv,      "Journal Menu"sv,    "TweenMenu"sv,
+    "ContainerMenu"sv,  "BarterMenu"sv,      "GiftMenu"sv,
+    "LockpickingMenu"sv,"BookMenu"sv,        "FavoritesMenu"sv,
+    "Console"sv,        "Crafting Menu"sv,    "Training Menu"sv,
+    "Sleep/Wait Menu"sv,"RaceSex Menu"sv,     "LevelUp Menu"sv,
+};
+
+static bool ShouldHideForMenu(const RE::BSFixedString& menuName) {
+    for (const auto& name : kHiddenMenus) {
+        if (menuName == name) return true;
+    }
+    return false;
+}
+
+class MenuEventSink : public RE::BSTEventSink<RE::MenuOpenCloseEvent> {
+public:
+    static MenuEventSink* GetSingleton() {
+        static MenuEventSink singleton;
+        return &singleton;
+    }
+
+    RE::BSEventNotifyControl ProcessEvent(const RE::MenuOpenCloseEvent* event, RE::BSTEventSource<RE::MenuOpenCloseEvent>*) override {
+        if (!event || !PrismaUI || !view) return RE::BSEventNotifyControl::kContinue;
+
+        // Main menu: hide and mark game as unloaded
+        if (event->menuName == RE::MainMenu::MENU_NAME && event->opening) {
+            PrismaUI->Hide(view);
+            gameLoaded = false;
+            return RE::BSEventNotifyControl::kContinue;
+        }
+
+        // Hide widgets when game menus are open
+        if (ShouldHideForMenu(event->menuName)) {
+            if (event->opening) {
+                PrismaUI->Hide(view);
+            } else {
+                // Only show if no other hiding menus are still open
+                auto ui = RE::UI::GetSingleton();
+                bool anyOpen = false;
+                for (const auto& name : kHiddenMenus) {
+                    if (ui && ui->IsMenuOpen(name)) { anyOpen = true; break; }
+                }
+                if (!anyOpen && gameLoaded) {
+                    PrismaUI->Show(view);
+                }
+            }
+        }
+
         return RE::BSEventNotifyControl::kContinue;
     }
 };
@@ -58,6 +203,12 @@ static void RegisterEventSinks() {
         scriptEventSource->AddEventSink(EquipEventSink::GetSingleton());
         scriptEventSource->AddEventSink(ActiveEffectEventSink::GetSingleton());
         logger::info("Event sinks registered");
+    }
+
+    auto ui = RE::UI::GetSingleton();
+    if (ui) {
+        ui->AddEventSink(MenuEventSink::GetSingleton());
+        logger::info("Menu event sink registered");
     }
 }
 
@@ -77,11 +228,53 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message) {
 
         view = PrismaUI->CreateView("TulliusWidgets/index.html", [](PrismaView v) -> void {
             logger::info("TulliusWidgets view ready (id: {})", v);
-            SendStatsToView();
         });
 
+        PrismaUI->Hide(view);
+
         PrismaUI->RegisterJSListener(view, "onSettingsChanged", [](const char* data) -> void {
-            logger::info("Settings changed from UI");
+            if (data) {
+                SaveSettings(data);
+            }
+        });
+
+        PrismaUI->RegisterJSListener(view, "onExportSettings", [](const char* data) -> void {
+            if (!data) return;
+            std::ofstream file(GetPresetPath());
+            if (file.is_open()) {
+                file << data;
+                logger::info("Preset exported");
+                if (PrismaUI && view) {
+                    PrismaUI->Invoke(view, "onExportResult(true)");
+                }
+            }
+        });
+
+        PrismaUI->RegisterJSListener(view, "onImportSettings", [](const char*) -> void {
+            auto presetPath = GetPresetPath();
+            if (!std::filesystem::exists(presetPath)) {
+                if (PrismaUI && view) {
+                    PrismaUI->Invoke(view, "onImportResult(false)");
+                }
+                return;
+            }
+            std::ifstream file(presetPath);
+            if (!file.is_open()) return;
+            std::string json((std::istreambuf_iterator<char>(file)),
+                              std::istreambuf_iterator<char>());
+            if (PrismaUI && view) {
+                std::string script = "updateSettings('" + EscapeForJS(json) + "')";
+                PrismaUI->Invoke(view, script.c_str());
+                SaveSettings(json.c_str());
+                PrismaUI->Invoke(view, "onImportResult(true)");
+            }
+            logger::info("Preset imported");
+        });
+
+        PrismaUI->RegisterJSListener(view, "onRequestUnfocus", [](const char*) -> void {
+            if (PrismaUI && view) {
+                PrismaUI->Unfocus(view);
+            }
         });
 
         RegisterEventSinks();
@@ -89,9 +282,9 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message) {
         KeyHandler::RegisterSink();
         KeyHandler* keyHandler = KeyHandler::GetSingleton();
 
-        // F10 = 0x44 to toggle settings panel
-        keyHandler->Register(0x44, KeyEventType::KEY_DOWN, []() {
-            if (PrismaUI && view) {
+        // Insert = 0xD2 to toggle settings panel
+        (void)keyHandler->Register(0xD2, KeyEventType::KEY_DOWN, []() {
+            if (PrismaUI && view && gameLoaded) {
                 PrismaUI->Invoke(view, "toggleSettings()");
                 auto hasFocus = PrismaUI->HasFocus(view);
                 if (!hasFocus) {
@@ -102,20 +295,26 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message) {
             }
         });
 
-        // F11 = 0x57 to toggle widget visibility
-        keyHandler->Register(0x57, KeyEventType::KEY_DOWN, []() {
-            if (PrismaUI && view) {
-                static bool hidden = false;
-                hidden = !hidden;
-                if (hidden) {
-                    PrismaUI->Hide(view);
-                } else {
-                    PrismaUI->Show(view);
-                    SendStatsToView();
-                }
+        // ESC = 0x01 to close settings panel
+        (void)keyHandler->Register(0x01, KeyEventType::KEY_DOWN, []() {
+            if (PrismaUI && view && gameLoaded && PrismaUI->HasFocus(view)) {
+                PrismaUI->Invoke(view, "closeSettings()");
+                PrismaUI->Unfocus(view);
             }
         });
 
+        break;
+    }
+    case SKSE::MessagingInterface::kPostLoadGame:
+    case SKSE::MessagingInterface::kNewGame: {
+        gameLoaded = true;
+        if (PrismaUI && view) {
+            PrismaUI->Show(view);
+            SendHUDColorToView();
+            SendSettingsToView();
+            SendStatsToView(true);
+        }
+        logger::info("Game loaded - widgets visible");
         break;
     }
     }

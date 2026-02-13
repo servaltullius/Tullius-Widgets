@@ -16,10 +16,25 @@ export const mockStats: CombatStats = {
   offense: {
     rightHandDamage: 45,
     leftHandDamage: 0,
-    critChance: 12,
+    critChance: 15,
   },
   movement: {
     speedMult: 100,
+  },
+  playerInfo: {
+    level: 42,
+    gold: 12500,
+    carryWeight: 185.5,
+    maxCarryWeight: 300,
+    health: 320,
+    magicka: 200,
+    stamina: 250,
+  },
+  alertData: {
+    healthPct: 100,
+    magickaPct: 100,
+    staminaPct: 100,
+    carryPct: 61.8,
   },
   isInCombat: false,
 };

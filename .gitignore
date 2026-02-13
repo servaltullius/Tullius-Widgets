@@ -2,6 +2,7 @@
 build/
 dist/
 .xmake/
+*.zip
 
 # React
 view/node_modules/
@@ -15,3 +16,11 @@ view/dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Original icon source files
+icon/
+
+# Test artifacts
+.playwright-mcp/
+alignment-test-*.png
+docs/screenshot-*.png

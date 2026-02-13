@@ -4,9 +4,11 @@ export const defaultSettings: WidgetSettings = {
   general: {
     visible: true,
     combatOnly: false,
-    opacity: 85,
+    opacity: 70,
     size: 'medium',
-    position: 'bottom-right',
+    language: 'ko',
+    accentColor: '',
+    transparentBg: true,
   },
   resistances: {
     magic: true,
@@ -28,4 +30,36 @@ export const defaultSettings: WidgetSettings = {
   movement: {
     speedMult: true,
   },
+  playerInfo: {
+    level: true,
+    gold: true,
+    carryWeight: true,
+    health: false,
+    magicka: false,
+    stamina: false,
+  },
+  visualAlerts: {
+    enabled: true,
+    lowHealth: true,
+    lowHealthThreshold: 30,
+    lowStamina: true,
+    lowStaminaThreshold: 25,
+    lowMagicka: true,
+    lowMagickaThreshold: 25,
+    overencumbered: true,
+  },
+  positions: {},
+  layouts: {},
 };
+
+export function getDefaultPositions(): Record<string, { x: number; y: number }> {
+  const w = window.innerWidth;
+  const right = w - 260;
+  return {
+    playerInfo: { x: right, y: 20 },
+    resistances: { x: right, y: 220 },
+    defense: { x: right, y: 500 },
+    offense: { x: right, y: 630 },
+    movement: { x: right, y: 800 },
+  };
+}

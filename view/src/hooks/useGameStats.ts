@@ -11,6 +11,10 @@ export function useGameStats(): CombatStats {
     (window as any).updateStats = (jsonString: string) => {
       try {
         const parsed = JSON.parse(jsonString) as CombatStats;
+        // Ensure alertData exists (backward compat with older DLLs)
+        if (!parsed.alertData) {
+          parsed.alertData = { healthPct: 100, magickaPct: 100, staminaPct: 100, carryPct: 0 };
+        }
         setStats(parsed);
       } catch (e) {
         console.error('Failed to parse stats JSON:', e);

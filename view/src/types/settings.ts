@@ -1,5 +1,11 @@
-export type WidgetPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 export type WidgetSize = 'small' | 'medium' | 'large';
+export type WidgetLayout = 'vertical' | 'horizontal';
+export type Language = 'ko' | 'en';
+
+export interface GroupPosition {
+  x: number;
+  y: number;
+}
 
 export interface WidgetSettings {
   general: {
@@ -7,7 +13,9 @@ export interface WidgetSettings {
     combatOnly: boolean;
     opacity: number;
     size: WidgetSize;
-    position: WidgetPosition;
+    language: Language;
+    accentColor: string;  // '' = auto from HUD, otherwise hex color
+    transparentBg: boolean;  // hide widget group background
   };
   resistances: {
     magic: boolean;
@@ -29,4 +37,24 @@ export interface WidgetSettings {
   movement: {
     speedMult: boolean;
   };
+  playerInfo: {
+    level: boolean;
+    gold: boolean;
+    carryWeight: boolean;
+    health: boolean;
+    magicka: boolean;
+    stamina: boolean;
+  };
+  visualAlerts: {
+    enabled: boolean;
+    lowHealth: boolean;
+    lowHealthThreshold: number;
+    lowStamina: boolean;
+    lowStaminaThreshold: number;
+    lowMagicka: boolean;
+    lowMagickaThreshold: number;
+    overencumbered: boolean;
+  };
+  positions: Record<string, GroupPosition>;
+  layouts: Record<string, WidgetLayout>;
 }
