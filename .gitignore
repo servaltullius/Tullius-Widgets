@@ -1,0 +1,17 @@
+# Build
+build/
+dist/
+.xmake/
+
+# React
+view/node_modules/
+view/dist/
+
+# IDE
+.vs/
+.vscode/
+*.user
+
+# OS
+.DS_Store
+Thumbs.db
