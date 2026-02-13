@@ -3,6 +3,10 @@
 ## Overview
 Prisma UI (WebKit) + React/TypeScript 프론트엔드 + C++23 SKSE 플러그인으로 구성된 스카이림 SE 전투 스탯 HUD 위젯 모드.
 
+## Links
+- **Nexus Mods**: https://www.nexusmods.com/skyrimspecialedition/mods/172458
+- **GitHub**: https://github.com/servaltullius/Tullius-Widgets
+
 ## Tech Stack
 - **C++ SKSE Plugin**: C++23, CommonLib-NG, XMake, MSVC (VS2022)
 - **Frontend**: React 19, TypeScript, Vite, lucide-react
