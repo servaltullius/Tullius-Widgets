@@ -1,0 +1,106 @@
+[center][img]https://raw.githubusercontent.com/servaltullius/Tullius-Widgets/master/docs/screenshot-widgets.png[/img][/center]
+
+[size=4][b]Tullius Widgets[/b][/size]
+
+[url=https://www.nexusmods.com/skyrimspecialedition/mods/117592]Prisma UI[/url] 기반의 스카이림 SE 전투 스탯 HUD 위젯 모드입니다.
+메뉴를 열지 않고도 플레이어의 주요 스탯을 HUD에서 바로 확인할 수 있습니다.
+
+[line]
+
+[size=3][b]기능[/b][/size]
+
+[b]스탯 위젯 18종[/b]
+[list]
+[*][b]플레이어 정보[/b] — 레벨, 골드, 소지 무게, 체력, 매지카, 스태미나
+[*][b]저항력[/b] — 마법, 화염, 냉기, 전기, 독, 질병
+[*][b]방어[/b] — 방어도, 피해 감소율 (%)
+[*][b]공격[/b] — 오른손/왼손 공격력, 치명타 확률 (%)
+[*][b]이동[/b] — 이동 속도 (%)
+[/list]
+
+[b]비네트 시각 알림[/b]
+체력, 매지카, 스태미나가 설정한 임계값 이하로 떨어지면 화면 가장자리에 경고 효과가 나타납니다. 과적재 경고도 포함.
+
+[b]자유로운 커스터마이즈[/b]
+[list]
+[*]각 스탯 위젯 개별 표시/숨김
+[*]투명도, 크기 (작게 / 보통 / 크게) 조절
+[*]위젯 그룹별 세로/가로 레이아웃 선택
+[*]색상 톤 직접 선택 또는 HUD 색상 자동 감지
+[*]배경 투명 모드
+[*]위젯 그룹 자유 드래그 배치 (이웃 위젯에 자동 스냅)
+[/list]
+
+[center][img]https://raw.githubusercontent.com/servaltullius/Tullius-Widgets/master/docs/screenshot-drag.webp[/img][/center]
+
+[list]
+[*]프리셋 내보내기 / 가져오기
+[*]한국어 / 영어 지원
+[/list]
+
+[b]스마트 동작[/b]
+[list]
+[*]게임 메뉴(인벤토리, 지도, 제작 등) 열면 자동 숨김
+[*]"전투 중에만" 모드 — 전투 시에만 위젯 표시
+[*]치명타 확률은 실제 퍽 보너스 반영 (검술, 깊은 상처, 치명적 일격)
+[*]체력/매지카/스태미나는 실시간 현재값 표시
+[/list]
+
+[center][img]https://raw.githubusercontent.com/servaltullius/Tullius-Widgets/master/docs/screenshot-settings.png[/img][/center]
+
+[line]
+
+[size=3][b]요구 사항[/b][/size]
+[list]
+[*][url=https://skse.silverlock.org/]SKSE64[/url]
+[*][url=https://www.nexusmods.com/skyrimspecialedition/mods/117592]Prisma UI[/url]
+[*][url=https://www.nexusmods.com/skyrimspecialedition/mods/32444]Address Library for SKSE Plugins[/url]
+[/list]
+
+[line]
+
+[size=3][b]설치 방법[/b][/size]
+
+[b]수동 설치:[/b] zip 내용물을 [font=Courier New]Skyrim Special Edition/Data/[/font] 폴더에 복사합니다.
+
+[b]모드 매니저:[/b] 일반 모드처럼 설치하면 됩니다.
+
+설치 후 폴더 구조:
+[code]
+Data/
+  SKSE/Plugins/TulliusWidgets.dll
+  PrismaUI/views/TulliusWidgets/...
+[/code]
+
+[line]
+
+[size=3][b]조작법[/b][/size]
+
+[list]
+[*][b]Insert[/b] — 설정 패널 열기/닫기
+[*][b]ESC[/b] — 설정 패널 닫기
+[*][b]드래그[/b] — 설정 패널이 열린 동안 위젯 그룹 이동
+[/list]
+
+[line]
+
+[size=3][b]설정[/b][/size]
+
+설정은 [font=Courier New]Data/SKSE/Plugins/TulliusWidgets.json[/font]에 자동 저장됩니다.
+설정 패널에서 프리셋 내보내기/가져오기가 가능합니다.
+프리셋 파일: [font=Courier New]Data/SKSE/Plugins/TulliusWidgets_preset.json[/font]
+
+[line]
+
+[size=3][b]소스 코드[/b][/size]
+
+[url=https://github.com/servaltullius/Tullius-Widgets]GitHub Repository[/url] (MIT 라이선스)
+
+[line]
+
+[size=3][b]크레딧[/b][/size]
+[list]
+[*][url=https://www.nexusmods.com/skyrimspecialedition/mods/117592]Prisma UI[/url] by jfmherokiller
+[*][url=https://github.com/CharmedBaryon/CommonLibSSE-NG]CommonLib-NG[/url] by CharmedBaryon
+[*][url=https://lucide.dev/]Lucide Icons[/url] (ISC License)
+[/list]

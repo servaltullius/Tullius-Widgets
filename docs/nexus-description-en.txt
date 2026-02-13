@@ -1,0 +1,106 @@
+[center][img]https://raw.githubusercontent.com/servaltullius/Tullius-Widgets/master/docs/screenshot-widgets.png[/img][/center]
+
+[size=4][b]Tullius Widgets[/b][/size]
+
+A combat stats HUD widget mod for Skyrim SE, powered by [url=https://www.nexusmods.com/skyrimspecialedition/mods/117592]Prisma UI[/url].
+Displays useful player stats directly on the HUD without opening any menus.
+
+[line]
+
+[size=3][b]Features[/b][/size]
+
+[b]18 Stat Widgets[/b]
+[list]
+[*][b]Player Info[/b] — Level, Gold, Carry Weight, Health, Magicka, Stamina
+[*][b]Resistances[/b] — Magic, Fire, Frost, Shock, Poison, Disease
+[*][b]Defense[/b] — Armor Rating, Damage Reduction (%)
+[*][b]Offense[/b] — Right/Left Hand Damage, Critical Chance (%)
+[*][b]Movement[/b] — Speed Multiplier (%)
+[/list]
+
+[b]Visual Alerts[/b]
+Vignette screen effects warn you when Health, Magicka, or Stamina drops below a configurable threshold. Overencumbered warning included.
+
+[b]Fully Customizable[/b]
+[list]
+[*]Toggle each stat widget individually
+[*]Adjust opacity, size (Small / Medium / Large)
+[*]Vertical or horizontal layout per widget group
+[*]Custom accent color or auto-detect from HUD color
+[*]Transparent background mode
+[*]Drag and reposition widget groups freely (auto-snaps to neighbors)
+[/list]
+
+[center][img]https://raw.githubusercontent.com/servaltullius/Tullius-Widgets/master/docs/screenshot-drag.webp[/img][/center]
+
+[list]
+[*]Preset export / import
+[*]Korean / English language support
+[/list]
+
+[b]Smart Behavior[/b]
+[list]
+[*]Auto-hides when game menus are open (Inventory, Map, Crafting, etc.)
+[*]Optional "Combat Only" mode — widgets appear only during combat
+[*]Critical chance reflects actual perk bonuses (Bladesman, Deep Wounds, Critical Shot)
+[*]Health/Magicka/Stamina show real-time current values
+[/list]
+
+[center][img]https://raw.githubusercontent.com/servaltullius/Tullius-Widgets/master/docs/screenshot-settings.png[/img][/center]
+
+[line]
+
+[size=3][b]Requirements[/b][/size]
+[list]
+[*][url=https://skse.silverlock.org/]SKSE64[/url]
+[*][url=https://www.nexusmods.com/skyrimspecialedition/mods/117592]Prisma UI[/url]
+[*][url=https://www.nexusmods.com/skyrimspecialedition/mods/32444]Address Library for SKSE Plugins[/url]
+[/list]
+
+[line]
+
+[size=3][b]Installation[/b][/size]
+
+[b]Manual:[/b] Extract the zip contents into your [font=Courier New]Skyrim Special Edition/Data/[/font] folder.
+
+[b]Mod Manager:[/b] Install as usual.
+
+After installation:
+[code]
+Data/
+  SKSE/Plugins/TulliusWidgets.dll
+  PrismaUI/views/TulliusWidgets/...
+[/code]
+
+[line]
+
+[size=3][b]Controls[/b][/size]
+
+[list]
+[*][b]Insert[/b] — Open / close settings panel
+[*][b]ESC[/b] — Close settings panel
+[*][b]Drag[/b] — Reposition widget groups while settings panel is open
+[/list]
+
+[line]
+
+[size=3][b]Settings[/b][/size]
+
+Settings are saved automatically to [font=Courier New]Data/SKSE/Plugins/TulliusWidgets.json[/font].
+You can export/import presets from the settings panel.
+Preset file: [font=Courier New]Data/SKSE/Plugins/TulliusWidgets_preset.json[/font]
+
+[line]
+
+[size=3][b]Source Code[/b][/size]
+
+[url=https://github.com/servaltullius/Tullius-Widgets]GitHub Repository[/url] (MIT License)
+
+[line]
+
+[size=3][b]Credits[/b][/size]
+[list]
+[*][url=https://www.nexusmods.com/skyrimspecialedition/mods/117592]Prisma UI[/url] by jfmherokiller
+[*][url=https://github.com/CharmedBaryon/CommonLibSSE-NG]CommonLib-NG[/url] by CharmedBaryon
+[*][url=https://lucide.dev/]Lucide Icons[/url] (ISC License)
+[/list]
