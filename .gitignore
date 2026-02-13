@@ -23,4 +23,3 @@ icon/
 # Test artifacts
 .playwright-mcp/
 alignment-test-*.png
-docs/screenshot-*.png

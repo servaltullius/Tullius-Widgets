@@ -2,7 +2,6 @@
 
 ## Overview
 Prisma UI (WebKit) + React/TypeScript 프론트엔드 + C++23 SKSE 플러그인으로 구성된 스카이림 SE 전투 스탯 HUD 위젯 모드.
-STB Widgets의 상위호환 대체 모드로, 개인 사용 목적.
 
 ## Tech Stack
 - **C++ SKSE Plugin**: C++23, CommonLib-NG, XMake, MSVC (VS2022)
