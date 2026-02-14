@@ -96,6 +96,7 @@ export function StatWidget({ icon, iconColor, value, unit = '', visible, cap, fo
         textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
         minWidth: '40px',
         textAlign: 'right',
+        whiteSpace: 'nowrap',
       }}>
         {displayValue}{unit}
       </span>
