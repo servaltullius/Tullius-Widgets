@@ -22,9 +22,10 @@ PRISMA_UI_API::IVPrismaUI1* PrismaUI = nullptr;
 static PrismaView view = 0;
 static std::atomic<bool> gameLoaded{false};
 
-// Throttle: minimum 250ms between updates
+// Throttle: shorter interval during combat for responsive HP/MP/SP
 static std::chrono::steady_clock::time_point lastUpdateTime{};
-static constexpr auto UPDATE_INTERVAL = std::chrono::milliseconds(250);
+static constexpr auto UPDATE_INTERVAL_COMBAT = std::chrono::milliseconds(100);
+static constexpr auto UPDATE_INTERVAL_IDLE   = std::chrono::milliseconds(500);
 
 // --- Settings Persistence ---
 static constexpr auto SETTINGS_DIR = "Data/SKSE/Plugins";
@@ -85,7 +86,9 @@ static void SendStatsToView(bool force = false) {
 
     if (!force) {
         auto now = std::chrono::steady_clock::now();
-        if (now - lastUpdateTime < UPDATE_INTERVAL) return;
+        auto player = RE::PlayerCharacter::GetSingleton();
+        auto interval = (player && player->IsInCombat()) ? UPDATE_INTERVAL_COMBAT : UPDATE_INTERVAL_IDLE;
+        if (now - lastUpdateTime < interval) return;
         lastUpdateTime = now;
     }
 
