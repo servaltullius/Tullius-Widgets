@@ -145,13 +145,29 @@ public:
     }
 };
 
-static constexpr std::array kHiddenMenus = {
-    "InventoryMenu"sv,  "MagicMenu"sv,      "MapMenu"sv,
-    "StatsMenu"sv,      "Journal Menu"sv,    "TweenMenu"sv,
-    "ContainerMenu"sv,  "BarterMenu"sv,      "GiftMenu"sv,
-    "LockpickingMenu"sv,"BookMenu"sv,        "FavoritesMenu"sv,
-    "Console"sv,        "Crafting Menu"sv,    "Training Menu"sv,
-    "Sleep/Wait Menu"sv,"RaceSex Menu"sv,     "LevelUp Menu"sv,
+static constexpr std::array<std::string_view, 21> kHiddenMenus = {
+    RE::InventoryMenu::MENU_NAME,
+    RE::MagicMenu::MENU_NAME,
+    RE::MapMenu::MENU_NAME,
+    RE::StatsMenu::MENU_NAME,
+    RE::JournalMenu::MENU_NAME,
+    RE::TweenMenu::MENU_NAME,
+    RE::ContainerMenu::MENU_NAME,
+    RE::BarterMenu::MENU_NAME,
+    RE::GiftMenu::MENU_NAME,
+    RE::LockpickingMenu::MENU_NAME,
+    RE::BookMenu::MENU_NAME,
+    RE::FavoritesMenu::MENU_NAME,
+    RE::Console::MENU_NAME,
+    RE::CraftingMenu::MENU_NAME,
+    RE::TrainingMenu::MENU_NAME,
+    RE::SleepWaitMenu::MENU_NAME,
+    RE::RaceSexMenu::MENU_NAME,
+    RE::LevelUpMenu::MENU_NAME,
+    // Compatibility aliases seen in some UI overhauls / plugins
+    "JournalMenu"sv,
+    "BookMenu"sv,
+    "LockpickingMenu"sv
 };
 
 static bool ShouldHideForMenu(const RE::BSFixedString& menuName) {
@@ -159,6 +175,12 @@ static bool ShouldHideForMenu(const RE::BSFixedString& menuName) {
         if (menuName == name) return true;
     }
     return false;
+}
+
+static bool IsAnyHiddenMenuOpen(RE::UI* ui) {
+    if (!ui) return false;
+    return std::any_of(kHiddenMenus.begin(), kHiddenMenus.end(),
+                       [ui](const auto& name) { return ui->IsMenuOpen(name); });
 }
 
 class MenuEventSink : public RE::BSTEventSink<RE::MenuOpenCloseEvent> {
@@ -170,6 +192,7 @@ public:
 
     RE::BSEventNotifyControl ProcessEvent(const RE::MenuOpenCloseEvent* event, RE::BSTEventSource<RE::MenuOpenCloseEvent>*) override {
         if (!event || !PrismaUI || !view) return RE::BSEventNotifyControl::kContinue;
+        auto ui = RE::UI::GetSingleton();
 
         // Main menu: hide and mark game as unloaded
         if (event->menuName == RE::MainMenu::MENU_NAME && event->opening) {
@@ -178,21 +201,12 @@ public:
             return RE::BSEventNotifyControl::kContinue;
         }
 
-        // Hide widgets when game menus are open
-        if (ShouldHideForMenu(event->menuName)) {
-            if (event->opening) {
-                PrismaUI->Hide(view);
-            } else {
-                // Only show if no other hiding menus are still open
-                auto ui = RE::UI::GetSingleton();
-                bool anyOpen = false;
-                for (const auto& name : kHiddenMenus) {
-                    if (ui && ui->IsMenuOpen(name)) { anyOpen = true; break; }
-                }
-                if (!anyOpen && gameLoaded) {
-                    PrismaUI->Show(view);
-                }
-            }
+        // Hide widgets when tracked menus open (or while game is paused by a menu).
+        if (event->opening && (ShouldHideForMenu(event->menuName) || (ui && ui->GameIsPaused()))) {
+            PrismaUI->Hide(view);
+        } else if (!event->opening && gameLoaded && ui && !ui->GameIsPaused() && !IsAnyHiddenMenuOpen(ui)) {
+            // Show only after all tracked menus are fully closed.
+            PrismaUI->Show(view);
         }
 
         return RE::BSEventNotifyControl::kContinue;
