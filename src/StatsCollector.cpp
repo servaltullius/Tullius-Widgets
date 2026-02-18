@@ -1,4 +1,6 @@
 #include "StatsCollector.h"
+#include "CriticalChanceEvaluator.h"
+#include "ResistanceEvaluator.h"
 #include <cmath>
 #include <cstdio>
 
@@ -9,12 +11,6 @@ static std::string safeFloat(float v) {
     char buf[32];
     std::snprintf(buf, sizeof(buf), "%.2f", v);
     return buf;
-}
-
-float StatsCollector::GetResistance(RE::ActorValue av) {
-    auto player = RE::PlayerCharacter::GetSingleton();
-    if (!player) return 0.0f;
-    return player->AsActorValueOwner()->GetActorValue(av);
 }
 
 float StatsCollector::GetArmorRating() {
@@ -28,19 +24,6 @@ float StatsCollector::CalculateDamageReduction(float armorRating) {
     float reduction = armorRating * 0.12f;
     return (std::min)(reduction, 80.0f);
 }
-
-// --- Vanilla perk FormIDs ---
-
-// Crit chance perks
-static constexpr RE::FormID kBladesman1   = 0x0005F592;  // One-Handed: Sword crit 10%
-static constexpr RE::FormID kBladesman2   = 0x000C1E92;  // One-Handed: Sword crit 15%
-static constexpr RE::FormID kBladesman3   = 0x000C1E93;  // One-Handed: Sword crit 20%
-static constexpr RE::FormID kDeepWounds1  = 0x0003AF83;  // Two-Handed: Greatsword crit 10%
-static constexpr RE::FormID kDeepWounds2  = 0x000C1E94;  // Two-Handed: Greatsword crit 15%
-static constexpr RE::FormID kDeepWounds3  = 0x000C1E95;  // Two-Handed: Greatsword crit 20%
-static constexpr RE::FormID kCritShot1    = 0x00105F19;  // Archery: Bow crit 10%
-static constexpr RE::FormID kCritShot2    = 0x00105F1A;  // Archery: Bow crit 15%
-static constexpr RE::FormID kCritShot3    = 0x00105F1B;  // Archery: Bow crit 20%
 
 // Damage perks: each rank adds +20% weapon damage
 // Armsman (One-Handed)
@@ -131,47 +114,6 @@ static float CalcDisplayedDamage(RE::PlayerCharacter* player, RE::TESObjectWEAP*
     return baseDmg * skillMult * perkMult;
 }
 
-// Get crit chance from weapon type + perks (vanilla kCriticalChance AV is always 0)
-float StatsCollector::GetEffectiveCritChance() {
-    auto player = RE::PlayerCharacter::GetSingleton();
-    if (!player) return 0.0f;
-
-    // Base from ActorValue (mods/enchantments may modify this)
-    float base = player->AsActorValueOwner()->GetActorValue(RE::ActorValue::kCriticalChance);
-
-    // Check right-hand weapon type for perk-based crit
-    float perkCrit = 0.0f;
-    auto rightHand = player->GetEquippedObject(false);
-    if (rightHand) {
-        auto weapon = rightHand->As<RE::TESObjectWEAP>();
-        if (weapon) {
-            auto type = weapon->GetWeaponType();
-            switch (type) {
-            case RE::WEAPON_TYPE::kOneHandSword:
-                if (HasPerk(player, kBladesman3))       perkCrit = 20.0f;
-                else if (HasPerk(player, kBladesman2))  perkCrit = 15.0f;
-                else if (HasPerk(player, kBladesman1))  perkCrit = 10.0f;
-                break;
-            case RE::WEAPON_TYPE::kTwoHandSword:
-                if (HasPerk(player, kDeepWounds3))      perkCrit = 20.0f;
-                else if (HasPerk(player, kDeepWounds2)) perkCrit = 15.0f;
-                else if (HasPerk(player, kDeepWounds1)) perkCrit = 10.0f;
-                break;
-            case RE::WEAPON_TYPE::kBow:
-            case RE::WEAPON_TYPE::kCrossbow:
-                if (HasPerk(player, kCritShot3))        perkCrit = 20.0f;
-                else if (HasPerk(player, kCritShot2))   perkCrit = 15.0f;
-                else if (HasPerk(player, kCritShot1))   perkCrit = 10.0f;
-                break;
-            default:
-                break;
-            }
-        }
-    }
-
-    return base + perkCrit;
-}
-
 int32_t StatsCollector::GetGoldCount() {
     auto player = RE::PlayerCharacter::GetSingleton();
     if (!player) return 0;
@@ -191,12 +133,12 @@ std::string StatsCollector::CollectStats() {
     std::string json = "{";
 
     json += "\"resistances\":{";
-    json += "\"magic\":" + safeFloat(GetResistance(RE::ActorValue::kResistMagic)) + ",";
-    json += "\"fire\":" + safeFloat(GetResistance(RE::ActorValue::kResistFire)) + ",";
-    json += "\"frost\":" + safeFloat(GetResistance(RE::ActorValue::kResistFrost)) + ",";
-    json += "\"shock\":" + safeFloat(GetResistance(RE::ActorValue::kResistShock)) + ",";
-    json += "\"poison\":" + safeFloat(GetResistance(RE::ActorValue::kPoisonResist)) + ",";
-    json += "\"disease\":" + safeFloat(GetResistance(RE::ActorValue::kResistDisease));
+    json += "\"magic\":" + safeFloat(ResistanceEvaluator::GetEffectiveResistance(player, RE::ActorValue::kResistMagic)) + ",";
+    json += "\"fire\":" + safeFloat(ResistanceEvaluator::GetEffectiveResistance(player, RE::ActorValue::kResistFire)) + ",";
+    json += "\"frost\":" + safeFloat(ResistanceEvaluator::GetEffectiveResistance(player, RE::ActorValue::kResistFrost)) + ",";
+    json += "\"shock\":" + safeFloat(ResistanceEvaluator::GetEffectiveResistance(player, RE::ActorValue::kResistShock)) + ",";
+    json += "\"poison\":" + safeFloat(ResistanceEvaluator::GetEffectiveResistance(player, RE::ActorValue::kPoisonResist)) + ",";
+    json += "\"disease\":" + safeFloat(ResistanceEvaluator::GetEffectiveResistance(player, RE::ActorValue::kResistDisease));
     json += "},";
 
     json += "\"defense\":{";
@@ -225,7 +167,7 @@ std::string StatsCollector::CollectStats() {
     json += "\"offense\":{";
     json += "\"rightHandDamage\":" + safeFloat(rightDmg) + ",";
     json += "\"leftHandDamage\":" + safeFloat(leftDmg) + ",";
-    json += "\"critChance\":" + safeFloat(GetEffectiveCritChance());
+    json += "\"critChance\":" + safeFloat(CriticalChanceEvaluator::GetEffectiveCritChance(player));
     json += "},";
 
     json += "\"movement\":{";

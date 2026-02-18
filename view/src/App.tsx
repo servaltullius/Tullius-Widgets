@@ -7,7 +7,8 @@ import { useGameStats } from './hooks/useGameStats';
 import { useSettings } from './hooks/useSettings';
 import { getDefaultPositions } from './data/defaultSettings';
 
-const RESIST_CAP = 85;
+const ELEMENTAL_RESIST_CAP = 85;
+const DISEASE_RESIST_CAP = 100;
 const GROUP_IDS = ['playerInfo', 'resistances', 'defense', 'offense', 'movement'];
 const SNAP_THRESHOLD = 15;
 const GRID = 10;
@@ -94,12 +95,12 @@ export function App() {
 
           {hasVisibleResistance && (
             <DraggableWidgetGroup {...groupProps('resistances')}>
-              <StatWidget icon="magic"   iconColor="#b366ff" value={stats.resistances.magic} unit="%" visible={settings.resistances.magic} cap={RESIST_CAP} />
-              <StatWidget icon="fire"    iconColor="#ff6633" value={stats.resistances.fire} unit="%" visible={settings.resistances.fire} cap={RESIST_CAP} />
-              <StatWidget icon="frost"   iconColor="#66ccff" value={stats.resistances.frost} unit="%" visible={settings.resistances.frost} cap={RESIST_CAP} />
-              <StatWidget icon="shock"   iconColor="#ffdd33" value={stats.resistances.shock} unit="%" visible={settings.resistances.shock} cap={RESIST_CAP} />
-              <StatWidget icon="poison"  iconColor="#66ff66" value={stats.resistances.poison} unit="%" visible={settings.resistances.poison} cap={RESIST_CAP} />
-              <StatWidget icon="disease" iconColor="#99cc66" value={stats.resistances.disease} unit="%" visible={settings.resistances.disease} cap={RESIST_CAP} />
+              <StatWidget icon="magic"   iconColor="#b366ff" value={stats.resistances.magic} unit="%" visible={settings.resistances.magic} cap={ELEMENTAL_RESIST_CAP} />
+              <StatWidget icon="fire"    iconColor="#ff6633" value={stats.resistances.fire} unit="%" visible={settings.resistances.fire} cap={ELEMENTAL_RESIST_CAP} />
+              <StatWidget icon="frost"   iconColor="#66ccff" value={stats.resistances.frost} unit="%" visible={settings.resistances.frost} cap={ELEMENTAL_RESIST_CAP} />
+              <StatWidget icon="shock"   iconColor="#ffdd33" value={stats.resistances.shock} unit="%" visible={settings.resistances.shock} cap={ELEMENTAL_RESIST_CAP} />
+              <StatWidget icon="poison"  iconColor="#66ff66" value={stats.resistances.poison} unit="%" visible={settings.resistances.poison} cap={ELEMENTAL_RESIST_CAP} />
+              <StatWidget icon="disease" iconColor="#99cc66" value={stats.resistances.disease} unit="%" visible={settings.resistances.disease} cap={DISEASE_RESIST_CAP} />
             </DraggableWidgetGroup>
           )}
 
