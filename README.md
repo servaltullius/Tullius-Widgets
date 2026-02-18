@@ -37,7 +37,7 @@ Skyrim SE용 전투 스탯 HUD 위젯 모드. [Prisma UI](https://www.nexusmods.
 
 ## Installation
 
-1. [Releases](https://github.com/servaltullius/Tullius-Widgets/releases) 에서 `TulliusWidgets.zip` 다운로드
+1. [Releases](https://github.com/servaltullius/Tullius-Widgets/releases) 에서 `TulliusWidgets-v*.zip` 다운로드
 2. zip 내용물을 `Skyrim Special Edition/Data/` 폴더에 복사
 3. 게임 실행
 
@@ -56,6 +56,12 @@ Data/
 | `Insert` | 설정 패널 열기/닫기 |
 | `ESC` | 설정 패널 닫기 |
 | 드래그 | 설정 패널 열린 동안 위젯 그룹 이동 |
+
+## 표시값 기준
+
+- 치명타 확률: 게임 엔트리포인트 계산값 기반, 표시 범위 `0% ~ 100%`
+- 저항(마법/화염/냉기/전기/독): 표시 범위 `-100% ~ 85%`
+- 질병 저항: 표시 범위 `0% ~ 100%`
 
 ## Building from Source
 
@@ -78,9 +84,11 @@ xmake build
 
 ### Packaging
 ```bash
+mkdir -p dist/PrismaUI/views/TulliusWidgets
+cp -r view/dist/* dist/PrismaUI/views/TulliusWidgets/
 mkdir -p dist/SKSE/Plugins
 cp build/windows/x64/release/TulliusWidgets.dll dist/SKSE/Plugins/
-cd dist && zip -r ../TulliusWidgets.zip .
+cd dist && zip -r ../TulliusWidgets-vX.Y.Z.zip .
 ```
 
 ## Tech Stack

@@ -43,6 +43,7 @@ Vignette screen effects warn you when Health, Magicka, or Stamina drops below a 
 [*]Auto-hides when game menus are open (Inventory, Map, Crafting, etc.)
 [*]Optional "Combat Only" mode — widgets appear only during combat
 [*]Critical chance reflects actual perk bonuses (Bladesman, Deep Wounds, Critical Shot)
+[*]Display ranges: Critical Chance 0~100%, Magic/Fire/Frost/Shock/Poison Resist -100~85%, Disease Resist 0~100%
 [*]Health/Magicka/Stamina show real-time current values
 [/list]
 
