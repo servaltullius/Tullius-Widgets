@@ -9,7 +9,7 @@ RE::TESObjectWEAP* SelectActiveWeapon(RE::PlayerCharacter* player) {
     if (!player) return nullptr;
 
     if (auto* attacking = player->GetAttackingWeapon()) {
-        if (auto* object = attacking->GetObject()) {
+        if (auto* object = attacking->object) {
             if (auto* weapon = object->As<RE::TESObjectWEAP>()) {
                 return weapon;
             }
