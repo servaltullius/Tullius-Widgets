@@ -1,0 +1,57 @@
+name: Build Windows Package
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: view/package-lock.json
+
+      - name: Build frontend
+        shell: bash
+        run: |
+          cd view
+          npm ci
+          npm run build
+
+      - name: Setup xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
+
+      - name: Build plugin
+        shell: pwsh
+        run: |
+          xmake f -p windows -a x64 -m release -y
+          xmake build
+
+      - name: Prepare package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path "dist/SKSE/Plugins" -Force | Out-Null
+          Copy-Item "build/windows/x64/release/TulliusWidgets.dll" "dist/SKSE/Plugins/TulliusWidgets.dll" -Force
+          if (Test-Path "TulliusWidgets-ci.zip") { Remove-Item "TulliusWidgets-ci.zip" -Force }
+          Compress-Archive -Path "dist/*" -DestinationPath "TulliusWidgets-ci.zip"
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TulliusWidgets-windows-package
+          path: TulliusWidgets-ci.zip
+          if-no-files-found: error
