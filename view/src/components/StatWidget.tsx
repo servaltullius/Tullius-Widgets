@@ -33,17 +33,22 @@ interface StatWidgetProps {
   value: number;
   unit?: string;
   visible: boolean;
+  min?: number;
   cap?: number;
   format?: (v: number) => string;
 }
 
-export function StatWidget({ icon, iconColor, value, unit = '', visible, cap, format }: StatWidgetProps) {
+export function StatWidget({ icon, iconColor, value, unit = '', visible, min, cap, format }: StatWidgetProps) {
   if (!visible) return null;
 
+  let displayNumber = value;
+  if (min !== undefined) displayNumber = Math.max(displayNumber, min);
+  if (cap !== undefined) displayNumber = Math.min(displayNumber, cap);
+
   const isAtCap = cap !== undefined && value >= cap;
-  const isNegative = value < 0;
+  const isNegative = displayNumber < 0;
   const valueColor = isAtCap ? '#ffd700' : isNegative ? '#ff4444' : '#ffffff';
-  const displayValue = format ? format(value) : Math.round(value).toString();
+  const displayValue = format ? format(displayNumber) : Math.round(displayNumber).toString();
 
   const iconSrc = iconMap[icon];
   const BadgeIcon = badgeIconMap[icon];

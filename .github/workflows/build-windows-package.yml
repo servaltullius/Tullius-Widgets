@@ -34,25 +34,40 @@ jobs:
       - name: Setup xmake
         uses: xmake-io/github-action-setup-xmake@v1
         with:
-          xmake-version: latest
+          xmake-version: 2.9.7
 
       - name: Build plugin
         shell: pwsh
         run: |
-          xmake f -p windows -a x64 -m release -y
+          xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false
           xmake build -y -v
 
       - name: Prepare package
         shell: pwsh
         run: |
+          if (!(Test-Path "dist/PrismaUI/views/TulliusWidgets/index.html")) {
+            throw "Frontend build output missing: dist/PrismaUI/views/TulliusWidgets/index.html"
+          }
+          if (!(Test-Path "build/windows/x64/release/TulliusWidgets.dll")) {
+            throw "Plugin DLL missing: build/windows/x64/release/TulliusWidgets.dll"
+          }
+
+          $versionMatch = Select-String -Path "xmake.lua" -Pattern 'set_version\("([^"]+)"\)' | Select-Object -First 1
+          if (-not $versionMatch) {
+            throw "Unable to parse version from xmake.lua"
+          }
+          $version = $versionMatch.Matches[0].Groups[1].Value
+          $zipName = "TulliusWidgets-v$version-ci.zip"
+          "ZIP_NAME=$zipName" | Out-File -FilePath $env:GITHUB_ENV -Append
+
           New-Item -ItemType Directory -Path "dist/SKSE/Plugins" -Force | Out-Null
           Copy-Item "build/windows/x64/release/TulliusWidgets.dll" "dist/SKSE/Plugins/TulliusWidgets.dll" -Force
-          if (Test-Path "TulliusWidgets-ci.zip") { Remove-Item "TulliusWidgets-ci.zip" -Force }
-          Compress-Archive -Path "dist/*" -DestinationPath "TulliusWidgets-ci.zip"
+          if (Test-Path $zipName) { Remove-Item $zipName -Force }
+          Compress-Archive -Path "dist/*" -DestinationPath $zipName
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
         with:
           name: TulliusWidgets-windows-package
-          path: TulliusWidgets-ci.zip
+          path: ${{ env.ZIP_NAME }}
           if-no-files-found: error

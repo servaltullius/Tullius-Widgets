@@ -17,7 +17,7 @@ Prisma UI (WebKit) + React/TypeScript 프론트엔드 + C++23 SKSE 플러그인�
 ## Architecture
 ```
 C++ StatsCollector (Skyrim ActorValue 수집)
-  → JSON string via PrismaUI.Invoke("updateStats('...')")
+  → JSON string via PrismaUI.InteropCall("updateStats", json)
     → React useGameStats hook (window.updateStats)
       → App.tsx → DraggableWidgetGroup → StatWidget
 
@@ -69,7 +69,7 @@ rsync -a --exclude='node_modules' --exclude='.git' --exclude='dist' --exclude='.
 
 # 2. Windows PowerShell로 빌드
 /mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -Command \
-  "cd 'C:\temp\TulliusWidgets'; xmake build -y"
+  "cd 'C:\temp\TulliusWidgets'; xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false; xmake build -y -v"
 
 # 3. DLL 복사
 cp /mnt/c/temp/TulliusWidgets/build/windows/x64/release/TulliusWidgets.dll \
@@ -78,7 +78,8 @@ cp /mnt/c/temp/TulliusWidgets/build/windows/x64/release/TulliusWidgets.dll \
 
 ### Zip 패키징
 ```bash
-cd dist && zip -r ../TulliusWidgets.zip .
+./scripts/package.sh
+# 결과: TulliusWidgets-v<version>.zip
 ```
 
 ## Key Features
@@ -93,20 +94,21 @@ cd dist && zip -r ../TulliusWidgets.zip .
 - 한/영 다국어
 
 ## Key Design Decisions
-- **C++ → JS 통신**: `PrismaUI->Invoke()` + `EscapeForJS()`로 JSON 인젝션 방어
+- **C++ → JS 통신**: `PrismaUI->InteropCall()` 기반으로 JSON 문자열을 함수 인자로 직접 전달
 - **설정 하위호환**: `mergeWithDefaults()` - 새 필드 추가해도 기존 저장파일 호환
-- **이벤트 기반 업데이트**: 전투/장비/효과 변경 이벤트 + 250ms 쓰로틀
-- **settingsRef 패턴**: `useRef(settings)` + `settingsRef.current = settings`로 useCallback 내 최신 상태 접근
+- **이벤트 기반 업데이트**: 전투 상태별 동적 쓰로틀(전투 100ms / 비전투 500ms)
+- **드래그 저장 패턴**: 드래그 중 임시 좌표(`dragPositions`) 사용 후 drag-end 시에만 설정 저장
 - **메뉴 리스트**: `kHiddenMenus` 파일 스코프 상수로 단일 정의, 2곳에서 재사용
 - **배경 투명**: 기본값 `transparentBg: true` - HP바와 조화
-- **크리티컬 확률**: `kCriticalChance` AV는 바닐라 기본값 0이라 무의미. `GetEffectiveCritChance()`에서 장착 무기 타입 + 바닐라 퍽(Bladesman/DeepWounds/CriticalShot) 직접 체크 후 AV 합산. 다른 모드 자체 크리티컬 시스템은 읽을 수 없음
+- **크리티컬 확률**: `BGSEntryPoint::kCalculateMyCriticalHitChance`를 통해 게임 런타임 평가값을 사용하고 `0~100`으로 클램프
 - **체력/매지카/스태미나**: `GetActorValue()`는 base 값만 반환. 실제 현재값은 `base + GetActorValueModifier(kDamage, ...)` 필요
 
 ## C++ ↔ JS Bridge
 | 방향 | 함수 | 용도 |
 |------|------|------|
-| C++ → JS | `updateStats('json')` | 스탯 데이터 전송 |
-| C++ → JS | `updateSettings('json')` | 저장된 설정 로드 |
+| C++ → JS | `updateStats(json)` | 스탯 데이터 전송 |
+| C++ → JS | `updateSettings(json)` | 저장된 설정 로드 |
+| C++ → JS | `importSettingsFromNative(json)` | 프리셋 JSON 전달(검증은 JS) |
 | C++ → JS | `setHUDColor('#hex')` | HUD 색상 전달 |
 | C++ → JS | `toggleSettings()` / `closeSettings()` | 설정 패널 제어 |
 | JS → C++ | `onSettingsChanged` | 설정 변경 알림 → 저장 |
@@ -115,5 +117,5 @@ cd dist && zip -r ../TulliusWidgets.zip .
 
 ## Notes
 - 도로롱 아이콘은 Shift Up 저작권 (개인 사용만, 배포 불가)
-- `#include <algorithm>`은 `EscapeForJS`에서 사용하지 않지만 향후 필요시 대비
+- `#include <algorithm>`은 `std::any_of`/`std::clamp` 등 계산 유틸에서 사용
 - XMake UNC 경로(`\\wsl.localhost\...`)에서 lock 파일 생성 불가 → 반드시 Windows 로컬 경로로 복사 후 빌드

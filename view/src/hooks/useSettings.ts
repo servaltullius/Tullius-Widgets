@@ -1,101 +1,144 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { WidgetSettings } from '../types/settings';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { UpdateSettingFn, UpdateSettingOptions, WidgetSettings } from '../types/settings';
 import { defaultSettings } from '../data/defaultSettings';
 
-// Deep merge: fill missing keys from defaults so old saved files don't crash
-function mergeWithDefaults(saved: any): WidgetSettings {
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+// Deep merge: fill missing keys from defaults so old saved files don't crash.
+function mergeWithDefaults(saved: unknown): WidgetSettings {
   const merged = structuredClone(defaultSettings);
-  if (!saved || typeof saved !== 'object') return merged;
+  if (!isPlainObject(saved)) return merged;
+
+  const source = saved as Record<string, unknown>;
+  const mutable = merged as unknown as Record<keyof WidgetSettings, unknown>;
+
   for (const key of Object.keys(merged) as (keyof WidgetSettings)[]) {
-    if (!(key in saved)) continue;
-    if (typeof merged[key] === 'object' && merged[key] !== null && !Array.isArray(merged[key])) {
-      merged[key] = { ...merged[key], ...saved[key] } as any;
+    if (!(key in source)) continue;
+
+    const incoming = source[key as string];
+    const current = mutable[key];
+    if (isPlainObject(current) && isPlainObject(incoming)) {
+      mutable[key] = { ...current, ...incoming };
     } else {
-      (merged as any)[key] = saved[key];
+      mutable[key] = incoming;
     }
   }
+
   return merged;
+}
+
+function setValueByPath(target: WidgetSettings, path: string, value: unknown): void {
+  const keys = path.split('.');
+  if (keys.length === 0) return;
+
+  let cursor: Record<string, unknown> = target as unknown as Record<string, unknown>;
+  for (let i = 0; i < keys.length - 1; i++) {
+    const next = cursor[keys[i]];
+    if (!isPlainObject(next)) return;
+    cursor = next;
+  }
+
+  cursor[keys[keys.length - 1]] = value;
 }
 
 export function useSettings() {
   const [settings, setSettings] = useState<WidgetSettings>(defaultSettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [hudColor, setHudColor] = useState('#ffffff');
+  const debounceTimerRef = useRef<number | null>(null);
+
+  const notifySettingsChanged = useCallback((json: string) => {
+    if (debounceTimerRef.current !== null) {
+      window.clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = window.setTimeout(() => {
+      window.onSettingsChanged?.(json);
+    }, 200);
+  }, []);
+
+  const applyIncomingSettings = useCallback((jsonString: string, persist: boolean): boolean => {
+    try {
+      const parsed = JSON.parse(jsonString);
+      const merged = mergeWithDefaults(parsed);
+      setSettings(merged);
+      if (persist) {
+        notifySettingsChanged(JSON.stringify(merged));
+      }
+      return true;
+    } catch (e) {
+      console.error('Failed to parse settings JSON:', e);
+      return false;
+    }
+  }, [notifySettingsChanged]);
 
   useEffect(() => {
-    (window as any).updateSettings = (jsonString: string) => {
-      try {
-        const parsed = JSON.parse(jsonString);
-        setSettings(mergeWithDefaults(parsed));
-      } catch (e) {
-        console.error('Failed to parse settings JSON:', e);
-      }
+    window.updateSettings = (jsonString: string) => {
+      applyIncomingSettings(jsonString, false);
     };
 
-    (window as any).toggleSettings = () => {
+    window.importSettingsFromNative = (jsonString: string) => {
+      const success = applyIncomingSettings(jsonString, true);
+      window.onImportResult?.(success);
+    };
+
+    window.toggleSettings = () => {
       setSettingsOpen(prev => !prev);
     };
 
-    (window as any).closeSettings = () => {
+    window.closeSettings = () => {
       setSettingsOpen(false);
     };
 
-    (window as any).setHUDColor = (hex: string) => {
+    window.setHUDColor = (hex: string) => {
       setHudColor(hex);
     };
 
     return () => {
-      delete (window as any).updateSettings;
-      delete (window as any).toggleSettings;
-      delete (window as any).closeSettings;
-      delete (window as any).setHUDColor;
+      delete window.updateSettings;
+      delete window.importSettingsFromNative;
+      delete window.toggleSettings;
+      delete window.closeSettings;
+      delete window.setHUDColor;
+      if (debounceTimerRef.current !== null) {
+        window.clearTimeout(debounceTimerRef.current);
+      }
     };
-  }, []);
+  }, [applyIncomingSettings]);
 
-  // ESC key closes settings and requests unfocus
+  // ESC key closes settings and requests unfocus.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && settingsOpen) {
         setSettingsOpen(false);
-        (window as any).onRequestUnfocus?.('');
+        window.onRequestUnfocus?.('');
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [settingsOpen]);
 
-  const debouncedNotify = useMemo(() => {
-    let timer: number;
-    return (json: string) => {
-      clearTimeout(timer);
-      timer = window.setTimeout(() => {
-        (window as any).onSettingsChanged?.(json);
-      }, 200);
-    };
-  }, []);
-
-  const updateSetting = useCallback((path: string, value: any) => {
+  const updateSetting = useCallback<UpdateSettingFn>((path: string, value: unknown, options?: UpdateSettingOptions) => {
     setSettings(prev => {
       const next = structuredClone(prev);
-      const keys = path.split('.');
-      let obj: any = next;
-      for (let i = 0; i < keys.length - 1; i++) {
-        obj = obj[keys[i]];
-      }
-      obj[keys[keys.length - 1]] = value;
+      setValueByPath(next, path, value);
 
-      debouncedNotify(JSON.stringify(next));
+      if (options?.persist !== false) {
+        notifySettingsChanged(JSON.stringify(next));
+      }
 
       return next;
     });
-  }, [debouncedNotify]);
+  }, [notifySettingsChanged]);
 
   const closeSettings = useCallback(() => {
     setSettingsOpen(false);
-    (window as any).onRequestUnfocus?.('');
+    window.onRequestUnfocus?.('');
   }, []);
 
-  // Resolved accent color: manual override > auto HUD color
+  // Resolved accent color: manual override > auto HUD color.
   const accentColor = settings.general.accentColor || hudColor;
 
   return { settings, settingsOpen, setSettingsOpen, closeSettings, updateSetting, accentColor, hudColor };

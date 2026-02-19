@@ -12,6 +12,7 @@ interface DraggableWidgetGroupProps {
   transparentBg: boolean;
   draggable: boolean;
   onMove: (groupId: string, x: number, y: number) => void;
+  onDragEnd: (groupId: string, x: number, y: number) => void;
   children: ReactNode;
 }
 
@@ -33,7 +34,7 @@ function hexToRgba(hex: string, alpha: number): string {
 }
 
 export function DraggableWidgetGroup({
-  groupId, x, y, opacity, size, layout, accentColor, transparentBg, draggable, onMove, children,
+  groupId, x, y, opacity, size, layout, accentColor, transparentBg, draggable, onMove, onDragEnd, children,
 }: DraggableWidgetGroupProps) {
   const [dragging, setDragging] = useState(false);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -48,10 +49,17 @@ export function DraggableWidgetGroup({
   useEffect(() => {
     if (!dragging) return;
 
+    let currentX = x;
+    let currentY = y;
     const handleMove = (e: MouseEvent) => {
-      onMove(groupId, e.clientX - offset.x, e.clientY - offset.y);
+      currentX = e.clientX - offset.x;
+      currentY = e.clientY - offset.y;
+      onMove(groupId, currentX, currentY);
     };
-    const handleUp = () => setDragging(false);
+    const handleUp = () => {
+      setDragging(false);
+      onDragEnd(groupId, currentX, currentY);
+    };
 
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('mouseup', handleUp);
@@ -59,7 +67,7 @@ export function DraggableWidgetGroup({
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', handleUp);
     };
-  }, [dragging, offset, groupId, onMove]);
+  }, [dragging, groupId, offset, onDragEnd, onMove, x, y]);
 
   const scale = scaleMap[size];
   const showBg = !transparentBg || draggable;

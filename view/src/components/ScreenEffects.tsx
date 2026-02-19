@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import type { AlertData } from '../types/stats';
 import type { WidgetSettings } from '../types/settings';
 
@@ -24,15 +23,8 @@ function buildShadow(color: string, intensity: number, spread: number): string {
 
 export function ScreenEffects({ alertData, settings }: ScreenEffectsProps) {
   const va = settings.visualAlerts;
-  const [pulseHigh, setPulseHigh] = useState(false);
 
   const shouldPulse = va?.enabled && va.lowHealth && alertData?.healthPct < 15;
-
-  useEffect(() => {
-    if (!shouldPulse) { setPulseHigh(false); return; }
-    const id = setInterval(() => setPulseHigh(v => !v), 1300);
-    return () => clearInterval(id);
-  }, [shouldPulse]);
 
   if (!va?.enabled || !alertData) return null;
 
@@ -43,26 +35,41 @@ export function ScreenEffects({ alertData, settings }: ScreenEffectsProps) {
 
   if (healthI <= 0 && staminaI <= 0 && magickaI <= 0 && carryI <= 0) return null;
 
-  const pulseMultiplier = shouldPulse ? (pulseHigh ? 1 : 0.35) : 1;
-  const effectiveHealthI = healthI * pulseMultiplier;
-
-  const shadows = [
-    buildShadow('rgba(180, 20, 20, 1)', effectiveHealthI, 180),
+  const healthShadow = buildShadow('rgba(180, 20, 20, 1)', healthI, 180);
+  const secondaryShadows = [
     buildShadow('rgba(200, 160, 30, 1)', staminaI, 150),
     buildShadow('rgba(40, 60, 180, 1)', magickaI, 150),
     buildShadow('rgba(140, 100, 40, 1)', carryI, 130),
   ].filter(Boolean).join(', ');
 
-  if (!shadows) return null;
+  if (!healthShadow && !secondaryShadows) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      pointerEvents: 'none',
-      zIndex: 500,
-      boxShadow: shadows,
-      transition: 'box-shadow 0.8s ease',
-    }} />
+    <>
+      {shouldPulse && healthShadow && (
+        <style>{'@keyframes tw-health-pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }'}</style>
+      )}
+      {secondaryShadows && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          pointerEvents: 'none',
+          zIndex: 500,
+          boxShadow: secondaryShadows,
+          transition: 'box-shadow 0.8s ease',
+        }} />
+      )}
+      {healthShadow && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          pointerEvents: 'none',
+          zIndex: 501,
+          boxShadow: healthShadow,
+          transition: 'box-shadow 0.8s ease',
+          animation: shouldPulse ? 'tw-health-pulse 1.3s ease-in-out infinite' : undefined,
+        }} />
+      )}
+    </>
   );
 }

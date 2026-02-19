@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import type { WidgetSettings, WidgetLayout } from '../types/settings';
+import type { UpdateSettingFn, WidgetSettings, WidgetLayout } from '../types/settings';
 import { t } from '../i18n/translations';
 
 interface SettingsPanelProps {
   settings: WidgetSettings;
   open: boolean;
   onClose: () => void;
-  onUpdate: (path: string, value: any) => void;
+  onUpdate: UpdateSettingFn;
   accentColor: string;
 }
 
@@ -67,7 +67,17 @@ function CustomSelect({ value, options, onChange }: {
   );
 }
 
-function LayoutSelect({ lang, groupId, value, onUpdate }: { lang: 'ko' | 'en'; groupId: string; value: WidgetLayout; onUpdate: (path: string, value: any) => void }) {
+function LayoutSelect({
+  lang,
+  groupId,
+  value,
+  onUpdate,
+}: {
+  lang: 'ko' | 'en';
+  groupId: string;
+  value: WidgetLayout;
+  onUpdate: UpdateSettingFn;
+}) {
   return (
     <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
       <span style={{ color: '#aaa', fontSize: '24px' }}>{t(lang, 'layout')}</span>
@@ -96,19 +106,19 @@ function PresetSection({ lang, settings }: { lang: 'ko' | 'en'; settings: Widget
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    (window as any).onExportResult = (success: boolean) => {
+    window.onExportResult = (success: boolean) => {
       if (success) {
         setMessage(t(lang, 'exportDone'));
         setTimeout(() => setMessage(null), 3000);
       }
     };
-    (window as any).onImportResult = (success: boolean) => {
+    window.onImportResult = (success: boolean) => {
       setMessage(t(lang, success ? 'importDone' : 'importFail'));
       setTimeout(() => setMessage(null), 3000);
     };
     return () => {
-      delete (window as any).onExportResult;
-      delete (window as any).onImportResult;
+      delete window.onExportResult;
+      delete window.onImportResult;
     };
   }, [lang]);
 
@@ -126,10 +136,10 @@ function PresetSection({ lang, settings }: { lang: 'ko' | 'en'; settings: Widget
   return (
     <Section title={t(lang, 'preset')}>
       <div style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
-        <button style={btnStyle} onClick={() => (window as any).onExportSettings?.(JSON.stringify(settings))}>
+        <button style={btnStyle} onClick={() => window.onExportSettings?.(JSON.stringify(settings))}>
           {t(lang, 'exportPreset')}
         </button>
-        <button style={btnStyle} onClick={() => (window as any).onImportSettings?.('')}>
+        <button style={btnStyle} onClick={() => window.onImportSettings?.('')}>
           {t(lang, 'importPreset')}
         </button>
       </div>

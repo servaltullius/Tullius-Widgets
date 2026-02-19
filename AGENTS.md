@@ -20,7 +20,7 @@
 - Lint/format: `cd view && npm run lint`
 - Typecheck/build:
   - 프론트: `cd view && npm run build`
-  - 플러그인(Windows/MSVC): `xmake f -p windows -a x64 -m release -y && xmake build`
+  - 플러그인(Windows/MSVC): `xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false && xmake build`
 - How to run a single test quickly: `N/A (현재 테스트 러너 미구성)`
 
 ## Coding standards
@@ -35,11 +35,11 @@
 - Dev server command: `cd view && npm run dev`
 - Unit test command: `N/A (현재 유닛 테스트 명령 미구성)`
 - Lint/format command: `cd view && npm run lint`
-- Typecheck/build command: `cd view && npm run build` / `xmake f -p windows -a x64 -m release -y && xmake build`
+- Typecheck/build command: `cd view && npm run build` / `xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false && xmake build`
 - Primary entrypoint path: `src/main.cpp` (plugin), `view/src/main.tsx` (UI)
 
 ## Release policy (required)
-- Release name format: `Tullius Widgets v<version>`
+- Release/Pre-release name format: `Tullius Widgets v<version>`
 - Patch notes language: 한국어로 작성
 - ZIP artifact: 릴리즈마다 `TulliusWidgets*.zip` 산출물 첨부 필수
 - Minimum patch note sections:

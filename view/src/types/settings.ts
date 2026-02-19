@@ -58,3 +58,13 @@ export interface WidgetSettings {
   positions: Record<string, GroupPosition>;
   layouts: Record<string, WidgetLayout>;
 }
+
+export interface UpdateSettingOptions {
+  persist?: boolean;
+}
+
+export type UpdateSettingFn = (
+  path: string,
+  value: unknown,
+  options?: UpdateSettingOptions
+) => void;

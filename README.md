@@ -78,18 +78,22 @@ npm run build
 
 ### C++ SKSE Plugin (Windows MSVC 필수)
 ```bash
-xmake f -p windows -a x64 -m release -y
+xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false
 xmake build
 ```
 
 ### Packaging
 ```bash
-mkdir -p dist/PrismaUI/views/TulliusWidgets
-cp -r view/dist/* dist/PrismaUI/views/TulliusWidgets/
-mkdir -p dist/SKSE/Plugins
-cp build/windows/x64/release/TulliusWidgets.dll dist/SKSE/Plugins/
-cd dist && zip -r ../TulliusWidgets-vX.Y.Z.zip .
+./scripts/package.sh
+# 결과: TulliusWidgets-v<version>.zip
 ```
+
+### 값 이상치 트러블슈팅
+- 치명타 확률이 `100%` 초과, 저항이 `85%` 초과로 보이면 구버전 DLL일 가능성이 큽니다.
+- 최신 빌드는 내부 계산 후 다음 범위로 표시값을 제한합니다.
+  - 치명타 확률: `0 ~ 100`
+  - 마법/화염/냉기/전기/독 저항: `-100 ~ 85`
+  - 질병 저항: `0 ~ 100`
 
 ## Tech Stack
 

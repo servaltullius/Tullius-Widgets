@@ -6,18 +6,6 @@
 #include <filesystem>
 #include <algorithm>
 
-// Escape single quotes for safe JS string embedding
-static std::string EscapeForJS(const std::string& input) {
-    std::string result;
-    result.reserve(input.size());
-    for (char c : input) {
-        if (c == '\'') result += "\\'";
-        else if (c == '\\') result += "\\\\";
-        else result += c;
-    }
-    return result;
-}
-
 PRISMA_UI_API::IVPrismaUI1* PrismaUI = nullptr;
 static PrismaView view = 0;
 static std::atomic<bool> gameLoaded{false};
@@ -67,8 +55,7 @@ static void SendHUDColorToView() {
     }
     char hex[16];
     std::snprintf(hex, sizeof(hex), "#%06x", color);
-    std::string script = std::string("setHUDColor('") + hex + "')";
-    PrismaUI->Invoke(view, script.c_str());
+    PrismaUI->InteropCall(view, "setHUDColor", hex);
     logger::info("HUD color sent: {}", hex);
 }
 
@@ -76,8 +63,7 @@ static void SendSettingsToView() {
     if (!PrismaUI || !view) return;
     std::string json = LoadSettings();
     if (json.empty()) return;
-    std::string script = "updateSettings('" + EscapeForJS(json) + "')";
-    PrismaUI->Invoke(view, script.c_str());
+    PrismaUI->InteropCall(view, "updateSettings", json.c_str());
     logger::info("Saved settings sent to view");
 }
 
@@ -93,8 +79,7 @@ static void SendStatsToView(bool force = false) {
     }
 
     std::string stats = TulliusWidgets::StatsCollector::CollectStats();
-    std::string script = "updateStats('" + EscapeForJS(stats) + "')";
-    PrismaUI->Invoke(view, script.c_str());
+    PrismaUI->InteropCall(view, "updateStats", stats.c_str());
 }
 
 class CombatEventSink : public RE::BSTEventSink<RE::TESCombatEvent> {
@@ -276,16 +261,19 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message) {
                 return;
             }
             std::ifstream file(presetPath);
-            if (!file.is_open()) return;
+            if (!file.is_open()) {
+                if (PrismaUI && view) {
+                    PrismaUI->Invoke(view, "onImportResult(false)");
+                }
+                return;
+            }
             std::string json((std::istreambuf_iterator<char>(file)),
                               std::istreambuf_iterator<char>());
             if (PrismaUI && view) {
-                std::string script = "updateSettings('" + EscapeForJS(json) + "')";
-                PrismaUI->Invoke(view, script.c_str());
-                SaveSettings(json.c_str());
-                PrismaUI->Invoke(view, "onImportResult(true)");
+                // JS validates/parses imported JSON first, then persists via onSettingsChanged.
+                PrismaUI->InteropCall(view, "importSettingsFromNative", json.c_str());
             }
-            logger::info("Preset imported");
+            logger::info("Preset import payload sent");
         });
 
         PrismaUI->RegisterJSListener(view, "onRequestUnfocus", [](const char*) -> void {
