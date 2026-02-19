@@ -12,6 +12,8 @@ const ELEMENTAL_RESIST_CAP = 85;
 const ELEMENTAL_RESIST_MIN = -100;
 const DISEASE_RESIST_CAP = 100;
 const DISEASE_RESIST_MIN = 0;
+const WEAPON_DAMAGE_CAP = 9999;
+const WEAPON_DAMAGE_MIN = 0;
 const CRIT_CHANCE_CAP = 100;
 const CRIT_CHANCE_MIN = 0;
 const GROUP_IDS = ['playerInfo', 'resistances', 'defense', 'offense', 'movement'] as const;
@@ -148,8 +150,8 @@ export function App() {
 
           {hasVisibleOffense && (
             <DraggableWidgetGroup {...groupProps('offense')}>
-              <StatWidget icon="rightHand" iconColor="#e85050" value={stats.offense.rightHandDamage} visible={settings.offense.rightHandDamage} />
-              <StatWidget icon="leftHand" iconColor="#e88080" value={stats.offense.leftHandDamage} visible={settings.offense.leftHandDamage} />
+              <StatWidget icon="rightHand" iconColor="#e85050" value={stats.offense.rightHandDamage} visible={settings.offense.rightHandDamage} min={WEAPON_DAMAGE_MIN} cap={WEAPON_DAMAGE_CAP} />
+              <StatWidget icon="leftHand" iconColor="#e88080" value={stats.offense.leftHandDamage} visible={settings.offense.leftHandDamage} min={WEAPON_DAMAGE_MIN} cap={WEAPON_DAMAGE_CAP} />
               <StatWidget icon="crit" iconColor="#ff8800" value={stats.offense.critChance} unit="%" visible={settings.offense.critChance} min={CRIT_CHANCE_MIN} cap={CRIT_CHANCE_CAP} />
             </DraggableWidgetGroup>
           )}

@@ -1,10 +1,14 @@
 #include "StatsCollector.h"
 #include "CriticalChanceEvaluator.h"
 #include "ResistanceEvaluator.h"
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 
 namespace TulliusWidgets {
+
+static constexpr float kDisplayedDamageMin = 0.0f;
+static constexpr float kDisplayedDamageMax = 9999.0f;
 
 static std::string safeFloat(float v) {
     if (std::isnan(v) || std::isinf(v)) return "0";
@@ -163,6 +167,8 @@ std::string StatsCollector::CollectStats() {
             leftDmg = CalcDisplayedDamage(player, weapon);
         }
     }
+    rightDmg = std::clamp(rightDmg, kDisplayedDamageMin, kDisplayedDamageMax);
+    leftDmg = std::clamp(leftDmg, kDisplayedDamageMin, kDisplayedDamageMax);
 
     json += "\"offense\":{";
     json += "\"rightHandDamage\":" + safeFloat(rightDmg) + ",";
