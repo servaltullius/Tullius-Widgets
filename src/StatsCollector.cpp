@@ -4,11 +4,53 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <string_view>
 
 namespace TulliusWidgets {
 
 static constexpr float kDisplayedDamageMin = 0.0f;
 static constexpr float kDisplayedDamageMax = 9999.0f;
+
+static std::string escapeJson(std::string_view input) {
+    std::string out;
+    out.reserve(input.size());
+    for (char c : input) {
+        switch (c) {
+        case '\\': out += "\\\\"; break;
+        case '"': out += "\\\""; break;
+        case '\n': out += "\\n"; break;
+        case '\r': out += "\\r"; break;
+        case '\t': out += "\\t"; break;
+        default: out += c; break;
+        }
+    }
+    return out;
+}
+
+static std::string getEquippedName(RE::PlayerCharacter* player, bool leftHand) {
+    if (!player) return "";
+    const RE::TESForm* equipped = player->GetEquippedObject(leftHand);
+    if (!equipped) return "";
+
+    if (const auto* weapon = equipped->As<RE::TESObjectWEAP>()) {
+        const char* name = weapon->GetName();
+        return name ? name : "";
+    }
+    if (const auto* spell = equipped->As<RE::SpellItem>()) {
+        const char* name = spell->GetName();
+        return name ? name : "";
+    }
+    if (const auto* scroll = equipped->As<RE::ScrollItem>()) {
+        const char* name = scroll->GetName();
+        return name ? name : "";
+    }
+    if (const auto* armor = equipped->As<RE::TESObjectARMO>()) {
+        const char* name = armor->GetName();
+        return name ? name : "";
+    }
+    const char* name = equipped->GetName();
+    return name ? name : "";
+}
 
 static std::string safeFloat(float v) {
     if (std::isnan(v) || std::isinf(v)) return "0";
@@ -174,6 +216,13 @@ std::string StatsCollector::CollectStats() {
     json += "\"rightHandDamage\":" + safeFloat(rightDmg) + ",";
     json += "\"leftHandDamage\":" + safeFloat(leftDmg) + ",";
     json += "\"critChance\":" + safeFloat(CriticalChanceEvaluator::GetEffectiveCritChance(player));
+    json += "},";
+
+    const auto rightEquipped = getEquippedName(player, false);
+    const auto leftEquipped = getEquippedName(player, true);
+    json += "\"equipped\":{";
+    json += "\"rightHand\":\"" + escapeJson(rightEquipped) + "\",";
+    json += "\"leftHand\":\"" + escapeJson(leftEquipped) + "\"";
     json += "},";
 
     json += "\"movement\":{";

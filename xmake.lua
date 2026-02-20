@@ -4,7 +4,7 @@ set_xmakever("2.8.2")
 includes("lib/commonlibsse-ng")
 
 set_project("TulliusWidgets")
-set_version("1.1.3-rc.2")
+set_version("1.1.3-rc.3")
 set_license("MIT")
 
 set_languages("c++23")

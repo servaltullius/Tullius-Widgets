@@ -34,6 +34,10 @@ export interface WidgetSettings {
     leftHandDamage: boolean;
     critChance: boolean;
   };
+  equipped: {
+    rightHand: boolean;
+    leftHand: boolean;
+  };
   movement: {
     speedMult: boolean;
   };

@@ -7,6 +7,7 @@ import { useGameStats } from './hooks/useGameStats';
 import { useSettings } from './hooks/useSettings';
 import { getDefaultPositions } from './data/defaultSettings';
 import type { GroupPosition } from './types/settings';
+import { t } from './i18n/translations';
 
 const ELEMENTAL_RESIST_CAP = 85;
 const ELEMENTAL_RESIST_MIN = -100;
@@ -16,7 +17,7 @@ const WEAPON_DAMAGE_CAP = 9999;
 const WEAPON_DAMAGE_MIN = 0;
 const CRIT_CHANCE_CAP = 100;
 const CRIT_CHANCE_MIN = 0;
-const GROUP_IDS = ['playerInfo', 'resistances', 'defense', 'offense', 'movement'] as const;
+const GROUP_IDS = ['playerInfo', 'resistances', 'defense', 'offense', 'equipped', 'movement'] as const;
 const SNAP_THRESHOLD = 15;
 const GRID = 10;
 const FALLBACK_POS: GroupPosition = { x: 100, y: 100 };
@@ -64,6 +65,7 @@ export function App() {
   const { settings, settingsOpen, closeSettings, updateSetting, accentColor } = useSettings();
   const [dragPositions, setDragPositions] = useState<Record<string, GroupPosition>>({});
   const defaults = getDefaultPositions();
+  const lang = settings.general.language;
 
   const shouldShow = settings.general.visible &&
     (!settings.general.combatOnly || stats.isInCombat);
@@ -112,6 +114,7 @@ export function App() {
   const hasVisibleResistance = Object.values(settings.resistances).some(Boolean);
   const hasVisibleDefense = Object.values(settings.defense).some(Boolean);
   const hasVisibleOffense = Object.values(settings.offense).some(Boolean);
+  const hasVisibleEquipped = Object.values(settings.equipped).some(Boolean);
   const hasVisibleMovement = settings.movement.speedMult;
   const hasVisiblePlayerInfo = Object.values(settings.playerInfo).some(Boolean);
 
@@ -153,6 +156,23 @@ export function App() {
               <StatWidget icon="rightHand" iconColor="#e85050" value={stats.offense.rightHandDamage} visible={settings.offense.rightHandDamage} min={WEAPON_DAMAGE_MIN} cap={WEAPON_DAMAGE_CAP} />
               <StatWidget icon="leftHand" iconColor="#e88080" value={stats.offense.leftHandDamage} visible={settings.offense.leftHandDamage} min={WEAPON_DAMAGE_MIN} cap={WEAPON_DAMAGE_CAP} />
               <StatWidget icon="crit" iconColor="#ff8800" value={stats.offense.critChance} unit="%" visible={settings.offense.critChance} min={CRIT_CHANCE_MIN} cap={CRIT_CHANCE_CAP} />
+            </DraggableWidgetGroup>
+          )}
+
+          {hasVisibleEquipped && (
+            <DraggableWidgetGroup {...groupProps('equipped')}>
+              <StatWidget
+                icon="rightHand"
+                iconColor="#e85050"
+                value={stats.equipped.rightHand || t(lang, 'equippedEmpty')}
+                visible={settings.equipped.rightHand}
+              />
+              <StatWidget
+                icon="leftHand"
+                iconColor="#4090e8"
+                value={stats.equipped.leftHand || t(lang, 'equippedEmpty')}
+                visible={settings.equipped.leftHand}
+              />
             </DraggableWidgetGroup>
           )}
 

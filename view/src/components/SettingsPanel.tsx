@@ -291,6 +291,12 @@ export function SettingsPanel({ settings, open, onClose, onUpdate, accentColor }
         <Toggle label={t(lang, 'critChance')} checked={settings.offense.critChance} onChange={v => onUpdate('offense.critChance', v)} />
       </Section>
 
+      <Section title={t(lang, 'equipped')}>
+        <LayoutSelect lang={lang} groupId="equipped" value={groupLayout('equipped')} onUpdate={onUpdate} />
+        <Toggle label={t(lang, 'rightHandEquipped')} checked={settings.equipped.rightHand} onChange={v => onUpdate('equipped.rightHand', v)} />
+        <Toggle label={t(lang, 'leftHandEquipped')} checked={settings.equipped.leftHand} onChange={v => onUpdate('equipped.leftHand', v)} />
+      </Section>
+
       <Section title={t(lang, 'movement')}>
         <LayoutSelect lang={lang} groupId="movement" value={groupLayout('movement')} onUpdate={onUpdate} />
         <Toggle label={t(lang, 'speed')} checked={settings.movement.speedMult} onChange={v => onUpdate('movement.speedMult', v)} />

@@ -11,7 +11,7 @@ export function useGameStats(): CombatStats {
     window.updateStats = (jsonString: string) => {
       try {
         const parsed = JSON.parse(jsonString) as CombatStats;
-        const normalized = parsed.alertData
+        const withAlertData = parsed.alertData
           ? parsed
           : {
               ...parsed,
@@ -22,7 +22,16 @@ export function useGameStats(): CombatStats {
                 carryPct: 0,
               },
             };
-        setStats(normalized);
+        const normalized = withAlertData.equipped
+          ? withAlertData
+          : {
+              ...withAlertData,
+              equipped: {
+                rightHand: '',
+                leftHand: '',
+              },
+            };
+        setStats(normalized as CombatStats);
       } catch (e) {
         console.error('Failed to parse stats JSON:', e);
       }

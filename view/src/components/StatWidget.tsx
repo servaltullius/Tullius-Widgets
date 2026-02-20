@@ -30,7 +30,7 @@ const badgeIconMap: Record<string, LucideIcon> = {
 interface StatWidgetProps {
   icon: string;
   iconColor: string;
-  value: number;
+  value: number | string;
   unit?: string;
   visible: boolean;
   min?: number;
@@ -41,14 +41,21 @@ interface StatWidgetProps {
 export function StatWidget({ icon, iconColor, value, unit = '', visible, min, cap, format }: StatWidgetProps) {
   if (!visible) return null;
 
-  let displayNumber = value;
-  if (min !== undefined) displayNumber = Math.max(displayNumber, min);
-  if (cap !== undefined) displayNumber = Math.min(displayNumber, cap);
+  const isNumeric = typeof value === 'number';
+  let displayNumber = isNumeric ? value : 0;
+  if (isNumeric) {
+    if (min !== undefined) displayNumber = Math.max(displayNumber, min);
+    if (cap !== undefined) displayNumber = Math.min(displayNumber, cap);
+  }
 
-  const isAtCap = cap !== undefined && value >= cap;
-  const isNegative = displayNumber < 0;
+  const isAtCap = isNumeric && cap !== undefined && value >= cap;
+  const isNegative = isNumeric && displayNumber < 0;
   const valueColor = isAtCap ? '#ffd700' : isNegative ? '#ff4444' : '#ffffff';
-  const displayValue = format ? format(displayNumber) : Math.round(displayNumber).toString();
+  const displayValue = isNumeric
+    ? (format ? format(displayNumber) : Math.round(displayNumber).toString())
+    : value;
+  const textAlign = isNumeric ? 'right' : 'left';
+  const minWidth = isNumeric ? '40px' : '140px';
 
   const iconSrc = iconMap[icon];
   const BadgeIcon = badgeIconMap[icon];
@@ -99,9 +106,12 @@ export function StatWidget({ icon, iconColor, value, unit = '', visible, min, ca
         fontSize: '18px',
         fontWeight: 600,
         textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-        minWidth: '40px',
-        textAlign: 'right',
+        minWidth,
+        textAlign,
         whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        maxWidth: '220px',
       }}>
         {displayValue}{unit}
       </span>

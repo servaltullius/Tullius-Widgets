@@ -27,6 +27,10 @@ export const defaultSettings: WidgetSettings = {
     leftHandDamage: true,
     critChance: true,
   },
+  equipped: {
+    rightHand: true,
+    leftHand: true,
+  },
   movement: {
     speedMult: true,
   },
@@ -60,6 +64,7 @@ export function getDefaultPositions(): Record<string, { x: number; y: number }> 
     resistances: { x: right, y: 220 },
     defense: { x: right, y: 500 },
     offense: { x: right, y: 630 },
-    movement: { x: right, y: 800 },
+    equipped: { x: right, y: 760 },
+    movement: { x: right, y: 900 },
   };
 }

@@ -18,6 +18,11 @@ export interface Offense {
   critChance: number;
 }
 
+export interface Equipped {
+  rightHand: string;
+  leftHand: string;
+}
+
 export interface Movement {
   speedMult: number;
 }
@@ -43,6 +48,7 @@ export interface CombatStats {
   resistances: Resistances;
   defense: Defense;
   offense: Offense;
+  equipped: Equipped;
   movement: Movement;
   playerInfo: PlayerInfo;
   alertData: AlertData;

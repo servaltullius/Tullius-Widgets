@@ -18,6 +18,10 @@ export const mockStats: CombatStats = {
     leftHandDamage: 0,
     critChance: 15,
   },
+  equipped: {
+    rightHand: 'Daedric Sword',
+    leftHand: 'Fireball',
+  },
   movement: {
     speedMult: 100,
   },
