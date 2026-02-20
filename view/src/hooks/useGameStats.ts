@@ -27,6 +27,15 @@ function readText(value: unknown, fallback: string): string {
   return typeof value === 'string' && value.length > 0 ? value : fallback;
 }
 
+function sanitizeEffectText(value: string): string {
+  let cleaned = '';
+  for (const char of value) {
+    const code = char.charCodeAt(0);
+    cleaned += (code >= 0x20 && code !== 0x7F) ? char : ' ';
+  }
+  return cleaned.replace(/\s+/g, ' ').trim();
+}
+
 function normalizeGameTime(value: unknown): GameTimeInfo {
   const snapshotAtMs = Date.now();
   const fallbackMonth = 0;
@@ -64,18 +73,23 @@ function normalizeGameTime(value: unknown): GameTimeInfo {
 function normalizeTimedEffects(value: unknown): TimedEffect[] {
   if (!Array.isArray(value)) return [];
   const occurrenceBySignature = new Map<string, number>();
+  const occurrenceByStableBase = new Map<string, number>();
   const snapshotAtMs = Date.now();
+  const mergedByLogicalKey = new Map<string, Omit<TimedEffect, 'stableKey' | 'snapshotAtMs'>>();
 
-  return value.flatMap((item) => {
-    if (!item || typeof item !== 'object') return [];
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue;
     const raw = item as Record<string, unknown>;
 
-    const sourceName = typeof raw.sourceName === 'string'
+    const rawSourceName = typeof raw.sourceName === 'string'
       ? raw.sourceName
       : typeof raw.name === 'string'
         ? raw.name
         : '';
-    const effectName = typeof raw.effectName === 'string' ? raw.effectName : sourceName;
+    const rawEffectName = typeof raw.effectName === 'string' ? raw.effectName : rawSourceName;
+
+    let sourceName = sanitizeEffectText(rawSourceName);
+    let effectName = sanitizeEffectText(rawEffectName);
 
     const remainingSec = typeof raw.remainingSec === 'number' && Number.isFinite(raw.remainingSec)
       ? raw.remainingSec
@@ -89,24 +103,58 @@ function normalizeTimedEffects(value: unknown): TimedEffect[] {
       : null;
     const instanceId = rawInstanceId ?? -1;
 
-    if (!sourceName && !effectName) return [];
+    if (!sourceName && effectName) sourceName = effectName;
+    if (!effectName && sourceName) effectName = sourceName;
+    if (!sourceName && !effectName) continue;
 
-    const signature = `${sourceName}|${effectName}|${Math.trunc(totalSec)}|${isDebuff ? 1 : 0}`;
-    const occurrence = occurrenceBySignature.get(signature) ?? 0;
-    occurrenceBySignature.set(signature, occurrence + 1);
-    const stableKey = rawInstanceId !== null ? `id:${rawInstanceId}` : `sig:${signature}|${occurrence}`;
+    const roundedRemaining = Math.trunc(Math.max(0, remainingSec));
+    const roundedTotal = Math.trunc(Math.max(0, totalSec));
+    const logicalKey = rawInstanceId !== null
+      ? `id:${rawInstanceId}|${sourceName}|${effectName}|${isDebuff ? 1 : 0}`
+      : `sig:${sourceName}|${effectName}|${roundedTotal}|${isDebuff ? 1 : 0}`;
 
-    return [{
+    const existing = mergedByLogicalKey.get(logicalKey);
+    if (existing) {
+      existing.remainingSec = Math.max(existing.remainingSec, roundedRemaining);
+      existing.totalSec = Math.max(existing.totalSec, roundedTotal);
+      continue;
+    }
+
+    mergedByLogicalKey.set(logicalKey, {
       instanceId,
-      stableKey,
-      snapshotAtMs,
       sourceName,
       effectName,
-      remainingSec,
-      totalSec,
+      remainingSec: roundedRemaining,
+      totalSec: roundedTotal,
       isDebuff,
-    }];
-  });
+    });
+  }
+
+  const out: TimedEffect[] = [];
+  for (const merged of mergedByLogicalKey.values()) {
+    const signature = `${merged.sourceName}|${merged.effectName}|${Math.trunc(merged.totalSec)}|${merged.isDebuff ? 1 : 0}`;
+    const occurrence = occurrenceBySignature.get(signature) ?? 0;
+    occurrenceBySignature.set(signature, occurrence + 1);
+    const stableBase = merged.instanceId >= 0 ? `id:${merged.instanceId}` : `sig:${signature}|${occurrence}`;
+    const stableOccurrence = occurrenceByStableBase.get(stableBase) ?? 0;
+    occurrenceByStableBase.set(stableBase, stableOccurrence + 1);
+    const stableKey = stableOccurrence === 0
+      ? stableBase
+      : `${stableBase}|dup:${stableOccurrence}`;
+
+    out.push({
+      instanceId: merged.instanceId,
+      stableKey,
+      snapshotAtMs,
+      sourceName: merged.sourceName,
+      effectName: merged.effectName,
+      remainingSec: merged.remainingSec,
+      totalSec: merged.totalSec,
+      isDebuff: merged.isDebuff,
+    });
+  }
+
+  return out;
 }
 
 export function useGameStats(): CombatStats {
