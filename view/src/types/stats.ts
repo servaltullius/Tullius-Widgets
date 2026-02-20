@@ -47,6 +47,7 @@ export interface AlertData {
 export interface TimedEffect {
   instanceId: number;
   stableKey: string;
+  snapshotAtMs: number;
   sourceName: string;
   effectName: string;
   remainingSec: number;

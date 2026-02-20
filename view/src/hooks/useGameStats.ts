@@ -7,6 +7,7 @@ const isDev = !('sendDataToSKSE' in window);
 function normalizeTimedEffects(value: unknown): TimedEffect[] {
   if (!Array.isArray(value)) return [];
   const occurrenceBySignature = new Map<string, number>();
+  const snapshotAtMs = Date.now();
 
   return value.flatMap((item) => {
     if (!item || typeof item !== 'object') return [];
@@ -41,6 +42,7 @@ function normalizeTimedEffects(value: unknown): TimedEffect[] {
     return [{
       instanceId,
       stableKey,
+      snapshotAtMs,
       sourceName,
       effectName,
       remainingSec,

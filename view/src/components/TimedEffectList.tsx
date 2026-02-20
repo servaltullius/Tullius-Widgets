@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import type { TimedEffect } from '../types/stats';
 
 interface TimedEffectListProps {
@@ -8,6 +9,11 @@ interface TimedEffectListProps {
 
 function formatRemainingSec(value: number): string {
   return `${Math.max(0, Math.round(value))}s`;
+}
+
+function getDisplayedRemainingSec(effect: TimedEffect, nowMs: number): number {
+  const elapsedSec = Math.max(0, (nowMs - effect.snapshotAtMs) / 1000);
+  return Math.max(0, effect.remainingSec - elapsedSec);
 }
 
 function getDisplayName(effect: TimedEffect): string {
@@ -21,15 +27,37 @@ function getDisplayName(effect: TimedEffect): string {
 }
 
 export function TimedEffectList({ effects, maxVisible, emptyLabel }: TimedEffectListProps) {
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const visibleLimit = Math.max(1, maxVisible);
-  const sorted = [...effects].sort((a, b) => {
-    if (a.remainingSec !== b.remainingSec) return a.remainingSec - b.remainingSec;
-    if (a.isDebuff !== b.isDebuff) return a.isDebuff ? -1 : 1;
-    const nameA = getDisplayName(a);
-    const nameB = getDisplayName(b);
-    if (nameA !== nameB) return nameA.localeCompare(nameB);
-    return a.instanceId - b.instanceId;
-  });
+  const sorted = useMemo(() => {
+    const active = effects
+      .map(effect => ({
+        effect,
+        displayedRemainingSec: getDisplayedRemainingSec(effect, nowMs),
+      }))
+      .filter(item => item.displayedRemainingSec > 0.05);
+
+    active.sort((a, b) => {
+      if (a.displayedRemainingSec !== b.displayedRemainingSec) {
+        return a.displayedRemainingSec - b.displayedRemainingSec;
+      }
+      if (a.effect.isDebuff !== b.effect.isDebuff) return a.effect.isDebuff ? -1 : 1;
+      const nameA = getDisplayName(a.effect);
+      const nameB = getDisplayName(b.effect);
+      if (nameA !== nameB) return nameA.localeCompare(nameB);
+      return a.effect.instanceId - b.effect.instanceId;
+    });
+
+    return active;
+  }, [effects, nowMs]);
 
   const visible = sorted.slice(0, visibleLimit);
   const hiddenCount = Math.max(0, sorted.length - visible.length);
@@ -56,7 +84,7 @@ export function TimedEffectList({ effects, maxVisible, emptyLabel }: TimedEffect
       gap: '4px',
       minWidth: '220px',
     }}>
-      {visible.map((effect) => (
+      {visible.map(({ effect, displayedRemainingSec }) => (
         <div
           key={effect.stableKey}
           style={{
@@ -90,7 +118,7 @@ export function TimedEffectList({ effects, maxVisible, emptyLabel }: TimedEffect
             textAlign: 'right',
             whiteSpace: 'nowrap',
           }}>
-            {formatRemainingSec(effect.remainingSec)}
+            {formatRemainingSec(displayedRemainingSec)}
           </span>
         </div>
       ))}
