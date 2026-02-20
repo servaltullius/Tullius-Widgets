@@ -64,6 +64,9 @@ export interface TimedEffect {
   remainingSec: number;
   totalSec: number;
   isDebuff: boolean;
+  sourceFormId: number;
+  effectFormId: number;
+  spellFormId: number;
 }
 
 export interface CombatStats {

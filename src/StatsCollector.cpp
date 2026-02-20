@@ -17,15 +17,25 @@ static constexpr float kDisplayedDamageMax = 9999.0f;
 
 static std::string escapeJson(std::string_view input) {
     std::string out;
-    out.reserve(input.size());
-    for (char c : input) {
+    out.reserve(input.size() + 8);
+    for (unsigned char c : input) {
         switch (c) {
         case '\\': out += "\\\\"; break;
         case '"': out += "\\\""; break;
+        case '\b': out += "\\b"; break;
+        case '\f': out += "\\f"; break;
         case '\n': out += "\\n"; break;
         case '\r': out += "\\r"; break;
         case '\t': out += "\\t"; break;
-        default: out += c; break;
+        default:
+            if (c < 0x20) {
+                char unicodeBuf[7];
+                std::snprintf(unicodeBuf, sizeof(unicodeBuf), "\\u%04X", static_cast<unsigned int>(c));
+                out += unicodeBuf;
+            } else {
+                out += static_cast<char>(c);
+            }
+            break;
         }
     }
     return out;
@@ -63,6 +73,9 @@ struct TimedEffectEntry {
     std::int32_t remainingSec;
     std::int32_t totalSec;
     bool isDebuff;
+    std::uint32_t sourceFormId;
+    std::uint32_t effectFormId;
+    std::uint32_t spellFormId;
 };
 
 static bool shouldDisplayActiveEffect(const RE::ActiveEffect* effect) {
@@ -80,6 +93,19 @@ static bool shouldDisplayActiveEffect(const RE::ActiveEffect* effect) {
     return true;
 }
 
+static std::string getFormName(const RE::TESForm* form) {
+    if (!form) return "";
+    const char* name = form->GetName();
+    if (name && name[0] != '\0') {
+        return name;
+    }
+    return "";
+}
+
+static std::uint32_t getFormId(const RE::TESForm* form) {
+    return form ? static_cast<std::uint32_t>(form->GetFormID()) : 0u;
+}
+
 static std::string getTimedEffectName(const RE::ActiveEffect* effect) {
     if (!effect) return "";
 
@@ -93,8 +119,8 @@ static std::string getTimedEffectName(const RE::ActiveEffect* effect) {
     }
 
     if (effect->spell) {
-        const char* spellName = effect->spell->GetName();
-        if (spellName && spellName[0] != '\0') {
+        auto spellName = getFormName(effect->spell);
+        if (!spellName.empty()) {
             return spellName;
         }
     }
@@ -102,24 +128,26 @@ static std::string getTimedEffectName(const RE::ActiveEffect* effect) {
     return "";
 }
 
-static std::string getTimedEffectSourceName(const RE::ActiveEffect* effect) {
+static std::string getTimedEffectSourceName(const RE::ActiveEffect* effect, std::string_view effectName) {
     if (!effect) return "";
 
-    if (effect->source) {
-        const char* sourceName = effect->source->GetName();
-        if (sourceName && sourceName[0] != '\0') {
-            return sourceName;
-        }
-    }
-
     if (effect->spell) {
-        const char* spellName = effect->spell->GetName();
-        if (spellName && spellName[0] != '\0') {
+        auto spellName = getFormName(effect->spell);
+        if (!spellName.empty()) {
             return spellName;
         }
     }
 
-    return getTimedEffectName(effect);
+    if (effect->source) {
+        auto sourceName = getFormName(effect->source);
+        if (!sourceName.empty()) {
+            if (sourceName != effectName) {
+                return sourceName;
+            }
+        }
+    }
+
+    return "";
 }
 
 static std::vector<TimedEffectEntry> collectTimedEffects(RE::PlayerCharacter* player) {
@@ -147,8 +175,8 @@ static std::vector<TimedEffectEntry> collectTimedEffects(RE::PlayerCharacter* pl
             continue;
         }
 
-        auto sourceName = getTimedEffectSourceName(effect);
         auto effectName = getTimedEffectName(effect);
+        auto sourceName = getTimedEffectSourceName(effect, effectName);
         if (sourceName.empty() && effectName.empty()) {
             continue;
         }
@@ -160,13 +188,19 @@ static std::vector<TimedEffectEntry> collectTimedEffects(RE::PlayerCharacter* pl
         const auto remainingSec = static_cast<std::int32_t>(std::ceil((std::max)(remaining, 0.0f)));
         const auto totalSec = static_cast<std::int32_t>(std::ceil((std::max)(effect->duration, 0.0f)));
         const auto instanceId = static_cast<std::int32_t>(effect->usUniqueID);
+        const auto sourceFormId = getFormId(effect->source);
+        const auto effectFormId = getFormId(baseEffect);
+        const auto spellFormId = getFormId(effect->spell);
         out.push_back(TimedEffectEntry{
             instanceId,
             std::move(sourceName),
             std::move(effectName),
             remainingSec,
             totalSec,
-            isDebuff
+            isDebuff,
+            sourceFormId,
+            effectFormId,
+            spellFormId
         });
     }
 
@@ -175,6 +209,9 @@ static std::vector<TimedEffectEntry> collectTimedEffects(RE::PlayerCharacter* pl
         if (a.isDebuff != b.isDebuff) return a.isDebuff && !b.isDebuff;
         if (a.sourceName != b.sourceName) return a.sourceName < b.sourceName;
         if (a.effectName != b.effectName) return a.effectName < b.effectName;
+        if (a.effectFormId != b.effectFormId) return a.effectFormId < b.effectFormId;
+        if (a.sourceFormId != b.sourceFormId) return a.sourceFormId < b.sourceFormId;
+        if (a.spellFormId != b.spellFormId) return a.spellFormId < b.spellFormId;
         return a.instanceId < b.instanceId;
     });
 
@@ -470,7 +507,10 @@ std::string StatsCollector::CollectStats() {
         json += "\"effectName\":\"" + escapeJson(effect.effectName) + "\",";
         json += "\"remainingSec\":" + std::to_string(effect.remainingSec) + ",";
         json += "\"totalSec\":" + std::to_string(effect.totalSec) + ",";
-        json += "\"isDebuff\":" + std::string(effect.isDebuff ? "true" : "false");
+        json += "\"isDebuff\":" + std::string(effect.isDebuff ? "true" : "false") + ",";
+        json += "\"sourceFormId\":" + std::to_string(effect.sourceFormId) + ",";
+        json += "\"effectFormId\":" + std::to_string(effect.effectFormId) + ",";
+        json += "\"spellFormId\":" + std::to_string(effect.spellFormId);
         json += "}";
         if (i + 1 < timedEffects.size()) {
             json += ",";

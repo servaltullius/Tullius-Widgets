@@ -24,7 +24,7 @@ function buildShadow(color: string, intensity: number, spread: number): string {
 export function ScreenEffects({ alertData, settings }: ScreenEffectsProps) {
   const va = settings.visualAlerts;
 
-  const shouldPulse = va?.enabled && va.lowHealth && alertData?.healthPct < 15;
+  const shouldPulse = va?.enabled && va.lowHealth && alertData?.healthPct < va.lowHealthThreshold;
 
   if (!va?.enabled || !alertData) return null;
 

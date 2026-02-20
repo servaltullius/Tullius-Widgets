@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { CombatStats, GameTimeInfo, TimedEffect } from '../types/stats';
 import { mockStats } from '../data/mockStats';
 
@@ -18,13 +18,35 @@ const SKYRIM_MONTH_NAMES = [
   'Evening Star',
 ];
 
-function readNumber(value: unknown, fallback: number, min: number, max: number): number {
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function readNumber(
+  value: unknown,
+  fallback: number,
+  min = Number.NEGATIVE_INFINITY,
+  max = Number.POSITIVE_INFINITY,
+): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
   return Math.min(max, Math.max(min, value));
 }
 
-function readText(value: unknown, fallback: string): string {
-  return typeof value === 'string' && value.length > 0 ? value : fallback;
+function readText(value: unknown, fallback: string, allowEmpty = false): string {
+  if (typeof value !== 'string') return fallback;
+  if (!allowEmpty && value.length === 0) return fallback;
+  return value;
+}
+
+function readFormId(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
+  const id = Math.trunc(value);
+  if (id <= 0) return 0;
+  return Math.min(id, 0xFFFFFFFF);
+}
+
+function toHexId(value: number): string {
+  return value.toString(16).toUpperCase().padStart(8, '0');
 }
 
 function sanitizeEffectText(value: string): string {
@@ -36,36 +58,40 @@ function sanitizeEffectText(value: string): string {
   return cleaned.replace(/\s+/g, ' ').trim();
 }
 
-function normalizeGameTime(value: unknown): GameTimeInfo {
+function normalizeGameTime(value: unknown, fallback?: GameTimeInfo): GameTimeInfo {
   const snapshotAtMs = Date.now();
-  const fallbackMonth = 0;
-  const fallbackMonthName = SKYRIM_MONTH_NAMES[fallbackMonth];
+  const fallbackMonth = fallback ? Math.trunc(readNumber(fallback.month, 0, 0, 11)) : 0;
+  const fallbackMonthName = fallback?.monthName || SKYRIM_MONTH_NAMES[fallbackMonth];
+  const fallbackYear = fallback?.year ?? 201;
+  const fallbackDay = fallback?.day ?? 1;
+  const fallbackHour = fallback?.hour ?? 12;
+  const fallbackMinute = fallback?.minute ?? 0;
+  const fallbackTimeScale = fallback?.timeScale ?? 20;
 
-  if (!value || typeof value !== 'object') {
+  if (!isPlainObject(value)) {
     return {
-      year: 201,
+      year: Math.trunc(readNumber(fallbackYear, 201, 1, 9999)),
       month: fallbackMonth,
-      day: 1,
-      hour: 12,
-      minute: 0,
+      day: Math.trunc(readNumber(fallbackDay, 1, 1, 31)),
+      hour: Math.trunc(readNumber(fallbackHour, 12, 0, 23)),
+      minute: Math.trunc(readNumber(fallbackMinute, 0, 0, 59)),
       monthName: fallbackMonthName,
-      timeScale: 20,
+      timeScale: readNumber(fallbackTimeScale, 20, 0, 2000),
       snapshotAtMs,
     };
   }
 
-  const raw = value as Record<string, unknown>;
-  const month = Math.trunc(readNumber(raw.month, fallbackMonth, 0, 11));
-  const monthName = readText(raw.monthName, SKYRIM_MONTH_NAMES[month] ?? fallbackMonthName);
+  const month = Math.trunc(readNumber(value.month, fallbackMonth, 0, 11));
+  const monthName = readText(value.monthName, SKYRIM_MONTH_NAMES[month] ?? fallbackMonthName);
 
   return {
-    year: Math.trunc(readNumber(raw.year, 201, 1, 9999)),
+    year: Math.trunc(readNumber(value.year, fallbackYear, 1, 9999)),
     month,
-    day: Math.trunc(readNumber(raw.day, 1, 1, 31)),
-    hour: Math.trunc(readNumber(raw.hour, 12, 0, 23)),
-    minute: Math.trunc(readNumber(raw.minute, 0, 0, 59)),
+    day: Math.trunc(readNumber(value.day, fallbackDay, 1, 31)),
+    hour: Math.trunc(readNumber(value.hour, fallbackHour, 0, 23)),
+    minute: Math.trunc(readNumber(value.minute, fallbackMinute, 0, 59)),
     monthName,
-    timeScale: readNumber(raw.timeScale, 20, 0, 2000),
+    timeScale: readNumber(value.timeScale, fallbackTimeScale, 0, 2000),
     snapshotAtMs,
   };
 }
@@ -77,31 +103,34 @@ function normalizeTimedEffects(value: unknown): TimedEffect[] {
   const snapshotAtMs = Date.now();
   const mergedByLogicalKey = new Map<string, Omit<TimedEffect, 'stableKey' | 'snapshotAtMs'>>();
 
-  for (const item of value) {
-    if (!item || typeof item !== 'object') continue;
-    const raw = item as Record<string, unknown>;
+  for (let index = 0; index < value.length; index++) {
+    const item = value[index];
+    if (!isPlainObject(item)) continue;
 
-    const rawSourceName = typeof raw.sourceName === 'string'
-      ? raw.sourceName
-      : typeof raw.name === 'string'
-        ? raw.name
+    const rawSourceName = typeof item.sourceName === 'string'
+      ? item.sourceName
+      : typeof item.name === 'string'
+        ? item.name
         : '';
-    const rawEffectName = typeof raw.effectName === 'string' ? raw.effectName : rawSourceName;
+    const rawEffectName = typeof item.effectName === 'string' ? item.effectName : rawSourceName;
 
     let sourceName = sanitizeEffectText(rawSourceName);
     let effectName = sanitizeEffectText(rawEffectName);
 
-    const remainingSec = typeof raw.remainingSec === 'number' && Number.isFinite(raw.remainingSec)
-      ? raw.remainingSec
+    const remainingSec = typeof item.remainingSec === 'number' && Number.isFinite(item.remainingSec)
+      ? item.remainingSec
       : 0;
-    const totalSec = typeof raw.totalSec === 'number' && Number.isFinite(raw.totalSec)
-      ? raw.totalSec
+    const totalSec = typeof item.totalSec === 'number' && Number.isFinite(item.totalSec)
+      ? item.totalSec
       : remainingSec;
-    const isDebuff = raw.isDebuff === true;
-    const rawInstanceId = typeof raw.instanceId === 'number' && Number.isFinite(raw.instanceId)
-      ? Math.trunc(raw.instanceId)
+    const isDebuff = item.isDebuff === true;
+    const rawInstanceId = typeof item.instanceId === 'number' && Number.isFinite(item.instanceId)
+      ? Math.trunc(item.instanceId)
       : null;
     const instanceId = rawInstanceId ?? -1;
+    const sourceFormId = readFormId(item.sourceFormId);
+    const effectFormId = readFormId(item.effectFormId);
+    const spellFormId = readFormId(item.spellFormId);
 
     if (!sourceName && effectName) sourceName = effectName;
     if (!effectName && sourceName) effectName = sourceName;
@@ -109,14 +138,25 @@ function normalizeTimedEffects(value: unknown): TimedEffect[] {
 
     const roundedRemaining = Math.trunc(Math.max(0, remainingSec));
     const roundedTotal = Math.trunc(Math.max(0, totalSec));
-    const logicalKey = rawInstanceId !== null
-      ? `id:${rawInstanceId}|${sourceName}|${effectName}|${isDebuff ? 1 : 0}`
-      : `sig:${sourceName}|${effectName}|${roundedTotal}|${isDebuff ? 1 : 0}`;
+    const hasPersistentIdentity = rawInstanceId !== null
+      || sourceFormId > 0
+      || effectFormId > 0
+      || spellFormId > 0;
+    const logicalKey = hasPersistentIdentity
+      ? `pid:${rawInstanceId ?? -1}|sf:${sourceFormId}|ef:${effectFormId}|pf:${spellFormId}|d:${isDebuff ? 1 : 0}`
+      : `volatile:${sourceName}|${effectName}|${roundedTotal}|${roundedRemaining}|${isDebuff ? 1 : 0}|idx:${index}`;
 
     const existing = mergedByLogicalKey.get(logicalKey);
     if (existing) {
       existing.remainingSec = Math.max(existing.remainingSec, roundedRemaining);
       existing.totalSec = Math.max(existing.totalSec, roundedTotal);
+      const existingLooksFallback = existing.sourceName === existing.effectName
+        || !existing.sourceName
+        || !existing.effectName;
+      if (existingLooksFallback && sourceName !== effectName) {
+        existing.sourceName = sourceName;
+        existing.effectName = effectName;
+      }
       continue;
     }
 
@@ -127,6 +167,9 @@ function normalizeTimedEffects(value: unknown): TimedEffect[] {
       remainingSec: roundedRemaining,
       totalSec: roundedTotal,
       isDebuff,
+      sourceFormId,
+      effectFormId,
+      spellFormId,
     });
   }
 
@@ -135,7 +178,16 @@ function normalizeTimedEffects(value: unknown): TimedEffect[] {
     const signature = `${merged.sourceName}|${merged.effectName}|${Math.trunc(merged.totalSec)}|${merged.isDebuff ? 1 : 0}`;
     const occurrence = occurrenceBySignature.get(signature) ?? 0;
     occurrenceBySignature.set(signature, occurrence + 1);
-    const stableBase = merged.instanceId >= 0 ? `id:${merged.instanceId}` : `sig:${signature}|${occurrence}`;
+
+    const stableIdentityParts: string[] = [];
+    if (merged.instanceId >= 0) stableIdentityParts.push(`i:${merged.instanceId}`);
+    if (merged.sourceFormId > 0) stableIdentityParts.push(`sf:${toHexId(merged.sourceFormId)}`);
+    if (merged.effectFormId > 0) stableIdentityParts.push(`ef:${toHexId(merged.effectFormId)}`);
+    if (merged.spellFormId > 0) stableIdentityParts.push(`pf:${toHexId(merged.spellFormId)}`);
+    const stableBase = stableIdentityParts.length > 0
+      ? `${stableIdentityParts.join('|')}|sig:${signature}`
+      : `sig:${signature}|${occurrence}`;
+
     const stableOccurrence = occurrenceByStableBase.get(stableBase) ?? 0;
     occurrenceByStableBase.set(stableBase, stableOccurrence + 1);
     const stableKey = stableOccurrence === 0
@@ -151,10 +203,78 @@ function normalizeTimedEffects(value: unknown): TimedEffect[] {
       remainingSec: merged.remainingSec,
       totalSec: merged.totalSec,
       isDebuff: merged.isDebuff,
+      sourceFormId: merged.sourceFormId,
+      effectFormId: merged.effectFormId,
+      spellFormId: merged.spellFormId,
     });
   }
 
   return out;
+}
+
+function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStats {
+  if (!isPlainObject(value)) {
+    return fallback;
+  }
+
+  const rawResistances = isPlainObject(value.resistances) ? value.resistances : null;
+  const rawDefense = isPlainObject(value.defense) ? value.defense : null;
+  const rawOffense = isPlainObject(value.offense) ? value.offense : null;
+  const rawEquipped = isPlainObject(value.equipped) ? value.equipped : null;
+  const rawMovement = isPlainObject(value.movement) ? value.movement : null;
+  const rawPlayerInfo = isPlainObject(value.playerInfo) ? value.playerInfo : null;
+  const rawAlertData = isPlainObject(value.alertData) ? value.alertData : null;
+
+  return {
+    resistances: {
+      magic: readNumber(rawResistances?.magic, fallback.resistances.magic, -1000, 1000),
+      fire: readNumber(rawResistances?.fire, fallback.resistances.fire, -1000, 1000),
+      frost: readNumber(rawResistances?.frost, fallback.resistances.frost, -1000, 1000),
+      shock: readNumber(rawResistances?.shock, fallback.resistances.shock, -1000, 1000),
+      poison: readNumber(rawResistances?.poison, fallback.resistances.poison, -1000, 1000),
+      disease: readNumber(rawResistances?.disease, fallback.resistances.disease, -1000, 1000),
+    },
+    defense: {
+      armorRating: readNumber(rawDefense?.armorRating, fallback.defense.armorRating, -100000, 100000),
+      damageReduction: readNumber(rawDefense?.damageReduction, fallback.defense.damageReduction, -1000, 1000),
+    },
+    offense: {
+      rightHandDamage: readNumber(rawOffense?.rightHandDamage, fallback.offense.rightHandDamage, -100000, 100000),
+      leftHandDamage: readNumber(rawOffense?.leftHandDamage, fallback.offense.leftHandDamage, -100000, 100000),
+      critChance: readNumber(rawOffense?.critChance, fallback.offense.critChance, -1000, 1000),
+    },
+    equipped: {
+      rightHand: readText(rawEquipped?.rightHand, fallback.equipped.rightHand, true),
+      leftHand: readText(rawEquipped?.leftHand, fallback.equipped.leftHand, true),
+    },
+    movement: {
+      speedMult: readNumber(rawMovement?.speedMult, fallback.movement.speedMult, 0, 10000),
+    },
+    time: value.time === undefined
+      ? fallback.time
+      : normalizeGameTime(value.time, fallback.time),
+    playerInfo: {
+      level: Math.trunc(readNumber(rawPlayerInfo?.level, fallback.playerInfo.level, 1, 9999)),
+      gold: Math.trunc(readNumber(rawPlayerInfo?.gold, fallback.playerInfo.gold, 0, 999999999)),
+      carryWeight: readNumber(rawPlayerInfo?.carryWeight, fallback.playerInfo.carryWeight, -100000, 100000),
+      maxCarryWeight: readNumber(rawPlayerInfo?.maxCarryWeight, fallback.playerInfo.maxCarryWeight, 1, 100000),
+      health: readNumber(rawPlayerInfo?.health, fallback.playerInfo.health, -100000, 100000),
+      magicka: readNumber(rawPlayerInfo?.magicka, fallback.playerInfo.magicka, -100000, 100000),
+      stamina: readNumber(rawPlayerInfo?.stamina, fallback.playerInfo.stamina, -100000, 100000),
+    },
+    alertData: {
+      healthPct: readNumber(rawAlertData?.healthPct, fallback.alertData.healthPct, 0, 1000),
+      magickaPct: readNumber(rawAlertData?.magickaPct, fallback.alertData.magickaPct, 0, 1000),
+      staminaPct: readNumber(rawAlertData?.staminaPct, fallback.alertData.staminaPct, 0, 1000),
+      carryPct: readNumber(rawAlertData?.carryPct, fallback.alertData.carryPct, 0, 1000),
+    },
+    timedEffects: value.timedEffects === undefined
+      ? fallback.timedEffects
+      : normalizeTimedEffects(value.timedEffects),
+    isInCombat: typeof value.isInCombat === 'boolean'
+      ? value.isInCombat
+      : fallback.isInCombat,
+  };
 }
 
 export function useGameStats(): CombatStats {
@@ -163,33 +283,8 @@ export function useGameStats(): CombatStats {
   useEffect(() => {
     window.updateStats = (jsonString: string) => {
       try {
-        const parsed = JSON.parse(jsonString) as CombatStats;
-        const withAlertData = parsed.alertData
-          ? parsed
-          : {
-              ...parsed,
-              alertData: {
-                healthPct: 100,
-                magickaPct: 100,
-                staminaPct: 100,
-                carryPct: 0,
-              },
-            };
-        const withEquipped = withAlertData.equipped
-          ? withAlertData
-          : {
-              ...withAlertData,
-              equipped: {
-                rightHand: '',
-                leftHand: '',
-              },
-            };
-        const normalized = {
-          ...withEquipped,
-          time: normalizeGameTime(withEquipped.time),
-          timedEffects: normalizeTimedEffects(withEquipped.timedEffects),
-        };
-        setStats(normalized as CombatStats);
+        const parsed = JSON.parse(jsonString) as unknown;
+        setStats(prev => normalizeCombatStats(parsed, prev));
       } catch (e) {
         console.error('Failed to parse stats JSON:', e);
       }
