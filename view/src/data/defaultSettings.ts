@@ -31,6 +31,10 @@ export const defaultSettings: WidgetSettings = {
     rightHand: true,
     leftHand: true,
   },
+  timedEffects: {
+    enabled: true,
+    maxVisible: 6,
+  },
   movement: {
     speedMult: true,
   },
@@ -65,6 +69,7 @@ export function getDefaultPositions(): Record<string, { x: number; y: number }> 
     defense: { x: right, y: 500 },
     offense: { x: right, y: 630 },
     equipped: { x: right, y: 760 },
-    movement: { x: right, y: 900 },
+    timedEffects: { x: right, y: 900 },
+    movement: { x: right, y: 1030 },
   };
 }

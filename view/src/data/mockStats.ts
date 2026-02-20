@@ -40,5 +40,10 @@ export const mockStats: CombatStats = {
     staminaPct: 100,
     carryPct: 61.8,
   },
+  timedEffects: [
+    { instanceId: 101, sourceName: 'Oakflesh', effectName: 'Armor Bonus', remainingSec: 82, totalSec: 120, isDebuff: false },
+    { instanceId: 102, sourceName: 'Fortify Marksman Potion', effectName: 'Fortify Marksman', remainingSec: 34, totalSec: 45, isDebuff: false },
+    { instanceId: 103, sourceName: 'Shock Cloak Trap', effectName: 'Weakness to Shock', remainingSec: 11, totalSec: 30, isDebuff: true },
+  ],
   isInCombat: false,
 };

@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { DraggableWidgetGroup } from './components/DraggableWidgetGroup';
 import { StatWidget } from './components/StatWidget';
+import { TimedEffectList } from './components/TimedEffectList';
 import { SettingsPanel } from './components/SettingsPanel';
 import { ScreenEffects } from './components/ScreenEffects';
 import { useGameStats } from './hooks/useGameStats';
@@ -17,7 +18,7 @@ const WEAPON_DAMAGE_CAP = 9999;
 const WEAPON_DAMAGE_MIN = 0;
 const CRIT_CHANCE_CAP = 100;
 const CRIT_CHANCE_MIN = 0;
-const GROUP_IDS = ['playerInfo', 'resistances', 'defense', 'offense', 'equipped', 'movement'] as const;
+const GROUP_IDS = ['playerInfo', 'resistances', 'defense', 'offense', 'equipped', 'timedEffects', 'movement'] as const;
 const SNAP_THRESHOLD = 15;
 const GRID = 10;
 const FALLBACK_POS: GroupPosition = { x: 100, y: 100 };
@@ -115,6 +116,8 @@ export function App() {
   const hasVisibleDefense = Object.values(settings.defense).some(Boolean);
   const hasVisibleOffense = Object.values(settings.offense).some(Boolean);
   const hasVisibleEquipped = Object.values(settings.equipped).some(Boolean);
+  const hasVisibleTimedEffects = settings.timedEffects.enabled &&
+    (settingsOpen || stats.timedEffects.length > 0);
   const hasVisibleMovement = settings.movement.speedMult;
   const hasVisiblePlayerInfo = Object.values(settings.playerInfo).some(Boolean);
 
@@ -172,6 +175,16 @@ export function App() {
                 iconColor="#4090e8"
                 value={stats.equipped.leftHand || t(lang, 'equippedEmpty')}
                 visible={settings.equipped.leftHand}
+              />
+            </DraggableWidgetGroup>
+          )}
+
+          {hasVisibleTimedEffects && (
+            <DraggableWidgetGroup {...groupProps('timedEffects')}>
+              <TimedEffectList
+                effects={stats.timedEffects}
+                maxVisible={settings.timedEffects.maxVisible}
+                emptyLabel={t(lang, 'timedEffectsEmpty')}
               />
             </DraggableWidgetGroup>
           )}

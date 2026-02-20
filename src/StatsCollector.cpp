@@ -2,9 +2,12 @@
 #include "CriticalChanceEvaluator.h"
 #include "ResistanceEvaluator.h"
 #include <algorithm>
+#include <cstdint>
 #include <cmath>
 #include <cstdio>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 namespace TulliusWidgets {
 
@@ -50,6 +53,123 @@ static std::string getEquippedName(RE::PlayerCharacter* player, bool leftHand) {
     }
     const char* name = equipped->GetName();
     return name ? name : "";
+}
+
+struct TimedEffectEntry {
+    std::int32_t instanceId;
+    std::string sourceName;
+    std::string effectName;
+    std::int32_t remainingSec;
+    std::int32_t totalSec;
+    bool isDebuff;
+};
+
+static bool shouldDisplayActiveEffect(const RE::ActiveEffect* effect) {
+    if (!effect) return false;
+    if (effect->flags.all(RE::ActiveEffect::Flag::kInactive)) return false;
+    if (effect->flags.all(RE::ActiveEffect::Flag::kDispelled)) return false;
+
+    const auto* baseEffect = effect->GetBaseObject();
+    if (!baseEffect) return false;
+    if (baseEffect->data.flags.all(RE::EffectSetting::EffectSettingData::Flag::kHideInUI)) return false;
+    if (baseEffect->data.flags.all(RE::EffectSetting::EffectSettingData::Flag::kNoDuration)) return false;
+
+    if (!std::isfinite(effect->duration) || effect->duration <= 0.0f) return false;
+    if (!std::isfinite(effect->elapsedSeconds)) return false;
+    return true;
+}
+
+static std::string getTimedEffectName(const RE::ActiveEffect* effect) {
+    if (!effect) return "";
+
+    if (const auto* baseEffect = effect->GetBaseObject()) {
+        if (const char* fullName = baseEffect->GetFullName(); fullName && fullName[0] != '\0') {
+            return fullName;
+        }
+        if (const char* name = baseEffect->GetName(); name && name[0] != '\0') {
+            return name;
+        }
+    }
+
+    if (effect->spell) {
+        const char* spellName = effect->spell->GetName();
+        if (spellName && spellName[0] != '\0') {
+            return spellName;
+        }
+    }
+
+    return "";
+}
+
+static std::string getTimedEffectSourceName(const RE::ActiveEffect* effect) {
+    if (!effect) return "";
+
+    if (effect->source) {
+        const char* sourceName = effect->source->GetName();
+        if (sourceName && sourceName[0] != '\0') {
+            return sourceName;
+        }
+    }
+
+    if (effect->spell) {
+        const char* spellName = effect->spell->GetName();
+        if (spellName && spellName[0] != '\0') {
+            return spellName;
+        }
+    }
+
+    return getTimedEffectName(effect);
+}
+
+static std::vector<TimedEffectEntry> collectTimedEffects(RE::PlayerCharacter* player) {
+    std::vector<TimedEffectEntry> out;
+    if (!player) return out;
+
+    auto* activeEffects = player->GetActiveEffectList();
+    if (!activeEffects) return out;
+
+    for (auto* effect : *activeEffects) {
+        if (!shouldDisplayActiveEffect(effect)) {
+            continue;
+        }
+
+        const float remaining = effect->duration - effect->elapsedSeconds;
+        if (!std::isfinite(remaining) || remaining <= 0.1f) {
+            continue;
+        }
+
+        auto sourceName = getTimedEffectSourceName(effect);
+        auto effectName = getTimedEffectName(effect);
+        if (sourceName.empty() && effectName.empty()) {
+            continue;
+        }
+        if (sourceName.empty()) sourceName = effectName;
+        if (effectName.empty()) effectName = sourceName;
+
+        const auto* baseEffect = effect->GetBaseObject();
+        const bool isDebuff = baseEffect && (baseEffect->IsDetrimental() || baseEffect->IsHostile());
+        const auto remainingSec = static_cast<std::int32_t>(std::ceil((std::max)(remaining, 0.0f)));
+        const auto totalSec = static_cast<std::int32_t>(std::ceil((std::max)(effect->duration, 0.0f)));
+        const auto instanceId = static_cast<std::int32_t>(effect->usUniqueID);
+        out.push_back(TimedEffectEntry{
+            instanceId,
+            std::move(sourceName),
+            std::move(effectName),
+            remainingSec,
+            totalSec,
+            isDebuff
+        });
+    }
+
+    std::sort(out.begin(), out.end(), [](const TimedEffectEntry& a, const TimedEffectEntry& b) {
+        if (a.remainingSec != b.remainingSec) return a.remainingSec < b.remainingSec;
+        if (a.isDebuff != b.isDebuff) return a.isDebuff && !b.isDebuff;
+        if (a.sourceName != b.sourceName) return a.sourceName < b.sourceName;
+        if (a.effectName != b.effectName) return a.effectName < b.effectName;
+        return a.instanceId < b.instanceId;
+    });
+
+    return out;
 }
 
 static std::string safeFloat(float v) {
@@ -264,6 +384,24 @@ std::string StatsCollector::CollectStats() {
     json += "\"staminaPct\":" + safeFloat(spPct) + ",";
     json += "\"carryPct\":" + safeFloat(carryPct);
     json += "},";
+
+    const auto timedEffects = collectTimedEffects(player);
+    json += "\"timedEffects\":[";
+    for (std::size_t i = 0; i < timedEffects.size(); ++i) {
+        const auto& effect = timedEffects[i];
+        json += "{";
+        json += "\"instanceId\":" + std::to_string(effect.instanceId) + ",";
+        json += "\"sourceName\":\"" + escapeJson(effect.sourceName) + "\",";
+        json += "\"effectName\":\"" + escapeJson(effect.effectName) + "\",";
+        json += "\"remainingSec\":" + std::to_string(effect.remainingSec) + ",";
+        json += "\"totalSec\":" + std::to_string(effect.totalSec) + ",";
+        json += "\"isDebuff\":" + std::string(effect.isDebuff ? "true" : "false");
+        json += "}";
+        if (i + 1 < timedEffects.size()) {
+            json += ",";
+        }
+    }
+    json += "],";
 
     json += "\"isInCombat\":" + std::string(inCombat ? "true" : "false");
 

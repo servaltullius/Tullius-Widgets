@@ -38,6 +38,10 @@ export interface WidgetSettings {
     rightHand: boolean;
     leftHand: boolean;
   };
+  timedEffects: {
+    enabled: boolean;
+    maxVisible: number;
+  };
   movement: {
     speedMult: boolean;
   };

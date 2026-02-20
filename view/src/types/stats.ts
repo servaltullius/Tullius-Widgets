@@ -44,6 +44,15 @@ export interface AlertData {
   carryPct: number;
 }
 
+export interface TimedEffect {
+  instanceId: number;
+  sourceName: string;
+  effectName: string;
+  remainingSec: number;
+  totalSec: number;
+  isDebuff: boolean;
+}
+
 export interface CombatStats {
   resistances: Resistances;
   defense: Defense;
@@ -52,5 +61,6 @@ export interface CombatStats {
   movement: Movement;
   playerInfo: PlayerInfo;
   alertData: AlertData;
+  timedEffects: TimedEffect[];
   isInCombat: boolean;
 }

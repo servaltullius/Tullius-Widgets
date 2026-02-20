@@ -1,8 +1,46 @@
 import { useState, useEffect } from 'react';
-import type { CombatStats } from '../types/stats';
+import type { CombatStats, TimedEffect } from '../types/stats';
 import { mockStats } from '../data/mockStats';
 
 const isDev = !('sendDataToSKSE' in window);
+
+function normalizeTimedEffects(value: unknown): TimedEffect[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item, index) => {
+    if (!item || typeof item !== 'object') return [];
+    const raw = item as Record<string, unknown>;
+
+    const sourceName = typeof raw.sourceName === 'string'
+      ? raw.sourceName
+      : typeof raw.name === 'string'
+        ? raw.name
+        : '';
+    const effectName = typeof raw.effectName === 'string' ? raw.effectName : sourceName;
+
+    const remainingSec = typeof raw.remainingSec === 'number' && Number.isFinite(raw.remainingSec)
+      ? raw.remainingSec
+      : 0;
+    const totalSec = typeof raw.totalSec === 'number' && Number.isFinite(raw.totalSec)
+      ? raw.totalSec
+      : remainingSec;
+    const isDebuff = raw.isDebuff === true;
+    const instanceId = typeof raw.instanceId === 'number' && Number.isFinite(raw.instanceId)
+      ? raw.instanceId
+      : index;
+
+    if (!sourceName && !effectName) return [];
+
+    return [{
+      instanceId,
+      sourceName,
+      effectName,
+      remainingSec,
+      totalSec,
+      isDebuff,
+    }];
+  });
+}
 
 export function useGameStats(): CombatStats {
   const [stats, setStats] = useState<CombatStats>(mockStats);
@@ -22,7 +60,7 @@ export function useGameStats(): CombatStats {
                 carryPct: 0,
               },
             };
-        const normalized = withAlertData.equipped
+        const withEquipped = withAlertData.equipped
           ? withAlertData
           : {
               ...withAlertData,
@@ -31,6 +69,10 @@ export function useGameStats(): CombatStats {
                 leftHand: '',
               },
             };
+        const normalized = {
+          ...withEquipped,
+          timedEffects: normalizeTimedEffects(withEquipped.timedEffects),
+        };
         setStats(normalized as CombatStats);
       } catch (e) {
         console.error('Failed to parse stats JSON:', e);

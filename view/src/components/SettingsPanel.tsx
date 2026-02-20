@@ -297,6 +297,28 @@ export function SettingsPanel({ settings, open, onClose, onUpdate, accentColor }
         <Toggle label={t(lang, 'leftHandEquipped')} checked={settings.equipped.leftHand} onChange={v => onUpdate('equipped.leftHand', v)} />
       </Section>
 
+      <Section title={t(lang, 'timedEffects')}>
+        <LayoutSelect lang={lang} groupId="timedEffects" value={groupLayout('timedEffects')} onUpdate={onUpdate} />
+        <Toggle
+          label={t(lang, 'timedEffectsEnabled')}
+          checked={settings.timedEffects.enabled}
+          onChange={v => onUpdate('timedEffects.enabled', v)}
+        />
+        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
+          <span style={{ color: '#aaa', fontSize: '20px' }}>
+            {t(lang, 'timedEffectsMaxVisible')}: {settings.timedEffects.maxVisible}
+          </span>
+          <input
+            type="range"
+            min={1}
+            max={12}
+            value={settings.timedEffects.maxVisible}
+            onChange={e => onUpdate('timedEffects.maxVisible', Number(e.target.value))}
+            style={{ width: '180px' }}
+          />
+        </label>
+      </Section>
+
       <Section title={t(lang, 'movement')}>
         <LayoutSelect lang={lang} groupId="movement" value={groupLayout('movement')} onUpdate={onUpdate} />
         <Toggle label={t(lang, 'speed')} checked={settings.movement.speedMult} onChange={v => onUpdate('movement.speedMult', v)} />
