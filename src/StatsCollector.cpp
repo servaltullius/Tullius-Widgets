@@ -1,6 +1,7 @@
 #include "StatsCollector.h"
 #include "CriticalChanceEvaluator.h"
 #include "ResistanceEvaluator.h"
+#include "RE/C/Calendar.h"
 #include <algorithm>
 #include <cstdint>
 #include <cmath>
@@ -180,6 +181,61 @@ static std::vector<TimedEffectEntry> collectTimedEffects(RE::PlayerCharacter* pl
     return out;
 }
 
+struct GameTimeEntry {
+    std::uint32_t year;
+    std::uint32_t month;
+    std::uint32_t day;
+    std::uint32_t hour;
+    std::uint32_t minute;
+    float timeScale;
+    std::string monthName;
+};
+
+static GameTimeEntry collectGameTime() {
+    GameTimeEntry out{
+        201,
+        static_cast<std::uint32_t>(RE::Calendar::Month::kMorningStar),
+        1,
+        12,
+        0,
+        20.0f,
+        "Morning Star"
+    };
+
+    auto* calendar = RE::Calendar::GetSingleton();
+    if (!calendar) return out;
+
+    out.year = (std::max)(calendar->GetYear(), 1u);
+    out.month = (std::min)(calendar->GetMonth(), static_cast<std::uint32_t>(RE::Calendar::Month::kEveningStar));
+    out.monthName = calendar->GetMonthName();
+    if (out.monthName.empty()) {
+        out.monthName = "Unknown";
+    }
+
+    const auto rawDay = static_cast<int>(std::lround(calendar->GetDay()));
+    out.day = static_cast<std::uint32_t>(std::clamp(rawDay, 1, 31));
+
+    const float rawHour = calendar->GetHour();
+    if (std::isfinite(rawHour)) {
+        const float hourFloor = std::floor(rawHour);
+        const auto hour = static_cast<int>(hourFloor);
+        out.hour = static_cast<std::uint32_t>(std::clamp(hour, 0, 23));
+        out.minute = (std::min)(calendar->GetMinutes(), 59u);
+    } else {
+        out.hour = 12;
+        out.minute = 0;
+    }
+
+    if (calendar->timeScale) {
+        const float rawTimeScale = calendar->timeScale->value;
+        if (std::isfinite(rawTimeScale) && rawTimeScale >= 0.0f) {
+            out.timeScale = rawTimeScale;
+        }
+    }
+
+    return out;
+}
+
 static std::string safeFloat(float v) {
     if (std::isnan(v) || std::isinf(v)) return "0";
     char buf[32];
@@ -355,6 +411,17 @@ std::string StatsCollector::CollectStats() {
 
     json += "\"movement\":{";
     json += "\"speedMult\":" + safeFloat(av->GetActorValue(RE::ActorValue::kSpeedMult));
+    json += "},";
+
+    const auto gameTime = collectGameTime();
+    json += "\"time\":{";
+    json += "\"year\":" + std::to_string(gameTime.year) + ",";
+    json += "\"month\":" + std::to_string(gameTime.month) + ",";
+    json += "\"day\":" + std::to_string(gameTime.day) + ",";
+    json += "\"hour\":" + std::to_string(gameTime.hour) + ",";
+    json += "\"minute\":" + std::to_string(gameTime.minute) + ",";
+    json += "\"monthName\":\"" + escapeJson(gameTime.monthName) + "\",";
+    json += "\"timeScale\":" + safeFloat(gameTime.timeScale);
     json += "},";
 
     // Current values: base + damage modifier (damage modifier is negative)

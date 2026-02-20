@@ -27,6 +27,17 @@ export interface Movement {
   speedMult: number;
 }
 
+export interface GameTimeInfo {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  monthName: string;
+  timeScale: number;
+  snapshotAtMs: number;
+}
+
 export interface PlayerInfo {
   level: number;
   gold: number;
@@ -61,6 +72,7 @@ export interface CombatStats {
   offense: Offense;
   equipped: Equipped;
   movement: Movement;
+  time: GameTimeInfo;
   playerInfo: PlayerInfo;
   alertData: AlertData;
   timedEffects: TimedEffect[];

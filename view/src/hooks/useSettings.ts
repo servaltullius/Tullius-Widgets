@@ -94,6 +94,7 @@ function mergeWithDefaults(saved: Record<string, unknown>): WidgetSettings {
   merged.offense = mergeBooleanSection(merged.offense, saved.offense);
   merged.equipped = mergeBooleanSection(merged.equipped, saved.equipped);
   merged.movement = mergeBooleanSection(merged.movement, saved.movement);
+  merged.time = mergeBooleanSection(merged.time, saved.time);
   merged.playerInfo = mergeBooleanSection(merged.playerInfo, saved.playerInfo);
 
   const timedEffectsIncoming = saved.timedEffects;

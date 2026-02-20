@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <algorithm>
 #include <mutex>
+#include <thread>
 
 PRISMA_UI_API::IVPrismaUI1* PrismaUI = nullptr;
 static PrismaView view = 0;
@@ -16,6 +17,9 @@ static std::chrono::steady_clock::time_point lastUpdateTime{};
 static std::mutex lastUpdateMutex;
 static constexpr auto UPDATE_INTERVAL_COMBAT = std::chrono::milliseconds(100);
 static constexpr auto UPDATE_INTERVAL_IDLE   = std::chrono::milliseconds(500);
+static constexpr auto HEARTBEAT_INTERVAL     = std::chrono::seconds(3);
+static std::jthread g_heartbeatThread;
+static std::atomic<bool> g_heartbeatStarted{false};
 
 // --- Settings Persistence ---
 static constexpr auto SETTINGS_DIR = "Data/SKSE/Plugins";
@@ -150,6 +154,31 @@ static void SendStatsToView(bool force = false) {
     TryInteropCall("updateStats", stats.c_str());
 }
 
+static void StartHeartbeat() {
+    if (g_heartbeatStarted.exchange(true)) return;
+
+    g_heartbeatThread = std::jthread([](std::stop_token stopToken) {
+        while (!stopToken.stop_requested()) {
+            std::this_thread::sleep_for(HEARTBEAT_INTERVAL);
+            if (stopToken.stop_requested()) break;
+
+            if (!gameLoaded.load()) continue;
+
+            auto* taskInterface = SKSE::GetTaskInterface();
+            if (!taskInterface) continue;
+
+            taskInterface->AddTask([]() {
+                if (!gameLoaded.load()) return;
+
+                auto* ui = RE::UI::GetSingleton();
+                if (ui && ui->GameIsPaused()) return;
+
+                SendStatsToView(true);
+            });
+        }
+    });
+}
+
 class CombatEventSink : public RE::BSTEventSink<RE::TESCombatEvent> {
 public:
     static CombatEventSink* GetSingleton() {
@@ -259,7 +288,9 @@ public:
             TryHideView();
         } else if (!event->opening && gameLoaded.load() && ui && !ui->GameIsPaused() && !IsAnyHiddenMenuOpen(ui)) {
             // Show only after all tracked menus are fully closed.
-            TryShowView();
+            if (TryShowView()) {
+                SendStatsToView(true);
+            }
         }
 
         return RE::BSEventNotifyControl::kContinue;
@@ -363,6 +394,7 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message) {
         });
 
         RegisterEventSinks();
+        StartHeartbeat();
 
         KeyHandler::RegisterSink();
         KeyHandler* keyHandler = KeyHandler::GetSingleton();

@@ -2,6 +2,7 @@ import {
   Flame, Snowflake, Zap, Sparkles, Skull, Bug,
   Shield, ShieldCheck, Swords, Sword, Target,
   Wind, Star, Coins, Weight, Heart, Droplets, Battery,
+  CalendarDays, Clock3,
   type LucideIcon,
 } from 'lucide-react';
 import { iconMap } from '../assets/icons';
@@ -25,6 +26,8 @@ const badgeIconMap: Record<string, LucideIcon> = {
   health: Heart,
   magicka: Droplets,
   stamina: Battery,
+  gameTime: CalendarDays,
+  realTime: Clock3,
 };
 
 interface StatWidgetProps {
@@ -73,7 +76,7 @@ export function StatWidget({ icon, iconColor, value, unit = '', visible, min, ca
         height: '38px',
         filter: `drop-shadow(0 0 3px ${iconColor}66)`,
       }}>
-        {iconSrc && (
+        {iconSrc ? (
           <img
             src={iconSrc}
             alt={icon}
@@ -81,8 +84,21 @@ export function StatWidget({ icon, iconColor, value, unit = '', visible, min, ca
             height={38}
             style={{ objectFit: 'contain', borderRadius: '4px' }}
           />
-        )}
-        {BadgeIcon && (
+        ) : BadgeIcon ? (
+          <div style={{
+            width: '38px',
+            height: '38px',
+            borderRadius: '50%',
+            background: 'rgba(0, 0, 0, 0.65)',
+            border: `1px solid ${iconColor}aa`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <BadgeIcon size={20} color={iconColor} strokeWidth={2.2} />
+          </div>
+        ) : null}
+        {iconSrc && BadgeIcon && (
           <div style={{
             position: 'absolute',
             right: '-3px',

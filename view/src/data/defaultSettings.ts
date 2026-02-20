@@ -38,6 +38,10 @@ export const defaultSettings: WidgetSettings = {
   movement: {
     speedMult: true,
   },
+  time: {
+    gameDateTime: true,
+    realDateTime: true,
+  },
   playerInfo: {
     level: true,
     gold: true,
@@ -65,6 +69,7 @@ export function getDefaultPositions(): Record<string, { x: number; y: number }> 
   const right = w - 260;
   return {
     playerInfo: { x: right, y: 20 },
+    time: { x: 20, y: 20 },
     resistances: { x: right, y: 220 },
     defense: { x: right, y: 500 },
     offense: { x: right, y: 630 },

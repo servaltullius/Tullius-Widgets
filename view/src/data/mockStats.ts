@@ -25,6 +25,16 @@ export const mockStats: CombatStats = {
   movement: {
     speedMult: 100,
   },
+  time: {
+    year: 201,
+    month: 7,
+    day: 21,
+    hour: 14,
+    minute: 35,
+    monthName: 'Last Seed',
+    timeScale: 20,
+    snapshotAtMs: Date.now(),
+  },
   playerInfo: {
     level: 42,
     gold: 12500,

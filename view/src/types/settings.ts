@@ -45,6 +45,10 @@ export interface WidgetSettings {
   movement: {
     speedMult: boolean;
   };
+  time: {
+    gameDateTime: boolean;
+    realDateTime: boolean;
+  };
   playerInfo: {
     level: boolean;
     gold: boolean;

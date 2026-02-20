@@ -1,8 +1,65 @@
 import { useState, useEffect } from 'react';
-import type { CombatStats, TimedEffect } from '../types/stats';
+import type { CombatStats, GameTimeInfo, TimedEffect } from '../types/stats';
 import { mockStats } from '../data/mockStats';
 
 const isDev = !('sendDataToSKSE' in window);
+const SKYRIM_MONTH_NAMES = [
+  'Morning Star',
+  "Sun's Dawn",
+  'First Seed',
+  "Rain's Hand",
+  'Second Seed',
+  'Midyear',
+  "Sun's Height",
+  'Last Seed',
+  'Hearthfire',
+  'Frostfall',
+  "Sun's Dusk",
+  'Evening Star',
+];
+
+function readNumber(value: unknown, fallback: number, min: number, max: number): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
+  return Math.min(max, Math.max(min, value));
+}
+
+function readText(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value.length > 0 ? value : fallback;
+}
+
+function normalizeGameTime(value: unknown): GameTimeInfo {
+  const snapshotAtMs = Date.now();
+  const fallbackMonth = 0;
+  const fallbackMonthName = SKYRIM_MONTH_NAMES[fallbackMonth];
+
+  if (!value || typeof value !== 'object') {
+    return {
+      year: 201,
+      month: fallbackMonth,
+      day: 1,
+      hour: 12,
+      minute: 0,
+      monthName: fallbackMonthName,
+      timeScale: 20,
+      snapshotAtMs,
+    };
+  }
+
+  const raw = value as Record<string, unknown>;
+  const month = Math.trunc(readNumber(raw.month, fallbackMonth, 0, 11));
+  const monthName = readText(raw.monthName, SKYRIM_MONTH_NAMES[month] ?? fallbackMonthName);
+
+  return {
+    year: Math.trunc(readNumber(raw.year, 201, 1, 9999)),
+    month,
+    day: Math.trunc(readNumber(raw.day, 1, 1, 31)),
+    hour: Math.trunc(readNumber(raw.hour, 12, 0, 23)),
+    minute: Math.trunc(readNumber(raw.minute, 0, 0, 59)),
+    monthName,
+    timeScale: readNumber(raw.timeScale, 20, 0, 2000),
+    snapshotAtMs,
+  };
+}
 
 function normalizeTimedEffects(value: unknown): TimedEffect[] {
   if (!Array.isArray(value)) return [];
@@ -81,6 +138,7 @@ export function useGameStats(): CombatStats {
             };
         const normalized = {
           ...withEquipped,
+          time: normalizeGameTime(withEquipped.time),
           timedEffects: normalizeTimedEffects(withEquipped.timedEffects),
         };
         setStats(normalized as CombatStats);
