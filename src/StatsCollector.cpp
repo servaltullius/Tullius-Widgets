@@ -125,7 +125,15 @@ static std::vector<TimedEffectEntry> collectTimedEffects(RE::PlayerCharacter* pl
     std::vector<TimedEffectEntry> out;
     if (!player) return out;
 
-    auto* activeEffects = player->GetActiveEffectList();
+    // Actor has runtime-dependent base offsets (SE/AE), so always cast through accessor.
+    auto* magicTarget = player->AsMagicTarget();
+    if (!magicTarget) return out;
+
+    // During save/load transitions, active effect data can be unstable. Skip this frame.
+    auto* ui = RE::UI::GetSingleton();
+    if (ui && ui->GameIsPaused()) return out;
+
+    auto* activeEffects = magicTarget->GetActiveEffectList();
     if (!activeEffects) return out;
 
     for (auto* effect : *activeEffects) {
