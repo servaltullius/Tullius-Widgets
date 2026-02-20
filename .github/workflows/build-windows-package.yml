@@ -56,7 +56,7 @@ jobs:
 
           $notePath = "docs/release-notes/$version.ko.md"
           if (!(Test-Path $notePath)) {
-            throw "Release note missing for version $version: $notePath"
+            throw "Release note missing for version ${version}: $notePath"
           }
 
           $content = Get-Content $notePath -Raw
