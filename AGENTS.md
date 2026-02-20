@@ -41,7 +41,11 @@
 ## Release policy (required)
 - Release/Pre-release name format: `Tullius Widgets v<version>`
 - Patch notes language: 한국어로 작성
-- ZIP artifact: 릴리즈마다 `TulliusWidgets*.zip` 산출물 첨부 필수
+- ZIP artifact:
+  - CI 아티팩트: `TulliusWidgets-v<version>-ci.zip`
+  - 로컬 패키징: `TulliusWidgets-v<version>.zip`
+  - 릴리즈마다 ZIP 산출물 첨부 필수
+- Patch note file path: `docs/release-notes/<version>.ko.md`
 - Minimum patch note sections:
   - 변경 요약
   - 사용자 영향/호환성

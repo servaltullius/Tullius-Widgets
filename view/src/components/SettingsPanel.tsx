@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { UpdateSettingFn, WidgetSettings, WidgetLayout } from '../types/settings';
 import { t } from '../i18n/translations';
 
@@ -104,21 +104,36 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function PresetSection({ lang, settings }: { lang: 'ko' | 'en'; settings: WidgetSettings }) {
   const [message, setMessage] = useState<string | null>(null);
+  const messageTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
+    const scheduleMessageClear = () => {
+      if (messageTimerRef.current !== null) {
+        window.clearTimeout(messageTimerRef.current);
+      }
+      messageTimerRef.current = window.setTimeout(() => {
+        setMessage(null);
+        messageTimerRef.current = null;
+      }, 3000);
+    };
+
     window.onExportResult = (success: boolean) => {
       if (success) {
         setMessage(t(lang, 'exportDone'));
-        setTimeout(() => setMessage(null), 3000);
+        scheduleMessageClear();
       }
     };
     window.onImportResult = (success: boolean) => {
       setMessage(t(lang, success ? 'importDone' : 'importFail'));
-      setTimeout(() => setMessage(null), 3000);
+      scheduleMessageClear();
     };
     return () => {
       delete window.onExportResult;
       delete window.onImportResult;
+      if (messageTimerRef.current !== null) {
+        window.clearTimeout(messageTimerRef.current);
+        messageTimerRef.current = null;
+      }
     };
   }, [lang]);
 

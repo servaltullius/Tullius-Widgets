@@ -12,9 +12,29 @@ if [[ -z "${VERSION}" ]]; then
   echo "ERROR: Failed to resolve version from xmake.lua. Pass version explicitly: scripts/package.sh <version>" >&2
   exit 1
 fi
+RELEASE_NOTE="${ROOT_DIR}/docs/release-notes/${VERSION}.ko.md"
 
 ZIP_NAME="${PLUGIN_NAME}-v${VERSION}.zip"
 ZIP_PATH="${ROOT_DIR}/${ZIP_NAME}"
+
+validate_release_note() {
+  if [[ ! -f "${RELEASE_NOTE}" ]]; then
+    echo "ERROR: Release note missing: ${RELEASE_NOTE}" >&2
+    exit 1
+  fi
+
+  local required_headers=(
+    "## 변경 요약"
+    "## 사용자 영향/호환성"
+    "## 설치/업데이트 안내"
+  )
+  for header in "${required_headers[@]}"; do
+    if ! grep -qF "${header}" "${RELEASE_NOTE}"; then
+      echo "ERROR: Required section missing in ${RELEASE_NOTE}: ${header}" >&2
+      exit 1
+    fi
+  done
+}
 
 build_plugin_native() {
   xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false
@@ -34,6 +54,9 @@ build_plugin_via_powershell() {
 is_wsl() {
   [[ -n "${WSL_DISTRO_NAME:-}" ]] || grep -qi microsoft /proc/version 2>/dev/null
 }
+
+echo "=== Validating release note ==="
+validate_release_note
 
 echo "=== Cleaning dist ==="
 rm -rf "${DIST_DIR}"

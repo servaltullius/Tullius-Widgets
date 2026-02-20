@@ -59,6 +59,18 @@ Data/
 | `ESC` | 설정 패널 닫기 |
 | 드래그 | 설정 패널 열린 동안 위젯 그룹 이동 |
 
+## Release Notes Policy
+
+- 릴리즈/프리릴리즈 제목: `Tullius Widgets v<version>`
+- ZIP 산출물:
+  - CI 아티팩트: `TulliusWidgets-v<version>-ci.zip`
+  - 로컬 패키징(`scripts/package.sh`): `TulliusWidgets-v<version>.zip`
+- 한국어 패치노트 파일: `docs/release-notes/<version>.ko.md`
+- 필수 섹션:
+  - `## 변경 요약`
+  - `## 사용자 영향/호환성`
+  - `## 설치/업데이트 안내`
+
 ## 표시값 기준
 
 - 치명타 확률: 게임 엔트리포인트 계산값 기반, 표시 범위 `0% ~ 100%`
@@ -89,6 +101,7 @@ xmake build
 ```bash
 ./scripts/package.sh
 # 결과: TulliusWidgets-v<version>.zip
+# CI 결과: TulliusWidgets-v<version>-ci.zip
 ```
 
 ### 값 이상치 트러블슈팅

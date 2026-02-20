@@ -5,6 +5,7 @@
 #include <chrono>
 #include <filesystem>
 #include <algorithm>
+#include <mutex>
 
 PRISMA_UI_API::IVPrismaUI1* PrismaUI = nullptr;
 static PrismaView view = 0;
@@ -12,11 +13,65 @@ static std::atomic<bool> gameLoaded{false};
 
 // Throttle: shorter interval during combat for responsive HP/MP/SP
 static std::chrono::steady_clock::time_point lastUpdateTime{};
+static std::mutex lastUpdateMutex;
 static constexpr auto UPDATE_INTERVAL_COMBAT = std::chrono::milliseconds(100);
 static constexpr auto UPDATE_INTERVAL_IDLE   = std::chrono::milliseconds(500);
 
 // --- Settings Persistence ---
 static constexpr auto SETTINGS_DIR = "Data/SKSE/Plugins";
+
+static bool IsViewReady() {
+    return PrismaUI && view != 0 && PrismaUI->IsValid(view);
+}
+
+static bool TryInteropCall(const char* functionName, const char* argument) {
+    if (!IsViewReady()) return false;
+    PrismaUI->InteropCall(view, functionName, argument ? argument : "");
+    return true;
+}
+
+static bool TryInvoke(const char* script) {
+    if (!IsViewReady()) return false;
+    PrismaUI->Invoke(view, script);
+    return true;
+}
+
+static bool TryShowView() {
+    if (!IsViewReady()) return false;
+    PrismaUI->Show(view);
+    return true;
+}
+
+static bool TryHideView() {
+    if (!IsViewReady()) return false;
+    PrismaUI->Hide(view);
+    return true;
+}
+
+static bool ViewHasFocus() {
+    if (!IsViewReady()) return false;
+    return PrismaUI->HasFocus(view);
+}
+
+static bool TryFocusView() {
+    if (!IsViewReady()) return false;
+    return PrismaUI->Focus(view);
+}
+
+static void TryUnfocusView() {
+    if (!IsViewReady()) return;
+    PrismaUI->Unfocus(view);
+}
+
+static bool EnsureSettingsDirectory() {
+    std::error_code ec;
+    std::filesystem::create_directories(SETTINGS_DIR, ec);
+    if (ec) {
+        logger::error("Failed to create settings directory '{}': {}", SETTINGS_DIR, ec.message());
+        return false;
+    }
+    return true;
+}
 
 static std::filesystem::path GetSettingsPath() {
     return std::filesystem::path(SETTINGS_DIR) / "TulliusWidgets.json";
@@ -27,9 +82,19 @@ static std::filesystem::path GetPresetPath() {
 }
 
 static void SaveSettings(const char* jsonData) {
+    if (!jsonData) return;
+    if (!EnsureSettingsDirectory()) return;
+
     std::ofstream file(GetSettingsPath());
-    if (file.is_open()) {
-        file << jsonData;
+    if (!file.is_open()) {
+        logger::error("Failed to open settings file for write: {}", GetSettingsPath().string());
+        return;
+    }
+
+    file << jsonData;
+    if (!file.good()) {
+        logger::error("Failed to write settings file: {}", GetSettingsPath().string());
+    } else {
         logger::info("Settings saved");
     }
 }
@@ -44,7 +109,7 @@ static std::string LoadSettings() {
 }
 
 static void SendHUDColorToView() {
-    if (!PrismaUI || !view) return;
+    if (!IsViewReady()) return;
     uint32_t color = 0xFFFFFF;  // default white
     auto ini = RE::INISettingCollection::GetSingleton();
     if (ini) {
@@ -55,31 +120,34 @@ static void SendHUDColorToView() {
     }
     char hex[16];
     std::snprintf(hex, sizeof(hex), "#%06x", color);
-    PrismaUI->InteropCall(view, "setHUDColor", hex);
+    if (!TryInteropCall("setHUDColor", hex)) return;
     logger::info("HUD color sent: {}", hex);
 }
 
 static void SendSettingsToView() {
-    if (!PrismaUI || !view) return;
+    if (!IsViewReady()) return;
     std::string json = LoadSettings();
     if (json.empty()) return;
-    PrismaUI->InteropCall(view, "updateSettings", json.c_str());
+    if (!TryInteropCall("updateSettings", json.c_str())) return;
     logger::info("Saved settings sent to view");
 }
 
 static void SendStatsToView(bool force = false) {
-    if (!PrismaUI || !view || !gameLoaded) return;
+    if (!IsViewReady() || !gameLoaded.load()) return;
 
     if (!force) {
         auto now = std::chrono::steady_clock::now();
         auto player = RE::PlayerCharacter::GetSingleton();
         auto interval = (player && player->IsInCombat()) ? UPDATE_INTERVAL_COMBAT : UPDATE_INTERVAL_IDLE;
-        if (now - lastUpdateTime < interval) return;
-        lastUpdateTime = now;
+        {
+            std::scoped_lock lock(lastUpdateMutex);
+            if (now - lastUpdateTime < interval) return;
+            lastUpdateTime = now;
+        }
     }
 
     std::string stats = TulliusWidgets::StatsCollector::CollectStats();
-    PrismaUI->InteropCall(view, "updateStats", stats.c_str());
+    TryInteropCall("updateStats", stats.c_str());
 }
 
 class CombatEventSink : public RE::BSTEventSink<RE::TESCombatEvent> {
@@ -176,22 +244,22 @@ public:
     }
 
     RE::BSEventNotifyControl ProcessEvent(const RE::MenuOpenCloseEvent* event, RE::BSTEventSource<RE::MenuOpenCloseEvent>*) override {
-        if (!event || !PrismaUI || !view) return RE::BSEventNotifyControl::kContinue;
+        if (!event || !IsViewReady()) return RE::BSEventNotifyControl::kContinue;
         auto ui = RE::UI::GetSingleton();
 
         // Main menu: hide and mark game as unloaded
         if (event->menuName == RE::MainMenu::MENU_NAME && event->opening) {
-            PrismaUI->Hide(view);
-            gameLoaded = false;
+            TryHideView();
+            gameLoaded.store(false);
             return RE::BSEventNotifyControl::kContinue;
         }
 
         // Hide widgets when tracked menus open (or while game is paused by a menu).
         if (event->opening && (ShouldHideForMenu(event->menuName) || (ui && ui->GameIsPaused()))) {
-            PrismaUI->Hide(view);
-        } else if (!event->opening && gameLoaded && ui && !ui->GameIsPaused() && !IsAnyHiddenMenuOpen(ui)) {
+            TryHideView();
+        } else if (!event->opening && gameLoaded.load() && ui && !ui->GameIsPaused() && !IsAnyHiddenMenuOpen(ui)) {
             // Show only after all tracked menus are fully closed.
-            PrismaUI->Show(view);
+            TryShowView();
         }
 
         return RE::BSEventNotifyControl::kContinue;
@@ -232,7 +300,13 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message) {
             logger::info("TulliusWidgets view ready (id: {})", v);
         });
 
-        PrismaUI->Hide(view);
+        if (!IsViewReady()) {
+            logger::error("Failed to create TulliusWidgets view. Widget initialization aborted.");
+            view = 0;
+            return;
+        }
+
+        TryHideView();
 
         PrismaUI->RegisterJSListener(view, "onSettingsChanged", [](const char* data) -> void {
             if (data) {
@@ -242,44 +316,50 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message) {
 
         PrismaUI->RegisterJSListener(view, "onExportSettings", [](const char* data) -> void {
             if (!data) return;
-            std::ofstream file(GetPresetPath());
-            if (file.is_open()) {
-                file << data;
-                logger::info("Preset exported");
-                if (PrismaUI && view) {
-                    PrismaUI->Invoke(view, "onExportResult(true)");
+            bool success = false;
+            if (EnsureSettingsDirectory()) {
+                std::ofstream file(GetPresetPath());
+                if (file.is_open()) {
+                    file << data;
+                    success = file.good();
                 }
+            }
+
+            if (success) {
+                logger::info("Preset exported");
+            } else {
+                logger::error("Preset export failed: {}", GetPresetPath().string());
+            }
+
+            if (success) {
+                TryInvoke("onExportResult(true)");
+            } else {
+                TryInvoke("onExportResult(false)");
             }
         });
 
         PrismaUI->RegisterJSListener(view, "onImportSettings", [](const char*) -> void {
             auto presetPath = GetPresetPath();
             if (!std::filesystem::exists(presetPath)) {
-                if (PrismaUI && view) {
-                    PrismaUI->Invoke(view, "onImportResult(false)");
-                }
+                TryInvoke("onImportResult(false)");
                 return;
             }
             std::ifstream file(presetPath);
             if (!file.is_open()) {
-                if (PrismaUI && view) {
-                    PrismaUI->Invoke(view, "onImportResult(false)");
-                }
+                TryInvoke("onImportResult(false)");
                 return;
             }
             std::string json((std::istreambuf_iterator<char>(file)),
                               std::istreambuf_iterator<char>());
-            if (PrismaUI && view) {
-                // JS validates/parses imported JSON first, then persists via onSettingsChanged.
-                PrismaUI->InteropCall(view, "importSettingsFromNative", json.c_str());
+            if (!TryInteropCall("importSettingsFromNative", json.c_str())) {
+                TryInvoke("onImportResult(false)");
+                return;
             }
             logger::info("Preset import payload sent");
         });
 
         PrismaUI->RegisterJSListener(view, "onRequestUnfocus", [](const char*) -> void {
-            if (PrismaUI && view) {
-                PrismaUI->Unfocus(view);
-            }
+            TryUnfocusView();
         });
 
         RegisterEventSinks();
@@ -289,22 +369,21 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message) {
 
         // Insert = 0xD2 to toggle settings panel
         (void)keyHandler->Register(0xD2, KeyEventType::KEY_DOWN, []() {
-            if (PrismaUI && view && gameLoaded) {
-                PrismaUI->Invoke(view, "toggleSettings()");
-                auto hasFocus = PrismaUI->HasFocus(view);
-                if (!hasFocus) {
-                    PrismaUI->Focus(view);
+            if (IsViewReady() && gameLoaded.load()) {
+                TryInvoke("toggleSettings()");
+                if (!ViewHasFocus()) {
+                    TryFocusView();
                 } else {
-                    PrismaUI->Unfocus(view);
+                    TryUnfocusView();
                 }
             }
         });
 
         // ESC = 0x01 to close settings panel
         (void)keyHandler->Register(0x01, KeyEventType::KEY_DOWN, []() {
-            if (PrismaUI && view && gameLoaded && PrismaUI->HasFocus(view)) {
-                PrismaUI->Invoke(view, "closeSettings()");
-                PrismaUI->Unfocus(view);
+            if (IsViewReady() && gameLoaded.load() && ViewHasFocus()) {
+                TryInvoke("closeSettings()");
+                TryUnfocusView();
             }
         });
 
@@ -312,12 +391,13 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message) {
     }
     case SKSE::MessagingInterface::kPostLoadGame:
     case SKSE::MessagingInterface::kNewGame: {
-        gameLoaded = true;
-        if (PrismaUI && view) {
-            PrismaUI->Show(view);
+        gameLoaded.store(true);
+        if (TryShowView()) {
             SendHUDColorToView();
             SendSettingsToView();
             SendStatsToView(true);
+        } else {
+            logger::warn("View not ready on game load; skipping initial UI sync");
         }
         logger::info("Game loaded - widgets visible");
         break;

@@ -6,8 +6,9 @@ const isDev = !('sendDataToSKSE' in window);
 
 function normalizeTimedEffects(value: unknown): TimedEffect[] {
   if (!Array.isArray(value)) return [];
+  const occurrenceBySignature = new Map<string, number>();
 
-  return value.flatMap((item, index) => {
+  return value.flatMap((item) => {
     if (!item || typeof item !== 'object') return [];
     const raw = item as Record<string, unknown>;
 
@@ -25,14 +26,21 @@ function normalizeTimedEffects(value: unknown): TimedEffect[] {
       ? raw.totalSec
       : remainingSec;
     const isDebuff = raw.isDebuff === true;
-    const instanceId = typeof raw.instanceId === 'number' && Number.isFinite(raw.instanceId)
-      ? raw.instanceId
-      : index;
+    const rawInstanceId = typeof raw.instanceId === 'number' && Number.isFinite(raw.instanceId)
+      ? Math.trunc(raw.instanceId)
+      : null;
+    const instanceId = rawInstanceId ?? -1;
 
     if (!sourceName && !effectName) return [];
 
+    const signature = `${sourceName}|${effectName}|${Math.trunc(totalSec)}|${isDebuff ? 1 : 0}`;
+    const occurrence = occurrenceBySignature.get(signature) ?? 0;
+    occurrenceBySignature.set(signature, occurrence + 1);
+    const stableKey = rawInstanceId !== null ? `id:${rawInstanceId}` : `sig:${signature}|${occurrence}`;
+
     return [{
       instanceId,
+      stableKey,
       sourceName,
       effectName,
       remainingSec,

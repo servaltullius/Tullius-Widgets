@@ -58,7 +58,7 @@ export function TimedEffectList({ effects, maxVisible, emptyLabel }: TimedEffect
     }}>
       {visible.map((effect) => (
         <div
-          key={`${effect.instanceId}-${effect.sourceName}-${effect.effectName}`}
+          key={effect.stableKey}
           style={{
             display: 'flex',
             alignItems: 'center',

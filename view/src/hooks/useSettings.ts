@@ -1,31 +1,136 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { UpdateSettingFn, UpdateSettingOptions, WidgetSettings } from '../types/settings';
+import type {
+  GroupPosition,
+  Language,
+  UpdateSettingFn,
+  UpdateSettingOptions,
+  WidgetLayout,
+  WidgetSettings,
+  WidgetSize,
+} from '../types/settings';
 import { defaultSettings } from '../data/defaultSettings';
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-// Deep merge: fill missing keys from defaults so old saved files don't crash.
-function mergeWithDefaults(saved: unknown): WidgetSettings {
-  const merged = structuredClone(defaultSettings);
-  if (!isPlainObject(saved)) return merged;
+function readBoolean(value: unknown, fallback: boolean): boolean {
+  return typeof value === 'boolean' ? value : fallback;
+}
 
-  const source = saved as Record<string, unknown>;
-  const mutable = merged as unknown as Record<keyof WidgetSettings, unknown>;
+function readNumber(value: unknown, fallback: number, min?: number, max?: number): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
+  let out = value;
+  if (typeof min === 'number') out = Math.max(min, out);
+  if (typeof max === 'number') out = Math.min(max, out);
+  return out;
+}
 
-  for (const key of Object.keys(merged) as (keyof WidgetSettings)[]) {
-    if (!(key in source)) continue;
+function readEnum<T extends string>(value: unknown, fallback: T, allowed: readonly T[]): T {
+  if (typeof value !== 'string') return fallback;
+  return allowed.includes(value as T) ? (value as T) : fallback;
+}
 
-    const incoming = source[key as string];
-    const current = mutable[key];
-    if (isPlainObject(current) && isPlainObject(incoming)) {
-      mutable[key] = { ...current, ...incoming };
-    } else {
-      mutable[key] = incoming;
+function readAccentColor(value: unknown, fallback: string): string {
+  if (typeof value !== 'string') return fallback;
+  if (value === '') return '';
+  return /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback;
+}
+
+function mergeBooleanSection<T extends Record<string, boolean>>(defaults: T, incoming: unknown): T {
+  if (!isPlainObject(incoming)) return defaults;
+  const source = incoming as Record<string, unknown>;
+  const next = { ...defaults };
+  for (const key of Object.keys(defaults) as Array<keyof T>) {
+    const incomingValue = source[key as string];
+    if (typeof incomingValue === 'boolean') {
+      next[key] = incomingValue as T[keyof T];
     }
   }
+  return next;
+}
 
+function sanitizePositions(incoming: unknown): Record<string, GroupPosition> {
+  if (!isPlainObject(incoming)) return {};
+  const out: Record<string, GroupPosition> = {};
+  for (const [key, rawPos] of Object.entries(incoming)) {
+    if (!isPlainObject(rawPos)) continue;
+    const x = rawPos.x;
+    const y = rawPos.y;
+    if (typeof x !== 'number' || typeof y !== 'number' || !Number.isFinite(x) || !Number.isFinite(y)) continue;
+    out[key] = { x, y };
+  }
+  return out;
+}
+
+function sanitizeLayouts(incoming: unknown): Record<string, WidgetLayout> {
+  if (!isPlainObject(incoming)) return {};
+  const out: Record<string, WidgetLayout> = {};
+  for (const [key, rawLayout] of Object.entries(incoming)) {
+    if (rawLayout === 'vertical' || rawLayout === 'horizontal') {
+      out[key] = rawLayout;
+    }
+  }
+  return out;
+}
+
+// Deep merge with type guards: fill missing/invalid keys from defaults so bad JSON never crashes UI.
+function mergeWithDefaults(saved: Record<string, unknown>): WidgetSettings {
+  const merged = structuredClone(defaultSettings);
+
+  const generalIncoming = saved.general;
+  if (isPlainObject(generalIncoming)) {
+    merged.general.visible = readBoolean(generalIncoming.visible, merged.general.visible);
+    merged.general.combatOnly = readBoolean(generalIncoming.combatOnly, merged.general.combatOnly);
+    merged.general.opacity = readNumber(generalIncoming.opacity, merged.general.opacity, 10, 100);
+    merged.general.size = readEnum<WidgetSize>(generalIncoming.size, merged.general.size, ['small', 'medium', 'large']);
+    merged.general.language = readEnum<Language>(generalIncoming.language, merged.general.language, ['ko', 'en']);
+    merged.general.accentColor = readAccentColor(generalIncoming.accentColor, merged.general.accentColor);
+    merged.general.transparentBg = readBoolean(generalIncoming.transparentBg, merged.general.transparentBg);
+  }
+
+  merged.resistances = mergeBooleanSection(merged.resistances, saved.resistances);
+  merged.defense = mergeBooleanSection(merged.defense, saved.defense);
+  merged.offense = mergeBooleanSection(merged.offense, saved.offense);
+  merged.equipped = mergeBooleanSection(merged.equipped, saved.equipped);
+  merged.movement = mergeBooleanSection(merged.movement, saved.movement);
+  merged.playerInfo = mergeBooleanSection(merged.playerInfo, saved.playerInfo);
+
+  const timedEffectsIncoming = saved.timedEffects;
+  if (isPlainObject(timedEffectsIncoming)) {
+    merged.timedEffects.enabled = readBoolean(timedEffectsIncoming.enabled, merged.timedEffects.enabled);
+    merged.timedEffects.maxVisible = readNumber(timedEffectsIncoming.maxVisible, merged.timedEffects.maxVisible, 1, 12);
+  }
+
+  const alertsIncoming = saved.visualAlerts;
+  if (isPlainObject(alertsIncoming)) {
+    merged.visualAlerts.enabled = readBoolean(alertsIncoming.enabled, merged.visualAlerts.enabled);
+    merged.visualAlerts.lowHealth = readBoolean(alertsIncoming.lowHealth, merged.visualAlerts.lowHealth);
+    merged.visualAlerts.lowHealthThreshold = readNumber(
+      alertsIncoming.lowHealthThreshold,
+      merged.visualAlerts.lowHealthThreshold,
+      10,
+      60
+    );
+    merged.visualAlerts.lowStamina = readBoolean(alertsIncoming.lowStamina, merged.visualAlerts.lowStamina);
+    merged.visualAlerts.lowStaminaThreshold = readNumber(
+      alertsIncoming.lowStaminaThreshold,
+      merged.visualAlerts.lowStaminaThreshold,
+      10,
+      60
+    );
+    merged.visualAlerts.lowMagicka = readBoolean(alertsIncoming.lowMagicka, merged.visualAlerts.lowMagicka);
+    merged.visualAlerts.lowMagickaThreshold = readNumber(
+      alertsIncoming.lowMagickaThreshold,
+      merged.visualAlerts.lowMagickaThreshold,
+      10,
+      60
+    );
+    merged.visualAlerts.overencumbered = readBoolean(alertsIncoming.overencumbered, merged.visualAlerts.overencumbered);
+  }
+
+  merged.positions = sanitizePositions(saved.positions);
+  merged.layouts = sanitizeLayouts(saved.layouts);
   return merged;
 }
 
@@ -62,6 +167,10 @@ export function useSettings() {
   const applyIncomingSettings = useCallback((jsonString: string, persist: boolean): boolean => {
     try {
       const parsed = JSON.parse(jsonString);
+      if (!isPlainObject(parsed)) {
+        console.error('Failed to apply settings: payload is not an object');
+        return false;
+      }
       const merged = mergeWithDefaults(parsed);
       setSettings(merged);
       if (persist) {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import type { WidgetSize, WidgetLayout } from '../types/settings';
 
 interface DraggableWidgetGroupProps {
@@ -37,28 +37,51 @@ export function DraggableWidgetGroup({
   groupId, x, y, opacity, size, layout, accentColor, transparentBg, draggable, onMove, onDragEnd, children,
 }: DraggableWidgetGroupProps) {
   const [dragging, setDragging] = useState(false);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const dragStateRef = useRef({
+    offsetX: 0,
+    offsetY: 0,
+    currentX: x,
+    currentY: y,
+  });
+  const callbacksRef = useRef({
+    groupId,
+    onMove,
+    onDragEnd,
+  });
+
+  useEffect(() => {
+    callbacksRef.current = { groupId, onMove, onDragEnd };
+  }, [groupId, onMove, onDragEnd]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (!draggable) return;
     e.preventDefault();
+    dragStateRef.current = {
+      offsetX: e.clientX - x,
+      offsetY: e.clientY - y,
+      currentX: x,
+      currentY: y,
+    };
     setDragging(true);
-    setOffset({ x: e.clientX - x, y: e.clientY - y });
   }, [draggable, x, y]);
 
   useEffect(() => {
     if (!dragging) return;
 
-    let currentX = x;
-    let currentY = y;
     const handleMove = (e: MouseEvent) => {
-      currentX = e.clientX - offset.x;
-      currentY = e.clientY - offset.y;
-      onMove(groupId, currentX, currentY);
+      const nextX = e.clientX - dragStateRef.current.offsetX;
+      const nextY = e.clientY - dragStateRef.current.offsetY;
+      dragStateRef.current.currentX = nextX;
+      dragStateRef.current.currentY = nextY;
+      callbacksRef.current.onMove(callbacksRef.current.groupId, nextX, nextY);
     };
     const handleUp = () => {
       setDragging(false);
-      onDragEnd(groupId, currentX, currentY);
+      callbacksRef.current.onDragEnd(
+        callbacksRef.current.groupId,
+        dragStateRef.current.currentX,
+        dragStateRef.current.currentY
+      );
     };
 
     window.addEventListener('mousemove', handleMove);
@@ -67,7 +90,7 @@ export function DraggableWidgetGroup({
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', handleUp);
     };
-  }, [dragging, groupId, offset, onDragEnd, onMove, x, y]);
+  }, [dragging]);
 
   const scale = scaleMap[size];
   const showBg = !transparentBg || draggable;
