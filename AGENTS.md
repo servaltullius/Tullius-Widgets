@@ -46,6 +46,8 @@
   - 로컬 패키징: `TulliusWidgets-v<version>.zip`
   - 릴리즈마다 ZIP 산출물 첨부 필수
 - Patch note file path: `docs/release-notes/<version>.ko.md`
+- Local release script (Windows): `pwsh -File .\scripts\release-local.ps1`
+- Local release guide: `docs/local-release.ko.md`
 - Minimum patch note sections:
   - 변경 요약
   - 사용자 영향/호환성
