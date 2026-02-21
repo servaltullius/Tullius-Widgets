@@ -42,8 +42,8 @@
 - Release/Pre-release name format: `Tullius Widgets v<version>`
 - Patch notes language: 한국어로 작성
 - ZIP artifact:
-  - CI 아티팩트: `TulliusWidgets-v<version>-ci.zip`
-  - 로컬 패키징: `TulliusWidgets-v<version>.zip`
+  - 기본(권장, CI 없이): `TulliusWidgets-v<version>.zip`
+  - CI 아티팩트(선택): `TulliusWidgets-v<version>-ci.zip`
   - 릴리즈마다 ZIP 산출물 첨부 필수
 - Patch note file path: `docs/release-notes/<version>.ko.md`
 - Local release script (Windows): `pwsh -File .\scripts\release-local.ps1`

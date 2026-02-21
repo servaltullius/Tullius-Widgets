@@ -65,9 +65,11 @@ Data/
 
 - 릴리즈/프리릴리즈 제목: `Tullius Widgets v<version>`
 - ZIP 산출물:
-  - CI 아티팩트: `TulliusWidgets-v<version>-ci.zip`
-  - 로컬 패키징(`scripts/package.sh`): `TulliusWidgets-v<version>.zip`
+  - 기본(권장, CI 없이): `TulliusWidgets-v<version>.zip`
+  - CI 아티팩트(선택): `TulliusWidgets-v<version>-ci.zip`
 - 한국어 패치노트 파일: `docs/release-notes/<version>.ko.md`
+- 로컬 릴리즈 스크립트(Windows): `pwsh -File .\scripts\release-local.ps1`
+- 로컬 릴리즈 가이드: `docs/local-release.ko.md`
 - 필수 섹션:
   - `## 변경 요약`
   - `## 사용자 영향/호환성`
@@ -101,9 +103,13 @@ xmake build
 
 ### Packaging
 ```bash
+# 권장 (Windows 로컬 빌드 + 패키징)
+pwsh -File .\scripts\release-local.ps1 -NoPublish
+# 결과: TulliusWidgets-v<version>.zip
+
+# 대안 (WSL/Linux 스크립트)
 ./scripts/package.sh
 # 결과: TulliusWidgets-v<version>.zip
-# CI 결과: TulliusWidgets-v<version>-ci.zip
 ```
 
 ### 값 이상치 트러블슈팅
