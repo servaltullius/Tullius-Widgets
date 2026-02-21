@@ -6,9 +6,13 @@ on:
     branches:
       - master
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ${{ vars.WINDOWS_RUNNER_LABEL != '' && vars.WINDOWS_RUNNER_LABEL || 'windows-latest' }}
     timeout-minutes: 40
 
     steps:
@@ -36,10 +40,21 @@ jobs:
         with:
           xmake-version: 2.9.7
 
+      - name: Restore xmake compiler cache
+        uses: actions/cache@v4
+        with:
+          path: .xmake-cache/ccache
+          key: ${{ runner.os }}-xmake-ccache-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-xmake-ccache-${{ github.ref_name }}-
+            ${{ runner.os }}-xmake-ccache-
+
       - name: Build plugin
         shell: pwsh
         run: |
-          xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false
+          $ccacheDir = Join-Path $env:GITHUB_WORKSPACE ".xmake-cache\ccache"
+          New-Item -ItemType Directory -Path $ccacheDir -Force | Out-Null
+          xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false --ccache=y --ccachedir="$ccacheDir"
           xmake build -y -v
 
       - name: Resolve version and validate Korean release note
@@ -87,3 +102,4 @@ jobs:
           name: TulliusWidgets-windows-package
           path: ${{ env.ZIP_NAME }}
           if-no-files-found: error
+          compression-level: 0
