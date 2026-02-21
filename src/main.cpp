@@ -372,8 +372,20 @@ public:
     RE::BSEventNotifyControl ProcessEvent(const RE::TESEquipEvent* event, RE::BSTEventSource<RE::TESEquipEvent>*) override {
         if (!event) return RE::BSEventNotifyControl::kContinue;
         auto player = RE::PlayerCharacter::GetSingleton();
-        if (player && event->actor.get() == player) {
-            SendStatsToView(true);  // Force: equip changes are important
+        auto* actor = event->actor.get();
+        const bool isPlayerEvent = player &&
+            actor &&
+            (actor == player || actor->GetFormID() == RE::FormID(0x00000014));
+        if (isPlayerEvent) {
+            // Equip events can arrive before final hand state is committed.
+            // Defer one task tick to read the settled equipped objects reliably.
+            if (auto* taskInterface = SKSE::GetTaskInterface()) {
+                taskInterface->AddTask([]() {
+                    SendStatsToView(true);
+                });
+            } else {
+                SendStatsToView(true);
+            }
         }
         return RE::BSEventNotifyControl::kContinue;
     }

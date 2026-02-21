@@ -23,9 +23,43 @@ static constexpr float kCritChanceCap = 100.0f;
 static constexpr float kDamageReductionCap = 80.0f;
 static constexpr float kArmorRatingForMaxReduction = 666.67f;
 
+static RE::TESForm* getEquippedForm(RE::PlayerCharacter* player, bool leftHand) {
+    if (!player) return nullptr;
+
+    if (auto* equipped = player->GetEquippedObject(leftHand)) {
+        return equipped;
+    }
+
+    if (auto* entry = player->GetEquippedEntryData(leftHand)) {
+        if (auto* object = entry->object) {
+            return object;
+        }
+    }
+
+    // Some setups report shields only as worn armor, not as left-hand object.
+    if (leftHand) {
+        if (auto* shield = player->GetWornArmor(RE::BGSBipedObjectForm::BipedObjectSlot::kShield, false)) {
+            return shield;
+        }
+    }
+
+    return nullptr;
+}
+
 static std::string getEquippedName(RE::PlayerCharacter* player, bool leftHand) {
     if (!player) return "";
-    const RE::TESForm* equipped = player->GetEquippedObject(leftHand);
+    if (auto* entry = player->GetEquippedEntryData(leftHand)) {
+        if (const char* displayName = entry->GetDisplayName(); displayName && displayName[0] != '\0') {
+            return displayName;
+        }
+        if (auto* object = entry->object) {
+            if (const char* objectName = object->GetName(); objectName && objectName[0] != '\0') {
+                return objectName;
+            }
+        }
+    }
+
+    auto* equipped = getEquippedForm(player, leftHand);
     if (!equipped) return "";
 
     if (const auto* weapon = equipped->As<RE::TESObjectWEAP>()) {
@@ -411,8 +445,8 @@ std::string StatsCollector::CollectStats() {
 
     float rightDmg = 0.0f;
     float leftDmg = 0.0f;
-    auto rightHand = player->GetEquippedObject(false);
-    auto leftHand = player->GetEquippedObject(true);
+    auto rightHand = getEquippedForm(player, false);
+    auto leftHand = getEquippedForm(player, true);
 
     if (rightHand) {
         auto weapon = rightHand->As<RE::TESObjectWEAP>();
