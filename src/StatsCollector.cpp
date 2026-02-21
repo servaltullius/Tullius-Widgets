@@ -471,9 +471,22 @@ std::string StatsCollector::CollectStats() {
     float curHP = maxHP + dmgHP;
     float curMP = maxMP + dmgMP;
     float curSP = maxSP + dmgSP;
+    float experience = 0.0f;
+    float expToNextLevel = 0.0f;
+
+    auto& infoRuntime = player->GetInfoRuntimeData();
+    if (infoRuntime.skills && infoRuntime.skills->data) {
+        const float rawXp = infoRuntime.skills->data->xp;
+        const float rawThreshold = infoRuntime.skills->data->levelThreshold;
+        experience = std::isfinite(rawXp) ? (std::max)(rawXp, 0.0f) : 0.0f;
+        const float safeThreshold = std::isfinite(rawThreshold) ? rawThreshold : experience;
+        expToNextLevel = (std::max)(safeThreshold - experience, 0.0f);
+    }
 
     json += "\"playerInfo\":{";
     json += "\"level\":" + std::to_string(static_cast<int>(player->GetLevel())) + ",";
+    json += "\"experience\":" + safeFloat(experience) + ",";
+    json += "\"expToNextLevel\":" + safeFloat(expToNextLevel) + ",";
     json += "\"gold\":" + std::to_string(static_cast<int>(GetGoldCount())) + ",";
     json += "\"carryWeight\":" + safeFloat(av->GetActorValue(RE::ActorValue::kInventoryWeight)) + ",";
     json += "\"maxCarryWeight\":" + safeFloat(av->GetActorValue(RE::ActorValue::kCarryWeight)) + ",";

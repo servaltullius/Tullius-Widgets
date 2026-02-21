@@ -51,6 +51,8 @@ export interface WidgetSettings {
   };
   playerInfo: {
     level: boolean;
+    experience: boolean;
+    expToNextLevel: boolean;
     gold: boolean;
     carryWeight: boolean;
     health: boolean;

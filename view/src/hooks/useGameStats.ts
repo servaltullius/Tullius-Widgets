@@ -255,6 +255,8 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
       : normalizeGameTime(value.time, fallback.time),
     playerInfo: {
       level: Math.trunc(readNumber(rawPlayerInfo?.level, fallback.playerInfo.level, 1, 9999)),
+      experience: Math.trunc(readNumber(rawPlayerInfo?.experience, fallback.playerInfo.experience, 0, 999999999)),
+      expToNextLevel: Math.trunc(readNumber(rawPlayerInfo?.expToNextLevel, fallback.playerInfo.expToNextLevel, 0, 999999999)),
       gold: Math.trunc(readNumber(rawPlayerInfo?.gold, fallback.playerInfo.gold, 0, 999999999)),
       carryWeight: readNumber(rawPlayerInfo?.carryWeight, fallback.playerInfo.carryWeight, -100000, 100000),
       maxCarryWeight: readNumber(rawPlayerInfo?.maxCarryWeight, fallback.playerInfo.maxCarryWeight, 1, 100000),

@@ -37,6 +37,8 @@ export const mockStats: CombatStats = {
   },
   playerInfo: {
     level: 42,
+    experience: 72450,
+    expToNextLevel: 3550,
     gold: 12500,
     carryWeight: 185.5,
     maxCarryWeight: 300,

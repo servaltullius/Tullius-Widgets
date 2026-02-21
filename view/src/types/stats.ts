@@ -40,6 +40,8 @@ export interface GameTimeInfo {
 
 export interface PlayerInfo {
   level: number;
+  experience: number;
+  expToNextLevel: number;
   gold: number;
   carryWeight: number;
   maxCarryWeight: number;

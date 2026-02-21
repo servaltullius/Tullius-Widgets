@@ -455,6 +455,8 @@ export function SettingsPanel({ settings, open, onClose, onUpdate, accentColor }
           >
             <LayoutSelect lang={lang} groupId="playerInfo" value={groupLayout('playerInfo')} onUpdate={onUpdate} />
             <Toggle label={t(lang, 'level')} checked={settings.playerInfo.level} onChange={v => onUpdate('playerInfo.level', v)} />
+            <Toggle label={t(lang, 'experience')} checked={settings.playerInfo.experience} onChange={v => onUpdate('playerInfo.experience', v)} />
+            <Toggle label={t(lang, 'expToNextLevel')} checked={settings.playerInfo.expToNextLevel} onChange={v => onUpdate('playerInfo.expToNextLevel', v)} />
             <Toggle label={t(lang, 'gold')} checked={settings.playerInfo.gold} onChange={v => onUpdate('playerInfo.gold', v)} />
             <Toggle label={t(lang, 'carryWeight')} checked={settings.playerInfo.carryWeight} onChange={v => onUpdate('playerInfo.carryWeight', v)} />
             <Toggle label={t(lang, 'health')} checked={settings.playerInfo.health} onChange={v => onUpdate('playerInfo.health', v)} />

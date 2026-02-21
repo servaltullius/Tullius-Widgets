@@ -32,6 +32,10 @@ function formatGold(v: number) {
   return v.toLocaleString();
 }
 
+function formatInteger(v: number) {
+  return Math.round(v).toLocaleString();
+}
+
 function snapPosition(
   groupId: string,
   rawX: number,
@@ -130,6 +134,8 @@ export function App() {
           {hasVisiblePlayerInfo && (
             <DraggableWidgetGroup {...groupProps('playerInfo')}>
               <StatWidget icon="level" iconColor="#ffd700" value={stats.playerInfo.level} visible={settings.playerInfo.level} />
+              <StatWidget icon="level" iconColor="#5ec8ff" value={stats.playerInfo.experience} unit=" XP" visible={settings.playerInfo.experience} format={formatInteger} />
+              <StatWidget icon="crit" iconColor="#ffb84d" value={stats.playerInfo.expToNextLevel} unit=" XP" visible={settings.playerInfo.expToNextLevel} format={formatInteger} />
               <StatWidget icon="gold" iconColor="#f0c040" value={stats.playerInfo.gold} visible={settings.playerInfo.gold} format={formatGold} />
               <StatWidget icon="weight" iconColor="#cc9966" value={stats.playerInfo.carryWeight} unit={`/${Math.round(stats.playerInfo.maxCarryWeight)}`} visible={settings.playerInfo.carryWeight} format={formatWeight} />
               <StatWidget icon="health" iconColor="#e84040" value={stats.playerInfo.health} visible={settings.playerInfo.health} />

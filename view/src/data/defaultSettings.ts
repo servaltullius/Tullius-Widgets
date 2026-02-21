@@ -44,6 +44,8 @@ export const defaultSettings: WidgetSettings = {
   },
   playerInfo: {
     level: true,
+    experience: true,
+    expToNextLevel: true,
     gold: true,
     carryWeight: true,
     health: false,
