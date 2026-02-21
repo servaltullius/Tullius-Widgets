@@ -34,7 +34,12 @@ static std::jthread g_heartbeatThread;
 static std::atomic<bool> g_heartbeatStarted{false};
 
 // --- Settings Persistence ---
-static constexpr auto SETTINGS_DIR = "Data/SKSE/Plugins";
+static std::filesystem::path ResolveGameRootPath();
+
+static std::filesystem::path GetSettingsDirectoryPath() {
+    const auto basePath = g_gameRootPath.empty() ? ResolveGameRootPath() : g_gameRootPath;
+    return basePath / "Data" / "SKSE" / "Plugins";
+}
 
 static std::string EscapeJson(std::string_view input) {
     std::string out;
@@ -192,21 +197,22 @@ static void TryUnfocusView() {
 }
 
 static bool EnsureSettingsDirectory() {
+    const auto dirPath = GetSettingsDirectoryPath();
     std::error_code ec;
-    std::filesystem::create_directories(SETTINGS_DIR, ec);
+    std::filesystem::create_directories(dirPath, ec);
     if (ec) {
-        logger::error("Failed to create settings directory '{}': {}", SETTINGS_DIR, ec.message());
+        logger::error("Failed to create settings directory '{}': {}", dirPath.generic_string(), ec.message());
         return false;
     }
     return true;
 }
 
 static std::filesystem::path GetSettingsPath() {
-    return std::filesystem::path(SETTINGS_DIR) / "TulliusWidgets.json";
+    return GetSettingsDirectoryPath() / "TulliusWidgets.json";
 }
 
 static std::filesystem::path GetPresetPath() {
-    return std::filesystem::path(SETTINGS_DIR) / "TulliusWidgets_preset.json";
+    return GetSettingsDirectoryPath() / "TulliusWidgets_preset.json";
 }
 
 static void SaveSettings(const char* jsonData) {

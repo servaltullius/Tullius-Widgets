@@ -4,6 +4,7 @@ import { t } from '../i18n/translations';
 
 interface SettingsPanelProps {
   settings: WidgetSettings;
+  effectiveVisible: boolean;
   open: boolean;
   onClose: () => void;
   onUpdate: UpdateSettingFn;
@@ -241,7 +242,7 @@ const PRESET_COLORS = [
   '', '#6699cc', '#cc6666', '#66cc99', '#cc99cc', '#ccaa66', '#66cccc', '#ffffff',
 ];
 
-export function SettingsPanel({ settings, open, onClose, onUpdate, accentColor }: SettingsPanelProps) {
+export function SettingsPanel({ settings, effectiveVisible, open, onClose, onUpdate, accentColor }: SettingsPanelProps) {
   const [activeTab, setActiveTab] = useState<PanelTab>(rememberedPanelTab);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     ...DEFAULT_EXPANDED_SECTIONS,
@@ -378,7 +379,12 @@ export function SettingsPanel({ settings, open, onClose, onUpdate, accentColor }
           expanded={isSectionExpanded('generalMain')}
           onToggle={toggleSection}
         >
-          <Toggle label={t(lang, 'showWidgets')} checked={settings.general.visible} onChange={v => onUpdate('general.visible', v)} />
+          <Toggle label={t(lang, 'showWidgets')} checked={effectiveVisible} onChange={v => onUpdate('general.visible', v)} />
+          {effectiveVisible !== settings.general.visible && (
+            <p style={{ color: '#a8bbd8', fontSize: '16px', margin: '0 0 8px 0' }}>
+              {t(lang, 'sessionVisibilityHint')}
+            </p>
+          )}
           <Toggle label={t(lang, 'combatOnly')} checked={settings.general.combatOnly} onChange={v => onUpdate('general.combatOnly', v)} />
           <Toggle label={t(lang, 'showOnChangeOnly')} checked={settings.general.showOnChangeOnly} onChange={v => onUpdate('general.showOnChangeOnly', v)} />
           {settings.general.showOnChangeOnly && (

@@ -81,23 +81,101 @@ export function App() {
 
   const trackedChangeSignature = useMemo(() => {
     const trackedTime = settings.time.gameDateTime
-      ? [stats.time.year, stats.time.month, stats.time.day, stats.time.hour, stats.time.minute]
+      ? {
+        year: stats.time.year,
+        month: stats.time.month,
+        day: stats.time.day,
+        hour: stats.time.hour,
+        minute: stats.time.minute,
+      }
+      : null;
+    const trackedRealTime = settings.time.realDateTime
+      ? Math.floor(nowMs / 1000)
       : null;
     const trackedTimedEffects = settings.timedEffects.enabled
       ? stats.timedEffects.map(effect => [effect.stableKey, Math.trunc(effect.remainingSec), Math.trunc(effect.totalSec), effect.isDebuff ? 1 : 0])
       : null;
+    const trackedResistances = {
+      ...(settings.resistances.magic ? { magic: stats.resistances.magic } : {}),
+      ...(settings.resistances.fire ? { fire: stats.resistances.fire } : {}),
+      ...(settings.resistances.frost ? { frost: stats.resistances.frost } : {}),
+      ...(settings.resistances.shock ? { shock: stats.resistances.shock } : {}),
+      ...(settings.resistances.poison ? { poison: stats.resistances.poison } : {}),
+      ...(settings.resistances.disease ? { disease: stats.resistances.disease } : {}),
+    };
+    const trackedDefense = {
+      ...(settings.defense.armorRating ? { armorRating: stats.defense.armorRating } : {}),
+      ...(settings.defense.damageReduction ? { damageReduction: stats.defense.damageReduction } : {}),
+    };
+    const trackedOffense = {
+      ...(settings.offense.rightHandDamage ? { rightHandDamage: stats.offense.rightHandDamage } : {}),
+      ...(settings.offense.leftHandDamage ? { leftHandDamage: stats.offense.leftHandDamage } : {}),
+      ...(settings.offense.critChance ? { critChance: stats.offense.critChance } : {}),
+    };
+    const trackedEquipped = {
+      ...(settings.equipped.rightHand ? { rightHand: stats.equipped.rightHand } : {}),
+      ...(settings.equipped.leftHand ? { leftHand: stats.equipped.leftHand } : {}),
+    };
+    const trackedMovement = settings.movement.speedMult
+      ? { speedMult: stats.movement.speedMult }
+      : null;
+    const trackedPlayerInfo = {
+      ...(settings.playerInfo.level ? { level: stats.playerInfo.level } : {}),
+      ...(settings.playerInfo.gold ? { gold: stats.playerInfo.gold } : {}),
+      ...(settings.playerInfo.carryWeight ? { carryWeight: stats.playerInfo.carryWeight, maxCarryWeight: stats.playerInfo.maxCarryWeight } : {}),
+      ...(settings.playerInfo.health ? { health: stats.playerInfo.health } : {}),
+      ...(settings.playerInfo.magicka ? { magicka: stats.playerInfo.magicka } : {}),
+      ...(settings.playerInfo.stamina ? { stamina: stats.playerInfo.stamina } : {}),
+    };
+    const trackedExperience = settings.experience.enabled
+      ? {
+        current: stats.playerInfo.experience,
+        toNext: stats.playerInfo.expToNextLevel,
+        nextLevelTotalXp: stats.playerInfo.nextLevelTotalXp,
+      }
+      : null;
+
     return JSON.stringify({
-      resistances: stats.resistances,
-      defense: stats.defense,
-      offense: stats.offense,
-      equipped: stats.equipped,
-      movement: stats.movement,
-      playerInfo: stats.playerInfo,
+      resistances: trackedResistances,
+      defense: trackedDefense,
+      offense: trackedOffense,
+      equipped: trackedEquipped,
+      movement: trackedMovement,
+      playerInfo: trackedPlayerInfo,
+      experience: trackedExperience,
       isInCombat: stats.isInCombat,
       timedEffects: trackedTimedEffects,
       time: trackedTime,
+      realTime: trackedRealTime,
     });
-  }, [stats, settings.time.gameDateTime, settings.timedEffects.enabled]);
+  }, [
+    nowMs,
+    settings.defense.armorRating,
+    settings.defense.damageReduction,
+    settings.equipped.leftHand,
+    settings.equipped.rightHand,
+    settings.experience.enabled,
+    settings.movement.speedMult,
+    settings.offense.critChance,
+    settings.offense.leftHandDamage,
+    settings.offense.rightHandDamage,
+    settings.playerInfo.carryWeight,
+    settings.playerInfo.gold,
+    settings.playerInfo.health,
+    settings.playerInfo.level,
+    settings.playerInfo.magicka,
+    settings.playerInfo.stamina,
+    settings.resistances.disease,
+    settings.resistances.fire,
+    settings.resistances.frost,
+    settings.resistances.magic,
+    settings.resistances.poison,
+    settings.resistances.shock,
+    settings.time.gameDateTime,
+    settings.time.realDateTime,
+    settings.timedEffects.enabled,
+    stats,
+  ]);
 
   useEffect(() => {
     const changedAt = Date.now();
@@ -177,7 +255,8 @@ export function App() {
   const hasVisiblePlayerInfo = Object.values(settings.playerInfo).some(Boolean);
   const currentXp = Math.max(0, Math.round(stats.playerInfo.experience));
   const rawNextLevelXp = Math.max(0, Math.round(stats.playerInfo.expToNextLevel));
-  const totalXpForNextLevel = rawNextLevelXp >= currentXp ? rawNextLevelXp : currentXp + rawNextLevelXp;
+  const providedTotalXp = Math.max(0, Math.round(stats.playerInfo.nextLevelTotalXp));
+  const totalXpForNextLevel = Math.max(currentXp + rawNextLevelXp, providedTotalXp);
   const experienceProgressValue = `${formatInteger(currentXp)} / ${formatInteger(totalXpForNextLevel)} XP`;
   const rawLabel = t(lang, 'capRawLabel');
   const capLabel = t(lang, 'capLimitLabel');
@@ -500,6 +579,7 @@ export function App() {
 
       <SettingsPanel
         settings={settings}
+        effectiveVisible={visible}
         open={settingsOpen}
         onClose={closeSettings}
         onUpdate={updateSetting}

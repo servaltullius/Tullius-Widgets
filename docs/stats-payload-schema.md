@@ -45,6 +45,7 @@
     "level": 8,
     "experience": 1280.0,
     "expToNextLevel": 620.0,
+    "nextLevelTotalXp": 1900.0,
     "gold": 3433,
     "carryWeight": 241.71,
     "maxCarryWeight": 445.0,
@@ -106,6 +107,11 @@
 - `resistances`, `offense.critChance`, `defense.damageReduction`는 **실효 표시값**입니다.
 - 원본 계산값은 `calcMeta.rawResistances`, `calcMeta.rawCritChance`, `calcMeta.rawDamageReduction`에 전달됩니다.
 - UI는 `calcMeta.caps` 기준으로 캡/보조 텍스트를 표시합니다.
+- 경험치 계약:
+  - `playerInfo.experience` = 현재 누적 XP
+  - `playerInfo.expToNextLevel` = 레벨업까지 남은 XP
+  - `playerInfo.nextLevelTotalXp` = 다음 레벨 총 필요 XP(누적 기준)
+  - UI 권장 표기: `experience / nextLevelTotalXp`
 
 ## 2) `updateRuntimeStatus(jsonString)`
 
@@ -115,7 +121,7 @@
 {
   "runtimeVersion": "1.5.97.0",
   "skseVersion": "2.0.20.0",
-  "addressLibraryPath": "Data/SKSE/Plugins/version-1-5-97-0.bin",
+  "addressLibraryPath": "C:/Games/Skyrim Special Edition/Data/SKSE/Plugins/version-1-5-97-0.bin",
   "addressLibraryPresent": true,
   "runtimeSupported": true,
   "usesAddressLibrary": true,

@@ -62,6 +62,10 @@ function sanitizeEffectText(value: string): string {
   return cleaned.replace(/\s+/g, ' ').trim();
 }
 
+function keySafeText(value: string): string {
+  return encodeURIComponent(value);
+}
+
 function normalizeGameTime(value: unknown, fallback?: GameTimeInfo): GameTimeInfo {
   const snapshotAtMs = Date.now();
   const fallbackMonth = fallback ? Math.trunc(readNumber(fallback.month, 0, 0, 11)) : 0;
@@ -142,25 +146,17 @@ function normalizeTimedEffects(value: unknown): TimedEffect[] {
 
     const roundedRemaining = Math.trunc(Math.max(0, remainingSec));
     const roundedTotal = Math.trunc(Math.max(0, totalSec));
-    const hasPersistentIdentity = rawInstanceId !== null
-      || sourceFormId > 0
-      || effectFormId > 0
-      || spellFormId > 0;
-    const logicalKey = hasPersistentIdentity
-      ? `pid:${rawInstanceId ?? -1}|sf:${sourceFormId}|ef:${effectFormId}|pf:${spellFormId}|d:${isDebuff ? 1 : 0}`
-      : `volatile:${sourceName}|${effectName}|${roundedTotal}|${roundedRemaining}|${isDebuff ? 1 : 0}|idx:${index}`;
+    const safeSourceName = keySafeText(sourceName);
+    const safeEffectName = keySafeText(effectName);
+    const hasStrongIdentity = rawInstanceId !== null && rawInstanceId >= 0;
+    const logicalKey = hasStrongIdentity
+      ? `pid:${rawInstanceId}|sf:${sourceFormId}|ef:${effectFormId}|pf:${spellFormId}|d:${isDebuff ? 1 : 0}|sn:${safeSourceName}|en:${safeEffectName}|t:${roundedTotal}`
+      : `volatile:${safeSourceName}|${safeEffectName}|${roundedTotal}|${roundedRemaining}|${isDebuff ? 1 : 0}|sf:${sourceFormId}|ef:${effectFormId}|pf:${spellFormId}|idx:${index}`;
 
     const existing = mergedByLogicalKey.get(logicalKey);
     if (existing) {
       existing.remainingSec = Math.max(existing.remainingSec, roundedRemaining);
       existing.totalSec = Math.max(existing.totalSec, roundedTotal);
-      const existingLooksFallback = existing.sourceName === existing.effectName
-        || !existing.sourceName
-        || !existing.effectName;
-      if (existingLooksFallback && sourceName !== effectName) {
-        existing.sourceName = sourceName;
-        existing.effectName = effectName;
-      }
       continue;
     }
 
@@ -179,7 +175,7 @@ function normalizeTimedEffects(value: unknown): TimedEffect[] {
 
   const out: TimedEffect[] = [];
   for (const merged of mergedByLogicalKey.values()) {
-    const signature = `${merged.sourceName}|${merged.effectName}|${Math.trunc(merged.totalSec)}|${merged.isDebuff ? 1 : 0}`;
+    const signature = `${keySafeText(merged.sourceName)}|${keySafeText(merged.effectName)}|${Math.trunc(merged.totalSec)}|${merged.isDebuff ? 1 : 0}`;
     const occurrence = occurrenceBySignature.get(signature) ?? 0;
     occurrenceBySignature.set(signature, occurrence + 1);
 
@@ -232,6 +228,18 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
   const rawCalcResistances = isPlainObject(rawCalcMeta?.rawResistances) ? rawCalcMeta.rawResistances : null;
   const rawCalcCaps = isPlainObject(rawCalcMeta?.caps) ? rawCalcMeta.caps : null;
   const rawCalcFlags = isPlainObject(rawCalcMeta?.flags) ? rawCalcMeta.flags : null;
+  const normalizedExperience = Math.trunc(readNumber(rawPlayerInfo?.experience, fallback.playerInfo.experience, 0, 999999999));
+  const normalizedExpToNextLevel = Math.trunc(readNumber(rawPlayerInfo?.expToNextLevel, fallback.playerInfo.expToNextLevel, 0, 999999999));
+  const parsedNextLevelTotalXp = Math.trunc(readNumber(
+    rawPlayerInfo?.nextLevelTotalXp,
+    fallback.playerInfo.nextLevelTotalXp,
+    0,
+    999999999,
+  ));
+  const normalizedNextLevelTotalXp = Math.max(
+    normalizedExperience + normalizedExpToNextLevel,
+    parsedNextLevelTotalXp,
+  );
 
   return {
     resistances: {
@@ -263,8 +271,9 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
       : normalizeGameTime(value.time, fallback.time),
     playerInfo: {
       level: Math.trunc(readNumber(rawPlayerInfo?.level, fallback.playerInfo.level, 1, 9999)),
-      experience: Math.trunc(readNumber(rawPlayerInfo?.experience, fallback.playerInfo.experience, 0, 999999999)),
-      expToNextLevel: Math.trunc(readNumber(rawPlayerInfo?.expToNextLevel, fallback.playerInfo.expToNextLevel, 0, 999999999)),
+      experience: normalizedExperience,
+      expToNextLevel: normalizedExpToNextLevel,
+      nextLevelTotalXp: normalizedNextLevelTotalXp,
       gold: Math.trunc(readNumber(rawPlayerInfo?.gold, fallback.playerInfo.gold, 0, 999999999)),
       carryWeight: readNumber(rawPlayerInfo?.carryWeight, fallback.playerInfo.carryWeight, -100000, 100000),
       maxCarryWeight: readNumber(rawPlayerInfo?.maxCarryWeight, fallback.playerInfo.maxCarryWeight, 1, 100000),
