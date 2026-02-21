@@ -23,3 +23,17 @@ icon/
 # Test artifacts
 .playwright-mcp/
 alignment-test-*.png
+
+# Local docs artifacts
+docs/screenshot-settings-panel.png
+docs/screenshot-updated-stats.png
+
+# Python
+__pycache__/
+*.py[cod]
+
+# vibe-kit
+.vibe/db/
+.vibe/reports/
+.vibe/locks/
+.vibe/context/LATEST_CONTEXT.md

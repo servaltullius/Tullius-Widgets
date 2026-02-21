@@ -42,6 +42,10 @@ function readText(value: unknown, fallback: string, allowEmpty = false): string 
   return value;
 }
 
+function quantize2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
 function readFormId(value: unknown): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
   const id = Math.trunc(value);
@@ -228,18 +232,18 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
   const rawCalcResistances = isPlainObject(rawCalcMeta?.rawResistances) ? rawCalcMeta.rawResistances : null;
   const rawCalcCaps = isPlainObject(rawCalcMeta?.caps) ? rawCalcMeta.caps : null;
   const rawCalcFlags = isPlainObject(rawCalcMeta?.flags) ? rawCalcMeta.flags : null;
-  const normalizedExperience = Math.trunc(readNumber(rawPlayerInfo?.experience, fallback.playerInfo.experience, 0, 999999999));
-  const normalizedExpToNextLevel = Math.trunc(readNumber(rawPlayerInfo?.expToNextLevel, fallback.playerInfo.expToNextLevel, 0, 999999999));
-  const parsedNextLevelTotalXp = Math.trunc(readNumber(
+  const normalizedExperience = quantize2(readNumber(rawPlayerInfo?.experience, fallback.playerInfo.experience, 0, 999999999));
+  const normalizedExpToNextLevel = quantize2(readNumber(rawPlayerInfo?.expToNextLevel, fallback.playerInfo.expToNextLevel, 0, 999999999));
+  const parsedNextLevelTotalXp = quantize2(readNumber(
     rawPlayerInfo?.nextLevelTotalXp,
     fallback.playerInfo.nextLevelTotalXp,
     0,
     999999999,
   ));
-  const normalizedNextLevelTotalXp = Math.max(
+  const normalizedNextLevelTotalXp = quantize2(Math.max(
     normalizedExperience + normalizedExpToNextLevel,
     parsedNextLevelTotalXp,
-  );
+  ));
 
   return {
     resistances: {

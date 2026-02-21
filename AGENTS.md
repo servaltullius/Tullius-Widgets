@@ -15,13 +15,13 @@
 - Database/migrations: 해당 없음
 
 ## Test & verification
-- Unit tests: `N/A (현재 유닛 테스트 명령 미구성)`
+- Unit tests: `cd view && npm test`
 - Integration/e2e: `N/A (현재 명령 미구성)`
 - Lint/format: `cd view && npm run lint`
 - Typecheck/build:
   - 프론트: `cd view && npm run build`
   - 플러그인(Windows/MSVC): `xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false && xmake build`
-- How to run a single test quickly: `N/A (현재 테스트 러너 미구성)`
+- How to run a single test quickly: `cd view && npm test -- src/hooks/useGameStats.test.tsx`
 
 ## Coding standards
 - Language/version: C++23, TypeScript(React 19)
@@ -33,7 +33,7 @@
 ## Required fields
 - Install command: `cd view && npm install`
 - Dev server command: `cd view && npm run dev`
-- Unit test command: `N/A (현재 유닛 테스트 명령 미구성)`
+- Unit test command: `cd view && npm test`
 - Lint/format command: `cd view && npm run lint`
 - Typecheck/build command: `cd view && npm run build` / `xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false && xmake build`
 - Primary entrypoint path: `src/main.cpp` (plugin), `view/src/main.tsx` (UI)
