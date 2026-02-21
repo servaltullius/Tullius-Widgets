@@ -49,3 +49,8 @@ pwsh -File .\scripts\release-local.ps1 -Repo servaltullius/Tullius-Widgets -Chan
 - `-SkipFrontendBuild`: 프론트 빌드 생략
 - `-SkipPluginBuild`: 플러그인 빌드 생략
 - `-NoPublish`: GitHub 게시 생략 (ZIP만 생성)
+
+## 트러블슈팅
+- 릴리즈 작업 폴더에 로컬 변경이 남아 있으면 `git pull --ff-only`가 실패해 이전 버전으로 빌드될 수 있습니다.
+  - 권장: 릴리즈 전용 경로를 새로 clone해서 사용하거나, 작업 폴더를 깨끗한 상태로 맞춘 뒤 실행
+- ZIP 파일명이 기대 버전과 다르면(`TulliusWidgets-v<version>.zip`) 먼저 `xmake.lua`의 `set_version`과 현재 브랜치 HEAD를 확인하세요.

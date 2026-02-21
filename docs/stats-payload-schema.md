@@ -107,6 +107,10 @@
 - `resistances`, `offense.critChance`, `defense.damageReduction`는 **실효 표시값**입니다.
 - 원본 계산값은 `calcMeta.rawResistances`, `calcMeta.rawCritChance`, `calcMeta.rawDamageReduction`에 전달됩니다.
 - UI는 `calcMeta.caps` 기준으로 캡/보조 텍스트를 표시합니다.
+- 장착 표시 계약:
+  - `equipped.rightHand`, `equipped.leftHand`는 가능한 경우 인벤토리 표시명(`InventoryEntryData::GetDisplayName`)을 우선 사용합니다.
+  - 왼손은 주문/무기 외에 방패 슬롯 보강 판별을 포함합니다.
+  - 장착 이벤트 직후 값은 안정성을 위해 한 틱 지연 후 반영될 수 있습니다.
 - 경험치 계약:
   - `playerInfo.experience` = 현재 누적 XP
   - `playerInfo.expToNextLevel` = 레벨업까지 남은 XP
