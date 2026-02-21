@@ -71,6 +71,30 @@ export interface TimedEffect {
   spellFormId: number;
 }
 
+export interface CalculationCaps {
+  elementalResist: number;
+  elementalResistMin: number;
+  diseaseResist: number;
+  diseaseResistMin: number;
+  critChance: number;
+  damageReduction: number;
+}
+
+export interface CalculationFlags {
+  anyResistanceClamped: boolean;
+  critChanceClamped: boolean;
+  damageReductionClamped: boolean;
+}
+
+export interface CalculationMeta {
+  rawResistances: Resistances;
+  rawCritChance: number;
+  rawDamageReduction: number;
+  armorCapForMaxReduction: number;
+  caps: CalculationCaps;
+  flags: CalculationFlags;
+}
+
 export interface CombatStats {
   resistances: Resistances;
   defense: Defense;
@@ -81,5 +105,6 @@ export interface CombatStats {
   playerInfo: PlayerInfo;
   alertData: AlertData;
   timedEffects: TimedEffect[];
+  calcMeta: CalculationMeta;
   isInCombat: boolean;
 }

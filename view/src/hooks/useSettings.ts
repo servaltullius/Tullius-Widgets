@@ -9,6 +9,7 @@ import type {
   WidgetSize,
 } from '../types/settings';
 import { defaultSettings } from '../data/defaultSettings';
+import type { RuntimeDiagnostics, RuntimeWarningCode } from '../types/runtime';
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -35,6 +36,17 @@ function readAccentColor(value: unknown, fallback: string): string {
   if (typeof value !== 'string') return fallback;
   if (value === '') return '';
   return /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback;
+}
+
+function readText(value: unknown, fallback: string): string {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function readRuntimeWarningCode(value: unknown): RuntimeWarningCode {
+  if (value === 'none' || value === 'unsupported-runtime' || value === 'missing-address-library' || value === 'unsupported-runtime-and-missing-address-library') {
+    return value;
+  }
+  return 'none';
 }
 
 function mergeBooleanSection<T extends Record<string, boolean>>(defaults: T, incoming: unknown): T {
@@ -74,6 +86,20 @@ function sanitizeLayouts(incoming: unknown): Record<string, WidgetLayout> {
   return out;
 }
 
+function normalizeRuntimeDiagnostics(value: unknown): RuntimeDiagnostics | null {
+  if (!isPlainObject(value)) return null;
+
+  return {
+    runtimeVersion: readText(value.runtimeVersion, ''),
+    skseVersion: readText(value.skseVersion, ''),
+    addressLibraryPath: readText(value.addressLibraryPath, ''),
+    addressLibraryPresent: readBoolean(value.addressLibraryPresent, true),
+    runtimeSupported: readBoolean(value.runtimeSupported, true),
+    usesAddressLibrary: readBoolean(value.usesAddressLibrary, true),
+    warningCode: readRuntimeWarningCode(value.warningCode),
+  };
+}
+
 // Deep merge with type guards: fill missing/invalid keys from defaults so bad JSON never crashes UI.
 function mergeWithDefaults(saved: Record<string, unknown>): WidgetSettings {
   const merged = structuredClone(defaultSettings);
@@ -82,6 +108,9 @@ function mergeWithDefaults(saved: Record<string, unknown>): WidgetSettings {
   if (isPlainObject(generalIncoming)) {
     merged.general.visible = readBoolean(generalIncoming.visible, merged.general.visible);
     merged.general.combatOnly = readBoolean(generalIncoming.combatOnly, merged.general.combatOnly);
+    merged.general.showOnChangeOnly = readBoolean(generalIncoming.showOnChangeOnly, merged.general.showOnChangeOnly);
+    merged.general.changeDisplaySeconds = readNumber(generalIncoming.changeDisplaySeconds, merged.general.changeDisplaySeconds, 1, 15);
+    merged.general.onboardingSeen = readBoolean(generalIncoming.onboardingSeen, merged.general.onboardingSeen);
     merged.general.opacity = readNumber(generalIncoming.opacity, merged.general.opacity, 10, 100);
     merged.general.size = readEnum<WidgetSize>(generalIncoming.size, merged.general.size, ['small', 'medium', 'large']);
     merged.general.language = readEnum<Language>(generalIncoming.language, merged.general.language, ['ko', 'en']);
@@ -166,6 +195,7 @@ export function useSettings() {
   const [settings, setSettings] = useState<WidgetSettings>(defaultSettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [hudColor, setHudColor] = useState('#ffffff');
+  const [runtimeDiagnostics, setRuntimeDiagnostics] = useState<RuntimeDiagnostics | null>(null);
   const debounceTimerRef = useRef<number | null>(null);
 
   const notifySettingsChanged = useCallback((json: string) => {
@@ -202,6 +232,15 @@ export function useSettings() {
       applyIncomingSettings(jsonString, false);
     };
 
+    window.updateRuntimeStatus = (jsonString: string) => {
+      try {
+        const parsed = JSON.parse(jsonString) as unknown;
+        setRuntimeDiagnostics(normalizeRuntimeDiagnostics(parsed));
+      } catch (e) {
+        console.error('Failed to parse runtime diagnostics JSON:', e);
+      }
+    };
+
     window.importSettingsFromNative = (jsonString: string) => {
       const success = applyIncomingSettings(jsonString, true);
       window.onImportResult?.(success);
@@ -209,6 +248,15 @@ export function useSettings() {
 
     window.toggleSettings = () => {
       setSettingsOpen(prev => !prev);
+    };
+
+    window.toggleWidgetsVisibility = () => {
+      setSettings(prev => {
+        const next = structuredClone(prev);
+        next.general.visible = !next.general.visible;
+        notifySettingsChanged(JSON.stringify(next));
+        return next;
+      });
     };
 
     window.closeSettings = () => {
@@ -221,15 +269,17 @@ export function useSettings() {
 
     return () => {
       delete window.updateSettings;
+      delete window.updateRuntimeStatus;
       delete window.importSettingsFromNative;
       delete window.toggleSettings;
+      delete window.toggleWidgetsVisibility;
       delete window.closeSettings;
       delete window.setHUDColor;
       if (debounceTimerRef.current !== null) {
         window.clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [applyIncomingSettings]);
+  }, [applyIncomingSettings, notifySettingsChanged]);
 
   // ESC key closes settings and requests unfocus.
   useEffect(() => {
@@ -264,5 +314,5 @@ export function useSettings() {
   // Resolved accent color: manual override > auto HUD color.
   const accentColor = settings.general.accentColor || hudColor;
 
-  return { settings, settingsOpen, setSettingsOpen, closeSettings, updateSetting, accentColor, hudColor };
+  return { settings, settingsOpen, setSettingsOpen, closeSettings, updateSetting, accentColor, hudColor, runtimeDiagnostics };
 }

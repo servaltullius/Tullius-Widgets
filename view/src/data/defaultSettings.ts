@@ -4,6 +4,9 @@ export const defaultSettings: WidgetSettings = {
   general: {
     visible: true,
     combatOnly: false,
+    showOnChangeOnly: false,
+    changeDisplaySeconds: 4,
+    onboardingSeen: false,
     opacity: 70,
     size: 'medium',
     language: 'ko',

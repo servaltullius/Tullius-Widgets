@@ -380,6 +380,22 @@ export function SettingsPanel({ settings, open, onClose, onUpdate, accentColor }
         >
           <Toggle label={t(lang, 'showWidgets')} checked={settings.general.visible} onChange={v => onUpdate('general.visible', v)} />
           <Toggle label={t(lang, 'combatOnly')} checked={settings.general.combatOnly} onChange={v => onUpdate('general.combatOnly', v)} />
+          <Toggle label={t(lang, 'showOnChangeOnly')} checked={settings.general.showOnChangeOnly} onChange={v => onUpdate('general.showOnChangeOnly', v)} />
+          {settings.general.showOnChangeOnly && (
+            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0 8px 20px' }}>
+              <span style={{ color: '#aaa', fontSize: '20px' }}>
+                {t(lang, 'changeDisplaySeconds')}: {settings.general.changeDisplaySeconds}
+              </span>
+              <input
+                type="range"
+                min={1}
+                max={15}
+                value={settings.general.changeDisplaySeconds}
+                onChange={e => onUpdate('general.changeDisplaySeconds', Number(e.target.value))}
+                style={{ width: '180px' }}
+              />
+            </label>
+          )}
 
           <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
             <span style={{ color: '#ddd', fontSize: '24px' }}>{t(lang, 'opacity')}: {settings.general.opacity}%</span>

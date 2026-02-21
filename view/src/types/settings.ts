@@ -11,6 +11,9 @@ export interface WidgetSettings {
   general: {
     visible: boolean;
     combatOnly: boolean;
+    showOnChangeOnly: boolean;
+    changeDisplaySeconds: number;
+    onboardingSeen: boolean;
     opacity: number;
     size: WidgetSize;
     language: Language;

@@ -14,6 +14,13 @@ namespace TulliusWidgets {
 
 static constexpr float kDisplayedDamageMin = 0.0f;
 static constexpr float kDisplayedDamageMax = 9999.0f;
+static constexpr float kElementalResistCap = 85.0f;
+static constexpr float kElementalResistMin = -100.0f;
+static constexpr float kDiseaseResistCap = 100.0f;
+static constexpr float kDiseaseResistMin = 0.0f;
+static constexpr float kCritChanceCap = 100.0f;
+static constexpr float kDamageReductionCap = 80.0f;
+static constexpr float kArmorRatingForMaxReduction = 666.67f;
 
 static std::string escapeJson(std::string_view input) {
     std::string out;
@@ -286,10 +293,14 @@ float StatsCollector::GetArmorRating() {
     return player->AsActorValueOwner()->GetActorValue(RE::ActorValue::kDamageResist);
 }
 
+float StatsCollector::CalculateRawDamageReduction(float armorRating) {
+    return armorRating * 0.12f;
+}
+
 float StatsCollector::CalculateDamageReduction(float armorRating) {
     // Skyrim formula: displayed_armor_rating * 0.12, capped at 80%
-    float reduction = armorRating * 0.12f;
-    return (std::min)(reduction, 80.0f);
+    float reduction = CalculateRawDamageReduction(armorRating);
+    return (std::min)(reduction, kDamageReductionCap);
 }
 
 // Damage perks: each rank adds +20% weapon damage
@@ -395,22 +406,32 @@ std::string StatsCollector::CollectStats() {
 
     auto av = player->AsActorValueOwner();
     float armorRating = GetArmorRating();
+    float rawDamageReduction = CalculateRawDamageReduction(armorRating);
+    float effectiveDamageReduction = CalculateDamageReduction(armorRating);
     bool inCombat = player->IsInCombat();
+
+    const auto resistMagic = ResistanceEvaluator::Evaluate(player, RE::ActorValue::kResistMagic);
+    const auto resistFire = ResistanceEvaluator::Evaluate(player, RE::ActorValue::kResistFire);
+    const auto resistFrost = ResistanceEvaluator::Evaluate(player, RE::ActorValue::kResistFrost);
+    const auto resistShock = ResistanceEvaluator::Evaluate(player, RE::ActorValue::kResistShock);
+    const auto resistPoison = ResistanceEvaluator::Evaluate(player, RE::ActorValue::kPoisonResist);
+    const auto resistDisease = ResistanceEvaluator::Evaluate(player, RE::ActorValue::kResistDisease);
+    const auto critChance = CriticalChanceEvaluator::Evaluate(player);
 
     std::string json = "{";
 
     json += "\"resistances\":{";
-    json += "\"magic\":" + safeFloat(ResistanceEvaluator::GetEffectiveResistance(player, RE::ActorValue::kResistMagic)) + ",";
-    json += "\"fire\":" + safeFloat(ResistanceEvaluator::GetEffectiveResistance(player, RE::ActorValue::kResistFire)) + ",";
-    json += "\"frost\":" + safeFloat(ResistanceEvaluator::GetEffectiveResistance(player, RE::ActorValue::kResistFrost)) + ",";
-    json += "\"shock\":" + safeFloat(ResistanceEvaluator::GetEffectiveResistance(player, RE::ActorValue::kResistShock)) + ",";
-    json += "\"poison\":" + safeFloat(ResistanceEvaluator::GetEffectiveResistance(player, RE::ActorValue::kPoisonResist)) + ",";
-    json += "\"disease\":" + safeFloat(ResistanceEvaluator::GetEffectiveResistance(player, RE::ActorValue::kResistDisease));
+    json += "\"magic\":" + safeFloat(resistMagic.effective) + ",";
+    json += "\"fire\":" + safeFloat(resistFire.effective) + ",";
+    json += "\"frost\":" + safeFloat(resistFrost.effective) + ",";
+    json += "\"shock\":" + safeFloat(resistShock.effective) + ",";
+    json += "\"poison\":" + safeFloat(resistPoison.effective) + ",";
+    json += "\"disease\":" + safeFloat(resistDisease.effective);
     json += "},";
 
     json += "\"defense\":{";
     json += "\"armorRating\":" + safeFloat(armorRating) + ",";
-    json += "\"damageReduction\":" + safeFloat(CalculateDamageReduction(armorRating));
+    json += "\"damageReduction\":" + safeFloat(effectiveDamageReduction);
     json += "},";
 
     float rightDmg = 0.0f;
@@ -436,7 +457,39 @@ std::string StatsCollector::CollectStats() {
     json += "\"offense\":{";
     json += "\"rightHandDamage\":" + safeFloat(rightDmg) + ",";
     json += "\"leftHandDamage\":" + safeFloat(leftDmg) + ",";
-    json += "\"critChance\":" + safeFloat(CriticalChanceEvaluator::GetEffectiveCritChance(player));
+    json += "\"critChance\":" + safeFloat(critChance.effective);
+    json += "},";
+
+    const bool anyResistanceClamped =
+        resistMagic.clamped || resistFire.clamped || resistFrost.clamped ||
+        resistShock.clamped || resistPoison.clamped || resistDisease.clamped;
+    const bool damageReductionClamped = rawDamageReduction > kDamageReductionCap + 0.001f;
+
+    json += "\"calcMeta\":{";
+    json += "\"rawResistances\":{";
+    json += "\"magic\":" + safeFloat(resistMagic.raw) + ",";
+    json += "\"fire\":" + safeFloat(resistFire.raw) + ",";
+    json += "\"frost\":" + safeFloat(resistFrost.raw) + ",";
+    json += "\"shock\":" + safeFloat(resistShock.raw) + ",";
+    json += "\"poison\":" + safeFloat(resistPoison.raw) + ",";
+    json += "\"disease\":" + safeFloat(resistDisease.raw);
+    json += "},";
+    json += "\"rawCritChance\":" + safeFloat(critChance.raw) + ",";
+    json += "\"rawDamageReduction\":" + safeFloat(rawDamageReduction) + ",";
+    json += "\"armorCapForMaxReduction\":" + safeFloat(kArmorRatingForMaxReduction) + ",";
+    json += "\"caps\":{";
+    json += "\"elementalResist\":" + safeFloat(kElementalResistCap) + ",";
+    json += "\"elementalResistMin\":" + safeFloat(kElementalResistMin) + ",";
+    json += "\"diseaseResist\":" + safeFloat(kDiseaseResistCap) + ",";
+    json += "\"diseaseResistMin\":" + safeFloat(kDiseaseResistMin) + ",";
+    json += "\"critChance\":" + safeFloat(kCritChanceCap) + ",";
+    json += "\"damageReduction\":" + safeFloat(kDamageReductionCap);
+    json += "},";
+    json += "\"flags\":{";
+    json += "\"anyResistanceClamped\":" + std::string(anyResistanceClamped ? "true" : "false") + ",";
+    json += "\"critChanceClamped\":" + std::string(critChance.clamped ? "true" : "false") + ",";
+    json += "\"damageReductionClamped\":" + std::string(damageReductionClamped ? "true" : "false");
+    json += "}";
     json += "},";
 
     const auto rightEquipped = getEquippedName(player, false);

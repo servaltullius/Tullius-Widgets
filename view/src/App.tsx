@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DraggableWidgetGroup } from './components/DraggableWidgetGroup';
 import { StatWidget } from './components/StatWidget';
 import { TimedEffectList } from './components/TimedEffectList';
@@ -36,6 +36,10 @@ function formatInteger(v: number) {
   return Math.round(v).toLocaleString();
 }
 
+function hasMeaningfulDifference(a: number, b: number): boolean {
+  return Math.abs(a - b) > 0.05;
+}
+
 function snapPosition(
   groupId: string,
   rawX: number,
@@ -68,13 +72,48 @@ function snapPosition(
 
 export function App() {
   const stats = useGameStats();
-  const { settings, settingsOpen, closeSettings, updateSetting, accentColor } = useSettings();
+  const { settings, settingsOpen, setSettingsOpen, closeSettings, updateSetting, accentColor, runtimeDiagnostics } = useSettings();
   const [dragPositions, setDragPositions] = useState<Record<string, GroupPosition>>({});
+  const [lastChangeAtMs, setLastChangeAtMs] = useState<number>(() => Date.now());
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const defaults = getDefaultPositions();
   const lang = settings.general.language;
 
+  const trackedChangeSignature = useMemo(() => JSON.stringify({
+    resistances: stats.resistances,
+    defense: stats.defense,
+    offense: stats.offense,
+    equipped: stats.equipped,
+    movement: stats.movement,
+    playerInfo: stats.playerInfo,
+    isInCombat: stats.isInCombat,
+    timedEffectKeys: stats.timedEffects.map(effect => effect.stableKey),
+  }), [stats]);
+
+  useEffect(() => {
+    const changedAt = Date.now();
+    const timer = window.setTimeout(() => {
+      setLastChangeAtMs(changedAt);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [trackedChangeSignature]);
+
+  useEffect(() => {
+    if (!settings.general.showOnChangeOnly) return;
+    const timer = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [settings.general.showOnChangeOnly]);
+
+  const changeWindowActive =
+    !settings.general.showOnChangeOnly ||
+    settingsOpen ||
+    (nowMs - lastChangeAtMs) <= settings.general.changeDisplaySeconds * 1000;
+
   const shouldShow = settings.general.visible &&
-    (!settings.general.combatOnly || stats.isInCombat);
+    (!settings.general.combatOnly || stats.isInCombat) &&
+    changeWindowActive;
 
   const resolvePosition = useCallback((groupId: string): GroupPosition => {
     return dragPositions[groupId] ?? settings.positions[groupId] ?? defaults[groupId] ?? FALLBACK_POS;
@@ -131,9 +170,138 @@ export function App() {
   const rawNextLevelXp = Math.max(0, Math.round(stats.playerInfo.expToNextLevel));
   const totalXpForNextLevel = rawNextLevelXp >= currentXp ? rawNextLevelXp : currentXp + rawNextLevelXp;
   const experienceProgressValue = `${formatInteger(currentXp)} / ${formatInteger(totalXpForNextLevel)} XP`;
+  const rawLabel = t(lang, 'capRawLabel');
+  const capLabel = t(lang, 'capLimitLabel');
+  const armorLimitLabel = t(lang, 'capArmorLimitLabel');
+
+  const elementalCap = stats.calcMeta.caps.elementalResist || ELEMENTAL_RESIST_CAP;
+  const elementalMin = stats.calcMeta.caps.elementalResistMin;
+  const diseaseCap = stats.calcMeta.caps.diseaseResist || DISEASE_RESIST_CAP;
+  const diseaseMin = stats.calcMeta.caps.diseaseResistMin;
+  const critCap = stats.calcMeta.caps.critChance || CRIT_CHANCE_CAP;
+  const damageReductionCap = stats.calcMeta.caps.damageReduction;
+  const armorCapForMaxReduction = stats.calcMeta.armorCapForMaxReduction;
+
+  const resistanceHelper = (raw: number, effective: number) =>
+    hasMeaningfulDifference(raw, effective) ? `${rawLabel} ${Math.round(raw)}%` : undefined;
+  const critHelper = hasMeaningfulDifference(stats.calcMeta.rawCritChance, stats.offense.critChance)
+    ? `${rawLabel} ${Math.round(stats.calcMeta.rawCritChance)}%`
+    : undefined;
+  const damageReductionHelper = hasMeaningfulDifference(stats.calcMeta.rawDamageReduction, stats.defense.damageReduction)
+    ? `${rawLabel} ${Math.round(stats.calcMeta.rawDamageReduction)}%`
+    : undefined;
+  const armorHelper = stats.defense.armorRating > armorCapForMaxReduction + 0.5
+    ? `${armorLimitLabel} ${Math.round(armorCapForMaxReduction)}`
+    : undefined;
+
+  const runtimeWarningText = useMemo(() => {
+    if (!runtimeDiagnostics || runtimeDiagnostics.warningCode === 'none') return null;
+    switch (runtimeDiagnostics.warningCode) {
+      case 'unsupported-runtime':
+        return t(lang, 'runtimeWarningUnsupported');
+      case 'missing-address-library':
+        return t(lang, 'runtimeWarningAddressLibrary');
+      case 'unsupported-runtime-and-missing-address-library':
+        return t(lang, 'runtimeWarningBoth');
+      default:
+        return null;
+    }
+  }, [lang, runtimeDiagnostics]);
+
+  const handleOnboardingDismiss = () => {
+    updateSetting('general.onboardingSeen', true);
+  };
+
+  const handleOnboardingOpenSettings = () => {
+    updateSetting('general.onboardingSeen', true);
+    setSettingsOpen(true);
+  };
 
   return (
     <>
+      {runtimeWarningText && runtimeDiagnostics && (
+        <div style={{
+          position: 'fixed',
+          top: '14px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(80, 18, 18, 0.92)',
+          border: '1px solid rgba(255, 120, 90, 0.85)',
+          color: '#ffd8c9',
+          borderRadius: '10px',
+          padding: '10px 14px',
+          zIndex: 1400,
+          fontFamily: 'sans-serif',
+          minWidth: '480px',
+          maxWidth: '80vw',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+          pointerEvents: 'none',
+        }}>
+          <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '2px' }}>{runtimeWarningText}</div>
+          <div style={{ fontSize: '12px', opacity: 0.95, wordBreak: 'break-all' }}>
+            {t(lang, 'runtimeWarningDetails')}: runtime {runtimeDiagnostics.runtimeVersion}, SKSE {runtimeDiagnostics.skseVersion}, {runtimeDiagnostics.addressLibraryPath}
+          </div>
+        </div>
+      )}
+
+      {!settings.general.onboardingSeen && (
+        <div style={{
+          position: 'fixed',
+          top: '24px',
+          right: '24px',
+          background: 'rgba(16, 18, 26, 0.92)',
+          border: '1px solid rgba(120, 175, 255, 0.45)',
+          borderRadius: '12px',
+          padding: '14px 16px',
+          zIndex: 1300,
+          color: '#e7eefc',
+          fontFamily: 'sans-serif',
+          minWidth: '340px',
+          boxShadow: '0 8px 18px rgba(0,0,0,0.35)',
+        }}>
+          <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px' }}>
+            {t(lang, 'onboardingTitle')}
+          </div>
+          <div style={{ fontSize: '13px', lineHeight: 1.45, opacity: 0.96 }}>
+            <div>{t(lang, 'onboardingLine1')}</div>
+            <div>{t(lang, 'onboardingLine2')}</div>
+            <div>{t(lang, 'onboardingLine3')}</div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+            <button
+              onClick={handleOnboardingOpenSettings}
+              style={{
+                flex: 1,
+                borderRadius: '8px',
+                border: '1px solid rgba(120,175,255,0.6)',
+                background: 'rgba(80,140,255,0.2)',
+                color: '#d7e6ff',
+                fontSize: '13px',
+                padding: '8px 10px',
+                cursor: 'pointer',
+              }}
+            >
+              {t(lang, 'onboardingOpenSettings')}
+            </button>
+            <button
+              onClick={handleOnboardingDismiss}
+              style={{
+                flex: 1,
+                borderRadius: '8px',
+                border: '1px solid rgba(220,220,220,0.35)',
+                background: 'rgba(255,255,255,0.06)',
+                color: '#d3d9e6',
+                fontSize: '13px',
+                padding: '8px 10px',
+                cursor: 'pointer',
+              }}
+            >
+              {t(lang, 'onboardingDismiss')}
+            </button>
+          </div>
+        </div>
+      )}
+
       {shouldShow && (
         <>
           {hasVisiblePlayerInfo && (
@@ -155,19 +323,102 @@ export function App() {
 
           {hasVisibleResistance && (
             <DraggableWidgetGroup {...groupProps('resistances')}>
-              <StatWidget icon="magic" iconColor="#b366ff" value={stats.resistances.magic} unit="%" visible={settings.resistances.magic} min={ELEMENTAL_RESIST_MIN} cap={ELEMENTAL_RESIST_CAP} />
-              <StatWidget icon="fire" iconColor="#ff6633" value={stats.resistances.fire} unit="%" visible={settings.resistances.fire} min={ELEMENTAL_RESIST_MIN} cap={ELEMENTAL_RESIST_CAP} />
-              <StatWidget icon="frost" iconColor="#66ccff" value={stats.resistances.frost} unit="%" visible={settings.resistances.frost} min={ELEMENTAL_RESIST_MIN} cap={ELEMENTAL_RESIST_CAP} />
-              <StatWidget icon="shock" iconColor="#ffdd33" value={stats.resistances.shock} unit="%" visible={settings.resistances.shock} min={ELEMENTAL_RESIST_MIN} cap={ELEMENTAL_RESIST_CAP} />
-              <StatWidget icon="poison" iconColor="#66ff66" value={stats.resistances.poison} unit="%" visible={settings.resistances.poison} min={ELEMENTAL_RESIST_MIN} cap={ELEMENTAL_RESIST_CAP} />
-              <StatWidget icon="disease" iconColor="#99cc66" value={stats.resistances.disease} unit="%" visible={settings.resistances.disease} min={DISEASE_RESIST_MIN} cap={DISEASE_RESIST_CAP} />
+              <StatWidget
+                icon="magic"
+                iconColor="#b366ff"
+                value={stats.resistances.magic}
+                unit="%"
+                visible={settings.resistances.magic}
+                min={ELEMENTAL_RESIST_MIN}
+                cap={elementalCap}
+                helperText={resistanceHelper(stats.calcMeta.rawResistances.magic, stats.resistances.magic)}
+                helperTone={stats.calcMeta.flags.anyResistanceClamped ? 'warning' : 'neutral'}
+                tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.magic)}% | ${capLabel} ${elementalMin}~${elementalCap}%`}
+              />
+              <StatWidget
+                icon="fire"
+                iconColor="#ff6633"
+                value={stats.resistances.fire}
+                unit="%"
+                visible={settings.resistances.fire}
+                min={ELEMENTAL_RESIST_MIN}
+                cap={elementalCap}
+                helperText={resistanceHelper(stats.calcMeta.rawResistances.fire, stats.resistances.fire)}
+                helperTone={stats.calcMeta.rawResistances.fire > elementalCap + 0.05 ? 'warning' : 'neutral'}
+                tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.fire)}% | ${capLabel} ${elementalMin}~${elementalCap}%`}
+              />
+              <StatWidget
+                icon="frost"
+                iconColor="#66ccff"
+                value={stats.resistances.frost}
+                unit="%"
+                visible={settings.resistances.frost}
+                min={ELEMENTAL_RESIST_MIN}
+                cap={elementalCap}
+                helperText={resistanceHelper(stats.calcMeta.rawResistances.frost, stats.resistances.frost)}
+                helperTone={stats.calcMeta.rawResistances.frost > elementalCap + 0.05 ? 'warning' : 'neutral'}
+                tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.frost)}% | ${capLabel} ${elementalMin}~${elementalCap}%`}
+              />
+              <StatWidget
+                icon="shock"
+                iconColor="#ffdd33"
+                value={stats.resistances.shock}
+                unit="%"
+                visible={settings.resistances.shock}
+                min={ELEMENTAL_RESIST_MIN}
+                cap={elementalCap}
+                helperText={resistanceHelper(stats.calcMeta.rawResistances.shock, stats.resistances.shock)}
+                helperTone={stats.calcMeta.rawResistances.shock > elementalCap + 0.05 ? 'warning' : 'neutral'}
+                tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.shock)}% | ${capLabel} ${elementalMin}~${elementalCap}%`}
+              />
+              <StatWidget
+                icon="poison"
+                iconColor="#66ff66"
+                value={stats.resistances.poison}
+                unit="%"
+                visible={settings.resistances.poison}
+                min={ELEMENTAL_RESIST_MIN}
+                cap={elementalCap}
+                helperText={resistanceHelper(stats.calcMeta.rawResistances.poison, stats.resistances.poison)}
+                helperTone={stats.calcMeta.rawResistances.poison > elementalCap + 0.05 ? 'warning' : 'neutral'}
+                tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.poison)}% | ${capLabel} ${elementalMin}~${elementalCap}%`}
+              />
+              <StatWidget
+                icon="disease"
+                iconColor="#99cc66"
+                value={stats.resistances.disease}
+                unit="%"
+                visible={settings.resistances.disease}
+                min={DISEASE_RESIST_MIN}
+                cap={diseaseCap}
+                helperText={resistanceHelper(stats.calcMeta.rawResistances.disease, stats.resistances.disease)}
+                helperTone={stats.calcMeta.rawResistances.disease > diseaseCap + 0.05 ? 'warning' : 'neutral'}
+                tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.disease)}% | ${capLabel} ${diseaseMin}~${diseaseCap}%`}
+              />
             </DraggableWidgetGroup>
           )}
 
           {hasVisibleDefense && (
             <DraggableWidgetGroup {...groupProps('defense')}>
-              <StatWidget icon="armor" iconColor="#aabbcc" value={stats.defense.armorRating} visible={settings.defense.armorRating} />
-              <StatWidget icon="damageReduce" iconColor="#44aaaa" value={stats.defense.damageReduction} unit="%" visible={settings.defense.damageReduction} />
+              <StatWidget
+                icon="armor"
+                iconColor="#aabbcc"
+                value={stats.defense.armorRating}
+                visible={settings.defense.armorRating}
+                helperText={armorHelper}
+                helperTone={armorHelper ? 'warning' : 'neutral'}
+                tooltip={`${armorLimitLabel}: ${Math.round(armorCapForMaxReduction)} (${capLabel} ${damageReductionCap}%)`}
+              />
+              <StatWidget
+                icon="damageReduce"
+                iconColor="#44aaaa"
+                value={stats.defense.damageReduction}
+                unit="%"
+                visible={settings.defense.damageReduction}
+                helperText={damageReductionHelper}
+                helperTone={stats.calcMeta.flags.damageReductionClamped ? 'warning' : 'neutral'}
+                tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawDamageReduction)}% | ${capLabel} ${damageReductionCap}%`}
+              />
             </DraggableWidgetGroup>
           )}
 
@@ -175,7 +426,18 @@ export function App() {
             <DraggableWidgetGroup {...groupProps('offense')}>
               <StatWidget icon="rightHand" iconColor="#e85050" value={stats.offense.rightHandDamage} visible={settings.offense.rightHandDamage} min={WEAPON_DAMAGE_MIN} cap={WEAPON_DAMAGE_CAP} />
               <StatWidget icon="leftHand" iconColor="#e88080" value={stats.offense.leftHandDamage} visible={settings.offense.leftHandDamage} min={WEAPON_DAMAGE_MIN} cap={WEAPON_DAMAGE_CAP} />
-              <StatWidget icon="crit" iconColor="#ff8800" value={stats.offense.critChance} unit="%" visible={settings.offense.critChance} min={CRIT_CHANCE_MIN} cap={CRIT_CHANCE_CAP} />
+              <StatWidget
+                icon="crit"
+                iconColor="#ff8800"
+                value={stats.offense.critChance}
+                unit="%"
+                visible={settings.offense.critChance}
+                min={CRIT_CHANCE_MIN}
+                cap={critCap}
+                helperText={critHelper}
+                helperTone={stats.calcMeta.flags.critChanceClamped ? 'warning' : 'neutral'}
+                tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawCritChance)}% | ${capLabel} ${critCap}%`}
+              />
             </DraggableWidgetGroup>
           )}
 

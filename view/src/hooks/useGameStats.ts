@@ -32,6 +32,10 @@ function readNumber(
   return Math.min(max, Math.max(min, value));
 }
 
+function readBoolean(value: unknown, fallback: boolean): boolean {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
 function readText(value: unknown, fallback: string, allowEmpty = false): string {
   if (typeof value !== 'string') return fallback;
   if (!allowEmpty && value.length === 0) return fallback;
@@ -224,6 +228,10 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
   const rawMovement = isPlainObject(value.movement) ? value.movement : null;
   const rawPlayerInfo = isPlainObject(value.playerInfo) ? value.playerInfo : null;
   const rawAlertData = isPlainObject(value.alertData) ? value.alertData : null;
+  const rawCalcMeta = isPlainObject(value.calcMeta) ? value.calcMeta : null;
+  const rawCalcResistances = isPlainObject(rawCalcMeta?.rawResistances) ? rawCalcMeta.rawResistances : null;
+  const rawCalcCaps = isPlainObject(rawCalcMeta?.caps) ? rawCalcMeta.caps : null;
+  const rawCalcFlags = isPlainObject(rawCalcMeta?.flags) ? rawCalcMeta.flags : null;
 
   return {
     resistances: {
@@ -273,6 +281,32 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
     timedEffects: value.timedEffects === undefined
       ? fallback.timedEffects
       : normalizeTimedEffects(value.timedEffects),
+    calcMeta: {
+      rawResistances: {
+        magic: readNumber(rawCalcResistances?.magic, fallback.calcMeta.rawResistances.magic, -1000, 1000),
+        fire: readNumber(rawCalcResistances?.fire, fallback.calcMeta.rawResistances.fire, -1000, 1000),
+        frost: readNumber(rawCalcResistances?.frost, fallback.calcMeta.rawResistances.frost, -1000, 1000),
+        shock: readNumber(rawCalcResistances?.shock, fallback.calcMeta.rawResistances.shock, -1000, 1000),
+        poison: readNumber(rawCalcResistances?.poison, fallback.calcMeta.rawResistances.poison, -1000, 1000),
+        disease: readNumber(rawCalcResistances?.disease, fallback.calcMeta.rawResistances.disease, -1000, 1000),
+      },
+      rawCritChance: readNumber(rawCalcMeta?.rawCritChance, fallback.calcMeta.rawCritChance, -1000, 1000),
+      rawDamageReduction: readNumber(rawCalcMeta?.rawDamageReduction, fallback.calcMeta.rawDamageReduction, -1000, 1000),
+      armorCapForMaxReduction: readNumber(rawCalcMeta?.armorCapForMaxReduction, fallback.calcMeta.armorCapForMaxReduction, 0, 100000),
+      caps: {
+        elementalResist: readNumber(rawCalcCaps?.elementalResist, fallback.calcMeta.caps.elementalResist, 0, 1000),
+        elementalResistMin: readNumber(rawCalcCaps?.elementalResistMin, fallback.calcMeta.caps.elementalResistMin, -1000, 1000),
+        diseaseResist: readNumber(rawCalcCaps?.diseaseResist, fallback.calcMeta.caps.diseaseResist, 0, 1000),
+        diseaseResistMin: readNumber(rawCalcCaps?.diseaseResistMin, fallback.calcMeta.caps.diseaseResistMin, -1000, 1000),
+        critChance: readNumber(rawCalcCaps?.critChance, fallback.calcMeta.caps.critChance, 0, 1000),
+        damageReduction: readNumber(rawCalcCaps?.damageReduction, fallback.calcMeta.caps.damageReduction, 0, 1000),
+      },
+      flags: {
+        anyResistanceClamped: readBoolean(rawCalcFlags?.anyResistanceClamped, fallback.calcMeta.flags.anyResistanceClamped),
+        critChanceClamped: readBoolean(rawCalcFlags?.critChanceClamped, fallback.calcMeta.flags.critChanceClamped),
+        damageReductionClamped: readBoolean(rawCalcFlags?.damageReductionClamped, fallback.calcMeta.flags.damageReductionClamped),
+      },
+    },
     isInCombat: typeof value.isInCombat === 'boolean'
       ? value.isInCombat
       : fallback.isInCombat,

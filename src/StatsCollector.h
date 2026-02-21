@@ -10,6 +10,7 @@ public:
 
 private:
     static float GetArmorRating();
+    static float CalculateRawDamageReduction(float armorRating);
     static float CalculateDamageReduction(float armorRating);
     static int32_t GetGoldCount();
 };

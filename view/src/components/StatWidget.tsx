@@ -39,9 +39,24 @@ interface StatWidgetProps {
   min?: number;
   cap?: number;
   format?: (v: number) => string;
+  helperText?: string;
+  helperTone?: 'neutral' | 'warning';
+  tooltip?: string;
 }
 
-export function StatWidget({ icon, iconColor, value, unit = '', visible, min, cap, format }: StatWidgetProps) {
+export function StatWidget({
+  icon,
+  iconColor,
+  value,
+  unit = '',
+  visible,
+  min,
+  cap,
+  format,
+  helperText,
+  helperTone = 'neutral',
+  tooltip,
+}: StatWidgetProps) {
   if (!visible) return null;
 
   const isNumeric = typeof value === 'number';
@@ -59,6 +74,7 @@ export function StatWidget({ icon, iconColor, value, unit = '', visible, min, ca
     : value;
   const textAlign = isNumeric ? 'right' : 'left';
   const minWidth = isNumeric ? '40px' : '140px';
+  const helperColor = helperTone === 'warning' ? '#ffcf7a' : '#aeb8c6';
 
   const iconSrc = iconMap[icon];
   const BadgeIcon = badgeIconMap[icon];
@@ -69,7 +85,7 @@ export function StatWidget({ icon, iconColor, value, unit = '', visible, min, ca
       alignItems: 'center',
       gap: '8px',
       padding: '2px 0',
-    }}>
+    }} title={tooltip}>
       <div style={{
         position: 'relative',
         width: '38px',
@@ -116,21 +132,40 @@ export function StatWidget({ icon, iconColor, value, unit = '', visible, min, ca
           </div>
         )}
       </div>
-      <span style={{
-        color: valueColor,
-        fontFamily: 'sans-serif',
-        fontSize: '18px',
-        fontWeight: 600,
-        textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-        minWidth,
-        textAlign,
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        maxWidth: '220px',
-      }}>
-        {displayValue}{unit}
-      </span>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: isNumeric ? 'flex-end' : 'flex-start', minWidth }}>
+        <span style={{
+          color: valueColor,
+          fontFamily: 'sans-serif',
+          fontSize: '18px',
+          fontWeight: 600,
+          textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+          textAlign,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          maxWidth: '220px',
+          lineHeight: 1.1,
+        }}>
+          {displayValue}{unit}
+        </span>
+        {helperText && (
+          <span style={{
+            color: helperColor,
+            fontFamily: 'sans-serif',
+            fontSize: '11px',
+            fontWeight: 600,
+            textShadow: '1px 1px 2px rgba(0,0,0,0.75)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            maxWidth: '220px',
+            opacity: 0.95,
+            marginTop: '1px',
+          }}>
+            {helperText}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

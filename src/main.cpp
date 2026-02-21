@@ -6,11 +6,17 @@
 #include <filesystem>
 #include <algorithm>
 #include <mutex>
+#include <string_view>
 #include <thread>
 
 PRISMA_UI_API::IVPrismaUI1* PrismaUI = nullptr;
 static PrismaView view = 0;
 static std::atomic<bool> gameLoaded{false};
+static REL::Version g_runtimeVersion{};
+static REL::Version g_skseVersion{};
+static bool g_runtimeSupported = true;
+static bool g_addressLibraryPresent = true;
+static std::string g_addressLibraryPath;
 
 // Throttle: shorter interval during combat for responsive HP/MP/SP
 static std::chrono::steady_clock::time_point lastUpdateTime{};
@@ -23,6 +29,85 @@ static std::atomic<bool> g_heartbeatStarted{false};
 
 // --- Settings Persistence ---
 static constexpr auto SETTINGS_DIR = "Data/SKSE/Plugins";
+
+static std::string EscapeJson(std::string_view input) {
+    std::string out;
+    out.reserve(input.size() + 8);
+    for (unsigned char c : input) {
+        switch (c) {
+        case '\\': out += "\\\\"; break;
+        case '"': out += "\\\""; break;
+        case '\b': out += "\\b"; break;
+        case '\f': out += "\\f"; break;
+        case '\n': out += "\\n"; break;
+        case '\r': out += "\\r"; break;
+        case '\t': out += "\\t"; break;
+        default:
+            if (c < 0x20) {
+                char unicodeBuf[7];
+                std::snprintf(unicodeBuf, sizeof(unicodeBuf), "\\u%04X", static_cast<unsigned int>(c));
+                out += unicodeBuf;
+            } else {
+                out += static_cast<char>(c);
+            }
+            break;
+        }
+    }
+    return out;
+}
+
+static bool IsLikelySupportedRuntime(REL::Version runtimeVersion) {
+    return runtimeVersion.major() == 1 && (runtimeVersion.minor() == 5 || runtimeVersion.minor() == 6);
+}
+
+static std::filesystem::path GetAddressLibraryPath(REL::Version runtimeVersion) {
+    const bool usesVersionLib = runtimeVersion.minor() >= 6;
+    const auto filename = std::string(usesVersionLib ? "versionlib-" : "version-") + runtimeVersion.string() + ".bin";
+    return std::filesystem::path("Data") / "SKSE" / "Plugins" / filename;
+}
+
+static void InitializeRuntimeDiagnostics(const SKSE::LoadInterface* loadInterface) {
+    if (!loadInterface) return;
+
+    g_runtimeVersion = loadInterface->RuntimeVersion();
+    g_skseVersion = REL::Version::unpack(loadInterface->SKSEVersion());
+    g_runtimeSupported = IsLikelySupportedRuntime(g_runtimeVersion);
+
+    const auto addressLibraryPath = GetAddressLibraryPath(g_runtimeVersion);
+    g_addressLibraryPath = addressLibraryPath.generic_string();
+    g_addressLibraryPresent = std::filesystem::exists(addressLibraryPath);
+
+    logger::info(
+        "Runtime diagnostics: runtime={}, skse={}, addressLibraryPath={}, addressLibraryPresent={}",
+        std::to_string(g_runtimeVersion),
+        std::to_string(g_skseVersion),
+        g_addressLibraryPath,
+        g_addressLibraryPresent);
+}
+
+static std::string BuildRuntimeDiagnosticsJson() {
+    const bool hasRuntimeWarning = !g_runtimeSupported;
+    const bool hasAddressWarning = !g_addressLibraryPresent;
+    std::string warningCode = "none";
+    if (hasRuntimeWarning && hasAddressWarning) {
+        warningCode = "unsupported-runtime-and-missing-address-library";
+    } else if (hasRuntimeWarning) {
+        warningCode = "unsupported-runtime";
+    } else if (hasAddressWarning) {
+        warningCode = "missing-address-library";
+    }
+
+    std::string json = "{";
+    json += "\"runtimeVersion\":\"" + EscapeJson(std::to_string(g_runtimeVersion)) + "\",";
+    json += "\"skseVersion\":\"" + EscapeJson(std::to_string(g_skseVersion)) + "\",";
+    json += "\"addressLibraryPath\":\"" + EscapeJson(g_addressLibraryPath) + "\",";
+    json += "\"addressLibraryPresent\":" + std::string(g_addressLibraryPresent ? "true" : "false") + ",";
+    json += "\"runtimeSupported\":" + std::string(g_runtimeSupported ? "true" : "false") + ",";
+    json += "\"usesAddressLibrary\":true,";
+    json += "\"warningCode\":\"" + warningCode + "\"";
+    json += "}";
+    return json;
+}
 
 static bool IsViewReady() {
     return PrismaUI && view != 0 && PrismaUI->IsValid(view);
@@ -134,6 +219,12 @@ static void SendSettingsToView() {
     if (json.empty()) return;
     if (!TryInteropCall("updateSettings", json.c_str())) return;
     logger::info("Saved settings sent to view");
+}
+
+static void SendRuntimeDiagnosticsToView() {
+    if (!IsViewReady()) return;
+    const auto json = BuildRuntimeDiagnosticsJson();
+    if (!TryInteropCall("updateRuntimeStatus", json.c_str())) return;
 }
 
 static void SendStatsToView(bool force = false) {
@@ -338,6 +429,7 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message) {
         }
 
         TryHideView();
+        SendRuntimeDiagnosticsToView();
 
         PrismaUI->RegisterJSListener(view, "onSettingsChanged", [](const char* data) -> void {
             if (data) {
@@ -419,12 +511,20 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message) {
             }
         });
 
+        // F11 = 0x57 to toggle overall widget visibility
+        (void)keyHandler->Register(0x57, KeyEventType::KEY_DOWN, []() {
+            if (IsViewReady() && gameLoaded.load()) {
+                TryInvoke("toggleWidgetsVisibility()");
+            }
+        });
+
         break;
     }
     case SKSE::MessagingInterface::kPostLoadGame:
     case SKSE::MessagingInterface::kNewGame: {
         gameLoaded.store(true);
         if (TryShowView()) {
+            SendRuntimeDiagnosticsToView();
             SendHUDColorToView();
             SendSettingsToView();
             SendStatsToView(true);
@@ -451,6 +551,19 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 
     SKSE::Init(a_skse);
     SKSE::AllocTrampoline(1 << 10);
+    InitializeRuntimeDiagnostics(a_skse);
+
+    if (!g_runtimeSupported) {
+        logger::warn(
+            "Unsupported runtime detected ({}). The widget may not be stable on this game version.",
+            std::to_string(g_runtimeVersion));
+    }
+    if (!g_addressLibraryPresent) {
+        logger::warn(
+            "Address Library file not found for runtime {} (expected: {}).",
+            std::to_string(g_runtimeVersion),
+            g_addressLibraryPath);
+    }
 
     g_messaging->RegisterListener("SKSE", SKSEMessageHandler);
 

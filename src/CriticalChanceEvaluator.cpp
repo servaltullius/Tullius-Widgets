@@ -1,9 +1,12 @@
 #include "CriticalChanceEvaluator.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace TulliusWidgets {
 namespace {
+static constexpr float kCritChanceMin = 0.0f;
+static constexpr float kCritChanceCap = 100.0f;
 
 RE::TESObjectWEAP* SelectActiveWeapon(RE::PlayerCharacter* player) {
     if (!player) return nullptr;
@@ -43,12 +46,22 @@ RE::Actor* SelectCurrentTarget(RE::PlayerCharacter* player) {
 
 }  // namespace
 
-float CriticalChanceEvaluator::GetEffectiveCritChance(RE::PlayerCharacter* player) {
-    if (!player) return 0.0f;
+CritChanceEvaluation CriticalChanceEvaluator::Evaluate(RE::PlayerCharacter* player) {
+    if (!player) {
+        return CritChanceEvaluation{ 0.0f, 0.0f, kCritChanceCap, false };
+    }
 
     float critChance = player->AsActorValueOwner()->GetActorValue(RE::ActorValue::kCriticalChance);
     auto* weapon = SelectActiveWeapon(player);
-    if (!weapon) return std::clamp(critChance, 0.0f, 100.0f);
+    if (!weapon) {
+        const float effective = std::clamp(critChance, kCritChanceMin, kCritChanceCap);
+        return CritChanceEvaluation{
+            critChance,
+            effective,
+            kCritChanceCap,
+            std::abs(effective - critChance) > 0.001f
+        };
+    }
 
     auto* target = SelectCurrentTarget(player);
 
@@ -60,7 +73,17 @@ float CriticalChanceEvaluator::GetEffectiveCritChance(RE::PlayerCharacter* playe
         target,
         std::addressof(critChance));
 
-    return std::clamp(critChance, 0.0f, 100.0f);
+    const float effective = std::clamp(critChance, kCritChanceMin, kCritChanceCap);
+    return CritChanceEvaluation{
+        critChance,
+        effective,
+        kCritChanceCap,
+        std::abs(effective - critChance) > 0.001f
+    };
+}
+
+float CriticalChanceEvaluator::GetEffectiveCritChance(RE::PlayerCharacter* player) {
+    return Evaluate(player).effective;
 }
 
 }  // namespace TulliusWidgets
