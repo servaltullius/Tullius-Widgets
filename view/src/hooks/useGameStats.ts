@@ -150,7 +150,7 @@ function normalizeTimedEffects(value: unknown): TimedEffect[] {
     const safeEffectName = keySafeText(effectName);
     const hasStrongIdentity = rawInstanceId !== null && rawInstanceId >= 0;
     const logicalKey = hasStrongIdentity
-      ? `pid:${rawInstanceId}|sf:${sourceFormId}|ef:${effectFormId}|pf:${spellFormId}|d:${isDebuff ? 1 : 0}|sn:${safeSourceName}|en:${safeEffectName}|t:${roundedTotal}`
+      ? `pid:${rawInstanceId}|sf:${sourceFormId}|ef:${effectFormId}|pf:${spellFormId}|d:${isDebuff ? 1 : 0}`
       : `volatile:${safeSourceName}|${safeEffectName}|${roundedTotal}|${roundedRemaining}|${isDebuff ? 1 : 0}|sf:${sourceFormId}|ef:${effectFormId}|pf:${spellFormId}|idx:${index}`;
 
     const existing = mergedByLogicalKey.get(logicalKey);
@@ -185,7 +185,7 @@ function normalizeTimedEffects(value: unknown): TimedEffect[] {
     if (merged.effectFormId > 0) stableIdentityParts.push(`ef:${toHexId(merged.effectFormId)}`);
     if (merged.spellFormId > 0) stableIdentityParts.push(`pf:${toHexId(merged.spellFormId)}`);
     const stableBase = stableIdentityParts.length > 0
-      ? `${stableIdentityParts.join('|')}|sig:${signature}`
+      ? stableIdentityParts.join('|')
       : `sig:${signature}|${occurrence}`;
 
     const stableOccurrence = occurrenceByStableBase.get(stableBase) ?? 0;

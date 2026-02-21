@@ -5,7 +5,7 @@
 - Key directories: `src/`(SKSE C++ 플러그인), `view/`(React UI), `dist/`(배포 산출물), `docs/`.
 - Critical invariants (must not break):
   - Prisma UI와의 JS 브릿지(`updateStats`, `updateSettings`) 호환성 유지
-  - 릴리즈 zip 구조(`Data/SKSE/Plugins/...`, `PrismaUI/views/TulliusWidgets/...`) 유지
+  - 릴리즈 zip 루트 구조(`SKSE/Plugins/...`, `PrismaUI/views/TulliusWidgets/...`) 유지
   - 기존 설정 파일 경로 호환(`Data/SKSE/Plugins/TulliusWidgets.json`)
 
 ## Setup commands

@@ -1,10 +1,13 @@
+#include "JsonUtils.h"
 #include "PrismaUI_API.h"
 #include "StatsCollector.h"
 #include <keyhandler/keyhandler.h>
 #include <atomic>
 #include <chrono>
-#include <filesystem>
 #include <algorithm>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
 #include <mutex>
 #include <string_view>
 #include <thread>
@@ -23,6 +26,8 @@ static bool g_runtimeSupported = true;
 static bool g_addressLibraryPresent = true;
 static std::string g_addressLibraryPath;
 static std::filesystem::path g_gameRootPath{};
+static std::atomic<bool> g_viewDomReady{false};
+static constexpr std::uintmax_t kMaxSettingsFileBytes = 256 * 1024;
 
 // Throttle: shorter interval during combat for responsive HP/MP/SP
 static std::chrono::steady_clock::time_point lastUpdateTime{};
@@ -39,32 +44,6 @@ static std::filesystem::path ResolveGameRootPath();
 static std::filesystem::path GetSettingsDirectoryPath() {
     const auto basePath = g_gameRootPath.empty() ? ResolveGameRootPath() : g_gameRootPath;
     return basePath / "Data" / "SKSE" / "Plugins";
-}
-
-static std::string EscapeJson(std::string_view input) {
-    std::string out;
-    out.reserve(input.size() + 8);
-    for (unsigned char c : input) {
-        switch (c) {
-        case '\\': out += "\\\\"; break;
-        case '"': out += "\\\""; break;
-        case '\b': out += "\\b"; break;
-        case '\f': out += "\\f"; break;
-        case '\n': out += "\\n"; break;
-        case '\r': out += "\\r"; break;
-        case '\t': out += "\\t"; break;
-        default:
-            if (c < 0x20) {
-                char unicodeBuf[7];
-                std::snprintf(unicodeBuf, sizeof(unicodeBuf), "\\u%04X", static_cast<unsigned int>(c));
-                out += unicodeBuf;
-            } else {
-                out += static_cast<char>(c);
-            }
-            break;
-        }
-    }
-    return out;
 }
 
 static bool IsLikelySupportedRuntime(REL::Version runtimeVersion) {
@@ -142,9 +121,9 @@ static std::string BuildRuntimeDiagnosticsJson() {
     }
 
     std::string json = "{";
-    json += "\"runtimeVersion\":\"" + EscapeJson(std::to_string(g_runtimeVersion)) + "\",";
-    json += "\"skseVersion\":\"" + EscapeJson(std::to_string(g_skseVersion)) + "\",";
-    json += "\"addressLibraryPath\":\"" + EscapeJson(g_addressLibraryPath) + "\",";
+    json += "\"runtimeVersion\":\"" + TulliusWidgets::JsonUtils::Escape(std::to_string(g_runtimeVersion)) + "\",";
+    json += "\"skseVersion\":\"" + TulliusWidgets::JsonUtils::Escape(std::to_string(g_skseVersion)) + "\",";
+    json += "\"addressLibraryPath\":\"" + TulliusWidgets::JsonUtils::Escape(g_addressLibraryPath) + "\",";
     json += "\"addressLibraryPresent\":" + std::string(g_addressLibraryPresent ? "true" : "false") + ",";
     json += "\"runtimeSupported\":" + std::string(g_runtimeSupported ? "true" : "false") + ",";
     json += "\"usesAddressLibrary\":true,";
@@ -157,14 +136,18 @@ static bool IsViewReady() {
     return PrismaUI && view != 0 && PrismaUI->IsValid(view);
 }
 
+static bool IsInteropReady() {
+    return IsViewReady() && g_viewDomReady.load();
+}
+
 static bool TryInteropCall(const char* functionName, const char* argument) {
-    if (!IsViewReady()) return false;
+    if (!IsInteropReady()) return false;
     PrismaUI->InteropCall(view, functionName, argument ? argument : "");
     return true;
 }
 
 static bool TryInvoke(const char* script) {
-    if (!IsViewReady()) return false;
+    if (!IsInteropReady()) return false;
     PrismaUI->Invoke(view, script);
     return true;
 }
@@ -219,31 +202,82 @@ static void SaveSettings(const char* jsonData) {
     if (!jsonData) return;
     if (!EnsureSettingsDirectory()) return;
 
-    std::ofstream file(GetSettingsPath());
-    if (!file.is_open()) {
-        logger::error("Failed to open settings file for write: {}", GetSettingsPath().string());
+    const auto settingsPath = GetSettingsPath();
+    const auto jsonLen = std::strlen(jsonData);
+    if (jsonLen > kMaxSettingsFileBytes) {
+        logger::error("Refusing to save settings larger than {} bytes: {}", kMaxSettingsFileBytes, jsonLen);
         return;
     }
 
-    file << jsonData;
-    if (!file.good()) {
-        logger::error("Failed to write settings file: {}", GetSettingsPath().string());
+    auto tempPath = settingsPath;
+    tempPath += ".tmp";
+
+    {
+        std::ofstream file(tempPath, std::ios::binary | std::ios::trunc);
+        if (!file.is_open()) {
+            logger::error("Failed to open temp settings file for write: {}", tempPath.string());
+            return;
+        }
+
+        file.write(jsonData, static_cast<std::streamsize>(jsonLen));
+        file.flush();
+        if (!file.good()) {
+            logger::error("Failed to write temp settings file: {}", tempPath.string());
+            return;
+        }
+    }
+
+    std::error_code ec;
+    std::filesystem::rename(tempPath, settingsPath, ec);
+    if (ec) {
+        std::error_code removeEc;
+        std::filesystem::remove(settingsPath, removeEc);
+        ec.clear();
+        std::filesystem::rename(tempPath, settingsPath, ec);
+    }
+
+    if (ec) {
+        logger::error("Failed to replace settings file '{}': {}", settingsPath.string(), ec.message());
+        std::error_code cleanupEc;
+        std::filesystem::remove(tempPath, cleanupEc);
     } else {
         logger::info("Settings saved");
     }
 }
 
 static std::string LoadSettings() {
-    auto path = GetSettingsPath();
-    if (!std::filesystem::exists(path)) return "";
-    std::ifstream file(path);
-    if (!file.is_open()) return "";
-    return std::string((std::istreambuf_iterator<char>(file)),
-                        std::istreambuf_iterator<char>());
+    const auto path = GetSettingsPath();
+    std::error_code ec;
+    if (!std::filesystem::exists(path, ec) || ec) return "";
+
+    const auto bytes = std::filesystem::file_size(path, ec);
+    if (ec) {
+        logger::warn("Failed to read settings size '{}': {}", path.string(), ec.message());
+        return "";
+    }
+    if (bytes == 0) return "";
+    if (bytes > kMaxSettingsFileBytes) {
+        logger::warn("Settings file too large ({} bytes), ignoring: {}", bytes, path.string());
+        return "";
+    }
+
+    try {
+        std::ifstream file(path, std::ios::binary);
+        if (!file.is_open()) return "";
+        std::string out;
+        out.resize(static_cast<std::size_t>(bytes));
+        file.read(out.data(), static_cast<std::streamsize>(out.size()));
+        const auto readBytes = static_cast<std::size_t>(file.gcount());
+        out.resize(readBytes);
+        return out;
+    } catch (const std::exception& e) {
+        logger::warn("Failed to load settings '{}': {}", path.string(), e.what());
+        return "";
+    }
 }
 
 static void SendHUDColorToView() {
-    if (!IsViewReady()) return;
+    if (!IsInteropReady()) return;
     uint32_t color = 0xFFFFFF;  // default white
     auto ini = RE::INISettingCollection::GetSingleton();
     if (ini) {
@@ -259,7 +293,7 @@ static void SendHUDColorToView() {
 }
 
 static void SendSettingsToView() {
-    if (!IsViewReady()) return;
+    if (!IsInteropReady()) return;
     std::string json = LoadSettings();
     if (json.empty()) return;
     if (!TryInteropCall("updateSettings", json.c_str())) return;
@@ -267,13 +301,13 @@ static void SendSettingsToView() {
 }
 
 static void SendRuntimeDiagnosticsToView() {
-    if (!IsViewReady()) return;
+    if (!IsInteropReady()) return;
     const auto json = BuildRuntimeDiagnosticsJson();
     if (!TryInteropCall("updateRuntimeStatus", json.c_str())) return;
 }
 
 static void SendStatsToView(bool force = false) {
-    if (!IsViewReady() || !gameLoaded.load()) return;
+    if (!IsInteropReady() || !gameLoaded.load()) return;
 
     if (!force) {
         auto now = std::chrono::steady_clock::now();
@@ -463,13 +497,23 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message) {
 
         logger::info("PrismaUI API initialized");
 
+        g_viewDomReady.store(false);
         view = PrismaUI->CreateView("TulliusWidgets/index.html", [](PrismaView v) -> void {
             logger::info("TulliusWidgets view ready (id: {})", v);
+            if (view == 0) {
+                view = v;
+            }
+            g_viewDomReady.store(true);
+            SendRuntimeDiagnosticsToView();
+            SendHUDColorToView();
+            SendSettingsToView();
+            SendStatsToView(true);
         });
 
         if (!IsViewReady()) {
             logger::error("Failed to create TulliusWidgets view. Widget initialization aborted.");
             view = 0;
+            g_viewDomReady.store(false);
             return;
         }
 

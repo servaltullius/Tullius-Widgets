@@ -72,6 +72,7 @@ Data/
 - ZIP 산출물:
   - 기본(권장, CI 없이): `TulliusWidgets-v<version>.zip`
   - CI 아티팩트(선택): `TulliusWidgets-v<version>-ci.zip`
+- ZIP 루트 구조: `SKSE/Plugins/...` + `PrismaUI/views/TulliusWidgets/...`
 - 한국어 패치노트 파일: `docs/release-notes/<version>.ko.md`
 - 로컬 릴리즈 스크립트(Windows): `pwsh -File .\scripts\release-local.ps1`
 - 로컬 릴리즈 가이드: `docs/local-release.ko.md`

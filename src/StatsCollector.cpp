@@ -1,5 +1,6 @@
 #include "StatsCollector.h"
 #include "CriticalChanceEvaluator.h"
+#include "JsonUtils.h"
 #include "ResistanceEvaluator.h"
 #include "RE/C/Calendar.h"
 #include <algorithm>
@@ -21,32 +22,6 @@ static constexpr float kDiseaseResistMin = 0.0f;
 static constexpr float kCritChanceCap = 100.0f;
 static constexpr float kDamageReductionCap = 80.0f;
 static constexpr float kArmorRatingForMaxReduction = 666.67f;
-
-static std::string escapeJson(std::string_view input) {
-    std::string out;
-    out.reserve(input.size() + 8);
-    for (unsigned char c : input) {
-        switch (c) {
-        case '\\': out += "\\\\"; break;
-        case '"': out += "\\\""; break;
-        case '\b': out += "\\b"; break;
-        case '\f': out += "\\f"; break;
-        case '\n': out += "\\n"; break;
-        case '\r': out += "\\r"; break;
-        case '\t': out += "\\t"; break;
-        default:
-            if (c < 0x20) {
-                char unicodeBuf[7];
-                std::snprintf(unicodeBuf, sizeof(unicodeBuf), "\\u%04X", static_cast<unsigned int>(c));
-                out += unicodeBuf;
-            } else {
-                out += static_cast<char>(c);
-            }
-            break;
-        }
-    }
-    return out;
-}
 
 static std::string getEquippedName(RE::PlayerCharacter* player, bool leftHand) {
     if (!player) return "";
@@ -495,8 +470,8 @@ std::string StatsCollector::CollectStats() {
     const auto rightEquipped = getEquippedName(player, false);
     const auto leftEquipped = getEquippedName(player, true);
     json += "\"equipped\":{";
-    json += "\"rightHand\":\"" + escapeJson(rightEquipped) + "\",";
-    json += "\"leftHand\":\"" + escapeJson(leftEquipped) + "\"";
+    json += "\"rightHand\":\"" + JsonUtils::Escape(rightEquipped) + "\",";
+    json += "\"leftHand\":\"" + JsonUtils::Escape(leftEquipped) + "\"";
     json += "},";
 
     json += "\"movement\":{";
@@ -510,7 +485,7 @@ std::string StatsCollector::CollectStats() {
     json += "\"day\":" + std::to_string(gameTime.day) + ",";
     json += "\"hour\":" + std::to_string(gameTime.hour) + ",";
     json += "\"minute\":" + std::to_string(gameTime.minute) + ",";
-    json += "\"monthName\":\"" + escapeJson(gameTime.monthName) + "\",";
+    json += "\"monthName\":\"" + JsonUtils::Escape(gameTime.monthName) + "\",";
     json += "\"timeScale\":" + safeFloat(gameTime.timeScale);
     json += "},";
 
@@ -574,8 +549,8 @@ std::string StatsCollector::CollectStats() {
         const auto& effect = timedEffects[i];
         json += "{";
         json += "\"instanceId\":" + std::to_string(effect.instanceId) + ",";
-        json += "\"sourceName\":\"" + escapeJson(effect.sourceName) + "\",";
-        json += "\"effectName\":\"" + escapeJson(effect.effectName) + "\",";
+        json += "\"sourceName\":\"" + JsonUtils::Escape(effect.sourceName) + "\",";
+        json += "\"effectName\":\"" + JsonUtils::Escape(effect.effectName) + "\",";
         json += "\"remainingSec\":" + std::to_string(effect.remainingSec) + ",";
         json += "\"totalSec\":" + std::to_string(effect.totalSec) + ",";
         json += "\"isDebuff\":" + std::string(effect.isDebuff ? "true" : "false") + ",";

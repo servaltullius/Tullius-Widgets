@@ -25,6 +25,7 @@ pwsh -File .\scripts\release-local.ps1 -NoPublish
 
 생성 파일:
 - `TulliusWidgets-v<version>.zip`
+- ZIP 루트 구조: `SKSE/Plugins/...`, `PrismaUI/views/TulliusWidgets/...`
 
 ## 3) 로컬 빌드 + GitHub 릴리즈까지 게시
 기본값은 프리릴리즈입니다.
