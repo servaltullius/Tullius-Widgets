@@ -8,6 +8,11 @@
 #include <mutex>
 #include <string_view>
 #include <thread>
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 
 PRISMA_UI_API::IVPrismaUI1* PrismaUI = nullptr;
 static PrismaView view = 0;
@@ -17,6 +22,7 @@ static REL::Version g_skseVersion{};
 static bool g_runtimeSupported = true;
 static bool g_addressLibraryPresent = true;
 static std::string g_addressLibraryPath;
+static std::filesystem::path g_gameRootPath{};
 
 // Throttle: shorter interval during combat for responsive HP/MP/SP
 static std::chrono::steady_clock::time_point lastUpdateTime{};
@@ -60,10 +66,36 @@ static bool IsLikelySupportedRuntime(REL::Version runtimeVersion) {
     return runtimeVersion.major() == 1 && (runtimeVersion.minor() == 5 || runtimeVersion.minor() == 6);
 }
 
+static std::filesystem::path ResolveGameRootPath() {
+    std::wstring exePathBuffer(MAX_PATH, L'\0');
+    while (exePathBuffer.size() <= 32768) {
+        const DWORD size = static_cast<DWORD>(exePathBuffer.size());
+        const DWORD len = ::GetModuleFileNameW(nullptr, exePathBuffer.data(), size);
+        if (len == 0) break;
+        if (len < size - 1) {
+            exePathBuffer.resize(len);
+            std::filesystem::path exePath(exePathBuffer);
+            auto parent = exePath.parent_path();
+            if (!parent.empty()) return parent;
+            break;
+        }
+        exePathBuffer.resize(exePathBuffer.size() * 2);
+    }
+
+    std::error_code ec;
+    auto cwd = std::filesystem::current_path(ec);
+    if (ec) {
+        logger::warn("Failed to resolve current path for diagnostics: {}", ec.message());
+        return {};
+    }
+    return cwd;
+}
+
 static std::filesystem::path GetAddressLibraryPath(REL::Version runtimeVersion) {
     const bool usesVersionLib = runtimeVersion.minor() >= 6;
     const auto filename = std::string(usesVersionLib ? "versionlib-" : "version-") + runtimeVersion.string() + ".bin";
-    return std::filesystem::path("Data") / "SKSE" / "Plugins" / filename;
+    const auto basePath = g_gameRootPath.empty() ? ResolveGameRootPath() : g_gameRootPath;
+    return basePath / "Data" / "SKSE" / "Plugins" / filename;
 }
 
 static void InitializeRuntimeDiagnostics(const SKSE::LoadInterface* loadInterface) {
@@ -72,15 +104,22 @@ static void InitializeRuntimeDiagnostics(const SKSE::LoadInterface* loadInterfac
     g_runtimeVersion = loadInterface->RuntimeVersion();
     g_skseVersion = REL::Version::unpack(loadInterface->SKSEVersion());
     g_runtimeSupported = IsLikelySupportedRuntime(g_runtimeVersion);
+    g_gameRootPath = ResolveGameRootPath();
 
     const auto addressLibraryPath = GetAddressLibraryPath(g_runtimeVersion);
     g_addressLibraryPath = addressLibraryPath.generic_string();
-    g_addressLibraryPresent = std::filesystem::exists(addressLibraryPath);
+    std::error_code ec;
+    g_addressLibraryPresent = std::filesystem::exists(addressLibraryPath, ec);
+    if (ec) {
+        logger::warn("Address Library path check failed ({}): {}", g_addressLibraryPath, ec.message());
+        g_addressLibraryPresent = false;
+    }
 
     logger::info(
-        "Runtime diagnostics: runtime={}, skse={}, addressLibraryPath={}, addressLibraryPresent={}",
+        "Runtime diagnostics: runtime={}, skse={}, gameRoot={}, addressLibraryPath={}, addressLibraryPresent={}",
         std::to_string(g_runtimeVersion),
         std::to_string(g_skseVersion),
+        g_gameRootPath.generic_string(),
         g_addressLibraryPath,
         g_addressLibraryPresent);
 }

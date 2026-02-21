@@ -72,23 +72,32 @@ function snapPosition(
 
 export function App() {
   const stats = useGameStats();
-  const { settings, settingsOpen, setSettingsOpen, closeSettings, updateSetting, accentColor, runtimeDiagnostics } = useSettings();
+  const { settings, visible, settingsOpen, setSettingsOpen, closeSettings, updateSetting, accentColor, runtimeDiagnostics } = useSettings();
   const [dragPositions, setDragPositions] = useState<Record<string, GroupPosition>>({});
   const [lastChangeAtMs, setLastChangeAtMs] = useState<number>(() => Date.now());
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const defaults = getDefaultPositions();
   const lang = settings.general.language;
 
-  const trackedChangeSignature = useMemo(() => JSON.stringify({
-    resistances: stats.resistances,
-    defense: stats.defense,
-    offense: stats.offense,
-    equipped: stats.equipped,
-    movement: stats.movement,
-    playerInfo: stats.playerInfo,
-    isInCombat: stats.isInCombat,
-    timedEffectKeys: stats.timedEffects.map(effect => effect.stableKey),
-  }), [stats]);
+  const trackedChangeSignature = useMemo(() => {
+    const trackedTime = settings.time.gameDateTime
+      ? [stats.time.year, stats.time.month, stats.time.day, stats.time.hour, stats.time.minute]
+      : null;
+    const trackedTimedEffects = settings.timedEffects.enabled
+      ? stats.timedEffects.map(effect => [effect.stableKey, Math.trunc(effect.remainingSec), Math.trunc(effect.totalSec), effect.isDebuff ? 1 : 0])
+      : null;
+    return JSON.stringify({
+      resistances: stats.resistances,
+      defense: stats.defense,
+      offense: stats.offense,
+      equipped: stats.equipped,
+      movement: stats.movement,
+      playerInfo: stats.playerInfo,
+      isInCombat: stats.isInCombat,
+      timedEffects: trackedTimedEffects,
+      time: trackedTime,
+    });
+  }, [stats, settings.time.gameDateTime, settings.timedEffects.enabled]);
 
   useEffect(() => {
     const changedAt = Date.now();
@@ -111,7 +120,7 @@ export function App() {
     settingsOpen ||
     (nowMs - lastChangeAtMs) <= settings.general.changeDisplaySeconds * 1000;
 
-  const shouldShow = settings.general.visible &&
+  const shouldShow = visible &&
     (!settings.general.combatOnly || stats.isInCombat) &&
     changeWindowActive;
 

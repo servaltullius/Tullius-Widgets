@@ -196,7 +196,13 @@ export function useSettings() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [hudColor, setHudColor] = useState('#ffffff');
   const [runtimeDiagnostics, setRuntimeDiagnostics] = useState<RuntimeDiagnostics | null>(null);
+  const [sessionVisibleOverride, setSessionVisibleOverride] = useState<boolean | null>(null);
   const debounceTimerRef = useRef<number | null>(null);
+  const settingsRef = useRef(settings);
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
 
   const notifySettingsChanged = useCallback((json: string) => {
     if (debounceTimerRef.current !== null) {
@@ -217,6 +223,7 @@ export function useSettings() {
       }
       const merged = mergeWithDefaults(parsed);
       setSettings(merged);
+      setSessionVisibleOverride(null);
       if (persist) {
         notifySettingsChanged(JSON.stringify(merged));
       }
@@ -251,12 +258,9 @@ export function useSettings() {
     };
 
     window.toggleWidgetsVisibility = () => {
-      setSettings(prev => {
-        const next = structuredClone(prev);
-        next.general.visible = !next.general.visible;
-        notifySettingsChanged(JSON.stringify(next));
-        return next;
-      });
+      setSessionVisibleOverride(prev =>
+        prev === null ? !settingsRef.current.general.visible : !prev
+      );
     };
 
     window.closeSettings = () => {
@@ -298,6 +302,10 @@ export function useSettings() {
       const next = structuredClone(prev);
       setValueByPath(next, path, value);
 
+      if (path === 'general.visible') {
+        setSessionVisibleOverride(null);
+      }
+
       if (options?.persist !== false) {
         notifySettingsChanged(JSON.stringify(next));
       }
@@ -313,6 +321,17 @@ export function useSettings() {
 
   // Resolved accent color: manual override > auto HUD color.
   const accentColor = settings.general.accentColor || hudColor;
+  const visible = sessionVisibleOverride ?? settings.general.visible;
 
-  return { settings, settingsOpen, setSettingsOpen, closeSettings, updateSetting, accentColor, hudColor, runtimeDiagnostics };
+  return {
+    settings,
+    visible,
+    settingsOpen,
+    setSettingsOpen,
+    closeSettings,
+    updateSetting,
+    accentColor,
+    hudColor,
+    runtimeDiagnostics,
+  };
 }
