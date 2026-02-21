@@ -15,7 +15,7 @@ type PanelTab = 'general' | 'combat' | 'effects' | 'alerts' | 'presets';
 const TAB_ORDER: PanelTab[] = ['general', 'combat', 'effects', 'alerts', 'presets'];
 const TAB_SECTION_IDS: Record<PanelTab, string[]> = {
   general: ['generalMain'],
-  combat: ['playerInfo', 'resistances', 'defense', 'offense', 'equipped', 'movement'],
+  combat: ['experience', 'playerInfo', 'resistances', 'defense', 'offense', 'equipped', 'movement'],
   effects: ['time', 'timedEffects'],
   alerts: ['visualAlerts'],
   presets: ['presets', 'layoutTools'],
@@ -23,6 +23,7 @@ const TAB_SECTION_IDS: Record<PanelTab, string[]> = {
 
 const DEFAULT_EXPANDED_SECTIONS: Record<string, boolean> = {
   generalMain: true,
+  experience: true,
   playerInfo: true,
   resistances: false,
   defense: false,
@@ -448,6 +449,20 @@ export function SettingsPanel({ settings, open, onClose, onUpdate, accentColor }
       {activeTab === 'combat' && (
         <>
           <AccordionSection
+            id="experience"
+            title={t(lang, 'experienceWidget')}
+            expanded={isSectionExpanded('experience')}
+            onToggle={toggleSection}
+          >
+            <LayoutSelect lang={lang} groupId="experience" value={groupLayout('experience')} onUpdate={onUpdate} />
+            <Toggle
+              label={t(lang, 'experienceProgress')}
+              checked={settings.experience.enabled}
+              onChange={v => onUpdate('experience.enabled', v)}
+            />
+          </AccordionSection>
+
+          <AccordionSection
             id="playerInfo"
             title={t(lang, 'playerInfo')}
             expanded={isSectionExpanded('playerInfo')}
@@ -455,8 +470,6 @@ export function SettingsPanel({ settings, open, onClose, onUpdate, accentColor }
           >
             <LayoutSelect lang={lang} groupId="playerInfo" value={groupLayout('playerInfo')} onUpdate={onUpdate} />
             <Toggle label={t(lang, 'level')} checked={settings.playerInfo.level} onChange={v => onUpdate('playerInfo.level', v)} />
-            <Toggle label={t(lang, 'experience')} checked={settings.playerInfo.experience} onChange={v => onUpdate('playerInfo.experience', v)} />
-            <Toggle label={t(lang, 'expToNextLevel')} checked={settings.playerInfo.expToNextLevel} onChange={v => onUpdate('playerInfo.expToNextLevel', v)} />
             <Toggle label={t(lang, 'gold')} checked={settings.playerInfo.gold} onChange={v => onUpdate('playerInfo.gold', v)} />
             <Toggle label={t(lang, 'carryWeight')} checked={settings.playerInfo.carryWeight} onChange={v => onUpdate('playerInfo.carryWeight', v)} />
             <Toggle label={t(lang, 'health')} checked={settings.playerInfo.health} onChange={v => onUpdate('playerInfo.health', v)} />

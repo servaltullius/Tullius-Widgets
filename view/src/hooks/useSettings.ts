@@ -95,7 +95,20 @@ function mergeWithDefaults(saved: Record<string, unknown>): WidgetSettings {
   merged.equipped = mergeBooleanSection(merged.equipped, saved.equipped);
   merged.movement = mergeBooleanSection(merged.movement, saved.movement);
   merged.time = mergeBooleanSection(merged.time, saved.time);
+  merged.experience = mergeBooleanSection(merged.experience, saved.experience);
   merged.playerInfo = mergeBooleanSection(merged.playerInfo, saved.playerInfo);
+
+  // Backward compatibility: migrate legacy playerInfo XP toggles to new experience widget toggle.
+  if (!isPlainObject(saved.experience) && isPlainObject(saved.playerInfo)) {
+    const legacyCurrent = saved.playerInfo.experience;
+    const legacyToNext = saved.playerInfo.expToNextLevel;
+    const hasLegacyXpToggle = typeof legacyCurrent === 'boolean' || typeof legacyToNext === 'boolean';
+    if (hasLegacyXpToggle) {
+      const currentEnabled = readBoolean(legacyCurrent, true);
+      const toNextEnabled = readBoolean(legacyToNext, true);
+      merged.experience.enabled = currentEnabled || toNextEnabled;
+    }
+  }
 
   const timedEffectsIncoming = saved.timedEffects;
   if (isPlainObject(timedEffectsIncoming)) {

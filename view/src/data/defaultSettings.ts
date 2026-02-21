@@ -42,10 +42,11 @@ export const defaultSettings: WidgetSettings = {
     gameDateTime: true,
     realDateTime: true,
   },
+  experience: {
+    enabled: true,
+  },
   playerInfo: {
     level: true,
-    experience: true,
-    expToNextLevel: true,
     gold: true,
     carryWeight: true,
     health: false,
@@ -71,6 +72,7 @@ export function getDefaultPositions(): Record<string, { x: number; y: number }> 
   const right = w - 260;
   return {
     playerInfo: { x: right, y: 20 },
+    experience: { x: right, y: 180 },
     time: { x: 20, y: 20 },
     resistances: { x: right, y: 220 },
     defense: { x: right, y: 500 },

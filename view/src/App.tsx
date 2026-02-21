@@ -19,7 +19,7 @@ const WEAPON_DAMAGE_CAP = 9999;
 const WEAPON_DAMAGE_MIN = 0;
 const CRIT_CHANCE_CAP = 100;
 const CRIT_CHANCE_MIN = 0;
-const GROUP_IDS = ['playerInfo', 'resistances', 'defense', 'offense', 'equipped', 'time', 'timedEffects', 'movement'] as const;
+const GROUP_IDS = ['experience', 'playerInfo', 'resistances', 'defense', 'offense', 'equipped', 'time', 'timedEffects', 'movement'] as const;
 const SNAP_THRESHOLD = 15;
 const GRID = 10;
 const FALLBACK_POS: GroupPosition = { x: 100, y: 100 };
@@ -125,7 +125,12 @@ export function App() {
   const hasVisibleTimedEffects = settings.timedEffects.enabled &&
     (settingsOpen || stats.timedEffects.length > 0);
   const hasVisibleMovement = settings.movement.speedMult;
+  const hasVisibleExperience = settings.experience.enabled;
   const hasVisiblePlayerInfo = Object.values(settings.playerInfo).some(Boolean);
+  const currentXp = Math.max(0, Math.round(stats.playerInfo.experience));
+  const rawNextLevelXp = Math.max(0, Math.round(stats.playerInfo.expToNextLevel));
+  const totalXpForNextLevel = rawNextLevelXp >= currentXp ? rawNextLevelXp : currentXp + rawNextLevelXp;
+  const experienceProgressValue = `${formatInteger(currentXp)} / ${formatInteger(totalXpForNextLevel)} XP`;
 
   return (
     <>
@@ -134,13 +139,17 @@ export function App() {
           {hasVisiblePlayerInfo && (
             <DraggableWidgetGroup {...groupProps('playerInfo')}>
               <StatWidget icon="level" iconColor="#ffd700" value={stats.playerInfo.level} visible={settings.playerInfo.level} />
-              <StatWidget icon="level" iconColor="#5ec8ff" value={stats.playerInfo.experience} unit=" XP" visible={settings.playerInfo.experience} format={formatInteger} />
-              <StatWidget icon="crit" iconColor="#ffb84d" value={stats.playerInfo.expToNextLevel} unit=" XP" visible={settings.playerInfo.expToNextLevel} format={formatInteger} />
               <StatWidget icon="gold" iconColor="#f0c040" value={stats.playerInfo.gold} visible={settings.playerInfo.gold} format={formatGold} />
               <StatWidget icon="weight" iconColor="#cc9966" value={stats.playerInfo.carryWeight} unit={`/${Math.round(stats.playerInfo.maxCarryWeight)}`} visible={settings.playerInfo.carryWeight} format={formatWeight} />
               <StatWidget icon="health" iconColor="#e84040" value={stats.playerInfo.health} visible={settings.playerInfo.health} />
               <StatWidget icon="magicka" iconColor="#4090e8" value={stats.playerInfo.magicka} visible={settings.playerInfo.magicka} />
               <StatWidget icon="stamina" iconColor="#40c840" value={stats.playerInfo.stamina} visible={settings.playerInfo.stamina} />
+            </DraggableWidgetGroup>
+          )}
+
+          {hasVisibleExperience && (
+            <DraggableWidgetGroup {...groupProps('experience')}>
+              <StatWidget icon="experience" iconColor="#5ec8ff" value={experienceProgressValue} visible={settings.experience.enabled} />
             </DraggableWidgetGroup>
           )}
 

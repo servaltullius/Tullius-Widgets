@@ -49,10 +49,11 @@ export interface WidgetSettings {
     gameDateTime: boolean;
     realDateTime: boolean;
   };
+  experience: {
+    enabled: boolean;
+  };
   playerInfo: {
     level: boolean;
-    experience: boolean;
-    expToNextLevel: boolean;
     gold: boolean;
     carryWeight: boolean;
     health: boolean;
