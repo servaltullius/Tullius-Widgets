@@ -93,6 +93,8 @@ try {
   New-Item -ItemType Directory -Path "dist/SKSE/Plugins" -Force | Out-Null
   Copy-Item "build/windows/x64/release/TulliusWidgets.dll" "dist/SKSE/Plugins/TulliusWidgets.dll" -Force
 
+  Get-ChildItem -Path "dist" -Filter "*.zip" -Recurse -File -ErrorAction SilentlyContinue | Remove-Item -Force
+
   if (Test-Path $zipName) {
     Remove-Item $zipName -Force
   }

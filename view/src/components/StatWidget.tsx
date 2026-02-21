@@ -28,7 +28,6 @@ const badgeIconMap: Record<string, LucideIcon> = {
   stamina: Battery,
   gameTime: CalendarDays,
   realTime: Clock3,
-  experience: Sparkles,
 };
 
 interface StatWidgetProps {
