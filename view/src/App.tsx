@@ -193,6 +193,11 @@ export function App() {
     return () => window.clearInterval(timer);
   }, [settings.general.showOnChangeOnly]);
 
+  useEffect(() => {
+    if (!settingsOpen || settings.general.onboardingSeen) return;
+    updateSetting('general.onboardingSeen', true);
+  }, [settings.general.onboardingSeen, settingsOpen, updateSetting]);
+
   const changeWindowActive =
     !settings.general.showOnChangeOnly ||
     settingsOpen ||
@@ -301,7 +306,6 @@ export function App() {
   };
 
   const handleOnboardingOpenSettings = () => {
-    updateSetting('general.onboardingSeen', true);
     setSettingsOpen(true);
   };
 
@@ -335,37 +339,38 @@ export function App() {
       {!settings.general.onboardingSeen && (
         <div style={{
           position: 'fixed',
-          top: '24px',
-          right: '24px',
+          top: '28px',
+          right: '28px',
           background: 'rgba(16, 18, 26, 0.92)',
           border: '1px solid rgba(120, 175, 255, 0.45)',
-          borderRadius: '12px',
-          padding: '14px 16px',
+          borderRadius: '14px',
+          padding: '18px 20px',
           zIndex: 1300,
           color: '#e7eefc',
           fontFamily: 'sans-serif',
-          minWidth: '340px',
-          boxShadow: '0 8px 18px rgba(0,0,0,0.35)',
+          width: 'clamp(420px, 30vw, 560px)',
+          boxShadow: '0 10px 22px rgba(0,0,0,0.38)',
         }}>
-          <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px' }}>
+          <div style={{ fontSize: '19px', fontWeight: 700, marginBottom: '10px' }}>
             {t(lang, 'onboardingTitle')}
           </div>
-          <div style={{ fontSize: '13px', lineHeight: 1.45, opacity: 0.96 }}>
+          <div style={{ fontSize: '15px', lineHeight: 1.55, opacity: 0.96 }}>
             <div>{t(lang, 'onboardingLine1')}</div>
             <div>{t(lang, 'onboardingLine2')}</div>
             <div>{t(lang, 'onboardingLine3')}</div>
           </div>
-          <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+          <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
             <button
               onClick={handleOnboardingOpenSettings}
               style={{
                 flex: 1,
-                borderRadius: '8px',
+                borderRadius: '10px',
                 border: '1px solid rgba(120,175,255,0.6)',
                 background: 'rgba(80,140,255,0.2)',
                 color: '#d7e6ff',
-                fontSize: '13px',
-                padding: '8px 10px',
+                fontSize: '14px',
+                fontWeight: 600,
+                padding: '10px 12px',
                 cursor: 'pointer',
               }}
             >
@@ -375,12 +380,13 @@ export function App() {
               onClick={handleOnboardingDismiss}
               style={{
                 flex: 1,
-                borderRadius: '8px',
+                borderRadius: '10px',
                 border: '1px solid rgba(220,220,220,0.35)',
                 background: 'rgba(255,255,255,0.06)',
                 color: '#d3d9e6',
-                fontSize: '13px',
-                padding: '8px 10px',
+                fontSize: '14px',
+                fontWeight: 600,
+                padding: '10px 12px',
                 cursor: 'pointer',
               }}
             >
