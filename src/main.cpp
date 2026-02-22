@@ -5,9 +5,11 @@
 #include <atomic>
 #include <chrono>
 #include <algorithm>
+#include <cstdint>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <mutex>
 #include <string_view>
 #include <thread>
@@ -37,6 +39,7 @@ static constexpr auto UPDATE_INTERVAL_IDLE   = std::chrono::milliseconds(500);
 static constexpr auto HEARTBEAT_INTERVAL     = std::chrono::seconds(3);
 static std::jthread g_heartbeatThread;
 static std::atomic<bool> g_heartbeatStarted{false};
+static std::atomic<std::uint32_t> g_scheduledStatsSeq{0};
 
 // --- Settings Persistence ---
 static std::filesystem::path ResolveGameRootPath();
@@ -324,6 +327,37 @@ static void SendStatsToView(bool force = false) {
     TryInteropCall("updateStats", stats.c_str());
 }
 
+static void ScheduleStatsUpdateAfter(std::chrono::milliseconds delay) {
+    auto* taskInterface = SKSE::GetTaskInterface();
+    if (!taskInterface) return;
+
+    const auto target = std::chrono::steady_clock::now() + delay;
+    const std::uint32_t seq = g_scheduledStatsSeq.fetch_add(1) + 1;
+    struct ScheduledStatsUpdate : std::enable_shared_from_this<ScheduledStatsUpdate> {
+        std::chrono::steady_clock::time_point target{};
+        std::uint32_t seq{};
+
+        void Run() {
+            if (g_scheduledStatsSeq.load() != seq) return;
+
+            if (std::chrono::steady_clock::now() >= target) {
+                SendStatsToView(true);
+                return;
+            }
+
+            if (auto* ti = SKSE::GetTaskInterface()) {
+                const auto self = shared_from_this();
+                ti->AddTask([self]() { self->Run(); });
+            }
+        }
+    };
+
+    const auto task = std::make_shared<ScheduledStatsUpdate>();
+    task->target = target;
+    task->seq = seq;
+    taskInterface->AddTask([task]() { task->Run(); });
+}
+
 static void StartHeartbeat() {
     if (g_heartbeatStarted.exchange(true)) return;
 
@@ -472,6 +506,11 @@ public:
             // Show only after all tracked menus are fully closed.
             if (TryShowView()) {
                 SendStatsToView(true);
+                if (event->menuName == RE::LevelUpMenu::MENU_NAME) {
+                    // Level-up XP/threshold can settle a moment after the menu closes.
+                    // Schedule a delayed refresh so the XP widget reflects the new level promptly.
+                    ScheduleStatsUpdateAfter(std::chrono::milliseconds(800));
+                }
             }
         }
 
