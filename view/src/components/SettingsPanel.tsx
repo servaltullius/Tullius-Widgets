@@ -419,6 +419,7 @@ export function SettingsPanel({ settings, effectiveVisible, open, onClose, onUpd
             <span style={{ color: '#ddd', fontSize: '24px' }}>{t(lang, 'size')}</span>
             <CustomSelect value={settings.general.size}
               options={[
+                { value: 'xsmall', label: t(lang, 'xsmall') },
                 { value: 'small', label: t(lang, 'small') },
                 { value: 'medium', label: t(lang, 'medium') },
                 { value: 'large', label: t(lang, 'large') },

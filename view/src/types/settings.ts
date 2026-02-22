@@ -1,4 +1,4 @@
-export type WidgetSize = 'small' | 'medium' | 'large';
+export type WidgetSize = 'xsmall' | 'small' | 'medium' | 'large';
 export type WidgetLayout = 'vertical' | 'horizontal';
 export type Language = 'ko' | 'en';
 

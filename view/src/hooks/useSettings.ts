@@ -112,7 +112,7 @@ function mergeWithDefaults(saved: Record<string, unknown>): WidgetSettings {
     merged.general.changeDisplaySeconds = readNumber(generalIncoming.changeDisplaySeconds, merged.general.changeDisplaySeconds, 1, 15);
     merged.general.onboardingSeen = readBoolean(generalIncoming.onboardingSeen, merged.general.onboardingSeen);
     merged.general.opacity = readNumber(generalIncoming.opacity, merged.general.opacity, 10, 100);
-    merged.general.size = readEnum<WidgetSize>(generalIncoming.size, merged.general.size, ['small', 'medium', 'large']);
+    merged.general.size = readEnum<WidgetSize>(generalIncoming.size, merged.general.size, ['xsmall', 'small', 'medium', 'large']);
     merged.general.language = readEnum<Language>(generalIncoming.language, merged.general.language, ['ko', 'en']);
     merged.general.accentColor = readAccentColor(generalIncoming.accentColor, merged.general.accentColor);
     merged.general.transparentBg = readBoolean(generalIncoming.transparentBg, merged.general.transparentBg);

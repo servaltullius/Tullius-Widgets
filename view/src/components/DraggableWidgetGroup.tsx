@@ -17,6 +17,7 @@ interface DraggableWidgetGroupProps {
 }
 
 const scaleMap: Record<WidgetSize, number> = {
+  xsmall: 0.85,
   small: 1.0,
   medium: 1.3,
   large: 1.6,

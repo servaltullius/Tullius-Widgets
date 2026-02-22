@@ -24,7 +24,7 @@ Vignette screen effects warn you when Health, Magicka, or Stamina drops below a 
 [b]Fully Customizable[/b]
 [list]
 [*]Toggle each stat widget individually
-[*]Adjust opacity, size (Small / Medium / Large)
+[*]Adjust opacity, size (Very Small / Small / Medium / Large)
 [*]Vertical or horizontal layout per widget group
 [*]Custom accent color or auto-detect from HUD color
 [*]Transparent background mode
