@@ -61,4 +61,28 @@ describe('useGameStats', () => {
     expect(latest!.playerInfo.expToNextLevel).toBeCloseTo(619.75, 2);
     expect(latest!.playerInfo.nextLevelTotalXp).toBeCloseTo(1900.0, 2);
   });
+
+  it('clamps negative health/magicka/stamina values to 0', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onStats={stats => { latest = stats; }} />);
+    });
+
+    expect(typeof window.updateStats).toBe('function');
+
+    await act(async () => {
+      window.updateStats?.(JSON.stringify({
+        playerInfo: {
+          health: -10,
+          magicka: -1,
+          stamina: -250.5,
+        },
+      }));
+    });
+
+    expect(latest).not.toBeNull();
+    expect(latest!.playerInfo.health).toBe(0);
+    expect(latest!.playerInfo.magicka).toBe(0);
+    expect(latest!.playerInfo.stamina).toBe(0);
+  });
 });

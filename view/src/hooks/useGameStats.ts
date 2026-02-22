@@ -281,9 +281,9 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
       gold: Math.trunc(readNumber(rawPlayerInfo?.gold, fallback.playerInfo.gold, 0, 999999999)),
       carryWeight: readNumber(rawPlayerInfo?.carryWeight, fallback.playerInfo.carryWeight, -100000, 100000),
       maxCarryWeight: readNumber(rawPlayerInfo?.maxCarryWeight, fallback.playerInfo.maxCarryWeight, 1, 100000),
-      health: readNumber(rawPlayerInfo?.health, fallback.playerInfo.health, -100000, 100000),
-      magicka: readNumber(rawPlayerInfo?.magicka, fallback.playerInfo.magicka, -100000, 100000),
-      stamina: readNumber(rawPlayerInfo?.stamina, fallback.playerInfo.stamina, -100000, 100000),
+      health: readNumber(rawPlayerInfo?.health, fallback.playerInfo.health, 0, 100000),
+      magicka: readNumber(rawPlayerInfo?.magicka, fallback.playerInfo.magicka, 0, 100000),
+      stamina: readNumber(rawPlayerInfo?.stamina, fallback.playerInfo.stamina, 0, 100000),
     },
     alertData: {
       healthPct: readNumber(rawAlertData?.healthPct, fallback.alertData.healthPct, 0, 1000),
