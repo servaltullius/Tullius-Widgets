@@ -32,6 +32,9 @@ docs/screenshot-updated-stats.png
 __pycache__/
 *.py[cod]
 
+# Worktrees
+.worktrees/
+
 # vibe-kit
 .vibe/db/
 .vibe/reports/
