@@ -201,6 +201,61 @@ static std::filesystem::path GetPresetPath() {
     return GetSettingsDirectoryPath() / "TulliusWidgets_preset.json";
 }
 
+static bool ReadTextFileWithLimit(
+    const std::filesystem::path& path,
+    std::uintmax_t maxBytes,
+    std::string_view label,
+    std::string& out)
+{
+    out.clear();
+
+    std::error_code ec;
+    if (!std::filesystem::exists(path, ec)) {
+        if (ec) {
+            logger::warn("Failed to check {} file '{}': {}", label, path.string(), ec.message());
+        }
+        return false;
+    }
+
+    const auto bytes = std::filesystem::file_size(path, ec);
+    if (ec) {
+        logger::warn("Failed to read {} file size '{}': {}", label, path.string(), ec.message());
+        return false;
+    }
+    if (bytes == 0) return false;
+    if (bytes > maxBytes) {
+        logger::warn("{} file too large ({} bytes), ignoring: {}", label, bytes, path.string());
+        return false;
+    }
+
+    try {
+        std::ifstream file(path, std::ios::binary);
+        if (!file.is_open()) {
+            logger::warn("Failed to open {} file '{}'", label, path.string());
+            return false;
+        }
+        const auto expectedBytes = static_cast<std::size_t>(bytes);
+        out.resize(expectedBytes);
+        file.read(out.data(), static_cast<std::streamsize>(out.size()));
+        const auto readBytes = static_cast<std::size_t>(file.gcount());
+        out.resize(readBytes);
+        if (readBytes != expectedBytes) {
+            logger::warn(
+                "Incomplete read for {} file '{}' (expected {} bytes, got {})",
+                label,
+                path.string(),
+                expectedBytes,
+                readBytes);
+            out.clear();
+            return false;
+        }
+        return true;
+    } catch (const std::exception& e) {
+        logger::warn("Failed to load {} file '{}': {}", label, path.string(), e.what());
+        return false;
+    }
+}
+
 static void SaveSettings(const char* jsonData) {
     if (!jsonData) return;
     if (!EnsureSettingsDirectory()) return;
@@ -249,34 +304,9 @@ static void SaveSettings(const char* jsonData) {
 }
 
 static std::string LoadSettings() {
-    const auto path = GetSettingsPath();
-    std::error_code ec;
-    if (!std::filesystem::exists(path, ec) || ec) return "";
-
-    const auto bytes = std::filesystem::file_size(path, ec);
-    if (ec) {
-        logger::warn("Failed to read settings size '{}': {}", path.string(), ec.message());
-        return "";
-    }
-    if (bytes == 0) return "";
-    if (bytes > kMaxSettingsFileBytes) {
-        logger::warn("Settings file too large ({} bytes), ignoring: {}", bytes, path.string());
-        return "";
-    }
-
-    try {
-        std::ifstream file(path, std::ios::binary);
-        if (!file.is_open()) return "";
-        std::string out;
-        out.resize(static_cast<std::size_t>(bytes));
-        file.read(out.data(), static_cast<std::streamsize>(out.size()));
-        const auto readBytes = static_cast<std::size_t>(file.gcount());
-        out.resize(readBytes);
-        return out;
-    } catch (const std::exception& e) {
-        logger::warn("Failed to load settings '{}': {}", path.string(), e.what());
-        return "";
-    }
+    std::string out;
+    if (!ReadTextFileWithLimit(GetSettingsPath(), kMaxSettingsFileBytes, "Settings", out)) return "";
+    return out;
 }
 
 static void SendHUDColorToView() {
@@ -491,6 +521,15 @@ public:
     RE::BSEventNotifyControl ProcessEvent(const RE::MenuOpenCloseEvent* event, RE::BSTEventSource<RE::MenuOpenCloseEvent>*) override {
         if (!event || !IsViewReady()) return RE::BSEventNotifyControl::kContinue;
         auto ui = RE::UI::GetSingleton();
+        const bool levelUpMenuClosed = !event->opening &&
+            event->menuName == RE::LevelUpMenu::MENU_NAME &&
+            gameLoaded.load();
+
+        if (levelUpMenuClosed) {
+            // Level-up XP/threshold can settle after the menu close event.
+            // Schedule a delayed refresh even if the HUD show branch below is skipped.
+            ScheduleStatsUpdateAfter(std::chrono::milliseconds(800));
+        }
 
         // Main menu: hide and mark game as unloaded
         if (event->menuName == RE::MainMenu::MENU_NAME && event->opening) {
@@ -506,11 +545,6 @@ public:
             // Show only after all tracked menus are fully closed.
             if (TryShowView()) {
                 SendStatsToView(true);
-                if (event->menuName == RE::LevelUpMenu::MENU_NAME) {
-                    // Level-up XP/threshold can settle a moment after the menu closes.
-                    // Schedule a delayed refresh so the XP widget reflects the new level promptly.
-                    ScheduleStatsUpdateAfter(std::chrono::milliseconds(800));
-                }
             }
         }
 
@@ -602,18 +636,11 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message) {
         });
 
         PrismaUI->RegisterJSListener(view, "onImportSettings", [](const char*) -> void {
-            auto presetPath = GetPresetPath();
-            if (!std::filesystem::exists(presetPath)) {
+            std::string json;
+            if (!ReadTextFileWithLimit(GetPresetPath(), kMaxSettingsFileBytes, "Preset", json)) {
                 TryInvoke("onImportResult(false)");
                 return;
             }
-            std::ifstream file(presetPath);
-            if (!file.is_open()) {
-                TryInvoke("onImportResult(false)");
-                return;
-            }
-            std::string json((std::istreambuf_iterator<char>(file)),
-                              std::istreambuf_iterator<char>());
             if (!TryInteropCall("importSettingsFromNative", json.c_str())) {
                 TryInvoke("onImportResult(false)");
                 return;
