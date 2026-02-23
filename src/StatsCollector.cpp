@@ -296,6 +296,36 @@ static std::string safeFloat(float v) {
     return buf;
 }
 
+// In-place append variants to avoid temporary std::string allocations.
+static void appendFloat(std::string& out, float v) {
+    if (std::isnan(v) || std::isinf(v)) { out += '0'; return; }
+    char buf[32];
+    std::snprintf(buf, sizeof(buf), "%.2f", v);
+    out += buf;
+}
+
+static void appendInt(std::string& out, std::int32_t v) {
+    char buf[16];
+    std::snprintf(buf, sizeof(buf), "%d", v);
+    out += buf;
+}
+
+static void appendUInt(std::string& out, std::uint32_t v) {
+    char buf[16];
+    std::snprintf(buf, sizeof(buf), "%u", v);
+    out += buf;
+}
+
+static void appendBool(std::string& out, bool v) {
+    out += v ? "true" : "false";
+}
+
+static void appendEscapedString(std::string& out, std::string_view s) {
+    out += '"';
+    out += JsonUtils::Escape(std::string(s));
+    out += '"';
+}
+
 float StatsCollector::GetArmorRating() {
     auto player = RE::PlayerCharacter::GetSingleton();
     if (!player) return 0.0f;
@@ -427,20 +457,22 @@ std::string StatsCollector::CollectStats(StatsPayloadMode mode) {
     const auto resistDisease = ResistanceEvaluator::Evaluate(player, RE::ActorValue::kResistDisease);
     const auto critChance = CriticalChanceEvaluator::Evaluate(player);
 
-    std::string json = "{";
+    std::string json;
+    json.reserve(4096);
+    json += '{';
 
     json += "\"resistances\":{";
-    json += "\"magic\":" + safeFloat(resistMagic.effective) + ",";
-    json += "\"fire\":" + safeFloat(resistFire.effective) + ",";
-    json += "\"frost\":" + safeFloat(resistFrost.effective) + ",";
-    json += "\"shock\":" + safeFloat(resistShock.effective) + ",";
-    json += "\"poison\":" + safeFloat(resistPoison.effective) + ",";
-    json += "\"disease\":" + safeFloat(resistDisease.effective);
+    json += "\"magic\":"; appendFloat(json, resistMagic.effective); json += ',';
+    json += "\"fire\":"; appendFloat(json, resistFire.effective); json += ',';
+    json += "\"frost\":"; appendFloat(json, resistFrost.effective); json += ',';
+    json += "\"shock\":"; appendFloat(json, resistShock.effective); json += ',';
+    json += "\"poison\":"; appendFloat(json, resistPoison.effective); json += ',';
+    json += "\"disease\":"; appendFloat(json, resistDisease.effective);
     json += "},";
 
     json += "\"defense\":{";
-    json += "\"armorRating\":" + safeFloat(armorRating) + ",";
-    json += "\"damageReduction\":" + safeFloat(effectiveDamageReduction);
+    json += "\"armorRating\":"; appendFloat(json, armorRating); json += ',';
+    json += "\"damageReduction\":"; appendFloat(json, effectiveDamageReduction);
     json += "},";
 
     float rightDmg = 0.0f;
@@ -464,9 +496,9 @@ std::string StatsCollector::CollectStats(StatsPayloadMode mode) {
     leftDmg = std::clamp(leftDmg, kDisplayedDamageMin, kDisplayedDamageMax);
 
     json += "\"offense\":{";
-    json += "\"rightHandDamage\":" + safeFloat(rightDmg) + ",";
-    json += "\"leftHandDamage\":" + safeFloat(leftDmg) + ",";
-    json += "\"critChance\":" + safeFloat(critChance.effective);
+    json += "\"rightHandDamage\":"; appendFloat(json, rightDmg); json += ',';
+    json += "\"leftHandDamage\":"; appendFloat(json, leftDmg); json += ',';
+    json += "\"critChance\":"; appendFloat(json, critChance.effective);
     json += "},";
 
     const bool anyResistanceClamped =
@@ -476,51 +508,51 @@ std::string StatsCollector::CollectStats(StatsPayloadMode mode) {
 
     json += "\"calcMeta\":{";
     json += "\"rawResistances\":{";
-    json += "\"magic\":" + safeFloat(resistMagic.raw) + ",";
-    json += "\"fire\":" + safeFloat(resistFire.raw) + ",";
-    json += "\"frost\":" + safeFloat(resistFrost.raw) + ",";
-    json += "\"shock\":" + safeFloat(resistShock.raw) + ",";
-    json += "\"poison\":" + safeFloat(resistPoison.raw) + ",";
-    json += "\"disease\":" + safeFloat(resistDisease.raw);
+    json += "\"magic\":"; appendFloat(json, resistMagic.raw); json += ',';
+    json += "\"fire\":"; appendFloat(json, resistFire.raw); json += ',';
+    json += "\"frost\":"; appendFloat(json, resistFrost.raw); json += ',';
+    json += "\"shock\":"; appendFloat(json, resistShock.raw); json += ',';
+    json += "\"poison\":"; appendFloat(json, resistPoison.raw); json += ',';
+    json += "\"disease\":"; appendFloat(json, resistDisease.raw);
     json += "},";
-    json += "\"rawCritChance\":" + safeFloat(critChance.raw) + ",";
-    json += "\"rawDamageReduction\":" + safeFloat(rawDamageReduction) + ",";
-    json += "\"armorCapForMaxReduction\":" + safeFloat(kArmorRatingForMaxReduction) + ",";
+    json += "\"rawCritChance\":"; appendFloat(json, critChance.raw); json += ',';
+    json += "\"rawDamageReduction\":"; appendFloat(json, rawDamageReduction); json += ',';
+    json += "\"armorCapForMaxReduction\":"; appendFloat(json, kArmorRatingForMaxReduction); json += ',';
     json += "\"caps\":{";
-    json += "\"elementalResist\":" + safeFloat(kElementalResistCap) + ",";
-    json += "\"elementalResistMin\":" + safeFloat(kElementalResistMin) + ",";
-    json += "\"diseaseResist\":" + safeFloat(kDiseaseResistCap) + ",";
-    json += "\"diseaseResistMin\":" + safeFloat(kDiseaseResistMin) + ",";
-    json += "\"critChance\":" + safeFloat(kCritChanceCap) + ",";
-    json += "\"damageReduction\":" + safeFloat(kDamageReductionCap);
+    json += "\"elementalResist\":"; appendFloat(json, kElementalResistCap); json += ',';
+    json += "\"elementalResistMin\":"; appendFloat(json, kElementalResistMin); json += ',';
+    json += "\"diseaseResist\":"; appendFloat(json, kDiseaseResistCap); json += ',';
+    json += "\"diseaseResistMin\":"; appendFloat(json, kDiseaseResistMin); json += ',';
+    json += "\"critChance\":"; appendFloat(json, kCritChanceCap); json += ',';
+    json += "\"damageReduction\":"; appendFloat(json, kDamageReductionCap);
     json += "},";
     json += "\"flags\":{";
-    json += "\"anyResistanceClamped\":" + std::string(anyResistanceClamped ? "true" : "false") + ",";
-    json += "\"critChanceClamped\":" + std::string(critChance.clamped ? "true" : "false") + ",";
-    json += "\"damageReductionClamped\":" + std::string(damageReductionClamped ? "true" : "false");
+    json += "\"anyResistanceClamped\":"; appendBool(json, anyResistanceClamped); json += ',';
+    json += "\"critChanceClamped\":"; appendBool(json, critChance.clamped); json += ',';
+    json += "\"damageReductionClamped\":"; appendBool(json, damageReductionClamped);
     json += "}";
     json += "},";
 
     const auto rightEquipped = getEquippedName(player, false);
     const auto leftEquipped = getEquippedName(player, true);
     json += "\"equipped\":{";
-    json += "\"rightHand\":\"" + JsonUtils::Escape(rightEquipped) + "\",";
-    json += "\"leftHand\":\"" + JsonUtils::Escape(leftEquipped) + "\"";
+    json += "\"rightHand\":"; appendEscapedString(json, rightEquipped); json += ',';
+    json += "\"leftHand\":"; appendEscapedString(json, leftEquipped);
     json += "},";
 
     json += "\"movement\":{";
-    json += "\"speedMult\":" + safeFloat(av->GetActorValue(RE::ActorValue::kSpeedMult));
+    json += "\"speedMult\":"; appendFloat(json, av->GetActorValue(RE::ActorValue::kSpeedMult));
     json += "},";
 
     const auto gameTime = collectGameTime();
     json += "\"time\":{";
-    json += "\"year\":" + std::to_string(gameTime.year) + ",";
-    json += "\"month\":" + std::to_string(gameTime.month) + ",";
-    json += "\"day\":" + std::to_string(gameTime.day) + ",";
-    json += "\"hour\":" + std::to_string(gameTime.hour) + ",";
-    json += "\"minute\":" + std::to_string(gameTime.minute) + ",";
-    json += "\"monthName\":\"" + JsonUtils::Escape(gameTime.monthName) + "\",";
-    json += "\"timeScale\":" + safeFloat(gameTime.timeScale);
+    json += "\"year\":"; appendUInt(json, gameTime.year); json += ',';
+    json += "\"month\":"; appendUInt(json, gameTime.month); json += ',';
+    json += "\"day\":"; appendUInt(json, gameTime.day); json += ',';
+    json += "\"hour\":"; appendUInt(json, gameTime.hour); json += ',';
+    json += "\"minute\":"; appendUInt(json, gameTime.minute); json += ',';
+    json += "\"monthName\":"; appendEscapedString(json, gameTime.monthName); json += ',';
+    json += "\"timeScale\":"; appendFloat(json, gameTime.timeScale);
     json += "},";
 
     // Current values: base + damage modifier (damage modifier is negative)
@@ -550,16 +582,16 @@ std::string StatsCollector::CollectStats(StatsPayloadMode mode) {
     }
 
     json += "\"playerInfo\":{";
-    json += "\"level\":" + std::to_string(static_cast<int>(player->GetLevel())) + ",";
-    json += "\"experience\":" + safeFloat(experience) + ",";
-    json += "\"expToNextLevel\":" + safeFloat(expToNextLevel) + ",";
-    json += "\"nextLevelTotalXp\":" + safeFloat(nextLevelTotalXp) + ",";
-    json += "\"gold\":" + std::to_string(static_cast<int>(GetGoldCount())) + ",";
-    json += "\"carryWeight\":" + safeFloat(av->GetActorValue(RE::ActorValue::kInventoryWeight)) + ",";
-    json += "\"maxCarryWeight\":" + safeFloat(av->GetActorValue(RE::ActorValue::kCarryWeight)) + ",";
-    json += "\"health\":" + safeFloat(curHP) + ",";
-    json += "\"magicka\":" + safeFloat(curMP) + ",";
-    json += "\"stamina\":" + safeFloat(curSP);
+    json += "\"level\":"; appendInt(json, static_cast<std::int32_t>(player->GetLevel())); json += ',';
+    json += "\"experience\":"; appendFloat(json, experience); json += ',';
+    json += "\"expToNextLevel\":"; appendFloat(json, expToNextLevel); json += ',';
+    json += "\"nextLevelTotalXp\":"; appendFloat(json, nextLevelTotalXp); json += ',';
+    json += "\"gold\":"; appendInt(json, GetGoldCount()); json += ',';
+    json += "\"carryWeight\":"; appendFloat(json, av->GetActorValue(RE::ActorValue::kInventoryWeight)); json += ',';
+    json += "\"maxCarryWeight\":"; appendFloat(json, av->GetActorValue(RE::ActorValue::kCarryWeight)); json += ',';
+    json += "\"health\":"; appendFloat(json, curHP); json += ',';
+    json += "\"magicka\":"; appendFloat(json, curMP); json += ',';
+    json += "\"stamina\":"; appendFloat(json, curSP);
     json += "},";
 
     // Alert data: current percentages for visual alerts
@@ -571,10 +603,10 @@ std::string StatsCollector::CollectStats(StatsPayloadMode mode) {
     float carryPct = carryMax > 0 ? (carryCur / carryMax) * 100.0f : 0.0f;
 
     json += "\"alertData\":{";
-    json += "\"healthPct\":" + safeFloat(hpPct) + ",";
-    json += "\"magickaPct\":" + safeFloat(mpPct) + ",";
-    json += "\"staminaPct\":" + safeFloat(spPct) + ",";
-    json += "\"carryPct\":" + safeFloat(carryPct);
+    json += "\"healthPct\":"; appendFloat(json, hpPct); json += ',';
+    json += "\"magickaPct\":"; appendFloat(json, mpPct); json += ',';
+    json += "\"staminaPct\":"; appendFloat(json, spPct); json += ',';
+    json += "\"carryPct\":"; appendFloat(json, carryPct);
     json += "},";
 
     if (mode == StatsPayloadMode::kFull) {
@@ -582,27 +614,27 @@ std::string StatsCollector::CollectStats(StatsPayloadMode mode) {
         json += "\"timedEffects\":[";
         for (std::size_t i = 0; i < timedEffects.size(); ++i) {
             const auto& effect = timedEffects[i];
-            json += "{";
-            json += "\"instanceId\":" + std::to_string(effect.instanceId) + ",";
-            json += "\"sourceName\":\"" + JsonUtils::Escape(effect.sourceName) + "\",";
-            json += "\"effectName\":\"" + JsonUtils::Escape(effect.effectName) + "\",";
-            json += "\"remainingSec\":" + std::to_string(effect.remainingSec) + ",";
-            json += "\"totalSec\":" + std::to_string(effect.totalSec) + ",";
-            json += "\"isDebuff\":" + std::string(effect.isDebuff ? "true" : "false") + ",";
-            json += "\"sourceFormId\":" + std::to_string(effect.sourceFormId) + ",";
-            json += "\"effectFormId\":" + std::to_string(effect.effectFormId) + ",";
-            json += "\"spellFormId\":" + std::to_string(effect.spellFormId);
-            json += "}";
+            json += '{';
+            json += "\"instanceId\":"; appendInt(json, effect.instanceId); json += ',';
+            json += "\"sourceName\":"; appendEscapedString(json, effect.sourceName); json += ',';
+            json += "\"effectName\":"; appendEscapedString(json, effect.effectName); json += ',';
+            json += "\"remainingSec\":"; appendInt(json, effect.remainingSec); json += ',';
+            json += "\"totalSec\":"; appendInt(json, effect.totalSec); json += ',';
+            json += "\"isDebuff\":"; appendBool(json, effect.isDebuff); json += ',';
+            json += "\"sourceFormId\":"; appendUInt(json, effect.sourceFormId); json += ',';
+            json += "\"effectFormId\":"; appendUInt(json, effect.effectFormId); json += ',';
+            json += "\"spellFormId\":"; appendUInt(json, effect.spellFormId);
+            json += '}';
             if (i + 1 < timedEffects.size()) {
-                json += ",";
+                json += ',';
             }
         }
         json += "],";
     }
 
-    json += "\"isInCombat\":" + std::string(inCombat ? "true" : "false");
+    json += "\"isInCombat\":"; appendBool(json, inCombat);
 
-    json += "}";
+    json += '}';
     return json;
 }
 
