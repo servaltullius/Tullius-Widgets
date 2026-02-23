@@ -1,0 +1,38 @@
+name: Frontend Lint & Test
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: view/package-lock.json
+
+      - name: Install dependencies
+        run: cd view && npm ci
+
+      - name: Lint
+        run: cd view && npm run lint
+
+      - name: Type check
+        run: cd view && npx tsc -b --noEmit
+
+      - name: Test
+        run: cd view && npm run test
