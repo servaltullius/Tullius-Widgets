@@ -223,15 +223,37 @@ bool ExportPreset(const std::filesystem::path& gameRootPath, std::string_view js
     if (!EnsureSettingsDirectory(gameRootPath)) return false;
 
     const auto presetPath = GetPresetPath(gameRootPath);
-    std::ofstream file(presetPath, std::ios::binary | std::ios::trunc);
-    if (!file.is_open()) {
-        logger::error("Failed to open preset file for write: {}", presetPath.string());
-        return false;
+    auto tempPath = presetPath;
+    tempPath += ".tmp";
+
+    {
+        std::ofstream file(tempPath, std::ios::binary | std::ios::trunc);
+        if (!file.is_open()) {
+            logger::error("Failed to open temp preset file for write: {}", tempPath.string());
+            return false;
+        }
+
+        file.write(jsonData.data(), static_cast<std::streamsize>(jsonData.size()));
+        file.flush();
+        if (!file.good()) {
+            logger::error("Preset export write failed: {}", tempPath.string());
+            return false;
+        }
     }
 
-    file.write(jsonData.data(), static_cast<std::streamsize>(jsonData.size()));
-    if (!file.good()) {
-        logger::error("Preset export write failed: {}", presetPath.string());
+    std::error_code ec;
+    std::filesystem::rename(tempPath, presetPath, ec);
+    if (ec) {
+        std::error_code removeEc;
+        std::filesystem::remove(presetPath, removeEc);
+        ec.clear();
+        std::filesystem::rename(tempPath, presetPath, ec);
+    }
+
+    if (ec) {
+        logger::error("Failed to replace preset file '{}': {}", presetPath.string(), ec.message());
+        std::error_code cleanupEc;
+        std::filesystem::remove(tempPath, cleanupEc);
         return false;
     }
 

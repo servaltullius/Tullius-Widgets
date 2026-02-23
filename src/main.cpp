@@ -14,76 +14,87 @@
 #include <thread>
 
 PRISMA_UI_API::IVPrismaUI1* PrismaUI = nullptr;
-static PrismaView view = 0;
-static std::atomic<bool> gameLoaded{false};
-static TulliusWidgets::RuntimeDiagnostics::State g_runtimeDiagnostics{};
-static std::atomic<bool> g_viewDomReady{false};
 
-// Throttle: shorter interval during combat for responsive HP/MP/SP
-static std::chrono::steady_clock::time_point lastFastUpdateTime{};
-static std::chrono::steady_clock::time_point lastFullUpdateTime{};
-static std::mutex statsUpdateMutex;
-static constexpr auto UPDATE_INTERVAL_FAST_COMBAT = std::chrono::milliseconds(100);
-static constexpr auto UPDATE_INTERVAL_FAST_IDLE   = std::chrono::milliseconds(500);
-static constexpr auto UPDATE_INTERVAL_FULL_COMBAT = std::chrono::milliseconds(500);
-static constexpr auto UPDATE_INTERVAL_FULL_IDLE   = std::chrono::milliseconds(1500);
-static constexpr auto HEARTBEAT_INTERVAL          = std::chrono::seconds(3);
-static constexpr auto HEARTBEAT_POLL_INTERVAL     = std::chrono::milliseconds(100);
-static constexpr auto PAUSED_RETRY_DELAY          = std::chrono::milliseconds(250);
-static std::jthread g_heartbeatThread;
-static std::atomic<bool> g_heartbeatStarted{false};
-static std::atomic<std::int64_t> g_scheduledStatsDueMs{0};
+namespace {
+
+// Compile-time throttle intervals
+constexpr auto kFastIntervalCombat = std::chrono::milliseconds(100);
+constexpr auto kFastIntervalIdle   = std::chrono::milliseconds(500);
+constexpr auto kFullIntervalCombat = std::chrono::milliseconds(500);
+constexpr auto kFullIntervalIdle   = std::chrono::milliseconds(1500);
+constexpr auto kHeartbeatInterval  = std::chrono::seconds(3);
+constexpr auto kHeartbeatPoll      = std::chrono::milliseconds(100);
+constexpr auto kPausedRetryDelay   = std::chrono::milliseconds(250);
+
+struct PluginState {
+    PrismaView view{0};
+    std::atomic<bool> gameLoaded{false};
+    std::atomic<bool> viewDomReady{false};
+    std::atomic<bool> heartbeatStarted{false};
+    std::atomic<std::int64_t> scheduledStatsDueMs{0};
+    TulliusWidgets::RuntimeDiagnostics::State runtimeDiagnostics{};
+
+    std::chrono::steady_clock::time_point lastFastUpdateTime{};
+    std::chrono::steady_clock::time_point lastFullUpdateTime{};
+    std::mutex statsUpdateMutex;
+
+    std::jthread heartbeatThread;
+};
+
+PluginState g;
+
+}  // namespace
 
 // --- Path helpers ---
 
 static std::filesystem::path ResolveStorageBasePath() {
-    if (!g_runtimeDiagnostics.gameRootPath.empty()) {
-        return g_runtimeDiagnostics.gameRootPath;
+    if (!g.runtimeDiagnostics.gameRootPath.empty()) {
+        return g.runtimeDiagnostics.gameRootPath;
     }
     return TulliusWidgets::RuntimeDiagnostics::ResolveGameRootPath();
 }
 
 static void InitializeRuntimeDiagnostics(const SKSE::LoadInterface* loadInterface) {
-    g_runtimeDiagnostics = TulliusWidgets::RuntimeDiagnostics::Collect(loadInterface);
+    g.runtimeDiagnostics = TulliusWidgets::RuntimeDiagnostics::Collect(loadInterface);
 
     logger::info(
         "Runtime diagnostics: runtime={}, skse={}, gameRoot={}, addressLibraryPath={}, addressLibraryPresent={}",
-        std::to_string(g_runtimeDiagnostics.runtimeVersion),
-        std::to_string(g_runtimeDiagnostics.skseVersion),
-        g_runtimeDiagnostics.gameRootPath.generic_string(),
-        g_runtimeDiagnostics.addressLibraryPath,
-        g_runtimeDiagnostics.addressLibraryPresent);
+        std::to_string(g.runtimeDiagnostics.runtimeVersion),
+        std::to_string(g.runtimeDiagnostics.skseVersion),
+        g.runtimeDiagnostics.gameRootPath.generic_string(),
+        g.runtimeDiagnostics.addressLibraryPath,
+        g.runtimeDiagnostics.addressLibraryPresent);
 }
 
 static bool IsViewReady() {
-    return PrismaUI && view != 0 && PrismaUI->IsValid(view);
+    return PrismaUI && g.view != 0 && PrismaUI->IsValid(g.view);
 }
 
 static bool IsInteropReady() {
-    return IsViewReady() && g_viewDomReady.load();
+    return IsViewReady() && g.viewDomReady.load();
 }
 
 static bool TryInteropCall(const char* functionName, const char* argument) {
     if (!IsInteropReady()) return false;
-    PrismaUI->InteropCall(view, functionName, argument ? argument : "");
+    PrismaUI->InteropCall(g.view, functionName, argument ? argument : "");
     return true;
 }
 
 static bool TryInvoke(const char* script) {
     if (!IsInteropReady()) return false;
-    PrismaUI->Invoke(view, script);
+    PrismaUI->Invoke(g.view, script);
     return true;
 }
 
 static bool TryShowView() {
     if (!IsViewReady()) return false;
-    PrismaUI->Show(view);
+    PrismaUI->Show(g.view);
     return true;
 }
 
 static bool TryHideView() {
     if (!IsViewReady()) return false;
-    PrismaUI->Hide(view);
+    PrismaUI->Hide(g.view);
     return true;
 }
 
@@ -93,27 +104,28 @@ static void HideViewIfReady() {
 
 static bool ViewHasFocus() {
     if (!IsViewReady()) return false;
-    return PrismaUI->HasFocus(view);
+    return PrismaUI->HasFocus(g.view);
 }
 
 static bool TryFocusView() {
     if (!IsViewReady()) return false;
-    return PrismaUI->Focus(view);
+    return PrismaUI->Focus(g.view);
 }
 
 static void TryUnfocusView() {
     if (!IsViewReady()) return;
-    PrismaUI->Unfocus(view);
+    PrismaUI->Unfocus(g.view);
 }
 
 static void SendHUDColorToView() {
     if (!IsInteropReady()) return;
-    uint32_t color = 0xFFFFFF;  // default white
+    static constexpr std::uint32_t kDefaultHUDColor = 0xFFFFFF;
+    std::uint32_t color = kDefaultHUDColor;
     auto ini = RE::INISettingCollection::GetSingleton();
     if (ini) {
         auto setting = ini->GetSetting("iHUDColorDefault:Interface");
         if (setting) {
-            color = static_cast<uint32_t>(setting->GetSInt()) & 0xFFFFFF;
+            color = static_cast<std::uint32_t>(setting->GetSInt()) & 0xFFFFFF;
         }
     }
     char hex[16];
@@ -132,7 +144,7 @@ static void SendSettingsToView() {
 
 static void SendRuntimeDiagnosticsToView() {
     if (!IsInteropReady()) return;
-    const auto json = TulliusWidgets::RuntimeDiagnostics::BuildJson(g_runtimeDiagnostics);
+    const auto json = TulliusWidgets::RuntimeDiagnostics::BuildJson(g.runtimeDiagnostics);
     if (!TryInteropCall("updateRuntimeStatus", json.c_str())) return;
 }
 
@@ -149,9 +161,9 @@ static std::int64_t SteadyNowMs() {
 }
 
 static bool TryConsumeScheduledStatsUpdate(std::int64_t nowMs) {
-    auto dueMs = g_scheduledStatsDueMs.load(std::memory_order_acquire);
+    auto dueMs = g.scheduledStatsDueMs.load(std::memory_order_acquire);
     while (dueMs > 0 && nowMs >= dueMs) {
-        if (g_scheduledStatsDueMs.compare_exchange_weak(
+        if (g.scheduledStatsDueMs.compare_exchange_weak(
                 dueMs,
                 0,
                 std::memory_order_acq_rel,
@@ -166,35 +178,35 @@ static StatsDispatchMode SelectStatsDispatchMode(bool force) {
     const auto now = std::chrono::steady_clock::now();
 
     if (force) {
-        std::scoped_lock lock(statsUpdateMutex);
-        lastFastUpdateTime = now;
-        lastFullUpdateTime = now;
+        std::scoped_lock lock(g.statsUpdateMutex);
+        g.lastFastUpdateTime = now;
+        g.lastFullUpdateTime = now;
         return StatsDispatchMode::kFull;
     }
 
     const auto* player = RE::PlayerCharacter::GetSingleton();
     const bool inCombat = player && player->IsInCombat();
-    const auto fastInterval = inCombat ? UPDATE_INTERVAL_FAST_COMBAT : UPDATE_INTERVAL_FAST_IDLE;
-    const auto fullInterval = inCombat ? UPDATE_INTERVAL_FULL_COMBAT : UPDATE_INTERVAL_FULL_IDLE;
+    const auto fastInterval = inCombat ? kFastIntervalCombat : kFastIntervalIdle;
+    const auto fullInterval = inCombat ? kFullIntervalCombat : kFullIntervalIdle;
 
-    std::scoped_lock lock(statsUpdateMutex);
-    const bool fullDue = now - lastFullUpdateTime >= fullInterval;
-    const bool fastDue = now - lastFastUpdateTime >= fastInterval;
+    std::scoped_lock lock(g.statsUpdateMutex);
+    const bool fullDue = now - g.lastFullUpdateTime >= fullInterval;
+    const bool fastDue = now - g.lastFastUpdateTime >= fastInterval;
 
     if (!fullDue && !fastDue) return StatsDispatchMode::kSkip;
 
     if (fullDue) {
-        lastFastUpdateTime = now;
-        lastFullUpdateTime = now;
+        g.lastFastUpdateTime = now;
+        g.lastFullUpdateTime = now;
         return StatsDispatchMode::kFull;
     }
 
-    lastFastUpdateTime = now;
+    g.lastFastUpdateTime = now;
     return StatsDispatchMode::kFast;
 }
 
 static void SendStatsToView(bool force = false) {
-    if (!IsInteropReady() || !gameLoaded.load()) return;
+    if (!IsInteropReady() || !g.gameLoaded.load()) return;
 
     if (!force && TryConsumeScheduledStatsUpdate(SteadyNowMs())) {
         force = true;
@@ -212,17 +224,17 @@ static void SendStatsToView(bool force = false) {
 
 static void ScheduleStatsUpdateAfter(std::chrono::milliseconds delay) {
     const auto targetMs = SteadyNowMs() + delay.count();
-    g_scheduledStatsDueMs.store(targetMs, std::memory_order_release);
+    g.scheduledStatsDueMs.store(targetMs, std::memory_order_release);
 }
 
 static bool IsGameLoaded() {
-    return gameLoaded.load();
+    return g.gameLoaded.load();
 }
 
 static void SetGameLoaded(bool loaded) {
-    gameLoaded.store(loaded);
+    g.gameLoaded.store(loaded);
     if (!loaded) {
-        g_scheduledStatsDueMs.store(0, std::memory_order_release);
+        g.scheduledStatsDueMs.store(0, std::memory_order_release);
     }
 }
 
@@ -235,11 +247,11 @@ static void SendStatsToViewForced() {
 }
 
 static void SetView(PrismaView newView) {
-    view = newView;
+    g.view = newView;
 }
 
 static void SetViewDomReady(bool ready) {
-    g_viewDomReady.store(ready);
+    g.viewDomReady.store(ready);
 }
 
 static void RegisterWidgetJsListeners() {
@@ -248,7 +260,7 @@ static void RegisterWidgetJsListeners() {
     jsListenerCallbacks.invokeScript = &TryInvoke;
     jsListenerCallbacks.interopCall = &TryInteropCall;
     jsListenerCallbacks.unfocusView = &TryUnfocusView;
-    TulliusWidgets::WidgetJsListeners::Register(PrismaUI, view, jsListenerCallbacks);
+    TulliusWidgets::WidgetJsListeners::Register(PrismaUI, g.view, jsListenerCallbacks);
 }
 
 static void RegisterWidgetEventSinks() {
@@ -276,16 +288,16 @@ static void RegisterWidgetHotkeys() {
 }
 
 static void StartHeartbeat() {
-    if (g_heartbeatStarted.exchange(true)) return;
+    if (g.heartbeatStarted.exchange(true)) return;
 
-    g_heartbeatThread = std::jthread([](std::stop_token stopToken) {
-        auto nextHeartbeatDue = std::chrono::steady_clock::now() + HEARTBEAT_INTERVAL;
+    g.heartbeatThread = std::jthread([](std::stop_token stopToken) {
+        auto nextHeartbeatDue = std::chrono::steady_clock::now() + kHeartbeatInterval;
         while (!stopToken.stop_requested()) {
-            std::this_thread::sleep_for(HEARTBEAT_POLL_INTERVAL);
+            std::this_thread::sleep_for(kHeartbeatPoll);
             if (stopToken.stop_requested()) break;
 
-            if (!gameLoaded.load()) {
-                nextHeartbeatDue = std::chrono::steady_clock::now() + HEARTBEAT_INTERVAL;
+            if (!g.gameLoaded.load()) {
+                nextHeartbeatDue = std::chrono::steady_clock::now() + kHeartbeatInterval;
                 continue;
             }
 
@@ -299,12 +311,12 @@ static void StartHeartbeat() {
             if (!heartbeatDue && !scheduledDue) continue;
 
             taskInterface->AddTask([heartbeatDue, scheduledDue]() {
-                if (!gameLoaded.load()) return;
+                if (!g.gameLoaded.load()) return;
 
                 auto* ui = RE::UI::GetSingleton();
                 if (ui && ui->GameIsPaused()) {
                     if (scheduledDue) {
-                        ScheduleStatsUpdateAfter(PAUSED_RETRY_DELAY);
+                        ScheduleStatsUpdateAfter(kPausedRetryDelay);
                     }
                     return;
                 }
@@ -315,7 +327,7 @@ static void StartHeartbeat() {
             });
 
             if (heartbeatDue) {
-                nextHeartbeatDue = now + HEARTBEAT_INTERVAL;
+                nextHeartbeatDue = now + kHeartbeatInterval;
             }
         }
     });
@@ -361,11 +373,11 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message) {
 extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse) {
     REL::Module::reset();
 
-    auto g_messaging = reinterpret_cast<SKSE::MessagingInterface*>(
+    auto messaging = reinterpret_cast<SKSE::MessagingInterface*>(
         a_skse->QueryInterface(SKSE::LoadInterface::kMessaging)
     );
 
-    if (!g_messaging) {
+    if (!messaging) {
         logger::critical("Failed to load messaging interface! Plugin will not load.");
         return false;
     }
@@ -374,19 +386,19 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
     SKSE::AllocTrampoline(1 << 10);
     InitializeRuntimeDiagnostics(a_skse);
 
-    if (!g_runtimeDiagnostics.runtimeSupported) {
+    if (!g.runtimeDiagnostics.runtimeSupported) {
         logger::warn(
             "Unsupported runtime detected ({}). The widget may not be stable on this game version.",
-            std::to_string(g_runtimeDiagnostics.runtimeVersion));
+            std::to_string(g.runtimeDiagnostics.runtimeVersion));
     }
-    if (!g_runtimeDiagnostics.addressLibraryPresent) {
+    if (!g.runtimeDiagnostics.addressLibraryPresent) {
         logger::warn(
             "Address Library file not found for runtime {} (expected: {}).",
-            std::to_string(g_runtimeDiagnostics.runtimeVersion),
-            g_runtimeDiagnostics.addressLibraryPath);
+            std::to_string(g.runtimeDiagnostics.runtimeVersion),
+            g.runtimeDiagnostics.addressLibraryPath);
     }
 
-    g_messaging->RegisterListener("SKSE", SKSEMessageHandler);
+    messaging->RegisterListener("SKSE", SKSEMessageHandler);
 
     logger::info("TulliusWidgets loaded");
     return true;

@@ -131,7 +131,15 @@ export function App() {
     settings.time.gameDateTime,
     settings.time.realDateTime,
     settings.timedEffects.enabled,
-    stats,
+    stats.isInCombat,
+    stats.resistances,
+    stats.defense,
+    stats.offense,
+    stats.equipped,
+    stats.movement,
+    stats.playerInfo,
+    stats.time,
+    stats.timedEffects,
   ]);
 
   useEffect(() => {
