@@ -1,0 +1,127 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    runs-on: ${{ vars.WINDOWS_RUNNER_LABEL != '' && vars.WINDOWS_RUNNER_LABEL || 'windows-latest' }}
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: view/package-lock.json
+
+      - name: Build frontend
+        shell: bash
+        run: |
+          cd view
+          npm ci
+          npm run build
+
+      - name: Setup xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: 2.9.7
+
+      - name: Restore xmake compiler cache
+        uses: actions/cache@v4
+        with:
+          path: .xmake-cache/ccache
+          key: ${{ runner.os }}-xmake-ccache-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-xmake-ccache-${{ github.ref_name }}-
+            ${{ runner.os }}-xmake-ccache-
+
+      - name: Build plugin
+        shell: pwsh
+        run: |
+          $ccacheDir = Join-Path $env:GITHUB_WORKSPACE ".xmake-cache\ccache"
+          New-Item -ItemType Directory -Path $ccacheDir -Force | Out-Null
+          xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false --ccache=y --ccachedir="$ccacheDir"
+          xmake build -y -v
+
+      - name: Resolve version and validate release note
+        shell: pwsh
+        run: |
+          $versionMatch = Select-String -Path "xmake.lua" -Pattern 'set_version\("([^"]+)"\)' | Select-Object -First 1
+          if (-not $versionMatch) {
+            throw "Unable to parse version from xmake.lua"
+          }
+          $version = $versionMatch.Matches[0].Groups[1].Value
+          $zipName = "TulliusWidgets-v$version.zip"
+          "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "ZIP_NAME=$zipName" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+          $tag = $env:GITHUB_REF_NAME
+          if ($tag -ne "v$version") {
+            throw "Tag '$tag' does not match xmake.lua version 'v$version'"
+          }
+
+          $notePath = "docs/release-notes/$version.ko.md"
+          if (!(Test-Path $notePath)) {
+            throw "Release note missing for version ${version}: $notePath"
+          }
+
+          $content = Get-Content $notePath -Raw
+          foreach ($required in @("## 변경 요약", "## 사용자 영향/호환성", "## 설치/업데이트 안내")) {
+            if ($content -notmatch [regex]::Escape($required)) {
+              throw "Required section missing in $notePath : $required"
+            }
+          }
+
+          $isPrerelease = $version -match '-(rc|alpha|beta)\.'
+          "IS_PRERELEASE=$($isPrerelease.ToString().ToLower())" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "RELEASE_NOTES_PATH=$notePath" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Package zip
+        shell: pwsh
+        run: |
+          if (!(Test-Path "dist/PrismaUI/views/TulliusWidgets/index.html")) {
+            throw "Frontend build output missing"
+          }
+          if (!(Test-Path "build/windows/x64/release/TulliusWidgets.dll")) {
+            throw "Plugin DLL missing"
+          }
+
+          New-Item -ItemType Directory -Path "dist/SKSE/Plugins" -Force | Out-Null
+          Copy-Item "build/windows/x64/release/TulliusWidgets.dll" "dist/SKSE/Plugins/TulliusWidgets.dll" -Force
+          if (Test-Path $env:ZIP_NAME) { Remove-Item $env:ZIP_NAME -Force }
+          Compress-Archive -Path "dist/*" -DestinationPath $env:ZIP_NAME
+
+      - name: Create GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ARGS=(
+            release create "${{ github.ref_name }}"
+            "${{ env.ZIP_NAME }}"
+            --repo "${{ github.repository }}"
+            --title "Tullius Widgets ${{ github.ref_name }}"
+            --notes-file "${{ env.RELEASE_NOTES_PATH }}"
+          )
+          if [[ "${{ env.IS_PRERELEASE }}" == "true" ]]; then
+            ARGS+=(--prerelease)
+          else
+            ARGS+=(--latest)
+          fi
+          gh "${ARGS[@]}"
