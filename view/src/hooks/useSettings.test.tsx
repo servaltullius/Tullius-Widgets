@@ -41,6 +41,7 @@ describe('useSettings', () => {
     delete window.toggleWidgetsVisibility;
     delete window.closeSettings;
     delete window.setHUDColor;
+    delete window.TulliusWidgetsBridge;
   });
 
   it('accepts xsmall size from updateSettings payload', async () => {
@@ -60,5 +61,22 @@ describe('useSettings', () => {
     expect(latest).not.toBeNull();
     expect(latest!.general.size).toBe('xsmall');
   });
-});
 
+  it('accepts updateSettings from namespaced bridge handler', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onSettings={settings => { latest = settings; }} />);
+    });
+
+    expect(typeof window.TulliusWidgetsBridge?.v1?.updateSettings).toBe('function');
+
+    await act(async () => {
+      window.TulliusWidgetsBridge?.v1?.updateSettings?.(JSON.stringify({
+        general: { opacity: 55 },
+      }));
+    });
+
+    expect(latest).not.toBeNull();
+    expect(latest!.general.opacity).toBe(55);
+  });
+});

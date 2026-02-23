@@ -107,6 +107,7 @@
 - `resistances`, `offense.critChance`, `defense.damageReduction`는 **실효 표시값**입니다.
 - 원본 계산값은 `calcMeta.rawResistances`, `calcMeta.rawCritChance`, `calcMeta.rawDamageReduction`에 전달됩니다.
 - UI는 `calcMeta.caps` 기준으로 캡/보조 텍스트를 표시합니다.
+- 고빈도 fast 동기화 payload에서는 `timedEffects`가 생략될 수 있으며, UI는 이전 목록을 유지해야 합니다.
 - 장착 표시 계약:
   - `equipped.rightHand`, `equipped.leftHand`는 가능한 경우 인벤토리 표시명(`InventoryEntryData::GetDisplayName`)을 우선 사용합니다.
   - 왼손은 주문/무기 외에 방패 슬롯 보강 판별을 포함합니다.
@@ -143,4 +144,5 @@
 ## 3) 하위 호환성
 
 - 기존 키(`updateStats`, `updateSettings`)는 유지됩니다.
+- 신규 브릿지 네임스페이스(`window.TulliusWidgetsBridge.v1.*`)를 함께 제공합니다.
 - 신규 필드(`calcMeta`, `updateRuntimeStatus`)는 선택적 확장으로, 구버전 UI에서도 치명 오류 없이 무시 가능합니다.

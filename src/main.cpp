@@ -10,7 +10,6 @@
 #include <cstdint>
 #include <chrono>
 #include <filesystem>
-#include <memory>
 #include <mutex>
 #include <thread>
 
@@ -21,14 +20,19 @@ static TulliusWidgets::RuntimeDiagnostics::State g_runtimeDiagnostics{};
 static std::atomic<bool> g_viewDomReady{false};
 
 // Throttle: shorter interval during combat for responsive HP/MP/SP
-static std::chrono::steady_clock::time_point lastUpdateTime{};
-static std::mutex lastUpdateMutex;
-static constexpr auto UPDATE_INTERVAL_COMBAT = std::chrono::milliseconds(100);
-static constexpr auto UPDATE_INTERVAL_IDLE   = std::chrono::milliseconds(500);
-static constexpr auto HEARTBEAT_INTERVAL     = std::chrono::seconds(3);
+static std::chrono::steady_clock::time_point lastFastUpdateTime{};
+static std::chrono::steady_clock::time_point lastFullUpdateTime{};
+static std::mutex statsUpdateMutex;
+static constexpr auto UPDATE_INTERVAL_FAST_COMBAT = std::chrono::milliseconds(100);
+static constexpr auto UPDATE_INTERVAL_FAST_IDLE   = std::chrono::milliseconds(500);
+static constexpr auto UPDATE_INTERVAL_FULL_COMBAT = std::chrono::milliseconds(500);
+static constexpr auto UPDATE_INTERVAL_FULL_IDLE   = std::chrono::milliseconds(1500);
+static constexpr auto HEARTBEAT_INTERVAL          = std::chrono::seconds(3);
+static constexpr auto HEARTBEAT_POLL_INTERVAL     = std::chrono::milliseconds(100);
+static constexpr auto PAUSED_RETRY_DELAY          = std::chrono::milliseconds(250);
 static std::jthread g_heartbeatThread;
 static std::atomic<bool> g_heartbeatStarted{false};
-static std::atomic<std::uint32_t> g_scheduledStatsSeq{0};
+static std::atomic<std::int64_t> g_scheduledStatsDueMs{0};
 
 // --- Path helpers ---
 
@@ -132,53 +136,83 @@ static void SendRuntimeDiagnosticsToView() {
     if (!TryInteropCall("updateRuntimeStatus", json.c_str())) return;
 }
 
+enum class StatsDispatchMode {
+    kSkip,
+    kFast,
+    kFull
+};
+
+static std::int64_t SteadyNowMs() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+               std::chrono::steady_clock::now().time_since_epoch())
+        .count();
+}
+
+static bool TryConsumeScheduledStatsUpdate(std::int64_t nowMs) {
+    auto dueMs = g_scheduledStatsDueMs.load(std::memory_order_acquire);
+    while (dueMs > 0 && nowMs >= dueMs) {
+        if (g_scheduledStatsDueMs.compare_exchange_weak(
+                dueMs,
+                0,
+                std::memory_order_acq_rel,
+                std::memory_order_acquire)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static StatsDispatchMode SelectStatsDispatchMode(bool force) {
+    const auto now = std::chrono::steady_clock::now();
+
+    if (force) {
+        std::scoped_lock lock(statsUpdateMutex);
+        lastFastUpdateTime = now;
+        lastFullUpdateTime = now;
+        return StatsDispatchMode::kFull;
+    }
+
+    const auto* player = RE::PlayerCharacter::GetSingleton();
+    const bool inCombat = player && player->IsInCombat();
+    const auto fastInterval = inCombat ? UPDATE_INTERVAL_FAST_COMBAT : UPDATE_INTERVAL_FAST_IDLE;
+    const auto fullInterval = inCombat ? UPDATE_INTERVAL_FULL_COMBAT : UPDATE_INTERVAL_FULL_IDLE;
+
+    std::scoped_lock lock(statsUpdateMutex);
+    const bool fullDue = now - lastFullUpdateTime >= fullInterval;
+    const bool fastDue = now - lastFastUpdateTime >= fastInterval;
+
+    if (!fullDue && !fastDue) return StatsDispatchMode::kSkip;
+
+    if (fullDue) {
+        lastFastUpdateTime = now;
+        lastFullUpdateTime = now;
+        return StatsDispatchMode::kFull;
+    }
+
+    lastFastUpdateTime = now;
+    return StatsDispatchMode::kFast;
+}
+
 static void SendStatsToView(bool force = false) {
     if (!IsInteropReady() || !gameLoaded.load()) return;
 
-    if (!force) {
-        auto now = std::chrono::steady_clock::now();
-        auto player = RE::PlayerCharacter::GetSingleton();
-        auto interval = (player && player->IsInCombat()) ? UPDATE_INTERVAL_COMBAT : UPDATE_INTERVAL_IDLE;
-        {
-            std::scoped_lock lock(lastUpdateMutex);
-            if (now - lastUpdateTime < interval) return;
-            lastUpdateTime = now;
-        }
+    if (!force && TryConsumeScheduledStatsUpdate(SteadyNowMs())) {
+        force = true;
     }
 
-    std::string stats = TulliusWidgets::StatsCollector::CollectStats();
+    const auto dispatchMode = SelectStatsDispatchMode(force);
+    if (dispatchMode == StatsDispatchMode::kSkip) return;
+
+    const auto payloadMode = (dispatchMode == StatsDispatchMode::kFull)
+        ? TulliusWidgets::StatsPayloadMode::kFull
+        : TulliusWidgets::StatsPayloadMode::kFast;
+    std::string stats = TulliusWidgets::StatsCollector::CollectStats(payloadMode);
     TryInteropCall("updateStats", stats.c_str());
 }
 
 static void ScheduleStatsUpdateAfter(std::chrono::milliseconds delay) {
-    auto* taskInterface = SKSE::GetTaskInterface();
-    if (!taskInterface) return;
-
-    const auto target = std::chrono::steady_clock::now() + delay;
-    const std::uint32_t seq = g_scheduledStatsSeq.fetch_add(1) + 1;
-    struct ScheduledStatsUpdate : std::enable_shared_from_this<ScheduledStatsUpdate> {
-        std::chrono::steady_clock::time_point target{};
-        std::uint32_t seq{};
-
-        void Run() {
-            if (g_scheduledStatsSeq.load() != seq) return;
-
-            if (std::chrono::steady_clock::now() >= target) {
-                SendStatsToView(true);
-                return;
-            }
-
-            if (auto* ti = SKSE::GetTaskInterface()) {
-                const auto self = shared_from_this();
-                ti->AddTask([self]() { self->Run(); });
-            }
-        }
-    };
-
-    const auto task = std::make_shared<ScheduledStatsUpdate>();
-    task->target = target;
-    task->seq = seq;
-    taskInterface->AddTask([task]() { task->Run(); });
+    const auto targetMs = SteadyNowMs() + delay.count();
+    g_scheduledStatsDueMs.store(targetMs, std::memory_order_release);
 }
 
 static bool IsGameLoaded() {
@@ -187,6 +221,9 @@ static bool IsGameLoaded() {
 
 static void SetGameLoaded(bool loaded) {
     gameLoaded.store(loaded);
+    if (!loaded) {
+        g_scheduledStatsDueMs.store(0, std::memory_order_release);
+    }
 }
 
 static void SendStatsToViewThrottled() {
@@ -242,23 +279,44 @@ static void StartHeartbeat() {
     if (g_heartbeatStarted.exchange(true)) return;
 
     g_heartbeatThread = std::jthread([](std::stop_token stopToken) {
+        auto nextHeartbeatDue = std::chrono::steady_clock::now() + HEARTBEAT_INTERVAL;
         while (!stopToken.stop_requested()) {
-            std::this_thread::sleep_for(HEARTBEAT_INTERVAL);
+            std::this_thread::sleep_for(HEARTBEAT_POLL_INTERVAL);
             if (stopToken.stop_requested()) break;
 
-            if (!gameLoaded.load()) continue;
+            if (!gameLoaded.load()) {
+                nextHeartbeatDue = std::chrono::steady_clock::now() + HEARTBEAT_INTERVAL;
+                continue;
+            }
 
             auto* taskInterface = SKSE::GetTaskInterface();
             if (!taskInterface) continue;
 
-            taskInterface->AddTask([]() {
+            const auto now = std::chrono::steady_clock::now();
+            const auto nowMs = SteadyNowMs();
+            const bool heartbeatDue = now >= nextHeartbeatDue;
+            const bool scheduledDue = TryConsumeScheduledStatsUpdate(nowMs);
+            if (!heartbeatDue && !scheduledDue) continue;
+
+            taskInterface->AddTask([heartbeatDue, scheduledDue]() {
                 if (!gameLoaded.load()) return;
 
                 auto* ui = RE::UI::GetSingleton();
-                if (ui && ui->GameIsPaused()) return;
+                if (ui && ui->GameIsPaused()) {
+                    if (scheduledDue) {
+                        ScheduleStatsUpdateAfter(PAUSED_RETRY_DELAY);
+                    }
+                    return;
+                }
 
-                SendStatsToView(true);
+                if (heartbeatDue || scheduledDue) {
+                    SendStatsToView(true);
+                }
             });
+
+            if (heartbeatDue) {
+                nextHeartbeatDue = now + HEARTBEAT_INTERVAL;
+            }
         }
     });
 }

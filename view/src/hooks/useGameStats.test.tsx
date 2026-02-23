@@ -36,6 +36,7 @@ describe('useGameStats', () => {
     vi.restoreAllMocks();
     // Safety: tests shouldn't leak bridge functions.
     delete window.updateStats;
+    delete window.TulliusWidgetsBridge;
   });
 
   it('preserves fractional XP values from updateStats payload', async () => {
@@ -60,6 +61,66 @@ describe('useGameStats', () => {
     expect(latest!.playerInfo.experience).toBeCloseTo(1280.25, 2);
     expect(latest!.playerInfo.expToNextLevel).toBeCloseTo(619.75, 2);
     expect(latest!.playerInfo.nextLevelTotalXp).toBeCloseTo(1900.0, 2);
+  });
+
+  it('accepts updateStats from namespaced bridge handler', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onStats={stats => { latest = stats; }} />);
+    });
+
+    expect(typeof window.TulliusWidgetsBridge?.v1?.updateStats).toBe('function');
+
+    await act(async () => {
+      window.TulliusWidgetsBridge?.v1?.updateStats?.(JSON.stringify({
+        playerInfo: {
+          level: 77,
+        },
+      }));
+    });
+
+    expect(latest).not.toBeNull();
+    expect(latest!.playerInfo.level).toBe(77);
+  });
+
+  it('keeps previous timed effects when fast payload omits timedEffects', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onStats={stats => { latest = stats; }} />);
+    });
+
+    await act(async () => {
+      window.updateStats?.(JSON.stringify({
+        timedEffects: [
+          {
+            instanceId: 987,
+            sourceName: 'Test Source',
+            effectName: 'Test Effect',
+            remainingSec: 30,
+            totalSec: 60,
+            isDebuff: false,
+            sourceFormId: 1,
+            effectFormId: 2,
+            spellFormId: 3,
+          },
+        ],
+      }));
+    });
+
+    const firstStableKey = latest?.timedEffects[0]?.stableKey;
+    expect(firstStableKey).toBeTruthy();
+
+    await act(async () => {
+      window.updateStats?.(JSON.stringify({
+        playerInfo: {
+          health: 123,
+        },
+      }));
+    });
+
+    expect(latest).not.toBeNull();
+    expect(latest!.playerInfo.health).toBe(123);
+    expect(latest!.timedEffects[0]?.stableKey).toBe(firstStableKey);
   });
 
   it('clamps negative health/magicka/stamina values to 0', async () => {

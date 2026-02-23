@@ -409,7 +409,7 @@ int32_t StatsCollector::GetGoldCount() {
     return player->GetItemCount(gold);
 }
 
-std::string StatsCollector::CollectStats() {
+std::string StatsCollector::CollectStats(StatsPayloadMode mode) {
     auto player = RE::PlayerCharacter::GetSingleton();
     if (!player) return "{}";
 
@@ -577,26 +577,28 @@ std::string StatsCollector::CollectStats() {
     json += "\"carryPct\":" + safeFloat(carryPct);
     json += "},";
 
-    const auto timedEffects = collectTimedEffects(player);
-    json += "\"timedEffects\":[";
-    for (std::size_t i = 0; i < timedEffects.size(); ++i) {
-        const auto& effect = timedEffects[i];
-        json += "{";
-        json += "\"instanceId\":" + std::to_string(effect.instanceId) + ",";
-        json += "\"sourceName\":\"" + JsonUtils::Escape(effect.sourceName) + "\",";
-        json += "\"effectName\":\"" + JsonUtils::Escape(effect.effectName) + "\",";
-        json += "\"remainingSec\":" + std::to_string(effect.remainingSec) + ",";
-        json += "\"totalSec\":" + std::to_string(effect.totalSec) + ",";
-        json += "\"isDebuff\":" + std::string(effect.isDebuff ? "true" : "false") + ",";
-        json += "\"sourceFormId\":" + std::to_string(effect.sourceFormId) + ",";
-        json += "\"effectFormId\":" + std::to_string(effect.effectFormId) + ",";
-        json += "\"spellFormId\":" + std::to_string(effect.spellFormId);
-        json += "}";
-        if (i + 1 < timedEffects.size()) {
-            json += ",";
+    if (mode == StatsPayloadMode::kFull) {
+        const auto timedEffects = collectTimedEffects(player);
+        json += "\"timedEffects\":[";
+        for (std::size_t i = 0; i < timedEffects.size(); ++i) {
+            const auto& effect = timedEffects[i];
+            json += "{";
+            json += "\"instanceId\":" + std::to_string(effect.instanceId) + ",";
+            json += "\"sourceName\":\"" + JsonUtils::Escape(effect.sourceName) + "\",";
+            json += "\"effectName\":\"" + JsonUtils::Escape(effect.effectName) + "\",";
+            json += "\"remainingSec\":" + std::to_string(effect.remainingSec) + ",";
+            json += "\"totalSec\":" + std::to_string(effect.totalSec) + ",";
+            json += "\"isDebuff\":" + std::string(effect.isDebuff ? "true" : "false") + ",";
+            json += "\"sourceFormId\":" + std::to_string(effect.sourceFormId) + ",";
+            json += "\"effectFormId\":" + std::to_string(effect.effectFormId) + ",";
+            json += "\"spellFormId\":" + std::to_string(effect.spellFormId);
+            json += "}";
+            if (i + 1 < timedEffects.size()) {
+                json += ",";
+            }
         }
+        json += "],";
     }
-    json += "],";
 
     json += "\"isInCombat\":" + std::string(inCombat ? "true" : "false");
 

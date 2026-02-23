@@ -4,9 +4,14 @@
 
 namespace TulliusWidgets {
 
+enum class StatsPayloadMode {
+    kFast,
+    kFull
+};
+
 class StatsCollector {
 public:
-    static std::string CollectStats();
+    static std::string CollectStats(StatsPayloadMode mode = StatsPayloadMode::kFull);
 
 private:
     static float GetArmorRating();

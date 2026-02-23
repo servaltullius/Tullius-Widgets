@@ -67,7 +67,7 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
 
     prismaUI->RegisterJSListener(view, "onSettingsChanged", [](const char* data) -> void {
         if (!data) return;
-        (void)TulliusWidgets::NativeStorage::SaveSettings(ResolveStorageBasePath(), data);
+        (void)TulliusWidgets::NativeStorage::SaveSettingsAsync(ResolveStorageBasePath(), data);
     });
 
     prismaUI->RegisterJSListener(view, "onExportSettings", [](const char* data) -> void {

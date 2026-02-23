@@ -158,18 +158,41 @@ function mergeWithDefaults(saved: Record<string, unknown>): WidgetSettings {
   return merged;
 }
 
-function setValueByPath(target: WidgetSettings, path: string, value: unknown): void {
+function updateValueByPath(current: WidgetSettings, path: string, value: unknown): WidgetSettings {
   const keys = path.split('.');
-  if (keys.length === 0) return;
+  if (keys.length === 0) return current;
 
-  let cursor: Record<string, unknown> = target as unknown as Record<string, unknown>;
+  const parentChain: Array<{ parent: Record<string, unknown>; key: string }> = [];
+  let cursor: unknown = current as unknown as Record<string, unknown>;
   for (let i = 0; i < keys.length - 1; i++) {
-    const next = cursor[keys[i]];
-    if (!isPlainObject(next)) return;
+    if (!isPlainObject(cursor)) return current;
+    const parent = cursor as Record<string, unknown>;
+    const key = keys[i];
+    const next = parent[key];
+    if (!isPlainObject(next)) return current;
+    parentChain.push({ parent, key });
     cursor = next;
   }
 
-  cursor[keys[keys.length - 1]] = value;
+  if (!isPlainObject(cursor)) return current;
+
+  const leafParent = cursor as Record<string, unknown>;
+  const leafKey = keys[keys.length - 1];
+  if (Object.is(leafParent[leafKey], value)) return current;
+
+  let updatedNode: Record<string, unknown> = {
+    ...leafParent,
+    [leafKey]: value,
+  };
+  for (let i = parentChain.length - 1; i >= 0; i--) {
+    const { parent, key } = parentChain[i];
+    updatedNode = {
+      ...parent,
+      [key]: updatedNode,
+    };
+  }
+
+  return updatedNode as unknown as WidgetSettings;
 }
 
 export function useSettings() {
@@ -179,6 +202,7 @@ export function useSettings() {
   const [runtimeDiagnostics, setRuntimeDiagnostics] = useState<RuntimeDiagnostics | null>(null);
   const [sessionVisibleOverride, setSessionVisibleOverride] = useState<boolean | null>(null);
   const debounceTimerRef = useRef<number | null>(null);
+  const lastQueuedSettingsJsonRef = useRef('');
   const settingsRef = useRef(settings);
 
   useEffect(() => {
@@ -186,6 +210,11 @@ export function useSettings() {
   }, [settings]);
 
   const notifySettingsChanged = useCallback((json: string) => {
+    if (json === lastQueuedSettingsJsonRef.current) {
+      return;
+    }
+    lastQueuedSettingsJsonRef.current = json;
+
     if (debounceTimerRef.current !== null) {
       window.clearTimeout(debounceTimerRef.current);
     }
@@ -203,10 +232,13 @@ export function useSettings() {
         return false;
       }
       const merged = mergeWithDefaults(parsed);
+      const mergedJson = JSON.stringify(merged);
       setSettings(merged);
       setSessionVisibleOverride(null);
       if (persist) {
-        notifySettingsChanged(JSON.stringify(merged));
+        notifySettingsChanged(mergedJson);
+      } else {
+        lastQueuedSettingsJsonRef.current = mergedJson;
       }
       return true;
     } catch (e) {
@@ -216,11 +248,14 @@ export function useSettings() {
   }, [notifySettingsChanged]);
 
   useEffect(() => {
-    window.updateSettings = (jsonString: string) => {
+    const bridgeNamespace = (window.TulliusWidgetsBridge ??= {});
+    const bridgeV1 = (bridgeNamespace.v1 ??= {});
+
+    const updateSettingsHandler = (jsonString: string) => {
       applyIncomingSettings(jsonString, false);
     };
 
-    window.updateRuntimeStatus = (jsonString: string) => {
+    const updateRuntimeStatusHandler = (jsonString: string) => {
       try {
         const parsed = JSON.parse(jsonString) as unknown;
         setRuntimeDiagnostics(normalizeRuntimeDiagnostics(parsed));
@@ -229,42 +264,72 @@ export function useSettings() {
       }
     };
 
-    window.importSettingsFromNative = (jsonString: string) => {
+    const importSettingsFromNativeHandler = (jsonString: string) => {
       const success = applyIncomingSettings(jsonString, true);
       window.onImportResult?.(success);
     };
 
-    window.toggleSettings = () => {
+    const toggleSettingsHandler = () => {
       setSettingsOpen(prev => !prev);
     };
 
-    window.toggleWidgetsVisibility = () => {
+    const toggleWidgetsVisibilityHandler = () => {
       setSessionVisibleOverride(prev =>
         prev === null ? !settingsRef.current.general.visible : !prev
       );
     };
 
-    window.closeSettings = () => {
+    const closeSettingsHandler = () => {
       setSettingsOpen(false);
     };
 
-    window.setHUDColor = (hex: string) => {
+    const setHUDColorHandler = (hex: string) => {
       setHudColor(hex);
     };
 
+    bridgeV1.updateSettings = updateSettingsHandler;
+    bridgeV1.updateRuntimeStatus = updateRuntimeStatusHandler;
+    bridgeV1.importSettingsFromNative = importSettingsFromNativeHandler;
+    bridgeV1.toggleSettings = toggleSettingsHandler;
+    bridgeV1.toggleWidgetsVisibility = toggleWidgetsVisibilityHandler;
+    bridgeV1.closeSettings = closeSettingsHandler;
+    bridgeV1.setHUDColor = setHUDColorHandler;
+    window.updateSettings = updateSettingsHandler;
+    window.updateRuntimeStatus = updateRuntimeStatusHandler;
+    window.importSettingsFromNative = importSettingsFromNativeHandler;
+    window.toggleSettings = toggleSettingsHandler;
+    window.toggleWidgetsVisibility = toggleWidgetsVisibilityHandler;
+    window.closeSettings = closeSettingsHandler;
+    window.setHUDColor = setHUDColorHandler;
+
     return () => {
-      delete window.updateSettings;
-      delete window.updateRuntimeStatus;
-      delete window.importSettingsFromNative;
-      delete window.toggleSettings;
-      delete window.toggleWidgetsVisibility;
-      delete window.closeSettings;
-      delete window.setHUDColor;
+      if (window.updateSettings === updateSettingsHandler) delete window.updateSettings;
+      if (window.updateRuntimeStatus === updateRuntimeStatusHandler) delete window.updateRuntimeStatus;
+      if (window.importSettingsFromNative === importSettingsFromNativeHandler) delete window.importSettingsFromNative;
+      if (window.toggleSettings === toggleSettingsHandler) delete window.toggleSettings;
+      if (window.toggleWidgetsVisibility === toggleWidgetsVisibilityHandler) delete window.toggleWidgetsVisibility;
+      if (window.closeSettings === closeSettingsHandler) delete window.closeSettings;
+      if (window.setHUDColor === setHUDColorHandler) delete window.setHUDColor;
+
+      if (window.TulliusWidgetsBridge?.v1?.updateSettings === updateSettingsHandler) delete window.TulliusWidgetsBridge.v1.updateSettings;
+      if (window.TulliusWidgetsBridge?.v1?.updateRuntimeStatus === updateRuntimeStatusHandler) delete window.TulliusWidgetsBridge.v1.updateRuntimeStatus;
+      if (window.TulliusWidgetsBridge?.v1?.importSettingsFromNative === importSettingsFromNativeHandler) delete window.TulliusWidgetsBridge.v1.importSettingsFromNative;
+      if (window.TulliusWidgetsBridge?.v1?.toggleSettings === toggleSettingsHandler) delete window.TulliusWidgetsBridge.v1.toggleSettings;
+      if (window.TulliusWidgetsBridge?.v1?.toggleWidgetsVisibility === toggleWidgetsVisibilityHandler) delete window.TulliusWidgetsBridge.v1.toggleWidgetsVisibility;
+      if (window.TulliusWidgetsBridge?.v1?.closeSettings === closeSettingsHandler) delete window.TulliusWidgetsBridge.v1.closeSettings;
+      if (window.TulliusWidgetsBridge?.v1?.setHUDColor === setHUDColorHandler) delete window.TulliusWidgetsBridge.v1.setHUDColor;
+      if (window.TulliusWidgetsBridge?.v1 && Object.keys(window.TulliusWidgetsBridge.v1).length === 0) {
+        delete window.TulliusWidgetsBridge.v1;
+      }
+      if (window.TulliusWidgetsBridge && Object.keys(window.TulliusWidgetsBridge).length === 0) {
+        delete window.TulliusWidgetsBridge;
+      }
+
       if (debounceTimerRef.current !== null) {
         window.clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [applyIncomingSettings, notifySettingsChanged]);
+  }, [applyIncomingSettings]);
 
   // ESC key closes settings and requests unfocus.
   useEffect(() => {
@@ -280,8 +345,10 @@ export function useSettings() {
 
   const updateSetting = useCallback<UpdateSettingFn>((path: string, value: unknown, options?: UpdateSettingOptions) => {
     setSettings(prev => {
-      const next = structuredClone(prev);
-      setValueByPath(next, path, value);
+      const next = updateValueByPath(prev, path, value);
+      if (next === prev) {
+        return prev;
+      }
 
       if (path === 'general.visible') {
         setSessionVisibleOverride(null);

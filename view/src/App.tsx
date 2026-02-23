@@ -59,74 +59,52 @@ export function App() {
   });
 
   const trackedChangeSignature = useMemo(() => {
-    const trackedTime = settings.time.gameDateTime
-      ? {
-        year: stats.time.year,
-        month: stats.time.month,
-        day: stats.time.day,
-        hour: stats.time.hour,
-        minute: stats.time.minute,
-      }
-      : null;
-    const trackedRealTime = settings.time.realDateTime
-      ? Math.floor(nowMs / 1000)
-      : null;
-    const trackedTimedEffects = settings.timedEffects.enabled
-      ? stats.timedEffects.map(effect => [effect.stableKey, Math.trunc(effect.remainingSec), Math.trunc(effect.totalSec), effect.isDebuff ? 1 : 0])
-      : null;
-    const trackedResistances = {
-      ...(settings.resistances.magic ? { magic: stats.resistances.magic } : {}),
-      ...(settings.resistances.fire ? { fire: stats.resistances.fire } : {}),
-      ...(settings.resistances.frost ? { frost: stats.resistances.frost } : {}),
-      ...(settings.resistances.shock ? { shock: stats.resistances.shock } : {}),
-      ...(settings.resistances.poison ? { poison: stats.resistances.poison } : {}),
-      ...(settings.resistances.disease ? { disease: stats.resistances.disease } : {}),
-    };
-    const trackedDefense = {
-      ...(settings.defense.armorRating ? { armorRating: stats.defense.armorRating } : {}),
-      ...(settings.defense.damageReduction ? { damageReduction: stats.defense.damageReduction } : {}),
-    };
-    const trackedOffense = {
-      ...(settings.offense.rightHandDamage ? { rightHandDamage: stats.offense.rightHandDamage } : {}),
-      ...(settings.offense.leftHandDamage ? { leftHandDamage: stats.offense.leftHandDamage } : {}),
-      ...(settings.offense.critChance ? { critChance: stats.offense.critChance } : {}),
-    };
-    const trackedEquipped = {
-      ...(settings.equipped.rightHand ? { rightHand: stats.equipped.rightHand } : {}),
-      ...(settings.equipped.leftHand ? { leftHand: stats.equipped.leftHand } : {}),
-    };
-    const trackedMovement = settings.movement.speedMult
-      ? { speedMult: stats.movement.speedMult }
-      : null;
-    const trackedPlayerInfo = {
-      ...(settings.playerInfo.level ? { level: stats.playerInfo.level } : {}),
-      ...(settings.playerInfo.gold ? { gold: stats.playerInfo.gold } : {}),
-      ...(settings.playerInfo.carryWeight ? { carryWeight: stats.playerInfo.carryWeight, maxCarryWeight: stats.playerInfo.maxCarryWeight } : {}),
-      ...(settings.playerInfo.health ? { health: stats.playerInfo.health } : {}),
-      ...(settings.playerInfo.magicka ? { magicka: stats.playerInfo.magicka } : {}),
-      ...(settings.playerInfo.stamina ? { stamina: stats.playerInfo.stamina } : {}),
-    };
-    const trackedExperience = settings.experience.enabled
-      ? {
-        current: stats.playerInfo.experience,
-        toNext: stats.playerInfo.expToNextLevel,
-        nextLevelTotalXp: stats.playerInfo.nextLevelTotalXp,
-      }
-      : null;
-
-    return JSON.stringify({
-      resistances: trackedResistances,
-      defense: trackedDefense,
-      offense: trackedOffense,
-      equipped: trackedEquipped,
-      movement: trackedMovement,
-      playerInfo: trackedPlayerInfo,
-      experience: trackedExperience,
-      isInCombat: stats.isInCombat,
-      timedEffects: trackedTimedEffects,
-      time: trackedTime,
-      realTime: trackedRealTime,
-    });
+    const parts: string[] = [`combat:${stats.isInCombat ? 1 : 0}`];
+    if (settings.resistances.magic) parts.push(`res.magic:${stats.resistances.magic}`);
+    if (settings.resistances.fire) parts.push(`res.fire:${stats.resistances.fire}`);
+    if (settings.resistances.frost) parts.push(`res.frost:${stats.resistances.frost}`);
+    if (settings.resistances.shock) parts.push(`res.shock:${stats.resistances.shock}`);
+    if (settings.resistances.poison) parts.push(`res.poison:${stats.resistances.poison}`);
+    if (settings.resistances.disease) parts.push(`res.disease:${stats.resistances.disease}`);
+    if (settings.defense.armorRating) parts.push(`def.armor:${stats.defense.armorRating}`);
+    if (settings.defense.damageReduction) parts.push(`def.reduction:${stats.defense.damageReduction}`);
+    if (settings.offense.rightHandDamage) parts.push(`off.right:${stats.offense.rightHandDamage}`);
+    if (settings.offense.leftHandDamage) parts.push(`off.left:${stats.offense.leftHandDamage}`);
+    if (settings.offense.critChance) parts.push(`off.crit:${stats.offense.critChance}`);
+    if (settings.equipped.rightHand) parts.push(`eq.right:${stats.equipped.rightHand}`);
+    if (settings.equipped.leftHand) parts.push(`eq.left:${stats.equipped.leftHand}`);
+    if (settings.movement.speedMult) parts.push(`move.speed:${stats.movement.speedMult}`);
+    if (settings.playerInfo.level) parts.push(`pi.level:${stats.playerInfo.level}`);
+    if (settings.playerInfo.gold) parts.push(`pi.gold:${stats.playerInfo.gold}`);
+    if (settings.playerInfo.carryWeight) {
+      parts.push(`pi.carry:${stats.playerInfo.carryWeight}`);
+      parts.push(`pi.maxCarry:${stats.playerInfo.maxCarryWeight}`);
+    }
+    if (settings.playerInfo.health) parts.push(`pi.health:${stats.playerInfo.health}`);
+    if (settings.playerInfo.magicka) parts.push(`pi.magicka:${stats.playerInfo.magicka}`);
+    if (settings.playerInfo.stamina) parts.push(`pi.stamina:${stats.playerInfo.stamina}`);
+    if (settings.experience.enabled) {
+      parts.push(`xp.current:${stats.playerInfo.experience}`);
+      parts.push(`xp.toNext:${stats.playerInfo.expToNextLevel}`);
+      parts.push(`xp.total:${stats.playerInfo.nextLevelTotalXp}`);
+    }
+    if (settings.time.gameDateTime) {
+      parts.push(`time.year:${stats.time.year}`);
+      parts.push(`time.month:${stats.time.month}`);
+      parts.push(`time.day:${stats.time.day}`);
+      parts.push(`time.hour:${stats.time.hour}`);
+      parts.push(`time.minute:${stats.time.minute}`);
+    }
+    if (settings.time.realDateTime) {
+      parts.push(`time.real:${Math.floor(nowMs / 1000)}`);
+    }
+    if (settings.timedEffects.enabled) {
+      const timedEffectSignature = stats.timedEffects
+        .map(effect => `${effect.stableKey}:${Math.trunc(effect.remainingSec)}:${Math.trunc(effect.totalSec)}:${effect.isDebuff ? 1 : 0}`)
+        .join(';');
+      parts.push(`effects:${timedEffectSignature}`);
+    }
+    return parts.join('|');
   }, [
     nowMs,
     settings.defense.armorRating,

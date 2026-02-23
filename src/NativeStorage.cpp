@@ -1,9 +1,25 @@
 #include "NativeStorage.h"
 
+#include <atomic>
+#include <condition_variable>
 #include <fstream>
+#include <mutex>
+#include <optional>
+#include <thread>
 
 namespace TulliusWidgets::NativeStorage {
 namespace {
+
+struct PendingSettingsWrite {
+    std::filesystem::path gameRootPath;
+    std::string jsonData;
+};
+
+std::mutex g_asyncSettingsMutex;
+std::condition_variable_any g_asyncSettingsCv;
+std::optional<PendingSettingsWrite> g_pendingSettingsWrite;
+std::atomic<bool> g_asyncSettingsWriterStarted{ false };
+std::jthread g_asyncSettingsWriter;
 
 bool EnsureSettingsDirectory(const std::filesystem::path& gameRootPath)
 {
@@ -73,24 +89,7 @@ bool ReadTextFileWithLimit(
     }
 }
 
-}  // namespace
-
-std::filesystem::path GetSettingsDirectoryPath(const std::filesystem::path& gameRootPath)
-{
-    return gameRootPath / "Data" / "SKSE" / "Plugins";
-}
-
-std::filesystem::path GetSettingsPath(const std::filesystem::path& gameRootPath)
-{
-    return GetSettingsDirectoryPath(gameRootPath) / "TulliusWidgets.json";
-}
-
-std::filesystem::path GetPresetPath(const std::filesystem::path& gameRootPath)
-{
-    return GetSettingsDirectoryPath(gameRootPath) / "TulliusWidgets_preset.json";
-}
-
-bool SaveSettings(const std::filesystem::path& gameRootPath, std::string_view jsonData)
+bool SaveSettingsSync(const std::filesystem::path& gameRootPath, std::string_view jsonData)
 {
     if (!EnsureSettingsDirectory(gameRootPath)) return false;
 
@@ -136,6 +135,79 @@ bool SaveSettings(const std::filesystem::path& gameRootPath, std::string_view js
     }
 
     logger::info("Settings saved");
+    return true;
+}
+
+void RunAsyncSettingsWriter(std::stop_token stopToken)
+{
+    std::unique_lock lock(g_asyncSettingsMutex);
+    while (true) {
+        g_asyncSettingsCv.wait(lock, stopToken, []() { return g_pendingSettingsWrite.has_value(); });
+
+        if (!g_pendingSettingsWrite.has_value()) {
+            if (stopToken.stop_requested()) break;
+            continue;
+        }
+
+        auto write = std::move(*g_pendingSettingsWrite);
+        g_pendingSettingsWrite.reset();
+        lock.unlock();
+
+        if (!SaveSettingsSync(write.gameRootPath, write.jsonData)) {
+            logger::warn("Async settings save failed");
+        }
+
+        lock.lock();
+        if (stopToken.stop_requested() && !g_pendingSettingsWrite.has_value()) {
+            break;
+        }
+    }
+}
+
+void EnsureAsyncSettingsWriterStarted()
+{
+    if (g_asyncSettingsWriterStarted.exchange(true)) return;
+
+    g_asyncSettingsWriter = std::jthread([](std::stop_token stopToken) {
+        RunAsyncSettingsWriter(stopToken);
+    });
+}
+
+}  // namespace
+
+std::filesystem::path GetSettingsDirectoryPath(const std::filesystem::path& gameRootPath)
+{
+    return gameRootPath / "Data" / "SKSE" / "Plugins";
+}
+
+std::filesystem::path GetSettingsPath(const std::filesystem::path& gameRootPath)
+{
+    return GetSettingsDirectoryPath(gameRootPath) / "TulliusWidgets.json";
+}
+
+std::filesystem::path GetPresetPath(const std::filesystem::path& gameRootPath)
+{
+    return GetSettingsDirectoryPath(gameRootPath) / "TulliusWidgets_preset.json";
+}
+
+bool SaveSettings(const std::filesystem::path& gameRootPath, std::string_view jsonData)
+{
+    return SaveSettingsSync(gameRootPath, jsonData);
+}
+
+bool SaveSettingsAsync(const std::filesystem::path& gameRootPath, std::string_view jsonData)
+{
+    if (jsonData.size() > kMaxSettingsFileBytes) {
+        logger::error("Refusing to queue settings larger than {} bytes: {}", kMaxSettingsFileBytes, jsonData.size());
+        return false;
+    }
+
+    EnsureAsyncSettingsWriterStarted();
+    {
+        std::scoped_lock lock(g_asyncSettingsMutex);
+        g_pendingSettingsWrite = PendingSettingsWrite{ gameRootPath, std::string(jsonData) };
+    }
+    g_asyncSettingsCv.notify_one();
     return true;
 }
 

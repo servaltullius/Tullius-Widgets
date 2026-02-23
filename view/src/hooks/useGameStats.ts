@@ -307,7 +307,7 @@ export function useGameStats(): CombatStats {
   const [stats, setStats] = useState<CombatStats>(mockStats);
 
   useEffect(() => {
-    window.updateStats = (jsonString: string) => {
+    const updateStatsHandler = (jsonString: string) => {
       try {
         const parsed = JSON.parse(jsonString) as unknown;
         setStats(prev => normalizeCombatStats(parsed, prev));
@@ -315,13 +315,28 @@ export function useGameStats(): CombatStats {
         console.error('Failed to parse stats JSON:', e);
       }
     };
+    const bridgeNamespace = (window.TulliusWidgetsBridge ??= {});
+    const bridgeV1 = (bridgeNamespace.v1 ??= {});
+    bridgeV1.updateStats = updateStatsHandler;
+    window.updateStats = updateStatsHandler;
 
     if (isDev) {
       console.log('[TulliusWidgets] Dev mode - using mock stats');
     }
 
     return () => {
-      delete window.updateStats;
+      if (window.updateStats === updateStatsHandler) {
+        delete window.updateStats;
+      }
+      if (window.TulliusWidgetsBridge?.v1?.updateStats === updateStatsHandler) {
+        delete window.TulliusWidgetsBridge.v1.updateStats;
+      }
+      if (window.TulliusWidgetsBridge?.v1 && Object.keys(window.TulliusWidgetsBridge.v1).length === 0) {
+        delete window.TulliusWidgetsBridge.v1;
+      }
+      if (window.TulliusWidgetsBridge && Object.keys(window.TulliusWidgetsBridge).length === 0) {
+        delete window.TulliusWidgetsBridge;
+      }
     };
   }, []);
 
