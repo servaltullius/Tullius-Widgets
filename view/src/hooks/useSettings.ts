@@ -205,9 +205,9 @@ export function useSettings() {
   const lastQueuedSettingsJsonRef = useRef('');
   const settingsRef = useRef(settings);
 
-  useEffect(() => {
-    settingsRef.current = settings;
-  }, [settings]);
+  // Synchronous assignment ensures handlers always read the latest settings,
+  // avoiding the stale-closure window that useEffect-based sync would create.
+  settingsRef.current = settings;
 
   const notifySettingsChanged = useCallback((json: string) => {
     if (json === lastQueuedSettingsJsonRef.current) {
