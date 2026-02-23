@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { UpdateSettingFn, WidgetSettings, WidgetLayout } from '../types/settings';
 import { t } from '../i18n/translations';
+import { COMBAT_WIDGET_GROUP_IDS, EFFECT_WIDGET_GROUP_IDS } from '../data/widgetRegistry';
 
 interface SettingsPanelProps {
   settings: WidgetSettings;
@@ -16,8 +17,8 @@ type PanelTab = 'general' | 'combat' | 'effects' | 'alerts' | 'presets';
 const TAB_ORDER: PanelTab[] = ['general', 'combat', 'effects', 'alerts', 'presets'];
 const TAB_SECTION_IDS: Record<PanelTab, string[]> = {
   general: ['generalMain'],
-  combat: ['experience', 'playerInfo', 'resistances', 'defense', 'offense', 'equipped', 'movement'],
-  effects: ['time', 'timedEffects'],
+  combat: [...COMBAT_WIDGET_GROUP_IDS],
+  effects: [...EFFECT_WIDGET_GROUP_IDS],
   alerts: ['visualAlerts'],
   presets: ['presets', 'layoutTools'],
 };

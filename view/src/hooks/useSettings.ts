@@ -10,22 +10,7 @@ import type {
 } from '../types/settings';
 import { defaultSettings } from '../data/defaultSettings';
 import type { RuntimeDiagnostics, RuntimeWarningCode } from '../types/runtime';
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function readBoolean(value: unknown, fallback: boolean): boolean {
-  return typeof value === 'boolean' ? value : fallback;
-}
-
-function readNumber(value: unknown, fallback: number, min?: number, max?: number): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
-  let out = value;
-  if (typeof min === 'number') out = Math.max(min, out);
-  if (typeof max === 'number') out = Math.min(max, out);
-  return out;
-}
+import { isPlainObject, readBoolean, readNumber, readText } from '../utils/normalize';
 
 function readEnum<T extends string>(value: unknown, fallback: T, allowed: readonly T[]): T {
   if (typeof value !== 'string') return fallback;
@@ -36,10 +21,6 @@ function readAccentColor(value: unknown, fallback: string): string {
   if (typeof value !== 'string') return fallback;
   if (value === '') return '';
   return /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback;
-}
-
-function readText(value: unknown, fallback: string): string {
-  return typeof value === 'string' ? value : fallback;
 }
 
 function readRuntimeWarningCode(value: unknown): RuntimeWarningCode {

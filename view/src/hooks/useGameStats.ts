@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { CombatStats, GameTimeInfo, TimedEffect } from '../types/stats';
 import { mockStats } from '../data/mockStats';
+import { isPlainObject, readBoolean, readNumber, readText } from '../utils/normalize';
 
 const isDev = !('sendDataToSKSE' in window);
 const SKYRIM_MONTH_NAMES = [
@@ -17,30 +18,6 @@ const SKYRIM_MONTH_NAMES = [
   "Sun's Dusk",
   'Evening Star',
 ];
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function readNumber(
-  value: unknown,
-  fallback: number,
-  min = Number.NEGATIVE_INFINITY,
-  max = Number.POSITIVE_INFINITY,
-): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
-  return Math.min(max, Math.max(min, value));
-}
-
-function readBoolean(value: unknown, fallback: boolean): boolean {
-  return typeof value === 'boolean' ? value : fallback;
-}
-
-function readText(value: unknown, fallback: string, allowEmpty = false): string {
-  if (typeof value !== 'string') return fallback;
-  if (!allowEmpty && value.length === 0) return fallback;
-  return value;
-}
 
 function quantize2(value: number): number {
   return Math.round(value * 100) / 100;

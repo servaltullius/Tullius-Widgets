@@ -8,6 +8,7 @@ import { ScreenEffects } from './components/ScreenEffects';
 import { useGameStats } from './hooks/useGameStats';
 import { useSettings } from './hooks/useSettings';
 import { getDefaultPositions } from './data/defaultSettings';
+import { WIDGET_GROUP_IDS } from './data/widgetRegistry';
 import type { GroupPosition } from './types/settings';
 import { t } from './i18n/translations';
 
@@ -19,7 +20,6 @@ const WEAPON_DAMAGE_CAP = 9999;
 const WEAPON_DAMAGE_MIN = 0;
 const CRIT_CHANCE_CAP = 100;
 const CRIT_CHANCE_MIN = 0;
-const GROUP_IDS = ['experience', 'playerInfo', 'resistances', 'defense', 'offense', 'equipped', 'time', 'timedEffects', 'movement'] as const;
 const SNAP_THRESHOLD = 15;
 const GRID = 10;
 const FALLBACK_POS: GroupPosition = { x: 100, y: 100 };
@@ -51,7 +51,7 @@ function snapPosition(
   let snappedX = false;
   let snappedY = false;
 
-  for (const otherId of GROUP_IDS) {
+  for (const otherId of WIDGET_GROUP_IDS) {
     if (otherId === groupId) continue;
     const otherPos = getPositionById(otherId);
     if (!snappedX && Math.abs(x - otherPos.x) < SNAP_THRESHOLD) {

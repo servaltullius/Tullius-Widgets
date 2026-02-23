@@ -1,4 +1,5 @@
-import type { WidgetSettings } from '../types/settings';
+import type { GroupPosition, WidgetSettings } from '../types/settings';
+import { getWidgetDefaultPositions } from './widgetRegistry';
 
 export const defaultSettings: WidgetSettings = {
   general: {
@@ -70,18 +71,6 @@ export const defaultSettings: WidgetSettings = {
   layouts: {},
 };
 
-export function getDefaultPositions(): Record<string, { x: number; y: number }> {
-  const w = window.innerWidth;
-  const right = w - 260;
-  return {
-    playerInfo: { x: right, y: 20 },
-    experience: { x: right, y: 180 },
-    time: { x: 20, y: 20 },
-    resistances: { x: right, y: 220 },
-    defense: { x: right, y: 500 },
-    offense: { x: right, y: 630 },
-    equipped: { x: right, y: 760 },
-    timedEffects: { x: right, y: 900 },
-    movement: { x: right, y: 1030 },
-  };
+export function getDefaultPositions(): Record<string, GroupPosition> {
+  return getWidgetDefaultPositions(window.innerWidth);
 }
