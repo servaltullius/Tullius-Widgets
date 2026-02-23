@@ -3,6 +3,7 @@
 #include "NativeStorage.h"
 
 #include <string>
+#include <string_view>
 
 namespace TulliusWidgets::WidgetJsListeners {
 namespace {
@@ -42,6 +43,17 @@ bool TryImportSettingsToView(const std::string& json)
     return g_callbacks.interopCall("importSettingsFromNative", json.c_str());
 }
 
+bool IsPayloadWithinLimit(std::string_view payload, std::string_view label)
+{
+    if (payload.size() <= TulliusWidgets::NativeStorage::kMaxSettingsFileBytes) return true;
+
+    logger::warn(
+        "{} payload too large ({} bytes), rejecting",
+        label,
+        payload.size());
+    return false;
+}
+
 }  // namespace
 
 void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callbacks& callbacks)
@@ -60,6 +72,11 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
 
     prismaUI->RegisterJSListener(view, "onExportSettings", [](const char* data) -> void {
         if (!data) return;
+        const std::string_view payload(data);
+        if (!IsPayloadWithinLimit(payload, "Preset export")) {
+            NotifyExportResult(false);
+            return;
+        }
         const bool success = TulliusWidgets::NativeStorage::ExportPreset(ResolveStorageBasePath(), data);
         NotifyExportResult(success);
     });

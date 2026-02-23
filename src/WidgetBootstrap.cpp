@@ -35,6 +35,7 @@ bool InitializeOnDataLoaded(PRISMA_UI_API::IVPrismaUI1*& prismaUI, const Callbac
 {
     g_callbacks = callbacks;
 
+    prismaUI = nullptr;
     prismaUI = static_cast<PRISMA_UI_API::IVPrismaUI1*>(
         PRISMA_UI_API::RequestPluginAPI(PRISMA_UI_API::InterfaceVersion::V1));
     if (!prismaUI) {
