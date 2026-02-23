@@ -21,6 +21,7 @@ static constexpr float kDiseaseResistCap = 100.0f;
 static constexpr float kDiseaseResistMin = 0.0f;
 static constexpr float kCritChanceCap = 100.0f;
 static constexpr float kDamageReductionCap = 80.0f;
+static constexpr float kArmorRatingMultiplier = 0.12f;
 static constexpr float kArmorRatingForMaxReduction = 666.67f;
 
 static RE::TESForm* getEquippedForm(RE::PlayerCharacter* player, bool leftHand) {
@@ -333,7 +334,7 @@ float StatsCollector::GetArmorRating() {
 }
 
 float StatsCollector::CalculateRawDamageReduction(float armorRating) {
-    return armorRating * 0.12f;
+    return armorRating * kArmorRatingMultiplier;
 }
 
 float StatsCollector::CalculateDamageReduction(float armorRating) {
