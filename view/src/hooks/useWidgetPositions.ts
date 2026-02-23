@@ -60,24 +60,25 @@ export function useWidgetPositions({
   }, [defaults, dragPositions, fallbackPos, settingsPositions]);
 
   const handleGroupMove = useCallback((groupId: string, rawX: number, rawY: number) => {
-    const getPositionById = (id: string): GroupPosition =>
-      dragPositions[id] ?? settingsPositions[id] ?? defaults[id] ?? fallbackPos;
-    const snapped = snapPosition(groupIds, snapThreshold, grid, groupId, rawX, rawY, getPositionById);
-    setDragPositions(previous => ({ ...previous, [groupId]: snapped }));
-  }, [defaults, dragPositions, fallbackPos, grid, groupIds, settingsPositions, snapThreshold]);
+    setDragPositions(previous => {
+      const getPositionById = (id: string): GroupPosition =>
+        previous[id] ?? settingsPositions[id] ?? defaults[id] ?? fallbackPos;
+      const snapped = snapPosition(groupIds, snapThreshold, grid, groupId, rawX, rawY, getPositionById);
+      return { ...previous, [groupId]: snapped };
+    });
+  }, [defaults, fallbackPos, grid, groupIds, settingsPositions, snapThreshold]);
 
   const handleGroupMoveEnd = useCallback((groupId: string, rawX: number, rawY: number) => {
-    const getPositionById = (id: string): GroupPosition =>
-      dragPositions[id] ?? settingsPositions[id] ?? defaults[id] ?? fallbackPos;
-    const snapped = snapPosition(groupIds, snapThreshold, grid, groupId, rawX, rawY, getPositionById);
-
     setDragPositions(previous => {
+      const getPositionById = (id: string): GroupPosition =>
+        previous[id] ?? settingsPositions[id] ?? defaults[id] ?? fallbackPos;
+      const snapped = snapPosition(groupIds, snapThreshold, grid, groupId, rawX, rawY, getPositionById);
+      updateSetting(`positions.${groupId}`, snapped);
       const next = { ...previous };
       delete next[groupId];
       return next;
     });
-    updateSetting(`positions.${groupId}`, snapped);
-  }, [defaults, dragPositions, fallbackPos, grid, groupIds, settingsPositions, snapThreshold, updateSetting]);
+  }, [defaults, fallbackPos, grid, groupIds, settingsPositions, snapThreshold, updateSetting]);
 
   return {
     resolvePosition,
