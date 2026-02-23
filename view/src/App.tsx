@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DraggableWidgetGroup } from './components/DraggableWidgetGroup';
 import { StatWidget } from './components/StatWidget';
 import { TimedEffectList } from './components/TimedEffectList';
@@ -7,6 +7,7 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { ScreenEffects } from './components/ScreenEffects';
 import { useGameStats } from './hooks/useGameStats';
 import { useSettings } from './hooks/useSettings';
+import { useWidgetPositions } from './hooks/useWidgetPositions';
 import { getDefaultPositions } from './data/defaultSettings';
 import { WIDGET_GROUP_IDS } from './data/widgetRegistry';
 import type { GroupPosition } from './types/settings';
@@ -40,44 +41,22 @@ function hasMeaningfulDifference(a: number, b: number): boolean {
   return Math.abs(a - b) > 0.05;
 }
 
-function snapPosition(
-  groupId: string,
-  rawX: number,
-  rawY: number,
-  getPositionById: (id: string) => GroupPosition,
-): GroupPosition {
-  let x = rawX;
-  let y = rawY;
-  let snappedX = false;
-  let snappedY = false;
-
-  for (const otherId of WIDGET_GROUP_IDS) {
-    if (otherId === groupId) continue;
-    const otherPos = getPositionById(otherId);
-    if (!snappedX && Math.abs(x - otherPos.x) < SNAP_THRESHOLD) {
-      x = otherPos.x;
-      snappedX = true;
-    }
-    if (!snappedY && Math.abs(y - otherPos.y) < SNAP_THRESHOLD) {
-      y = otherPos.y;
-      snappedY = true;
-    }
-  }
-
-  if (!snappedX) x = Math.round(x / GRID) * GRID;
-  if (!snappedY) y = Math.round(y / GRID) * GRID;
-
-  return { x, y };
-}
-
 export function App() {
   const stats = useGameStats();
   const { settings, visible, settingsOpen, setSettingsOpen, closeSettings, updateSetting, accentColor, runtimeDiagnostics } = useSettings();
-  const [dragPositions, setDragPositions] = useState<Record<string, GroupPosition>>({});
   const [lastChangeAtMs, setLastChangeAtMs] = useState<number>(() => Date.now());
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const defaults = getDefaultPositions();
   const lang = settings.general.language;
+  const { resolvePosition, handleGroupMove, handleGroupMoveEnd } = useWidgetPositions({
+    defaults,
+    settingsPositions: settings.positions,
+    updateSetting,
+    groupIds: WIDGET_GROUP_IDS,
+    snapThreshold: SNAP_THRESHOLD,
+    grid: GRID,
+    fallbackPos: FALLBACK_POS,
+  });
 
   const trackedChangeSignature = useMemo(() => {
     const trackedTime = settings.time.gameDateTime
@@ -206,30 +185,6 @@ export function App() {
   const shouldShow = visible &&
     (!settings.general.combatOnly || stats.isInCombat) &&
     changeWindowActive;
-
-  const resolvePosition = useCallback((groupId: string): GroupPosition => {
-    return dragPositions[groupId] ?? settings.positions[groupId] ?? defaults[groupId] ?? FALLBACK_POS;
-  }, [defaults, dragPositions, settings.positions]);
-
-  const handleGroupMove = useCallback((groupId: string, rawX: number, rawY: number) => {
-    const getPositionById = (id: string): GroupPosition =>
-      dragPositions[id] ?? settings.positions[id] ?? defaults[id] ?? FALLBACK_POS;
-    const snapped = snapPosition(groupId, rawX, rawY, getPositionById);
-    setDragPositions(prev => ({ ...prev, [groupId]: snapped }));
-  }, [defaults, dragPositions, settings.positions]);
-
-  const handleGroupMoveEnd = useCallback((groupId: string, rawX: number, rawY: number) => {
-    const getPositionById = (id: string): GroupPosition =>
-      dragPositions[id] ?? settings.positions[id] ?? defaults[id] ?? FALLBACK_POS;
-    const snapped = snapPosition(groupId, rawX, rawY, getPositionById);
-
-    setDragPositions(prev => {
-      const next = { ...prev };
-      delete next[groupId];
-      return next;
-    });
-    updateSetting(`positions.${groupId}`, snapped);
-  }, [defaults, dragPositions, settings.positions, updateSetting]);
 
   const groupProps = (groupId: string) => {
     const pos = resolvePosition(groupId);
