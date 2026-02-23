@@ -83,6 +83,10 @@ static bool TryHideView() {
     return true;
 }
 
+static void HideViewIfReady() {
+    (void)TryHideView();
+}
+
 static bool ViewHasFocus() {
     if (!IsViewReady()) return false;
     return PrismaUI->HasFocus(view);
@@ -216,7 +220,7 @@ static void RegisterWidgetEventSinks() {
     eventCallbacks.isGameLoaded = &IsGameLoaded;
     eventCallbacks.setGameLoaded = &SetGameLoaded;
     eventCallbacks.showView = &TryShowView;
-    eventCallbacks.hideView = &TryHideView;
+    eventCallbacks.hideView = &HideViewIfReady;
     eventCallbacks.sendStats = &SendStatsToViewThrottled;
     eventCallbacks.sendStatsForced = &SendStatsToViewForced;
     eventCallbacks.scheduleStatsUpdateAfter = &ScheduleStatsUpdateAfter;
@@ -266,7 +270,7 @@ static TulliusWidgets::WidgetBootstrap::Callbacks BuildWidgetBootstrapCallbacks(
     callbacks.setGameLoaded = &SetGameLoaded;
     callbacks.isViewReady = &IsViewReady;
     callbacks.showView = &TryShowView;
-    callbacks.hideView = &TryHideView;
+    callbacks.hideView = &HideViewIfReady;
     callbacks.sendRuntimeDiagnostics = &SendRuntimeDiagnosticsToView;
     callbacks.sendHUDColor = &SendHUDColorToView;
     callbacks.sendSettings = &SendSettingsToView;
