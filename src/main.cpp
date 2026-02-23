@@ -1,35 +1,24 @@
-#include "JsonUtils.h"
+#include "NativeStorage.h"
 #include "PrismaUI_API.h"
+#include "RuntimeDiagnostics.h"
 #include "StatsCollector.h"
-#include <keyhandler/keyhandler.h>
+#include "WidgetBootstrap.h"
+#include "WidgetEvents.h"
+#include "WidgetHotkeys.h"
+#include "WidgetJsListeners.h"
 #include <atomic>
-#include <chrono>
-#include <algorithm>
 #include <cstdint>
-#include <cstring>
+#include <chrono>
 #include <filesystem>
-#include <fstream>
 #include <memory>
 #include <mutex>
-#include <string_view>
 #include <thread>
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
 
 PRISMA_UI_API::IVPrismaUI1* PrismaUI = nullptr;
 static PrismaView view = 0;
 static std::atomic<bool> gameLoaded{false};
-static REL::Version g_runtimeVersion{};
-static REL::Version g_skseVersion{};
-static bool g_runtimeSupported = true;
-static bool g_addressLibraryPresent = true;
-static std::string g_addressLibraryPath;
-static std::filesystem::path g_gameRootPath{};
+static TulliusWidgets::RuntimeDiagnostics::State g_runtimeDiagnostics{};
 static std::atomic<bool> g_viewDomReady{false};
-static constexpr std::uintmax_t kMaxSettingsFileBytes = 256 * 1024;
 
 // Throttle: shorter interval during combat for responsive HP/MP/SP
 static std::chrono::steady_clock::time_point lastUpdateTime{};
@@ -41,98 +30,25 @@ static std::jthread g_heartbeatThread;
 static std::atomic<bool> g_heartbeatStarted{false};
 static std::atomic<std::uint32_t> g_scheduledStatsSeq{0};
 
-// --- Settings Persistence ---
-static std::filesystem::path ResolveGameRootPath();
+// --- Path helpers ---
 
-static std::filesystem::path GetSettingsDirectoryPath() {
-    const auto basePath = g_gameRootPath.empty() ? ResolveGameRootPath() : g_gameRootPath;
-    return basePath / "Data" / "SKSE" / "Plugins";
-}
-
-static bool IsLikelySupportedRuntime(REL::Version runtimeVersion) {
-    return runtimeVersion.major() == 1 && (runtimeVersion.minor() == 5 || runtimeVersion.minor() == 6);
-}
-
-static std::filesystem::path ResolveGameRootPath() {
-    std::wstring exePathBuffer(MAX_PATH, L'\0');
-    while (exePathBuffer.size() <= 32768) {
-        const DWORD size = static_cast<DWORD>(exePathBuffer.size());
-        const DWORD len = ::GetModuleFileNameW(nullptr, exePathBuffer.data(), size);
-        if (len == 0) break;
-        if (len < size - 1) {
-            exePathBuffer.resize(len);
-            std::filesystem::path exePath(exePathBuffer);
-            auto parent = exePath.parent_path();
-            if (!parent.empty()) return parent;
-            break;
-        }
-        exePathBuffer.resize(exePathBuffer.size() * 2);
+static std::filesystem::path ResolveStorageBasePath() {
+    if (!g_runtimeDiagnostics.gameRootPath.empty()) {
+        return g_runtimeDiagnostics.gameRootPath;
     }
-
-    std::error_code ec;
-    auto cwd = std::filesystem::current_path(ec);
-    if (ec) {
-        logger::warn("Failed to resolve current path for diagnostics: {}", ec.message());
-        return {};
-    }
-    return cwd;
-}
-
-static std::filesystem::path GetAddressLibraryPath(REL::Version runtimeVersion) {
-    const bool usesVersionLib = runtimeVersion.minor() >= 6;
-    const auto filename = std::string(usesVersionLib ? "versionlib-" : "version-") + runtimeVersion.string() + ".bin";
-    const auto basePath = g_gameRootPath.empty() ? ResolveGameRootPath() : g_gameRootPath;
-    return basePath / "Data" / "SKSE" / "Plugins" / filename;
+    return TulliusWidgets::RuntimeDiagnostics::ResolveGameRootPath();
 }
 
 static void InitializeRuntimeDiagnostics(const SKSE::LoadInterface* loadInterface) {
-    if (!loadInterface) return;
-
-    g_runtimeVersion = loadInterface->RuntimeVersion();
-    g_skseVersion = REL::Version::unpack(loadInterface->SKSEVersion());
-    g_runtimeSupported = IsLikelySupportedRuntime(g_runtimeVersion);
-    g_gameRootPath = ResolveGameRootPath();
-
-    const auto addressLibraryPath = GetAddressLibraryPath(g_runtimeVersion);
-    g_addressLibraryPath = addressLibraryPath.generic_string();
-    std::error_code ec;
-    g_addressLibraryPresent = std::filesystem::exists(addressLibraryPath, ec);
-    if (ec) {
-        logger::warn("Address Library path check failed ({}): {}", g_addressLibraryPath, ec.message());
-        g_addressLibraryPresent = false;
-    }
+    g_runtimeDiagnostics = TulliusWidgets::RuntimeDiagnostics::Collect(loadInterface);
 
     logger::info(
         "Runtime diagnostics: runtime={}, skse={}, gameRoot={}, addressLibraryPath={}, addressLibraryPresent={}",
-        std::to_string(g_runtimeVersion),
-        std::to_string(g_skseVersion),
-        g_gameRootPath.generic_string(),
-        g_addressLibraryPath,
-        g_addressLibraryPresent);
-}
-
-static std::string BuildRuntimeDiagnosticsJson() {
-    const bool hasRuntimeWarning = !g_runtimeSupported;
-    const bool hasAddressWarning = !g_addressLibraryPresent;
-    std::string warningCode = "none";
-    if (hasRuntimeWarning && hasAddressWarning) {
-        warningCode = "unsupported-runtime-and-missing-address-library";
-    } else if (hasRuntimeWarning) {
-        warningCode = "unsupported-runtime";
-    } else if (hasAddressWarning) {
-        warningCode = "missing-address-library";
-    }
-
-    std::string json = "{";
-    json += "\"runtimeVersion\":\"" + TulliusWidgets::JsonUtils::Escape(std::to_string(g_runtimeVersion)) + "\",";
-    json += "\"skseVersion\":\"" + TulliusWidgets::JsonUtils::Escape(std::to_string(g_skseVersion)) + "\",";
-    json += "\"addressLibraryPath\":\"" + TulliusWidgets::JsonUtils::Escape(g_addressLibraryPath) + "\",";
-    json += "\"addressLibraryPresent\":" + std::string(g_addressLibraryPresent ? "true" : "false") + ",";
-    json += "\"runtimeSupported\":" + std::string(g_runtimeSupported ? "true" : "false") + ",";
-    json += "\"usesAddressLibrary\":true,";
-    json += "\"warningCode\":\"" + warningCode + "\"";
-    json += "}";
-    return json;
+        std::to_string(g_runtimeDiagnostics.runtimeVersion),
+        std::to_string(g_runtimeDiagnostics.skseVersion),
+        g_runtimeDiagnostics.gameRootPath.generic_string(),
+        g_runtimeDiagnostics.addressLibraryPath,
+        g_runtimeDiagnostics.addressLibraryPresent);
 }
 
 static bool IsViewReady() {
@@ -182,133 +98,6 @@ static void TryUnfocusView() {
     PrismaUI->Unfocus(view);
 }
 
-static bool EnsureSettingsDirectory() {
-    const auto dirPath = GetSettingsDirectoryPath();
-    std::error_code ec;
-    std::filesystem::create_directories(dirPath, ec);
-    if (ec) {
-        logger::error("Failed to create settings directory '{}': {}", dirPath.generic_string(), ec.message());
-        return false;
-    }
-    return true;
-}
-
-static std::filesystem::path GetSettingsPath() {
-    return GetSettingsDirectoryPath() / "TulliusWidgets.json";
-}
-
-static std::filesystem::path GetPresetPath() {
-    return GetSettingsDirectoryPath() / "TulliusWidgets_preset.json";
-}
-
-static bool ReadTextFileWithLimit(
-    const std::filesystem::path& path,
-    std::uintmax_t maxBytes,
-    std::string_view label,
-    std::string& out)
-{
-    out.clear();
-
-    std::error_code ec;
-    if (!std::filesystem::exists(path, ec)) {
-        if (ec) {
-            logger::warn("Failed to check {} file '{}': {}", label, path.string(), ec.message());
-        }
-        return false;
-    }
-
-    const auto bytes = std::filesystem::file_size(path, ec);
-    if (ec) {
-        logger::warn("Failed to read {} file size '{}': {}", label, path.string(), ec.message());
-        return false;
-    }
-    if (bytes == 0) return false;
-    if (bytes > maxBytes) {
-        logger::warn("{} file too large ({} bytes), ignoring: {}", label, bytes, path.string());
-        return false;
-    }
-
-    try {
-        std::ifstream file(path, std::ios::binary);
-        if (!file.is_open()) {
-            logger::warn("Failed to open {} file '{}'", label, path.string());
-            return false;
-        }
-        const auto expectedBytes = static_cast<std::size_t>(bytes);
-        out.resize(expectedBytes);
-        file.read(out.data(), static_cast<std::streamsize>(out.size()));
-        const auto readBytes = static_cast<std::size_t>(file.gcount());
-        out.resize(readBytes);
-        if (readBytes != expectedBytes) {
-            logger::warn(
-                "Incomplete read for {} file '{}' (expected {} bytes, got {})",
-                label,
-                path.string(),
-                expectedBytes,
-                readBytes);
-            out.clear();
-            return false;
-        }
-        return true;
-    } catch (const std::exception& e) {
-        logger::warn("Failed to load {} file '{}': {}", label, path.string(), e.what());
-        return false;
-    }
-}
-
-static void SaveSettings(const char* jsonData) {
-    if (!jsonData) return;
-    if (!EnsureSettingsDirectory()) return;
-
-    const auto settingsPath = GetSettingsPath();
-    const auto jsonLen = std::strlen(jsonData);
-    if (jsonLen > kMaxSettingsFileBytes) {
-        logger::error("Refusing to save settings larger than {} bytes: {}", kMaxSettingsFileBytes, jsonLen);
-        return;
-    }
-
-    auto tempPath = settingsPath;
-    tempPath += ".tmp";
-
-    {
-        std::ofstream file(tempPath, std::ios::binary | std::ios::trunc);
-        if (!file.is_open()) {
-            logger::error("Failed to open temp settings file for write: {}", tempPath.string());
-            return;
-        }
-
-        file.write(jsonData, static_cast<std::streamsize>(jsonLen));
-        file.flush();
-        if (!file.good()) {
-            logger::error("Failed to write temp settings file: {}", tempPath.string());
-            return;
-        }
-    }
-
-    std::error_code ec;
-    std::filesystem::rename(tempPath, settingsPath, ec);
-    if (ec) {
-        std::error_code removeEc;
-        std::filesystem::remove(settingsPath, removeEc);
-        ec.clear();
-        std::filesystem::rename(tempPath, settingsPath, ec);
-    }
-
-    if (ec) {
-        logger::error("Failed to replace settings file '{}': {}", settingsPath.string(), ec.message());
-        std::error_code cleanupEc;
-        std::filesystem::remove(tempPath, cleanupEc);
-    } else {
-        logger::info("Settings saved");
-    }
-}
-
-static std::string LoadSettings() {
-    std::string out;
-    if (!ReadTextFileWithLimit(GetSettingsPath(), kMaxSettingsFileBytes, "Settings", out)) return "";
-    return out;
-}
-
 static void SendHUDColorToView() {
     if (!IsInteropReady()) return;
     uint32_t color = 0xFFFFFF;  // default white
@@ -327,7 +116,7 @@ static void SendHUDColorToView() {
 
 static void SendSettingsToView() {
     if (!IsInteropReady()) return;
-    std::string json = LoadSettings();
+    std::string json = TulliusWidgets::NativeStorage::LoadSettings(ResolveStorageBasePath());
     if (json.empty()) return;
     if (!TryInteropCall("updateSettings", json.c_str())) return;
     logger::info("Saved settings sent to view");
@@ -335,7 +124,7 @@ static void SendSettingsToView() {
 
 static void SendRuntimeDiagnosticsToView() {
     if (!IsInteropReady()) return;
-    const auto json = BuildRuntimeDiagnosticsJson();
+    const auto json = TulliusWidgets::RuntimeDiagnostics::BuildJson(g_runtimeDiagnostics);
     if (!TryInteropCall("updateRuntimeStatus", json.c_str())) return;
 }
 
@@ -388,6 +177,63 @@ static void ScheduleStatsUpdateAfter(std::chrono::milliseconds delay) {
     taskInterface->AddTask([task]() { task->Run(); });
 }
 
+static bool IsGameLoaded() {
+    return gameLoaded.load();
+}
+
+static void SetGameLoaded(bool loaded) {
+    gameLoaded.store(loaded);
+}
+
+static void SendStatsToViewThrottled() {
+    SendStatsToView();
+}
+
+static void SendStatsToViewForced() {
+    SendStatsToView(true);
+}
+
+static void SetView(PrismaView newView) {
+    view = newView;
+}
+
+static void SetViewDomReady(bool ready) {
+    g_viewDomReady.store(ready);
+}
+
+static void RegisterWidgetJsListeners() {
+    TulliusWidgets::WidgetJsListeners::Callbacks jsListenerCallbacks{};
+    jsListenerCallbacks.resolveStorageBasePath = &ResolveStorageBasePath;
+    jsListenerCallbacks.invokeScript = &TryInvoke;
+    jsListenerCallbacks.interopCall = &TryInteropCall;
+    jsListenerCallbacks.unfocusView = &TryUnfocusView;
+    TulliusWidgets::WidgetJsListeners::Register(PrismaUI, view, jsListenerCallbacks);
+}
+
+static void RegisterWidgetEventSinks() {
+    TulliusWidgets::WidgetEvents::Callbacks eventCallbacks{};
+    eventCallbacks.isViewReady = &IsViewReady;
+    eventCallbacks.isGameLoaded = &IsGameLoaded;
+    eventCallbacks.setGameLoaded = &SetGameLoaded;
+    eventCallbacks.showView = &TryShowView;
+    eventCallbacks.hideView = &TryHideView;
+    eventCallbacks.sendStats = &SendStatsToViewThrottled;
+    eventCallbacks.sendStatsForced = &SendStatsToViewForced;
+    eventCallbacks.scheduleStatsUpdateAfter = &ScheduleStatsUpdateAfter;
+    TulliusWidgets::WidgetEvents::RegisterEventSinks(eventCallbacks);
+}
+
+static void RegisterWidgetHotkeys() {
+    TulliusWidgets::WidgetHotkeys::Callbacks hotkeyCallbacks{};
+    hotkeyCallbacks.isViewReady = &IsViewReady;
+    hotkeyCallbacks.isGameLoaded = &IsGameLoaded;
+    hotkeyCallbacks.viewHasFocus = &ViewHasFocus;
+    hotkeyCallbacks.focusView = &TryFocusView;
+    hotkeyCallbacks.unfocusView = &TryUnfocusView;
+    hotkeyCallbacks.invokeScript = &TryInvoke;
+    TulliusWidgets::WidgetHotkeys::RegisterDefaultHotkeys(hotkeyCallbacks);
+}
+
 static void StartHeartbeat() {
     if (g_heartbeatStarted.exchange(true)) return;
 
@@ -413,292 +259,38 @@ static void StartHeartbeat() {
     });
 }
 
-class CombatEventSink : public RE::BSTEventSink<RE::TESCombatEvent> {
-public:
-    static CombatEventSink* GetSingleton() {
-        static CombatEventSink singleton;
-        return &singleton;
-    }
-
-    RE::BSEventNotifyControl ProcessEvent(const RE::TESCombatEvent*, RE::BSTEventSource<RE::TESCombatEvent>*) override {
-        SendStatsToView();
-        return RE::BSEventNotifyControl::kContinue;
-    }
-};
-
-class EquipEventSink : public RE::BSTEventSink<RE::TESEquipEvent> {
-public:
-    static EquipEventSink* GetSingleton() {
-        static EquipEventSink singleton;
-        return &singleton;
-    }
-
-    RE::BSEventNotifyControl ProcessEvent(const RE::TESEquipEvent* event, RE::BSTEventSource<RE::TESEquipEvent>*) override {
-        if (!event) return RE::BSEventNotifyControl::kContinue;
-        auto player = RE::PlayerCharacter::GetSingleton();
-        auto* actor = event->actor.get();
-        const bool isPlayerEvent = player &&
-            actor &&
-            (actor == player || actor->GetFormID() == RE::FormID(0x00000014));
-        if (isPlayerEvent) {
-            // Equip events can arrive before final hand state is committed.
-            // Defer one task tick to read the settled equipped objects reliably.
-            if (auto* taskInterface = SKSE::GetTaskInterface()) {
-                taskInterface->AddTask([]() {
-                    SendStatsToView(true);
-                });
-            } else {
-                SendStatsToView(true);
-            }
-        }
-        return RE::BSEventNotifyControl::kContinue;
-    }
-};
-
-class ActiveEffectEventSink : public RE::BSTEventSink<RE::TESActiveEffectApplyRemoveEvent> {
-public:
-    static ActiveEffectEventSink* GetSingleton() {
-        static ActiveEffectEventSink singleton;
-        return &singleton;
-    }
-
-    RE::BSEventNotifyControl ProcessEvent(const RE::TESActiveEffectApplyRemoveEvent* event, RE::BSTEventSource<RE::TESActiveEffectApplyRemoveEvent>*) override {
-        if (!event) return RE::BSEventNotifyControl::kContinue;
-        // Only update for effects targeting the player
-        auto player = RE::PlayerCharacter::GetSingleton();
-        if (player && event->target.get() == player) {
-            SendStatsToView();
-        }
-        return RE::BSEventNotifyControl::kContinue;
-    }
-};
-
-static constexpr std::array<std::string_view, 21> kHiddenMenus = {
-    RE::InventoryMenu::MENU_NAME,
-    RE::MagicMenu::MENU_NAME,
-    RE::MapMenu::MENU_NAME,
-    RE::StatsMenu::MENU_NAME,
-    RE::JournalMenu::MENU_NAME,
-    RE::TweenMenu::MENU_NAME,
-    RE::ContainerMenu::MENU_NAME,
-    RE::BarterMenu::MENU_NAME,
-    RE::GiftMenu::MENU_NAME,
-    RE::LockpickingMenu::MENU_NAME,
-    RE::BookMenu::MENU_NAME,
-    RE::FavoritesMenu::MENU_NAME,
-    RE::Console::MENU_NAME,
-    RE::CraftingMenu::MENU_NAME,
-    RE::TrainingMenu::MENU_NAME,
-    RE::SleepWaitMenu::MENU_NAME,
-    RE::RaceSexMenu::MENU_NAME,
-    RE::LevelUpMenu::MENU_NAME,
-    // Compatibility aliases seen in some UI overhauls / plugins
-    "JournalMenu"sv,
-    "BookMenu"sv,
-    "LockpickingMenu"sv
-};
-
-static bool ShouldHideForMenu(const RE::BSFixedString& menuName) {
-    for (const auto& name : kHiddenMenus) {
-        if (menuName == name) return true;
-    }
-    return false;
-}
-
-static bool IsAnyHiddenMenuOpen(RE::UI* ui) {
-    if (!ui) return false;
-    return std::any_of(kHiddenMenus.begin(), kHiddenMenus.end(),
-                       [ui](const auto& name) { return ui->IsMenuOpen(name); });
-}
-
-class MenuEventSink : public RE::BSTEventSink<RE::MenuOpenCloseEvent> {
-public:
-    static MenuEventSink* GetSingleton() {
-        static MenuEventSink singleton;
-        return &singleton;
-    }
-
-    RE::BSEventNotifyControl ProcessEvent(const RE::MenuOpenCloseEvent* event, RE::BSTEventSource<RE::MenuOpenCloseEvent>*) override {
-        if (!event || !IsViewReady()) return RE::BSEventNotifyControl::kContinue;
-        auto ui = RE::UI::GetSingleton();
-        const bool levelUpMenuClosed = !event->opening &&
-            event->menuName == RE::LevelUpMenu::MENU_NAME &&
-            gameLoaded.load();
-
-        if (levelUpMenuClosed) {
-            // Level-up XP/threshold can settle after the menu close event.
-            // Schedule a delayed refresh even if the HUD show branch below is skipped.
-            ScheduleStatsUpdateAfter(std::chrono::milliseconds(800));
-        }
-
-        // Main menu: hide and mark game as unloaded
-        if (event->menuName == RE::MainMenu::MENU_NAME && event->opening) {
-            TryHideView();
-            gameLoaded.store(false);
-            return RE::BSEventNotifyControl::kContinue;
-        }
-
-        // Hide widgets when tracked menus open (or while game is paused by a menu).
-        if (event->opening && (ShouldHideForMenu(event->menuName) || (ui && ui->GameIsPaused()))) {
-            TryHideView();
-        } else if (!event->opening && gameLoaded.load() && ui && !ui->GameIsPaused() && !IsAnyHiddenMenuOpen(ui)) {
-            // Show only after all tracked menus are fully closed.
-            if (TryShowView()) {
-                SendStatsToView(true);
-            }
-        }
-
-        return RE::BSEventNotifyControl::kContinue;
-    }
-};
-
-static void RegisterEventSinks() {
-    auto scriptEventSource = RE::ScriptEventSourceHolder::GetSingleton();
-    if (scriptEventSource) {
-        scriptEventSource->AddEventSink(CombatEventSink::GetSingleton());
-        scriptEventSource->AddEventSink(EquipEventSink::GetSingleton());
-        scriptEventSource->AddEventSink(ActiveEffectEventSink::GetSingleton());
-        logger::info("Event sinks registered");
-    }
-
-    auto ui = RE::UI::GetSingleton();
-    if (ui) {
-        ui->AddEventSink(MenuEventSink::GetSingleton());
-        logger::info("Menu event sink registered");
-    }
+static TulliusWidgets::WidgetBootstrap::Callbacks BuildWidgetBootstrapCallbacks() {
+    TulliusWidgets::WidgetBootstrap::Callbacks callbacks{};
+    callbacks.setView = &SetView;
+    callbacks.setViewDomReady = &SetViewDomReady;
+    callbacks.setGameLoaded = &SetGameLoaded;
+    callbacks.isViewReady = &IsViewReady;
+    callbacks.showView = &TryShowView;
+    callbacks.hideView = &TryHideView;
+    callbacks.sendRuntimeDiagnostics = &SendRuntimeDiagnosticsToView;
+    callbacks.sendHUDColor = &SendHUDColorToView;
+    callbacks.sendSettings = &SendSettingsToView;
+    callbacks.sendStatsForced = &SendStatsToViewForced;
+    callbacks.registerJsListeners = &RegisterWidgetJsListeners;
+    callbacks.registerEventSinks = &RegisterWidgetEventSinks;
+    callbacks.startHeartbeat = &StartHeartbeat;
+    callbacks.registerHotkeys = &RegisterWidgetHotkeys;
+    return callbacks;
 }
 
 static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message) {
+    const auto bootstrapCallbacks = BuildWidgetBootstrapCallbacks();
+
     switch (message->type) {
     case SKSE::MessagingInterface::kDataLoaded: {
-        PrismaUI = static_cast<PRISMA_UI_API::IVPrismaUI1*>(
-            PRISMA_UI_API::RequestPluginAPI(PRISMA_UI_API::InterfaceVersion::V1)
-        );
-
-        if (!PrismaUI) {
-            logger::error("Failed to initialize PrismaUI API. Is PrismaUI installed?");
+        if (!TulliusWidgets::WidgetBootstrap::InitializeOnDataLoaded(PrismaUI, bootstrapCallbacks)) {
             return;
         }
-
-        logger::info("PrismaUI API initialized");
-
-        g_viewDomReady.store(false);
-        view = PrismaUI->CreateView("TulliusWidgets/index.html", [](PrismaView v) -> void {
-            logger::info("TulliusWidgets view ready (id: {})", v);
-            if (view == 0) {
-                view = v;
-            }
-            g_viewDomReady.store(true);
-            SendRuntimeDiagnosticsToView();
-            SendHUDColorToView();
-            SendSettingsToView();
-            SendStatsToView(true);
-        });
-
-        if (!IsViewReady()) {
-            logger::error("Failed to create TulliusWidgets view. Widget initialization aborted.");
-            view = 0;
-            g_viewDomReady.store(false);
-            return;
-        }
-
-        TryHideView();
-        SendRuntimeDiagnosticsToView();
-
-        PrismaUI->RegisterJSListener(view, "onSettingsChanged", [](const char* data) -> void {
-            if (data) {
-                SaveSettings(data);
-            }
-        });
-
-        PrismaUI->RegisterJSListener(view, "onExportSettings", [](const char* data) -> void {
-            if (!data) return;
-            bool success = false;
-            if (EnsureSettingsDirectory()) {
-                std::ofstream file(GetPresetPath());
-                if (file.is_open()) {
-                    file << data;
-                    success = file.good();
-                }
-            }
-
-            if (success) {
-                logger::info("Preset exported");
-            } else {
-                logger::error("Preset export failed: {}", GetPresetPath().string());
-            }
-
-            if (success) {
-                TryInvoke("onExportResult(true)");
-            } else {
-                TryInvoke("onExportResult(false)");
-            }
-        });
-
-        PrismaUI->RegisterJSListener(view, "onImportSettings", [](const char*) -> void {
-            std::string json;
-            if (!ReadTextFileWithLimit(GetPresetPath(), kMaxSettingsFileBytes, "Preset", json)) {
-                TryInvoke("onImportResult(false)");
-                return;
-            }
-            if (!TryInteropCall("importSettingsFromNative", json.c_str())) {
-                TryInvoke("onImportResult(false)");
-                return;
-            }
-            logger::info("Preset import payload sent");
-        });
-
-        PrismaUI->RegisterJSListener(view, "onRequestUnfocus", [](const char*) -> void {
-            TryUnfocusView();
-        });
-
-        RegisterEventSinks();
-        StartHeartbeat();
-
-        KeyHandler::RegisterSink();
-        KeyHandler* keyHandler = KeyHandler::GetSingleton();
-
-        // Insert = 0xD2 to toggle settings panel
-        (void)keyHandler->Register(0xD2, KeyEventType::KEY_DOWN, []() {
-            if (IsViewReady() && gameLoaded.load()) {
-                TryInvoke("toggleSettings()");
-                if (!ViewHasFocus()) {
-                    TryFocusView();
-                } else {
-                    TryUnfocusView();
-                }
-            }
-        });
-
-        // ESC = 0x01 to close settings panel
-        (void)keyHandler->Register(0x01, KeyEventType::KEY_DOWN, []() {
-            if (IsViewReady() && gameLoaded.load() && ViewHasFocus()) {
-                TryInvoke("closeSettings()");
-                TryUnfocusView();
-            }
-        });
-
-        // F11 = 0x57 to toggle overall widget visibility
-        (void)keyHandler->Register(0x57, KeyEventType::KEY_DOWN, []() {
-            if (IsViewReady() && gameLoaded.load()) {
-                TryInvoke("toggleWidgetsVisibility()");
-            }
-        });
-
         break;
     }
     case SKSE::MessagingInterface::kPostLoadGame:
     case SKSE::MessagingInterface::kNewGame: {
-        gameLoaded.store(true);
-        if (TryShowView()) {
-            SendRuntimeDiagnosticsToView();
-            SendHUDColorToView();
-            SendSettingsToView();
-            SendStatsToView(true);
-        } else {
-            logger::warn("View not ready on game load; skipping initial UI sync");
-        }
-        logger::info("Game loaded - widgets visible");
+        TulliusWidgets::WidgetBootstrap::SyncOnGameLoaded(bootstrapCallbacks);
         break;
     }
     }
@@ -720,16 +312,16 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
     SKSE::AllocTrampoline(1 << 10);
     InitializeRuntimeDiagnostics(a_skse);
 
-    if (!g_runtimeSupported) {
+    if (!g_runtimeDiagnostics.runtimeSupported) {
         logger::warn(
             "Unsupported runtime detected ({}). The widget may not be stable on this game version.",
-            std::to_string(g_runtimeVersion));
+            std::to_string(g_runtimeDiagnostics.runtimeVersion));
     }
-    if (!g_addressLibraryPresent) {
+    if (!g_runtimeDiagnostics.addressLibraryPresent) {
         logger::warn(
             "Address Library file not found for runtime {} (expected: {}).",
-            std::to_string(g_runtimeVersion),
-            g_addressLibraryPath);
+            std::to_string(g_runtimeDiagnostics.runtimeVersion),
+            g_runtimeDiagnostics.addressLibraryPath);
     }
 
     g_messaging->RegisterListener("SKSE", SKSEMessageHandler);
