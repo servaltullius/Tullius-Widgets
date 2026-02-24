@@ -303,18 +303,27 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
   };
 }
 
-export function useGameStats(): CombatStats {
+export function useGameStatsState(): { stats: CombatStats; hasLiveStats: boolean } {
   const [stats, setStats] = useState<CombatStats>(mockStats);
+  const [hasLiveStats, setHasLiveStats] = useState<boolean>(isDev);
 
   useEffect(() => {
     const updateStatsHandler = (jsonString: string) => {
       try {
         const parsed = JSON.parse(jsonString) as unknown;
+
+        if (!isPlainObject(parsed) || Object.keys(parsed).length === 0) {
+          setHasLiveStats(false);
+          return;
+        }
+
         setStats(prev => normalizeCombatStats(parsed, prev));
+        setHasLiveStats(true);
       } catch (e) {
         console.error('Failed to parse stats JSON:', e);
       }
     };
+
     let bridgeNamespace = window.TulliusWidgetsBridge;
     if (!bridgeNamespace) {
       bridgeNamespace = {};
@@ -349,5 +358,9 @@ export function useGameStats(): CombatStats {
     };
   }, []);
 
-  return stats;
+  return { stats, hasLiveStats };
+}
+
+export function useGameStats(): CombatStats {
+  return useGameStatsState().stats;
 }

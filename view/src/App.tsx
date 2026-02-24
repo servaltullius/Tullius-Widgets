@@ -5,7 +5,7 @@ import { TimedEffectList } from './components/TimedEffectList';
 import { TimeWidgetList } from './components/TimeWidgetList';
 import { SettingsPanel } from './components/SettingsPanel';
 import { ScreenEffects } from './components/ScreenEffects';
-import { useGameStats } from './hooks/useGameStats';
+import { useGameStatsState } from './hooks/useGameStats';
 import { useSettings } from './hooks/useSettings';
 import { useWidgetPositions } from './hooks/useWidgetPositions';
 import { getDefaultPositions } from './data/defaultSettings';
@@ -42,7 +42,7 @@ function hasMeaningfulDifference(a: number, b: number): boolean {
 }
 
 export function App() {
-  const stats = useGameStats();
+  const { stats, hasLiveStats } = useGameStatsState();
   const { settings, visible, settingsOpen, setSettingsOpen, closeSettings, updateSetting, accentColor, runtimeDiagnostics } = useSettings();
   const [lastChangeAtMs, setLastChangeAtMs] = useState<number>(() => Date.now());
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
@@ -169,6 +169,7 @@ export function App() {
     (nowMs - lastChangeAtMs) <= settings.general.changeDisplaySeconds * 1000;
 
   const shouldShow = visible &&
+    hasLiveStats &&
     (!settings.general.combatOnly || stats.isInCombat) &&
     changeWindowActive;
 
@@ -522,7 +523,7 @@ export function App() {
         </>
       )}
 
-      <ScreenEffects alertData={stats.alertData} settings={settings} />
+      {hasLiveStats && <ScreenEffects alertData={stats.alertData} settings={settings} />}
 
       <SettingsPanel
         settings={settings}

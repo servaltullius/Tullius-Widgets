@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useEffect } from 'react';
 import { act } from 'react-dom/test-utils';
 import { createRoot, type Root } from 'react-dom/client';
-import { useGameStats } from './useGameStats';
+import { useGameStats, useGameStatsState } from './useGameStats';
 import type { CombatStats } from '../types/stats';
 
 function Harness({ onStats }: { onStats: (stats: CombatStats) => void }) {
@@ -11,6 +11,14 @@ function Harness({ onStats }: { onStats: (stats: CombatStats) => void }) {
   useEffect(() => {
     onStats(stats);
   }, [onStats, stats]);
+  return null;
+}
+
+function StateHarness({ onState }: { onState: (state: { stats: CombatStats; hasLiveStats: boolean }) => void }) {
+  const state = useGameStatsState();
+  useEffect(() => {
+    onState(state);
+  }, [onState, state]);
   return null;
 }
 
@@ -145,5 +153,23 @@ describe('useGameStats', () => {
     expect(latest!.playerInfo.health).toBe(0);
     expect(latest!.playerInfo.magicka).toBe(0);
     expect(latest!.playerInfo.stamina).toBe(0);
+  });
+
+  it('marks live stats as unavailable when payload is empty object', async () => {
+    let latestState: { stats: CombatStats; hasLiveStats: boolean } | null = null;
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<StateHarness onState={state => { latestState = state; }} />);
+    });
+
+    expect(typeof window.updateStats).toBe('function');
+
+    await act(async () => {
+      window.updateStats?.('{}');
+    });
+
+    expect(latestState).not.toBeNull();
+    expect(latestState!.hasLiveStats).toBe(false);
   });
 });
