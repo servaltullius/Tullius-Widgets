@@ -20,11 +20,11 @@ namespace {
 // Compile-time throttle intervals
 constexpr auto kFastIntervalCombat = std::chrono::milliseconds(100);
 constexpr auto kFastIntervalIdle   = std::chrono::milliseconds(500);
-constexpr auto kFullIntervalCombat = std::chrono::milliseconds(500);
-constexpr auto kFullIntervalIdle   = std::chrono::milliseconds(1500);
-constexpr auto kHeartbeatInterval  = std::chrono::seconds(3);
+constexpr auto kFullIntervalCombat = std::chrono::milliseconds(300);
+constexpr auto kFullIntervalIdle   = std::chrono::milliseconds(1000);
+constexpr auto kHeartbeatInterval  = std::chrono::seconds(2);
 constexpr auto kHeartbeatPoll      = std::chrono::milliseconds(100);
-constexpr auto kPausedRetryDelay   = std::chrono::milliseconds(250);
+constexpr auto kPausedRetryDelay   = std::chrono::milliseconds(100);
 
 struct PluginState {
     std::atomic<PrismaView> view{0};

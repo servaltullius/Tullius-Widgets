@@ -182,7 +182,7 @@ public:
             !event->opening && event->menuName == RE::LevelUpMenu::MENU_NAME && IsGameLoaded();
 
         if (levelUpMenuClosed) {
-            ScheduleStatsUpdateAfter(std::chrono::milliseconds(800));
+            ScheduleStatsUpdateAfter(std::chrono::milliseconds(300));
         }
 
         if (event->menuName == RE::MainMenu::MENU_NAME && event->opening) {
