@@ -315,8 +315,17 @@ export function useGameStats(): CombatStats {
         console.error('Failed to parse stats JSON:', e);
       }
     };
-    const bridgeNamespace = (window.TulliusWidgetsBridge ??= {});
-    const bridgeV1 = (bridgeNamespace.v1 ??= {});
+    let bridgeNamespace = window.TulliusWidgetsBridge;
+    if (!bridgeNamespace) {
+      bridgeNamespace = {};
+      window.TulliusWidgetsBridge = bridgeNamespace;
+    }
+
+    let bridgeV1 = bridgeNamespace.v1;
+    if (!bridgeV1) {
+      bridgeV1 = {};
+      bridgeNamespace.v1 = bridgeV1;
+    }
     bridgeV1.updateStats = updateStatsHandler;
     window.updateStats = updateStatsHandler;
 

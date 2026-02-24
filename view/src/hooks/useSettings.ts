@@ -81,9 +81,16 @@ function normalizeRuntimeDiagnostics(value: unknown): RuntimeDiagnostics | null 
   };
 }
 
+function cloneDefaultSettings(): WidgetSettings {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(defaultSettings);
+  }
+  return JSON.parse(JSON.stringify(defaultSettings)) as WidgetSettings;
+}
+
 // Deep merge with type guards: fill missing/invalid keys from defaults so bad JSON never crashes UI.
 function mergeWithDefaults(saved: Record<string, unknown>): WidgetSettings {
-  const merged = structuredClone(defaultSettings);
+  const merged = cloneDefaultSettings();
 
   const generalIncoming = saved.general;
   if (isPlainObject(generalIncoming)) {
@@ -205,9 +212,9 @@ export function useSettings() {
   const lastQueuedSettingsJsonRef = useRef('');
   const settingsRef = useRef(settings);
 
-  // Synchronous assignment ensures handlers always read the latest settings,
-  // avoiding the stale-closure window that useEffect-based sync would create.
-  settingsRef.current = settings;
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
 
   const notifySettingsChanged = useCallback((json: string) => {
     if (json === lastQueuedSettingsJsonRef.current) {
@@ -248,8 +255,17 @@ export function useSettings() {
   }, [notifySettingsChanged]);
 
   useEffect(() => {
-    const bridgeNamespace = (window.TulliusWidgetsBridge ??= {});
-    const bridgeV1 = (bridgeNamespace.v1 ??= {});
+    let bridgeNamespace = window.TulliusWidgetsBridge;
+    if (!bridgeNamespace) {
+      bridgeNamespace = {};
+      window.TulliusWidgetsBridge = bridgeNamespace;
+    }
+
+    let bridgeV1 = bridgeNamespace.v1;
+    if (!bridgeV1) {
+      bridgeV1 = {};
+      bridgeNamespace.v1 = bridgeV1;
+    }
 
     const updateSettingsHandler = (jsonString: string) => {
       applyIncomingSettings(jsonString, false);
@@ -369,7 +385,9 @@ export function useSettings() {
 
   // Resolved accent color: manual override > auto HUD color.
   const accentColor = settings.general.accentColor || hudColor;
-  const visible = sessionVisibleOverride ?? settings.general.visible;
+  const visible = sessionVisibleOverride === null
+    ? settings.general.visible
+    : sessionVisibleOverride;
 
   return {
     settings,

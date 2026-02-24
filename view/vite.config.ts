@@ -8,5 +8,6 @@ export default defineConfig({
     outDir: '../dist/PrismaUI/views/TulliusWidgets',
     emptyOutDir: true,
     assetsDir: 'assets',
+    target: 'es2019',
   },
 })
