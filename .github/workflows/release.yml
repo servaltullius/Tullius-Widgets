@@ -30,11 +30,14 @@ jobs:
           cache: npm
           cache-dependency-path: view/package-lock.json
 
-      - name: Build frontend
+      - name: Validate and build frontend
         shell: bash
         run: |
           cd view
           npm ci
+          npm run lint
+          npx tsc -b --noEmit
+          npm run test
           npm run build
 
       - name: Setup xmake
