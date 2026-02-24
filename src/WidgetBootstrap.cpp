@@ -1,32 +1,47 @@
 #include "WidgetBootstrap.h"
 
+#include <utility>
+
 namespace TulliusWidgets::WidgetBootstrap {
 namespace {
 
 Callbacks g_callbacks{};
 
+template <class Fn>
+void DispatchToGameThread(Fn&& fn)
+{
+    if (auto* taskInterface = SKSE::GetTaskInterface()) {
+        taskInterface->AddTask(std::forward<Fn>(fn));
+        return;
+    }
+    std::forward<Fn>(fn)();
+}
+
 void OnViewDomReady(PrismaView view)
 {
-    logger::info("TulliusWidgets view ready (id: {})", view);
+    const auto callbacks = g_callbacks;
+    DispatchToGameThread([view, callbacks]() {
+        logger::info("TulliusWidgets view ready (id: {})", view);
 
-    if (g_callbacks.setView) {
-        g_callbacks.setView(view);
-    }
-    if (g_callbacks.setViewDomReady) {
-        g_callbacks.setViewDomReady(true);
-    }
-    if (g_callbacks.sendRuntimeDiagnostics) {
-        g_callbacks.sendRuntimeDiagnostics();
-    }
-    if (g_callbacks.sendHUDColor) {
-        g_callbacks.sendHUDColor();
-    }
-    if (g_callbacks.sendSettings) {
-        g_callbacks.sendSettings();
-    }
-    if (g_callbacks.sendStatsForced) {
-        g_callbacks.sendStatsForced();
-    }
+        if (callbacks.setView) {
+            callbacks.setView(view);
+        }
+        if (callbacks.setViewDomReady) {
+            callbacks.setViewDomReady(true);
+        }
+        if (callbacks.sendRuntimeDiagnostics) {
+            callbacks.sendRuntimeDiagnostics();
+        }
+        if (callbacks.sendHUDColor) {
+            callbacks.sendHUDColor();
+        }
+        if (callbacks.sendSettings) {
+            callbacks.sendSettings();
+        }
+        if (callbacks.sendStatsForced) {
+            callbacks.sendStatsForced();
+        }
+    });
 }
 
 }  // namespace

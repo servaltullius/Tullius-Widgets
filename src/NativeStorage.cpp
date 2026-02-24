@@ -89,6 +89,95 @@ bool ReadTextFileWithLimit(
     }
 }
 
+bool ReplaceFileWithRollback(
+    const std::filesystem::path& tempPath,
+    const std::filesystem::path& targetPath,
+    std::string_view label)
+{
+    std::error_code ec;
+    std::filesystem::rename(tempPath, targetPath, ec);
+    if (!ec) {
+        return true;
+    }
+
+    std::error_code existsEc;
+    const bool targetExists = std::filesystem::exists(targetPath, existsEc);
+    if (existsEc) {
+        logger::error(
+            "Failed to check existing {} file '{}' before replace: {}",
+            label,
+            targetPath.string(),
+            existsEc.message());
+        std::error_code cleanupEc;
+        std::filesystem::remove(tempPath, cleanupEc);
+        return false;
+    }
+
+    auto backupPath = targetPath;
+    backupPath += ".bak";
+
+    if (targetExists) {
+        std::error_code removeBackupEc;
+        std::filesystem::remove(backupPath, removeBackupEc);
+
+        std::error_code backupEc;
+        std::filesystem::rename(targetPath, backupPath, backupEc);
+        if (backupEc) {
+            logger::error(
+                "Failed to move existing {} file '{}' to backup '{}': {}",
+                label,
+                targetPath.string(),
+                backupPath.string(),
+                backupEc.message());
+            std::error_code cleanupEc;
+            std::filesystem::remove(tempPath, cleanupEc);
+            return false;
+        }
+    }
+
+    ec.clear();
+    std::filesystem::rename(tempPath, targetPath, ec);
+    if (ec) {
+        logger::error(
+            "Failed to replace {} file '{}' from temp '{}': {}",
+            label,
+            targetPath.string(),
+            tempPath.string(),
+            ec.message());
+
+        if (targetExists) {
+            std::error_code restoreEc;
+            std::filesystem::rename(backupPath, targetPath, restoreEc);
+            if (restoreEc) {
+                logger::error(
+                    "Failed to restore previous {} file '{}' from backup '{}': {}",
+                    label,
+                    targetPath.string(),
+                    backupPath.string(),
+                    restoreEc.message());
+            }
+        }
+
+        std::error_code cleanupEc;
+        std::filesystem::remove(tempPath, cleanupEc);
+        return false;
+    }
+
+    if (targetExists) {
+        std::error_code cleanupBackupEc;
+        std::filesystem::remove(backupPath, cleanupBackupEc);
+        if (cleanupBackupEc) {
+            logger::warn(
+                "Failed to remove {} backup file '{}': {}",
+                label,
+                backupPath.string(),
+                cleanupBackupEc.message());
+        }
+    }
+
+    return true;
+}
+
 bool SaveSettingsSync(const std::filesystem::path& gameRootPath, std::string_view jsonData)
 {
     if (!EnsureSettingsDirectory(gameRootPath)) return false;
@@ -118,19 +207,7 @@ bool SaveSettingsSync(const std::filesystem::path& gameRootPath, std::string_vie
         }
     }
 
-    std::error_code ec;
-    std::filesystem::rename(tempPath, settingsPath, ec);
-    if (ec) {
-        std::error_code removeEc;
-        std::filesystem::remove(settingsPath, removeEc);
-        ec.clear();
-        std::filesystem::rename(tempPath, settingsPath, ec);
-    }
-
-    if (ec) {
-        logger::error("Failed to replace settings file '{}': {}", settingsPath.string(), ec.message());
-        std::error_code cleanupEc;
-        std::filesystem::remove(tempPath, cleanupEc);
+    if (!ReplaceFileWithRollback(tempPath, settingsPath, "settings")) {
         return false;
     }
 
@@ -241,19 +318,7 @@ bool ExportPreset(const std::filesystem::path& gameRootPath, std::string_view js
         }
     }
 
-    std::error_code ec;
-    std::filesystem::rename(tempPath, presetPath, ec);
-    if (ec) {
-        std::error_code removeEc;
-        std::filesystem::remove(presetPath, removeEc);
-        ec.clear();
-        std::filesystem::rename(tempPath, presetPath, ec);
-    }
-
-    if (ec) {
-        logger::error("Failed to replace preset file '{}': {}", presetPath.string(), ec.message());
-        std::error_code cleanupEc;
-        std::filesystem::remove(tempPath, cleanupEc);
+    if (!ReplaceFileWithRollback(tempPath, presetPath, "preset")) {
         return false;
     }
 

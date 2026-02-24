@@ -27,7 +27,7 @@ constexpr auto kHeartbeatPoll      = std::chrono::milliseconds(100);
 constexpr auto kPausedRetryDelay   = std::chrono::milliseconds(250);
 
 struct PluginState {
-    PrismaView view{0};
+    std::atomic<PrismaView> view{0};
     std::atomic<bool> gameLoaded{false};
     std::atomic<bool> viewDomReady{false};
     std::atomic<bool> heartbeatStarted{false};
@@ -67,7 +67,9 @@ static void InitializeRuntimeDiagnostics(const SKSE::LoadInterface* loadInterfac
 }
 
 static bool IsViewReady() {
-    return PrismaUI && g.view != 0 && PrismaUI->IsValid(g.view);
+    if (!PrismaUI) return false;
+    const auto view = g.view.load(std::memory_order_acquire);
+    return view != 0 && PrismaUI->IsValid(view);
 }
 
 static bool IsInteropReady() {
@@ -75,26 +77,34 @@ static bool IsInteropReady() {
 }
 
 static bool TryInteropCall(const char* functionName, const char* argument) {
-    if (!IsInteropReady()) return false;
-    PrismaUI->InteropCall(g.view, functionName, argument ? argument : "");
+    if (!PrismaUI || !g.viewDomReady.load(std::memory_order_acquire)) return false;
+    const auto view = g.view.load(std::memory_order_acquire);
+    if (view == 0 || !PrismaUI->IsValid(view)) return false;
+    PrismaUI->InteropCall(view, functionName, argument ? argument : "");
     return true;
 }
 
 static bool TryInvoke(const char* script) {
-    if (!IsInteropReady()) return false;
-    PrismaUI->Invoke(g.view, script);
+    if (!PrismaUI || !g.viewDomReady.load(std::memory_order_acquire)) return false;
+    const auto view = g.view.load(std::memory_order_acquire);
+    if (view == 0 || !PrismaUI->IsValid(view)) return false;
+    PrismaUI->Invoke(view, script);
     return true;
 }
 
 static bool TryShowView() {
-    if (!IsViewReady()) return false;
-    PrismaUI->Show(g.view);
+    if (!PrismaUI) return false;
+    const auto view = g.view.load(std::memory_order_acquire);
+    if (view == 0 || !PrismaUI->IsValid(view)) return false;
+    PrismaUI->Show(view);
     return true;
 }
 
 static bool TryHideView() {
-    if (!IsViewReady()) return false;
-    PrismaUI->Hide(g.view);
+    if (!PrismaUI) return false;
+    const auto view = g.view.load(std::memory_order_acquire);
+    if (view == 0 || !PrismaUI->IsValid(view)) return false;
+    PrismaUI->Hide(view);
     return true;
 }
 
@@ -103,18 +113,24 @@ static void HideViewIfReady() {
 }
 
 static bool ViewHasFocus() {
-    if (!IsViewReady()) return false;
-    return PrismaUI->HasFocus(g.view);
+    if (!PrismaUI) return false;
+    const auto view = g.view.load(std::memory_order_acquire);
+    if (view == 0 || !PrismaUI->IsValid(view)) return false;
+    return PrismaUI->HasFocus(view);
 }
 
 static bool TryFocusView() {
-    if (!IsViewReady()) return false;
-    return PrismaUI->Focus(g.view);
+    if (!PrismaUI) return false;
+    const auto view = g.view.load(std::memory_order_acquire);
+    if (view == 0 || !PrismaUI->IsValid(view)) return false;
+    return PrismaUI->Focus(view);
 }
 
 static void TryUnfocusView() {
-    if (!IsViewReady()) return;
-    PrismaUI->Unfocus(g.view);
+    if (!PrismaUI) return;
+    const auto view = g.view.load(std::memory_order_acquire);
+    if (view == 0 || !PrismaUI->IsValid(view)) return;
+    PrismaUI->Unfocus(view);
 }
 
 static void SendHUDColorToView() {
@@ -159,6 +175,8 @@ static std::int64_t SteadyNowMs() {
                std::chrono::steady_clock::now().time_since_epoch())
         .count();
 }
+
+static void ScheduleStatsUpdateAfter(std::chrono::milliseconds delay);
 
 static bool TryConsumeScheduledStatsUpdate(std::int64_t nowMs) {
     auto dueMs = g.scheduledStatsDueMs.load(std::memory_order_acquire);
@@ -208,6 +226,12 @@ static StatsDispatchMode SelectStatsDispatchMode(bool force) {
 static void SendStatsToView(bool force = false) {
     if (!IsInteropReady() || !g.gameLoaded.load()) return;
 
+    auto* ui = RE::UI::GetSingleton();
+    if (ui && ui->GameIsPaused()) {
+        ScheduleStatsUpdateAfter(kPausedRetryDelay);
+        return;
+    }
+
     if (!force && TryConsumeScheduledStatsUpdate(SteadyNowMs())) {
         force = true;
     }
@@ -224,7 +248,19 @@ static void SendStatsToView(bool force = false) {
 
 static void ScheduleStatsUpdateAfter(std::chrono::milliseconds delay) {
     const auto targetMs = SteadyNowMs() + delay.count();
-    g.scheduledStatsDueMs.store(targetMs, std::memory_order_release);
+    auto dueMs = g.scheduledStatsDueMs.load(std::memory_order_acquire);
+    while (true) {
+        if (dueMs > 0 && dueMs <= targetMs) {
+            return;
+        }
+        if (g.scheduledStatsDueMs.compare_exchange_weak(
+                dueMs,
+                targetMs,
+                std::memory_order_acq_rel,
+                std::memory_order_acquire)) {
+            return;
+        }
+    }
 }
 
 static bool IsGameLoaded() {
@@ -247,7 +283,7 @@ static void SendStatsToViewForced() {
 }
 
 static void SetView(PrismaView newView) {
-    g.view = newView;
+    g.view.store(newView, std::memory_order_release);
 }
 
 static void SetViewDomReady(bool ready) {
@@ -260,7 +296,10 @@ static void RegisterWidgetJsListeners() {
     jsListenerCallbacks.invokeScript = &TryInvoke;
     jsListenerCallbacks.interopCall = &TryInteropCall;
     jsListenerCallbacks.unfocusView = &TryUnfocusView;
-    TulliusWidgets::WidgetJsListeners::Register(PrismaUI, g.view, jsListenerCallbacks);
+    TulliusWidgets::WidgetJsListeners::Register(
+        PrismaUI,
+        g.view.load(std::memory_order_acquire),
+        jsListenerCallbacks);
 }
 
 static void RegisterWidgetEventSinks() {
@@ -312,14 +351,6 @@ static void StartHeartbeat() {
 
             taskInterface->AddTask([heartbeatDue, scheduledDue]() {
                 if (!g.gameLoaded.load()) return;
-
-                auto* ui = RE::UI::GetSingleton();
-                if (ui && ui->GameIsPaused()) {
-                    if (scheduledDue) {
-                        ScheduleStatsUpdateAfter(kPausedRetryDelay);
-                    }
-                    return;
-                }
 
                 if (heartbeatDue || scheduledDue) {
                     SendStatsToView(true);

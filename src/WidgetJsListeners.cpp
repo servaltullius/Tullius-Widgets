@@ -4,11 +4,22 @@
 
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace TulliusWidgets::WidgetJsListeners {
 namespace {
 
 Callbacks g_callbacks{};
+
+template <class Fn>
+void DispatchToGameThread(Fn&& fn)
+{
+    if (auto* taskInterface = SKSE::GetTaskInterface()) {
+        taskInterface->AddTask(std::forward<Fn>(fn));
+        return;
+    }
+    std::forward<Fn>(fn)();
+}
 
 std::filesystem::path ResolveStorageBasePath()
 {
@@ -67,7 +78,17 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
 
     prismaUI->RegisterJSListener(view, "onSettingsChanged", [](const char* data) -> void {
         if (!data) return;
-        (void)TulliusWidgets::NativeStorage::SaveSettingsAsync(ResolveStorageBasePath(), data);
+        const std::string_view payloadView(data);
+        if (!IsPayloadWithinLimit(payloadView, "Settings update")) {
+            return;
+        }
+
+        std::string payload(payloadView);
+        DispatchToGameThread([payload = std::move(payload)]() {
+            if (!TulliusWidgets::NativeStorage::SaveSettingsAsync(ResolveStorageBasePath(), payload)) {
+                logger::warn("Failed to queue settings save from JS listener");
+            }
+        });
     });
 
     prismaUI->RegisterJSListener(view, "onExportSettings", [](const char* data) -> void {
@@ -77,27 +98,35 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
             NotifyExportResult(false);
             return;
         }
-        const bool success = TulliusWidgets::NativeStorage::ExportPreset(ResolveStorageBasePath(), data);
-        NotifyExportResult(success);
+
+        std::string copiedPayload(payload);
+        DispatchToGameThread([copiedPayload = std::move(copiedPayload)]() {
+            const bool success = TulliusWidgets::NativeStorage::ExportPreset(ResolveStorageBasePath(), copiedPayload);
+            NotifyExportResult(success);
+        });
     });
 
     prismaUI->RegisterJSListener(view, "onImportSettings", [](const char*) -> void {
-        std::string json;
-        if (!TulliusWidgets::NativeStorage::LoadPreset(ResolveStorageBasePath(), json)) {
-            NotifyImportResult(false);
-            return;
-        }
+        DispatchToGameThread([]() {
+            std::string json;
+            if (!TulliusWidgets::NativeStorage::LoadPreset(ResolveStorageBasePath(), json)) {
+                NotifyImportResult(false);
+                return;
+            }
 
-        if (!TryImportSettingsToView(json)) {
-            NotifyImportResult(false);
-            return;
-        }
+            if (!TryImportSettingsToView(json)) {
+                NotifyImportResult(false);
+                return;
+            }
 
-        logger::info("Preset import payload sent");
+            logger::info("Preset import payload sent");
+        });
     });
 
     prismaUI->RegisterJSListener(view, "onRequestUnfocus", [](const char*) -> void {
-        UnfocusView();
+        DispatchToGameThread([]() {
+            UnfocusView();
+        });
     });
 }
 
