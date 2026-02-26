@@ -37,6 +37,9 @@ struct PluginState {
     std::chrono::steady_clock::time_point lastFastUpdateTime{};
     std::chrono::steady_clock::time_point lastFullUpdateTime{};
     std::mutex statsUpdateMutex;
+    std::mutex statsDispatchMutex;
+    std::atomic<bool> statsDispatchPending{false};
+    std::atomic<bool> statsDispatchForcePending{false};
 
     std::jthread heartbeatThread;
 };
@@ -246,6 +249,39 @@ static void SendStatsToView(bool force = false) {
     TryInteropCall("updateStats", stats.c_str());
 }
 
+static void RequestStatsDispatch(bool force = false) {
+    if (force) {
+        g.statsDispatchForcePending.store(true, std::memory_order_release);
+    }
+    g.statsDispatchPending.store(true, std::memory_order_release);
+
+    while (g.statsDispatchMutex.try_lock()) {
+        while (true) {
+            const bool shouldForce = g.statsDispatchForcePending.exchange(false, std::memory_order_acq_rel);
+            g.statsDispatchPending.store(false, std::memory_order_release);
+            SendStatsToView(shouldForce);
+
+            const bool hasPending = g.statsDispatchPending.exchange(false, std::memory_order_acq_rel);
+            const bool hasForcePending = g.statsDispatchForcePending.exchange(false, std::memory_order_acq_rel);
+            if (!hasPending && !hasForcePending) {
+                break;
+            }
+
+            g.statsDispatchPending.store(true, std::memory_order_release);
+            if (hasForcePending) {
+                g.statsDispatchForcePending.store(true, std::memory_order_release);
+            }
+        }
+
+        g.statsDispatchMutex.unlock();
+
+        if (!g.statsDispatchPending.load(std::memory_order_acquire)
+            && !g.statsDispatchForcePending.load(std::memory_order_acquire)) {
+            break;
+        }
+    }
+}
+
 static void ScheduleStatsUpdateAfter(std::chrono::milliseconds delay) {
     const auto targetMs = SteadyNowMs() + delay.count();
     auto dueMs = g.scheduledStatsDueMs.load(std::memory_order_acquire);
@@ -271,15 +307,17 @@ static void SetGameLoaded(bool loaded) {
     g.gameLoaded.store(loaded);
     if (!loaded) {
         g.scheduledStatsDueMs.store(0, std::memory_order_release);
+        g.statsDispatchPending.store(false, std::memory_order_release);
+        g.statsDispatchForcePending.store(false, std::memory_order_release);
     }
 }
 
 static void SendStatsToViewThrottled() {
-    SendStatsToView();
+    RequestStatsDispatch(false);
 }
 
 static void SendStatsToViewForced() {
-    SendStatsToView(true);
+    RequestStatsDispatch(true);
 }
 
 static void SetView(PrismaView newView) {
@@ -353,7 +391,7 @@ static void StartHeartbeat() {
                 if (!g.gameLoaded.load()) return;
 
                 if (heartbeatDue || scheduledDue) {
-                    SendStatsToView(true);
+                    RequestStatsDispatch(true);
                 }
             });
 

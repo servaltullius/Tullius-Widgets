@@ -8,6 +8,8 @@
 
 ```json
 {
+  "schemaVersion": 1,
+  "seq": 101,
   "resistances": {
     "magic": 85.0,
     "fire": 85.0,
@@ -104,6 +106,9 @@
 
 ### 핵심 규칙
 
+- `schemaVersion`과 `seq`는 선택적 메타 필드입니다.
+  - `schemaVersion`: payload 스키마 버전(현재 `1`)
+  - `seq`: 단조 증가 시퀀스 번호(역순/중복 payload 드롭에 사용 가능)
 - `resistances`, `offense.critChance`, `defense.damageReduction`는 **실효 표시값**입니다.
 - 원본 계산값은 `calcMeta.rawResistances`, `calcMeta.rawCritChance`, `calcMeta.rawDamageReduction`에 전달됩니다.
 - UI는 `calcMeta.caps` 기준으로 캡/보조 텍스트를 표시합니다.
@@ -146,3 +151,11 @@
 - 기존 키(`updateStats`, `updateSettings`)는 유지됩니다.
 - 신규 브릿지 네임스페이스(`window.TulliusWidgetsBridge.v1.*`)를 함께 제공합니다.
 - 신규 필드(`calcMeta`, `updateRuntimeStatus`)는 선택적 확장으로, 구버전 UI에서도 치명 오류 없이 무시 가능합니다.
+
+## 4) JS 콜백 (`invokeScript`)
+
+플러그인에서 UI로 결과를 통지할 때 다음 콜백을 사용할 수 있습니다.
+
+- `onExportResult(success: boolean)`
+- `onImportResult(success: boolean)`
+- `onSettingsSyncResult(success: boolean)`

@@ -35,6 +35,12 @@ void NotifyExportResult(bool success)
     (void)g_callbacks.invokeScript(success ? "onExportResult(true)" : "onExportResult(false)");
 }
 
+void NotifySettingsSyncResult(bool success)
+{
+    if (!g_callbacks.invokeScript) return;
+    (void)g_callbacks.invokeScript(success ? "onSettingsSyncResult(true)" : "onSettingsSyncResult(false)");
+}
+
 void NotifyImportResult(bool success)
 {
     if (!g_callbacks.invokeScript) return;
@@ -80,14 +86,17 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
         if (!data) return;
         const std::string_view payloadView(data);
         if (!IsPayloadWithinLimit(payloadView, "Settings update")) {
+            NotifySettingsSyncResult(false);
             return;
         }
 
         std::string payload(payloadView);
         DispatchToGameThread([payload = std::move(payload)]() {
-            if (!TulliusWidgets::NativeStorage::SaveSettingsAsync(ResolveStorageBasePath(), payload)) {
-                logger::warn("Failed to queue settings save from JS listener");
+            const bool success = TulliusWidgets::NativeStorage::SaveSettings(ResolveStorageBasePath(), payload);
+            if (!success) {
+                logger::warn("Failed to save settings from JS listener");
             }
+            NotifySettingsSyncResult(success);
         });
     });
 

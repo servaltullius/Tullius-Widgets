@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CombatStats, GameTimeInfo, TimedEffect } from '../types/stats';
 import { mockStats } from '../data/mockStats';
 import { isPlainObject, readBoolean, readNumber, readText } from '../utils/normalize';
+import { registerDualBridgeHandler } from '../utils/bridge';
 
 const isDev = !('sendDataToSKSE' in window);
 const SKYRIM_MONTH_NAMES = [
@@ -45,6 +46,13 @@ function sanitizeEffectText(value: string): string {
 
 function keySafeText(value: string): string {
   return encodeURIComponent(value);
+}
+
+function readSequence(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  const sequence = Math.trunc(value);
+  if (sequence < 0) return null;
+  return sequence;
 }
 
 function normalizeGameTime(value: unknown, fallback?: GameTimeInfo): GameTimeInfo {
@@ -306,6 +314,7 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
 export function useGameStatsState(): { stats: CombatStats; hasLiveStats: boolean } {
   const [stats, setStats] = useState<CombatStats>(mockStats);
   const [hasLiveStats, setHasLiveStats] = useState<boolean>(isDev);
+  const lastAppliedSequenceRef = useRef<number | null>(null);
 
   useEffect(() => {
     const updateStatsHandler = (jsonString: string) => {
@@ -317,6 +326,15 @@ export function useGameStatsState(): { stats: CombatStats; hasLiveStats: boolean
           return;
         }
 
+        const sequence = readSequence(parsed.seq);
+        if (sequence !== null) {
+          const lastAppliedSequence = lastAppliedSequenceRef.current;
+          if (lastAppliedSequence !== null && sequence <= lastAppliedSequence) {
+            return;
+          }
+          lastAppliedSequenceRef.current = sequence;
+        }
+
         setStats(prev => normalizeCombatStats(parsed, prev));
         setHasLiveStats(true);
       } catch (e) {
@@ -324,37 +342,14 @@ export function useGameStatsState(): { stats: CombatStats; hasLiveStats: boolean
       }
     };
 
-    let bridgeNamespace = window.TulliusWidgetsBridge;
-    if (!bridgeNamespace) {
-      bridgeNamespace = {};
-      window.TulliusWidgetsBridge = bridgeNamespace;
-    }
-
-    let bridgeV1 = bridgeNamespace.v1;
-    if (!bridgeV1) {
-      bridgeV1 = {};
-      bridgeNamespace.v1 = bridgeV1;
-    }
-    bridgeV1.updateStats = updateStatsHandler;
-    window.updateStats = updateStatsHandler;
+    const unregisterUpdateStats = registerDualBridgeHandler('updateStats', updateStatsHandler);
 
     if (isDev) {
       console.log('[TulliusWidgets] Dev mode - using mock stats');
     }
 
     return () => {
-      if (window.updateStats === updateStatsHandler) {
-        delete window.updateStats;
-      }
-      if (window.TulliusWidgetsBridge?.v1?.updateStats === updateStatsHandler) {
-        delete window.TulliusWidgetsBridge.v1.updateStats;
-      }
-      if (window.TulliusWidgetsBridge?.v1 && Object.keys(window.TulliusWidgetsBridge.v1).length === 0) {
-        delete window.TulliusWidgetsBridge.v1;
-      }
-      if (window.TulliusWidgetsBridge && Object.keys(window.TulliusWidgetsBridge).length === 0) {
-        delete window.TulliusWidgetsBridge;
-      }
+      unregisterUpdateStats();
     };
   }, []);
 

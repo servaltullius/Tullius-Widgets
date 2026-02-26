@@ -11,6 +11,9 @@ import type {
 import { defaultSettings } from '../data/defaultSettings';
 import type { RuntimeDiagnostics, RuntimeWarningCode } from '../types/runtime';
 import { isPlainObject, readBoolean, readNumber, readText } from '../utils/normalize';
+import { registerDualBridgeHandler } from '../utils/bridge';
+
+const SETTINGS_SCHEMA_VERSION = 1;
 
 function readEnum<T extends string>(value: unknown, fallback: T, allowed: readonly T[]): T {
   if (typeof value !== 'string') return fallback;
@@ -28,6 +31,43 @@ function readRuntimeWarningCode(value: unknown): RuntimeWarningCode {
     return value;
   }
   return 'none';
+}
+
+function readRevision(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  const revision = Math.trunc(value);
+  if (revision < 0) return null;
+  return revision;
+}
+
+function serializeSettingsPayload(settings: WidgetSettings, revision: number): string {
+  return JSON.stringify({
+    ...settings,
+    schemaVersion: SETTINGS_SCHEMA_VERSION,
+    rev: revision,
+  });
+}
+
+interface SettingsBridgeHandlers {
+  updateSettings: NonNullable<TulliusWidgetsBridgeV1['updateSettings']>;
+  updateRuntimeStatus: NonNullable<TulliusWidgetsBridgeV1['updateRuntimeStatus']>;
+  importSettingsFromNative: NonNullable<TulliusWidgetsBridgeV1['importSettingsFromNative']>;
+  toggleSettings: NonNullable<TulliusWidgetsBridgeV1['toggleSettings']>;
+  toggleWidgetsVisibility: NonNullable<TulliusWidgetsBridgeV1['toggleWidgetsVisibility']>;
+  closeSettings: NonNullable<TulliusWidgetsBridgeV1['closeSettings']>;
+  setHUDColor: NonNullable<TulliusWidgetsBridgeV1['setHUDColor']>;
+}
+
+function registerSettingsBridgeHandlers(handlers: SettingsBridgeHandlers): Array<() => void> {
+  return [
+    registerDualBridgeHandler('updateSettings', handlers.updateSettings),
+    registerDualBridgeHandler('updateRuntimeStatus', handlers.updateRuntimeStatus),
+    registerDualBridgeHandler('importSettingsFromNative', handlers.importSettingsFromNative),
+    registerDualBridgeHandler('toggleSettings', handlers.toggleSettings),
+    registerDualBridgeHandler('toggleWidgetsVisibility', handlers.toggleWidgetsVisibility),
+    registerDualBridgeHandler('closeSettings', handlers.closeSettings),
+    registerDualBridgeHandler('setHUDColor', handlers.setHUDColor),
+  ];
 }
 
 function mergeBooleanSection<T extends Record<string, boolean>>(defaults: T, incoming: unknown): T {
@@ -88,23 +128,73 @@ function cloneDefaultSettings(): WidgetSettings {
   return JSON.parse(JSON.stringify(defaultSettings)) as WidgetSettings;
 }
 
+function mergeGeneralSettings(target: WidgetSettings['general'], incoming: unknown): void {
+  if (!isPlainObject(incoming)) {
+    return;
+  }
+
+  target.visible = readBoolean(incoming.visible, target.visible);
+  target.combatOnly = readBoolean(incoming.combatOnly, target.combatOnly);
+  target.showOnChangeOnly = readBoolean(incoming.showOnChangeOnly, target.showOnChangeOnly);
+  target.changeDisplaySeconds = readNumber(incoming.changeDisplaySeconds, target.changeDisplaySeconds, 1, 15);
+  target.onboardingSeen = readBoolean(incoming.onboardingSeen, target.onboardingSeen);
+  target.opacity = readNumber(incoming.opacity, target.opacity, 10, 100);
+  target.size = readEnum<WidgetSize>(incoming.size, target.size, ['xsmall', 'small', 'medium', 'large']);
+  target.language = readEnum<Language>(incoming.language, target.language, ['ko', 'en']);
+  target.accentColor = readAccentColor(incoming.accentColor, target.accentColor);
+  target.transparentBg = readBoolean(incoming.transparentBg, target.transparentBg);
+}
+
+function migrateLegacyExperienceToggle(
+  experience: WidgetSettings['experience'],
+  experienceIncoming: unknown,
+  playerInfoIncoming: unknown,
+): void {
+  if (isPlainObject(experienceIncoming) || !isPlainObject(playerInfoIncoming)) {
+    return;
+  }
+
+  const legacyCurrent = playerInfoIncoming.experience;
+  const legacyToNext = playerInfoIncoming.expToNextLevel;
+  const hasLegacyXpToggle = typeof legacyCurrent === 'boolean' || typeof legacyToNext === 'boolean';
+  if (!hasLegacyXpToggle) {
+    return;
+  }
+
+  const currentEnabled = readBoolean(legacyCurrent, true);
+  const toNextEnabled = readBoolean(legacyToNext, true);
+  experience.enabled = currentEnabled || toNextEnabled;
+}
+
+function mergeTimedEffectsSettings(target: WidgetSettings['timedEffects'], incoming: unknown): void {
+  if (!isPlainObject(incoming)) {
+    return;
+  }
+
+  target.enabled = readBoolean(incoming.enabled, target.enabled);
+  target.maxVisible = readNumber(incoming.maxVisible, target.maxVisible, 1, 12);
+}
+
+function mergeVisualAlertsSettings(target: WidgetSettings['visualAlerts'], incoming: unknown): void {
+  if (!isPlainObject(incoming)) {
+    return;
+  }
+
+  target.enabled = readBoolean(incoming.enabled, target.enabled);
+  target.lowHealth = readBoolean(incoming.lowHealth, target.lowHealth);
+  target.lowHealthThreshold = readNumber(incoming.lowHealthThreshold, target.lowHealthThreshold, 10, 60);
+  target.lowStamina = readBoolean(incoming.lowStamina, target.lowStamina);
+  target.lowStaminaThreshold = readNumber(incoming.lowStaminaThreshold, target.lowStaminaThreshold, 10, 60);
+  target.lowMagicka = readBoolean(incoming.lowMagicka, target.lowMagicka);
+  target.lowMagickaThreshold = readNumber(incoming.lowMagickaThreshold, target.lowMagickaThreshold, 10, 60);
+  target.overencumbered = readBoolean(incoming.overencumbered, target.overencumbered);
+}
+
 // Deep merge with type guards: fill missing/invalid keys from defaults so bad JSON never crashes UI.
 function mergeWithDefaults(saved: Record<string, unknown>): WidgetSettings {
   const merged = cloneDefaultSettings();
 
-  const generalIncoming = saved.general;
-  if (isPlainObject(generalIncoming)) {
-    merged.general.visible = readBoolean(generalIncoming.visible, merged.general.visible);
-    merged.general.combatOnly = readBoolean(generalIncoming.combatOnly, merged.general.combatOnly);
-    merged.general.showOnChangeOnly = readBoolean(generalIncoming.showOnChangeOnly, merged.general.showOnChangeOnly);
-    merged.general.changeDisplaySeconds = readNumber(generalIncoming.changeDisplaySeconds, merged.general.changeDisplaySeconds, 1, 15);
-    merged.general.onboardingSeen = readBoolean(generalIncoming.onboardingSeen, merged.general.onboardingSeen);
-    merged.general.opacity = readNumber(generalIncoming.opacity, merged.general.opacity, 10, 100);
-    merged.general.size = readEnum<WidgetSize>(generalIncoming.size, merged.general.size, ['xsmall', 'small', 'medium', 'large']);
-    merged.general.language = readEnum<Language>(generalIncoming.language, merged.general.language, ['ko', 'en']);
-    merged.general.accentColor = readAccentColor(generalIncoming.accentColor, merged.general.accentColor);
-    merged.general.transparentBg = readBoolean(generalIncoming.transparentBg, merged.general.transparentBg);
-  }
+  mergeGeneralSettings(merged.general, saved.general);
 
   merged.resistances = mergeBooleanSection(merged.resistances, saved.resistances);
   merged.defense = mergeBooleanSection(merged.defense, saved.defense);
@@ -115,50 +205,9 @@ function mergeWithDefaults(saved: Record<string, unknown>): WidgetSettings {
   merged.experience = mergeBooleanSection(merged.experience, saved.experience);
   merged.playerInfo = mergeBooleanSection(merged.playerInfo, saved.playerInfo);
 
-  // Backward compatibility: migrate legacy playerInfo XP toggles to new experience widget toggle.
-  if (!isPlainObject(saved.experience) && isPlainObject(saved.playerInfo)) {
-    const legacyCurrent = saved.playerInfo.experience;
-    const legacyToNext = saved.playerInfo.expToNextLevel;
-    const hasLegacyXpToggle = typeof legacyCurrent === 'boolean' || typeof legacyToNext === 'boolean';
-    if (hasLegacyXpToggle) {
-      const currentEnabled = readBoolean(legacyCurrent, true);
-      const toNextEnabled = readBoolean(legacyToNext, true);
-      merged.experience.enabled = currentEnabled || toNextEnabled;
-    }
-  }
-
-  const timedEffectsIncoming = saved.timedEffects;
-  if (isPlainObject(timedEffectsIncoming)) {
-    merged.timedEffects.enabled = readBoolean(timedEffectsIncoming.enabled, merged.timedEffects.enabled);
-    merged.timedEffects.maxVisible = readNumber(timedEffectsIncoming.maxVisible, merged.timedEffects.maxVisible, 1, 12);
-  }
-
-  const alertsIncoming = saved.visualAlerts;
-  if (isPlainObject(alertsIncoming)) {
-    merged.visualAlerts.enabled = readBoolean(alertsIncoming.enabled, merged.visualAlerts.enabled);
-    merged.visualAlerts.lowHealth = readBoolean(alertsIncoming.lowHealth, merged.visualAlerts.lowHealth);
-    merged.visualAlerts.lowHealthThreshold = readNumber(
-      alertsIncoming.lowHealthThreshold,
-      merged.visualAlerts.lowHealthThreshold,
-      10,
-      60
-    );
-    merged.visualAlerts.lowStamina = readBoolean(alertsIncoming.lowStamina, merged.visualAlerts.lowStamina);
-    merged.visualAlerts.lowStaminaThreshold = readNumber(
-      alertsIncoming.lowStaminaThreshold,
-      merged.visualAlerts.lowStaminaThreshold,
-      10,
-      60
-    );
-    merged.visualAlerts.lowMagicka = readBoolean(alertsIncoming.lowMagicka, merged.visualAlerts.lowMagicka);
-    merged.visualAlerts.lowMagickaThreshold = readNumber(
-      alertsIncoming.lowMagickaThreshold,
-      merged.visualAlerts.lowMagickaThreshold,
-      10,
-      60
-    );
-    merged.visualAlerts.overencumbered = readBoolean(alertsIncoming.overencumbered, merged.visualAlerts.overencumbered);
-  }
+  migrateLegacyExperienceToggle(merged.experience, saved.experience, saved.playerInfo);
+  mergeTimedEffectsSettings(merged.timedEffects, saved.timedEffects);
+  mergeVisualAlertsSettings(merged.visualAlerts, saved.visualAlerts);
 
   merged.positions = sanitizePositions(saved.positions);
   merged.layouts = sanitizeLayouts(saved.layouts);
@@ -202,21 +251,71 @@ function updateValueByPath(current: WidgetSettings, path: string, value: unknown
   return updatedNode as unknown as WidgetSettings;
 }
 
+function warnFutureSettingsSchemaVersion(
+  parsed: Record<string, unknown>,
+  warnedFutureSettingsSchemaRef: { current: boolean },
+): void {
+  const schemaVersion = readRevision(parsed.schemaVersion);
+  if (
+    schemaVersion === null
+    || schemaVersion <= SETTINGS_SCHEMA_VERSION
+    || warnedFutureSettingsSchemaRef.current
+  ) {
+    return;
+  }
+
+  warnedFutureSettingsSchemaRef.current = true;
+  console.warn(
+    `[TulliusWidgets] Received settings schemaVersion ${schemaVersion}, but UI supports up to ${SETTINGS_SCHEMA_VERSION}. Falling back to tolerant parsing.`,
+  );
+}
+
+function acceptIncomingSettingsRevision(
+  parsed: Record<string, unknown>,
+  lastAppliedSettingsRevisionRef: { current: number | null },
+  settingsRevisionRef: { current: number },
+): boolean {
+  const incomingRevision = readRevision(parsed.rev);
+  if (incomingRevision === null) {
+    return true;
+  }
+
+  const lastAppliedRevision = lastAppliedSettingsRevisionRef.current;
+  if (lastAppliedRevision !== null && incomingRevision < lastAppliedRevision) {
+    return false;
+  }
+
+  lastAppliedSettingsRevisionRef.current = incomingRevision;
+  settingsRevisionRef.current = Math.max(settingsRevisionRef.current, incomingRevision);
+  return true;
+}
+
 export function useSettings() {
   const [settings, setSettings] = useState<WidgetSettings>(defaultSettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [hudColor, setHudColor] = useState('#ffffff');
   const [runtimeDiagnostics, setRuntimeDiagnostics] = useState<RuntimeDiagnostics | null>(null);
+  const [lastSettingsSyncOk, setLastSettingsSyncOk] = useState<boolean | null>(null);
   const [sessionVisibleOverride, setSessionVisibleOverride] = useState<boolean | null>(null);
   const debounceTimerRef = useRef<number | null>(null);
   const lastQueuedSettingsJsonRef = useRef('');
+  const settingsRevisionRef = useRef(0);
+  const lastAppliedSettingsRevisionRef = useRef<number | null>(null);
+  const warnedFutureSettingsSchemaRef = useRef(false);
   const settingsRef = useRef(settings);
 
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
 
-  const notifySettingsChanged = useCallback((json: string) => {
+  const notifySettingsChanged = useCallback((nextSettings: WidgetSettings, explicitRevision?: number) => {
+    const nextRevision = explicitRevision !== undefined
+      ? explicitRevision
+      : settingsRevisionRef.current + 1;
+    settingsRevisionRef.current = Math.max(settingsRevisionRef.current, nextRevision);
+
+    const json = serializeSettingsPayload(nextSettings, settingsRevisionRef.current);
+
     if (json === lastQueuedSettingsJsonRef.current) {
       return;
     }
@@ -238,14 +337,20 @@ export function useSettings() {
         console.error('Failed to apply settings: payload is not an object');
         return false;
       }
+
+      warnFutureSettingsSchemaVersion(parsed, warnedFutureSettingsSchemaRef);
+      if (!acceptIncomingSettingsRevision(parsed, lastAppliedSettingsRevisionRef, settingsRevisionRef)) {
+        return true;
+      }
+
       const merged = mergeWithDefaults(parsed);
-      const mergedJson = JSON.stringify(merged);
       setSettings(merged);
       setSessionVisibleOverride(null);
+
       if (persist) {
-        notifySettingsChanged(mergedJson);
+        notifySettingsChanged(merged);
       } else {
-        lastQueuedSettingsJsonRef.current = mergedJson;
+        lastQueuedSettingsJsonRef.current = serializeSettingsPayload(merged, settingsRevisionRef.current);
       }
       return true;
     } catch (e) {
@@ -255,18 +360,6 @@ export function useSettings() {
   }, [notifySettingsChanged]);
 
   useEffect(() => {
-    let bridgeNamespace = window.TulliusWidgetsBridge;
-    if (!bridgeNamespace) {
-      bridgeNamespace = {};
-      window.TulliusWidgetsBridge = bridgeNamespace;
-    }
-
-    let bridgeV1 = bridgeNamespace.v1;
-    if (!bridgeV1) {
-      bridgeV1 = {};
-      bridgeNamespace.v1 = bridgeV1;
-    }
-
     const updateSettingsHandler = (jsonString: string) => {
       applyIncomingSettings(jsonString, false);
     };
@@ -303,42 +396,32 @@ export function useSettings() {
       setHudColor(hex);
     };
 
-    bridgeV1.updateSettings = updateSettingsHandler;
-    bridgeV1.updateRuntimeStatus = updateRuntimeStatusHandler;
-    bridgeV1.importSettingsFromNative = importSettingsFromNativeHandler;
-    bridgeV1.toggleSettings = toggleSettingsHandler;
-    bridgeV1.toggleWidgetsVisibility = toggleWidgetsVisibilityHandler;
-    bridgeV1.closeSettings = closeSettingsHandler;
-    bridgeV1.setHUDColor = setHUDColorHandler;
-    window.updateSettings = updateSettingsHandler;
-    window.updateRuntimeStatus = updateRuntimeStatusHandler;
-    window.importSettingsFromNative = importSettingsFromNativeHandler;
-    window.toggleSettings = toggleSettingsHandler;
-    window.toggleWidgetsVisibility = toggleWidgetsVisibilityHandler;
-    window.closeSettings = closeSettingsHandler;
-    window.setHUDColor = setHUDColorHandler;
+    const settingsSyncResultHandler = (success: boolean) => {
+      setLastSettingsSyncOk(success);
+      if (!success) {
+        console.error('Settings save failed in native layer');
+      }
+    };
+
+    const unregisterBridgeHandlers = registerSettingsBridgeHandlers({
+      updateSettings: updateSettingsHandler,
+      updateRuntimeStatus: updateRuntimeStatusHandler,
+      importSettingsFromNative: importSettingsFromNativeHandler,
+      toggleSettings: toggleSettingsHandler,
+      toggleWidgetsVisibility: toggleWidgetsVisibilityHandler,
+      closeSettings: closeSettingsHandler,
+      setHUDColor: setHUDColorHandler,
+    });
+
+    window.onSettingsSyncResult = settingsSyncResultHandler;
 
     return () => {
-      if (window.updateSettings === updateSettingsHandler) delete window.updateSettings;
-      if (window.updateRuntimeStatus === updateRuntimeStatusHandler) delete window.updateRuntimeStatus;
-      if (window.importSettingsFromNative === importSettingsFromNativeHandler) delete window.importSettingsFromNative;
-      if (window.toggleSettings === toggleSettingsHandler) delete window.toggleSettings;
-      if (window.toggleWidgetsVisibility === toggleWidgetsVisibilityHandler) delete window.toggleWidgetsVisibility;
-      if (window.closeSettings === closeSettingsHandler) delete window.closeSettings;
-      if (window.setHUDColor === setHUDColorHandler) delete window.setHUDColor;
-
-      if (window.TulliusWidgetsBridge?.v1?.updateSettings === updateSettingsHandler) delete window.TulliusWidgetsBridge.v1.updateSettings;
-      if (window.TulliusWidgetsBridge?.v1?.updateRuntimeStatus === updateRuntimeStatusHandler) delete window.TulliusWidgetsBridge.v1.updateRuntimeStatus;
-      if (window.TulliusWidgetsBridge?.v1?.importSettingsFromNative === importSettingsFromNativeHandler) delete window.TulliusWidgetsBridge.v1.importSettingsFromNative;
-      if (window.TulliusWidgetsBridge?.v1?.toggleSettings === toggleSettingsHandler) delete window.TulliusWidgetsBridge.v1.toggleSettings;
-      if (window.TulliusWidgetsBridge?.v1?.toggleWidgetsVisibility === toggleWidgetsVisibilityHandler) delete window.TulliusWidgetsBridge.v1.toggleWidgetsVisibility;
-      if (window.TulliusWidgetsBridge?.v1?.closeSettings === closeSettingsHandler) delete window.TulliusWidgetsBridge.v1.closeSettings;
-      if (window.TulliusWidgetsBridge?.v1?.setHUDColor === setHUDColorHandler) delete window.TulliusWidgetsBridge.v1.setHUDColor;
-      if (window.TulliusWidgetsBridge?.v1 && Object.keys(window.TulliusWidgetsBridge.v1).length === 0) {
-        delete window.TulliusWidgetsBridge.v1;
+      for (const unregister of unregisterBridgeHandlers) {
+        unregister();
       }
-      if (window.TulliusWidgetsBridge && Object.keys(window.TulliusWidgetsBridge).length === 0) {
-        delete window.TulliusWidgetsBridge;
+
+      if (window.onSettingsSyncResult === settingsSyncResultHandler) {
+        delete window.onSettingsSyncResult;
       }
 
       if (debounceTimerRef.current !== null) {
@@ -371,7 +454,7 @@ export function useSettings() {
       }
 
       if (options?.persist !== false) {
-        notifySettingsChanged(JSON.stringify(next));
+        notifySettingsChanged(next);
       }
 
       return next;
@@ -399,5 +482,6 @@ export function useSettings() {
     accentColor,
     hudColor,
     runtimeDiagnostics,
+    lastSettingsSyncOk,
   };
 }

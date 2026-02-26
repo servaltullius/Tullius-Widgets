@@ -4,6 +4,7 @@
 #include "ResistanceEvaluator.h"
 #include "RE/C/Calendar.h"
 #include <algorithm>
+#include <atomic>
 #include <cstdint>
 #include <cmath>
 #include <cstdio>
@@ -23,6 +24,8 @@ static constexpr float kCritChanceCap = 100.0f;
 static constexpr float kDamageReductionCap = 80.0f;
 static constexpr float kArmorRatingMultiplier = 0.12f;
 static constexpr float kArmorRatingForMaxReduction = 666.67f;
+static constexpr std::uint32_t kStatsSchemaVersion = 1;
+std::atomic<std::uint32_t> gStatsPayloadSequence{0};
 
 static RE::TESForm* getEquippedForm(RE::PlayerCharacter* player, bool leftHand) {
     if (!player) return nullptr;
@@ -461,6 +464,12 @@ std::string StatsCollector::CollectStats(StatsPayloadMode mode) {
     std::string json;
     json.reserve(4096);
     json += '{';
+    json += "\"schemaVersion\":";
+    appendUInt(json, kStatsSchemaVersion);
+    json += ',';
+    json += "\"seq\":";
+    appendUInt(json, gStatsPayloadSequence.fetch_add(1, std::memory_order_relaxed) + 1);
+    json += ',';
 
     json += "\"resistances\":{";
     json += "\"magic\":"; appendFloat(json, resistMagic.effective); json += ',';

@@ -30,6 +30,7 @@ declare global {
     setHUDColor?: (hex: string) => void;
 
     onSettingsChanged?: (jsonString: string) => void;
+    onSettingsSyncResult?: (success: boolean) => void;
     onExportSettings?: (jsonString: string) => void;
     onImportSettings?: (argument: string) => void;
     onRequestUnfocus?: (argument: string) => void;

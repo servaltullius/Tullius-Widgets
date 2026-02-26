@@ -91,6 +91,32 @@ describe('useGameStats', () => {
     expect(latest!.playerInfo.level).toBe(77);
   });
 
+  it('ignores out-of-order stats payload by sequence number', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onStats={stats => { latest = stats; }} />);
+    });
+
+    await act(async () => {
+      window.updateStats?.(JSON.stringify({
+        schemaVersion: 1,
+        seq: 10,
+        playerInfo: { level: 50 },
+      }));
+    });
+
+    await act(async () => {
+      window.updateStats?.(JSON.stringify({
+        schemaVersion: 1,
+        seq: 8,
+        playerInfo: { level: 1 },
+      }));
+    });
+
+    expect(latest).not.toBeNull();
+    expect(latest!.playerInfo.level).toBe(50);
+  });
+
   it('keeps previous timed effects when fast payload omits timedEffects', async () => {
     await act(async () => {
       root = createRoot(container);

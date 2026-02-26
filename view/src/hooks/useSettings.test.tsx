@@ -14,6 +14,14 @@ function Harness({ onSettings }: { onSettings: (settings: WidgetSettings) => voi
   return null;
 }
 
+function SyncResultHarness({ onSync }: { onSync: (result: boolean | null) => void }) {
+  const { lastSettingsSyncOk } = useSettings();
+  useEffect(() => {
+    onSync(lastSettingsSyncOk);
+  }, [lastSettingsSyncOk, onSync]);
+  return null;
+}
+
 describe('useSettings', () => {
   let container: HTMLDivElement;
   let root: Root | null = null;
@@ -41,6 +49,8 @@ describe('useSettings', () => {
     delete window.toggleWidgetsVisibility;
     delete window.closeSettings;
     delete window.setHUDColor;
+    delete window.onSettingsSyncResult;
+    delete window.onImportResult;
     delete window.TulliusWidgetsBridge;
   });
 
@@ -78,5 +88,64 @@ describe('useSettings', () => {
 
     expect(latest).not.toBeNull();
     expect(latest!.general.opacity).toBe(55);
+  });
+
+  it('ignores stale settings payload revision', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onSettings={settings => { latest = settings; }} />);
+    });
+
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({
+        schemaVersion: 1,
+        rev: 5,
+        general: { opacity: 77 },
+      }));
+    });
+
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({
+        schemaVersion: 1,
+        rev: 3,
+        general: { opacity: 22 },
+      }));
+    });
+
+    expect(latest).not.toBeNull();
+    expect(latest!.general.opacity).toBe(77);
+  });
+
+  it('exposes native settings sync result callback', async () => {
+    let syncResult: boolean | null = null;
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<SyncResultHarness onSync={result => { syncResult = result; }} />);
+    });
+
+    expect(typeof window.onSettingsSyncResult).toBe('function');
+
+    await act(async () => {
+      window.onSettingsSyncResult?.(false);
+    });
+
+    expect(syncResult).toBe(false);
+  });
+
+  it('returns import failure for invalid non-object payload', async () => {
+    const onImportResult = vi.fn();
+    window.onImportResult = onImportResult;
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onSettings={settings => { latest = settings; }} />);
+    });
+
+    await act(async () => {
+      window.importSettingsFromNative?.('[]');
+    });
+
+    expect(onImportResult).toHaveBeenCalledWith(false);
   });
 });
