@@ -11,6 +11,29 @@ interface UseWidgetPositionsParams {
   fallbackPos: GroupPosition;
 }
 
+interface ComputeSnappedPositionParams {
+  positions: Record<string, GroupPosition>;
+  settingsPositions: Record<string, GroupPosition>;
+  defaults: Record<string, GroupPosition>;
+  fallbackPos: GroupPosition;
+  groupIds: readonly string[];
+  snapThreshold: number;
+  grid: number;
+  groupId: string;
+  rawX: number;
+  rawY: number;
+}
+
+function resolvePositionById(
+  positions: Record<string, GroupPosition>,
+  settingsPositions: Record<string, GroupPosition>,
+  defaults: Record<string, GroupPosition>,
+  fallbackPos: GroupPosition,
+  id: string,
+): GroupPosition {
+  return positions[id] ?? settingsPositions[id] ?? defaults[id] ?? fallbackPos;
+}
+
 function snapPosition(
   groupIds: readonly string[],
   snapThreshold: number,
@@ -44,6 +67,24 @@ function snapPosition(
   return { x, y };
 }
 
+function computeSnappedPosition({
+  positions,
+  settingsPositions,
+  defaults,
+  fallbackPos,
+  groupIds,
+  snapThreshold,
+  grid,
+  groupId,
+  rawX,
+  rawY,
+}: ComputeSnappedPositionParams): GroupPosition {
+  const getPositionById = (id: string): GroupPosition =>
+    resolvePositionById(positions, settingsPositions, defaults, fallbackPos, id);
+
+  return snapPosition(groupIds, snapThreshold, grid, groupId, rawX, rawY, getPositionById);
+}
+
 export function useWidgetPositions({
   defaults,
   settingsPositions,
@@ -56,23 +97,41 @@ export function useWidgetPositions({
   const [dragPositions, setDragPositions] = useState<Record<string, GroupPosition>>({});
 
   const resolvePosition = useCallback((groupId: string): GroupPosition => {
-    return dragPositions[groupId] ?? settingsPositions[groupId] ?? defaults[groupId] ?? fallbackPos;
+    return resolvePositionById(dragPositions, settingsPositions, defaults, fallbackPos, groupId);
   }, [defaults, dragPositions, fallbackPos, settingsPositions]);
 
   const handleGroupMove = useCallback((groupId: string, rawX: number, rawY: number) => {
     setDragPositions(previous => {
-      const getPositionById = (id: string): GroupPosition =>
-        previous[id] ?? settingsPositions[id] ?? defaults[id] ?? fallbackPos;
-      const snapped = snapPosition(groupIds, snapThreshold, grid, groupId, rawX, rawY, getPositionById);
+      const snapped = computeSnappedPosition({
+        positions: previous,
+        settingsPositions,
+        defaults,
+        fallbackPos,
+        groupIds,
+        snapThreshold,
+        grid,
+        groupId,
+        rawX,
+        rawY,
+      });
       return { ...previous, [groupId]: snapped };
     });
   }, [defaults, fallbackPos, grid, groupIds, settingsPositions, snapThreshold]);
 
   const handleGroupMoveEnd = useCallback((groupId: string, rawX: number, rawY: number) => {
     setDragPositions(previous => {
-      const getPositionById = (id: string): GroupPosition =>
-        previous[id] ?? settingsPositions[id] ?? defaults[id] ?? fallbackPos;
-      const snapped = snapPosition(groupIds, snapThreshold, grid, groupId, rawX, rawY, getPositionById);
+      const snapped = computeSnappedPosition({
+        positions: previous,
+        settingsPositions,
+        defaults,
+        fallbackPos,
+        groupIds,
+        snapThreshold,
+        grid,
+        groupId,
+        rawX,
+        rawY,
+      });
       updateSetting(`positions.${groupId}`, snapped);
       const next = { ...previous };
       delete next[groupId];
