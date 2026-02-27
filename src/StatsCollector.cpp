@@ -346,95 +346,6 @@ float StatsCollector::CalculateDamageReduction(float armorRating) {
     return (std::min)(reduction, kDamageReductionCap);
 }
 
-// Damage perks: each rank adds +20% weapon damage
-// Armsman (One-Handed)
-static constexpr RE::FormID kArmsman1  = 0x000BABE4;
-static constexpr RE::FormID kArmsman2  = 0x00079343;
-static constexpr RE::FormID kArmsman3  = 0x00079342;
-static constexpr RE::FormID kArmsman4  = 0x00079344;
-static constexpr RE::FormID kArmsman5  = 0x000BABE5;
-// Barbarian (Two-Handed)
-static constexpr RE::FormID kBarbarian1 = 0x000BABE8;
-static constexpr RE::FormID kBarbarian2 = 0x00079346;
-static constexpr RE::FormID kBarbarian3 = 0x00079347;
-static constexpr RE::FormID kBarbarian4 = 0x00079348;
-static constexpr RE::FormID kBarbarian5 = 0x00079349;
-// Overdraw (Archery)
-static constexpr RE::FormID kOverdraw1 = 0x000BABED;
-static constexpr RE::FormID kOverdraw2 = 0x0007934A;
-static constexpr RE::FormID kOverdraw3 = 0x0007934B;
-static constexpr RE::FormID kOverdraw4 = 0x0007934D;
-static constexpr RE::FormID kOverdraw5 = 0x00079354;
-
-static bool HasPerk(RE::PlayerCharacter* player, RE::FormID formID) {
-    auto perk = RE::TESForm::LookupByID<RE::BGSPerk>(formID);
-    return perk && player->HasPerk(perk);
-}
-
-// Get damage perk multiplier for weapon type: 0.2 per rank (Armsman/Barbarian/Overdraw)
-static float GetDamagePerkMult(RE::PlayerCharacter* player, RE::WEAPON_TYPE type) {
-    const RE::FormID* perks = nullptr;
-    // Armsman covers all one-handed types, Barbarian all two-handed
-    static constexpr RE::FormID oneHand[5] = { kArmsman5, kArmsman4, kArmsman3, kArmsman2, kArmsman1 };
-    static constexpr RE::FormID twoHand[5] = { kBarbarian5, kBarbarian4, kBarbarian3, kBarbarian2, kBarbarian1 };
-    static constexpr RE::FormID archery[5] = { kOverdraw5, kOverdraw4, kOverdraw3, kOverdraw2, kOverdraw1 };
-
-    switch (type) {
-    case RE::WEAPON_TYPE::kOneHandSword:
-    case RE::WEAPON_TYPE::kOneHandDagger:
-    case RE::WEAPON_TYPE::kOneHandAxe:
-    case RE::WEAPON_TYPE::kOneHandMace:
-        perks = oneHand; break;
-    case RE::WEAPON_TYPE::kTwoHandSword:
-    case RE::WEAPON_TYPE::kTwoHandAxe:
-        perks = twoHand; break;
-    case RE::WEAPON_TYPE::kBow:
-    case RE::WEAPON_TYPE::kCrossbow:
-        perks = archery; break;
-    default:
-        return 0.0f;
-    }
-
-    // Check from highest rank (5) to lowest (1)
-    static constexpr float mults[5] = { 1.0f, 0.8f, 0.6f, 0.4f, 0.2f };
-    for (int i = 0; i < 5; ++i) {
-        if (HasPerk(player, perks[i])) return mults[i];
-    }
-    return 0.0f;
-}
-
-// Get weapon skill AV for a weapon type
-static RE::ActorValue GetWeaponSkillAV(RE::WEAPON_TYPE type) {
-    switch (type) {
-    case RE::WEAPON_TYPE::kOneHandSword:
-    case RE::WEAPON_TYPE::kOneHandDagger:
-    case RE::WEAPON_TYPE::kOneHandAxe:
-    case RE::WEAPON_TYPE::kOneHandMace:
-        return RE::ActorValue::kOneHanded;
-    case RE::WEAPON_TYPE::kTwoHandSword:
-    case RE::WEAPON_TYPE::kTwoHandAxe:
-        return RE::ActorValue::kTwoHanded;
-    case RE::WEAPON_TYPE::kBow:
-    case RE::WEAPON_TYPE::kCrossbow:
-        return RE::ActorValue::kArchery;
-    default:
-        return RE::ActorValue::kOneHanded;
-    }
-}
-
-// Displayed damage ≈ baseDmg × (1 + skill/200) × (1 + 0.2×perkRank)
-// Note: smithing tempering and Fortify enchantments not included
-static float CalcDisplayedDamage(RE::PlayerCharacter* player, RE::TESObjectWEAP* weapon) {
-    float baseDmg = static_cast<float>(weapon->GetAttackDamage());
-    auto type = weapon->GetWeaponType();
-
-    float skill = player->AsActorValueOwner()->GetBaseActorValue(GetWeaponSkillAV(type));
-    float skillMult = 1.0f + skill / 200.0f;
-    float perkMult = 1.0f + GetDamagePerkMult(player, type);
-
-    return baseDmg * skillMult * perkMult;
-}
-
 int32_t StatsCollector::GetGoldCount() {
     auto player = RE::PlayerCharacter::GetSingleton();
     if (!player) return 0;
@@ -443,7 +354,7 @@ int32_t StatsCollector::GetGoldCount() {
     return player->GetItemCount(gold);
 }
 
-std::string StatsCollector::CollectStats(StatsPayloadMode mode) {
+std::string StatsCollector::CollectStats() {
     auto player = RE::PlayerCharacter::GetSingleton();
     if (!player) return "{}";
 
@@ -487,19 +398,15 @@ std::string StatsCollector::CollectStats(StatsPayloadMode mode) {
 
     float rightDmg = 0.0f;
     float leftDmg = 0.0f;
-    auto rightHand = getEquippedForm(player, false);
-    auto leftHand = getEquippedForm(player, true);
 
-    if (rightHand) {
-        auto weapon = rightHand->As<RE::TESObjectWEAP>();
-        if (weapon) {
-            rightDmg = CalcDisplayedDamage(player, weapon);
+    if (auto* entry = player->GetEquippedEntryData(false)) {
+        if (entry->object && entry->object->As<RE::TESObjectWEAP>()) {
+            rightDmg = player->GetDamage(entry);
         }
     }
-    if (leftHand) {
-        auto weapon = leftHand->As<RE::TESObjectWEAP>();
-        if (weapon) {
-            leftDmg = CalcDisplayedDamage(player, weapon);
+    if (auto* entry = player->GetEquippedEntryData(true)) {
+        if (entry->object && entry->object->As<RE::TESObjectWEAP>()) {
+            leftDmg = player->GetDamage(entry);
         }
     }
     rightDmg = std::clamp(rightDmg, kDisplayedDamageMin, kDisplayedDamageMax);
@@ -619,28 +526,26 @@ std::string StatsCollector::CollectStats(StatsPayloadMode mode) {
     json += "\"carryPct\":"; appendFloat(json, carryPct);
     json += "},";
 
-    if (mode == StatsPayloadMode::kFull) {
-        const auto timedEffects = collectTimedEffects(player);
-        json += "\"timedEffects\":[";
-        for (std::size_t i = 0; i < timedEffects.size(); ++i) {
-            const auto& effect = timedEffects[i];
-            json += '{';
-            json += "\"instanceId\":"; appendInt(json, effect.instanceId); json += ',';
-            json += "\"sourceName\":"; appendEscapedString(json, effect.sourceName); json += ',';
-            json += "\"effectName\":"; appendEscapedString(json, effect.effectName); json += ',';
-            json += "\"remainingSec\":"; appendInt(json, effect.remainingSec); json += ',';
-            json += "\"totalSec\":"; appendInt(json, effect.totalSec); json += ',';
-            json += "\"isDebuff\":"; appendBool(json, effect.isDebuff); json += ',';
-            json += "\"sourceFormId\":"; appendUInt(json, effect.sourceFormId); json += ',';
-            json += "\"effectFormId\":"; appendUInt(json, effect.effectFormId); json += ',';
-            json += "\"spellFormId\":"; appendUInt(json, effect.spellFormId);
-            json += '}';
-            if (i + 1 < timedEffects.size()) {
-                json += ',';
-            }
+    const auto timedEffects = collectTimedEffects(player);
+    json += "\"timedEffects\":[";
+    for (std::size_t i = 0; i < timedEffects.size(); ++i) {
+        const auto& effect = timedEffects[i];
+        json += '{';
+        json += "\"instanceId\":"; appendInt(json, effect.instanceId); json += ',';
+        json += "\"sourceName\":"; appendEscapedString(json, effect.sourceName); json += ',';
+        json += "\"effectName\":"; appendEscapedString(json, effect.effectName); json += ',';
+        json += "\"remainingSec\":"; appendInt(json, effect.remainingSec); json += ',';
+        json += "\"totalSec\":"; appendInt(json, effect.totalSec); json += ',';
+        json += "\"isDebuff\":"; appendBool(json, effect.isDebuff); json += ',';
+        json += "\"sourceFormId\":"; appendUInt(json, effect.sourceFormId); json += ',';
+        json += "\"effectFormId\":"; appendUInt(json, effect.effectFormId); json += ',';
+        json += "\"spellFormId\":"; appendUInt(json, effect.spellFormId);
+        json += '}';
+        if (i + 1 < timedEffects.size()) {
+            json += ',';
         }
-        json += "],";
     }
+    json += "],";
 
     json += "\"isInCombat\":"; appendBool(json, inCombat);
 

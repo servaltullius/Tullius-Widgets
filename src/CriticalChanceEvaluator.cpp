@@ -64,17 +64,14 @@ CritChanceEvaluation CriticalChanceEvaluator::Evaluate(RE::PlayerCharacter* play
     }
 
     auto* target = SelectCurrentTarget(player);
+    RE::Actor* evalTarget = target ? target : static_cast<RE::Actor*>(player);
 
-    // Some perk conditions dereference the combat target; skip entry point evaluation
-    // when there is no target to avoid potential null-dereference in game code.
-    if (target) {
-        RE::BGSEntryPoint::HandleEntryPoint(
-            RE::BGSEntryPoint::ENTRY_POINT::kCalculateMyCriticalHitChance,
-            player,
-            weapon,
-            target,
-            std::addressof(critChance));
-    }
+    RE::BGSEntryPoint::HandleEntryPoint(
+        RE::BGSEntryPoint::ENTRY_POINT::kCalculateMyCriticalHitChance,
+        player,
+        weapon,
+        evalTarget,
+        std::addressof(critChance));
 
     const float effective = std::clamp(critChance, kCritChanceMin, kCritChanceCap);
     return CritChanceEvaluation{

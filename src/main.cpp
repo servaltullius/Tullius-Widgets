@@ -20,8 +20,6 @@ namespace {
 // Compile-time throttle intervals
 constexpr auto kFastIntervalCombat = std::chrono::milliseconds(100);
 constexpr auto kFastIntervalIdle   = std::chrono::milliseconds(500);
-constexpr auto kFullIntervalCombat = std::chrono::milliseconds(300);
-constexpr auto kFullIntervalIdle   = std::chrono::milliseconds(1000);
 constexpr auto kHeartbeatInterval  = std::chrono::seconds(2);
 constexpr auto kHeartbeatPoll      = std::chrono::milliseconds(100);
 constexpr auto kPausedRetryDelay   = std::chrono::milliseconds(100);
@@ -35,7 +33,6 @@ struct PluginState {
     TulliusWidgets::RuntimeDiagnostics::State runtimeDiagnostics{};
 
     std::chrono::steady_clock::time_point lastFastUpdateTime{};
-    std::chrono::steady_clock::time_point lastFullUpdateTime{};
     std::mutex statsUpdateMutex;
     std::mutex statsDispatchMutex;
     std::atomic<bool> statsDispatchPending{false};
@@ -169,8 +166,7 @@ static void SendRuntimeDiagnosticsToView() {
 
 enum class StatsDispatchMode {
     kSkip,
-    kFast,
-    kFull
+    kReady
 };
 
 static std::int64_t SteadyNowMs() {
@@ -201,29 +197,18 @@ static StatsDispatchMode SelectStatsDispatchMode(bool force) {
     if (force) {
         std::scoped_lock lock(g.statsUpdateMutex);
         g.lastFastUpdateTime = now;
-        g.lastFullUpdateTime = now;
-        return StatsDispatchMode::kFull;
+        return StatsDispatchMode::kReady;
     }
 
     const auto* player = RE::PlayerCharacter::GetSingleton();
     const bool inCombat = player && player->IsInCombat();
-    const auto fastInterval = inCombat ? kFastIntervalCombat : kFastIntervalIdle;
-    const auto fullInterval = inCombat ? kFullIntervalCombat : kFullIntervalIdle;
+    const auto interval = inCombat ? kFastIntervalCombat : kFastIntervalIdle;
 
     std::scoped_lock lock(g.statsUpdateMutex);
-    const bool fullDue = now - g.lastFullUpdateTime >= fullInterval;
-    const bool fastDue = now - g.lastFastUpdateTime >= fastInterval;
-
-    if (!fullDue && !fastDue) return StatsDispatchMode::kSkip;
-
-    if (fullDue) {
-        g.lastFastUpdateTime = now;
-        g.lastFullUpdateTime = now;
-        return StatsDispatchMode::kFull;
-    }
+    if (now - g.lastFastUpdateTime < interval) return StatsDispatchMode::kSkip;
 
     g.lastFastUpdateTime = now;
-    return StatsDispatchMode::kFast;
+    return StatsDispatchMode::kReady;
 }
 
 static void SendStatsToView(bool force = false) {
@@ -242,10 +227,7 @@ static void SendStatsToView(bool force = false) {
     const auto dispatchMode = SelectStatsDispatchMode(force);
     if (dispatchMode == StatsDispatchMode::kSkip) return;
 
-    const auto payloadMode = (dispatchMode == StatsDispatchMode::kFull)
-        ? TulliusWidgets::StatsPayloadMode::kFull
-        : TulliusWidgets::StatsPayloadMode::kFast;
-    std::string stats = TulliusWidgets::StatsCollector::CollectStats(payloadMode);
+    std::string stats = TulliusWidgets::StatsCollector::CollectStats();
     TryInteropCall("updateStats", stats.c_str());
 }
 
