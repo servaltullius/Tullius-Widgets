@@ -27,6 +27,30 @@ static constexpr float kArmorRatingForMaxReduction = 666.67f;
 static constexpr std::uint32_t kStatsSchemaVersion = 1;
 std::atomic<std::uint32_t> gStatsPayloadSequence{0};
 
+// Level-up XP correction: game engine may not reset xp/levelThreshold immediately
+// after AdvanceLevel(). Track level changes and compute correct values until the
+// game data refreshes.
+struct LevelUpXpCorrection {
+    std::int32_t lastLevel{0};
+    float staleXp{-1.0f};           // rawXp snapshot when staleness detected (-1 = inactive)
+    float staleThreshold{-1.0f};
+    float correctedXp{0.0f};
+    float correctedThreshold{0.0f};
+};
+static LevelUpXpCorrection s_levelUpXp;
+
+static float ComputeLevelThreshold(std::int32_t level) {
+    // Skyrim formula: fXPLevelUpBase + fXPLevelUpMult * level
+    float base = 75.0f;
+    float mult = 25.0f;
+    auto* gs = RE::GameSettingCollection::GetSingleton();
+    if (gs) {
+        if (auto* s = gs->GetSetting("fXPLevelUpBase")) base = s->data.f;
+        if (auto* s = gs->GetSetting("fXPLevelUpMult")) mult = s->data.f;
+    }
+    return base + mult * static_cast<float>(level);
+}
+
 static RE::TESForm* getEquippedForm(RE::PlayerCharacter* player, bool leftHand) {
     if (!player) return nullptr;
 
@@ -486,6 +510,7 @@ std::string StatsCollector::CollectStats() {
     float experience = 0.0f;
     float expToNextLevel = 0.0f;
     float nextLevelTotalXp = 0.0f;
+    const std::int32_t currentLevel = static_cast<std::int32_t>(player->GetLevel());
 
     auto& infoRuntime = player->GetInfoRuntimeData();
     if (infoRuntime.skills && infoRuntime.skills->data) {
@@ -495,7 +520,36 @@ std::string StatsCollector::CollectStats() {
         const float safeThreshold = std::isfinite(rawThreshold) ? rawThreshold : experience;
         nextLevelTotalXp = (std::max)(safeThreshold, experience);
         expToNextLevel = (std::max)(safeThreshold - experience, 0.0f);
+
+        // --- Level-up XP correction ---
+        // 1. Clear correction once game data refreshes (raw values changed)
+        if (s_levelUpXp.staleXp >= 0.0f) {
+            if (rawXp != s_levelUpXp.staleXp || rawThreshold != s_levelUpXp.staleThreshold) {
+                s_levelUpXp.staleXp = -1.0f;
+            }
+        }
+
+        // 2. Detect level-up with stale XP (xp >= threshold after level increase)
+        if (s_levelUpXp.lastLevel > 0 &&
+            currentLevel > s_levelUpXp.lastLevel &&
+            rawXp >= rawThreshold && rawThreshold > 0.0f) {
+            s_levelUpXp.staleXp = rawXp;
+            s_levelUpXp.staleThreshold = rawThreshold;
+            s_levelUpXp.correctedXp = (std::max)(rawXp - rawThreshold, 0.0f);
+            s_levelUpXp.correctedThreshold = ComputeLevelThreshold(currentLevel);
+        }
+
+        // 3. Update tracked level
+        s_levelUpXp.lastLevel = currentLevel;
+
+        // 4. Apply correction if active
+        if (s_levelUpXp.staleXp >= 0.0f) {
+            experience = s_levelUpXp.correctedXp;
+            nextLevelTotalXp = s_levelUpXp.correctedThreshold;
+            expToNextLevel = (std::max)(nextLevelTotalXp - experience, 0.0f);
+        }
     } else {
+        s_levelUpXp.lastLevel = currentLevel;
         nextLevelTotalXp = experience;
     }
 
