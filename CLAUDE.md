@@ -26,13 +26,22 @@ Settings: SettingsPanel → useSettings → window.onSettingsChanged → C++ Sav
 
 ## Project Structure
 ```
-src/                          # C++ SKSE 플러그인 (864줄)
-  main.cpp                    # 플러그인 진입점, Prisma UI 연동, 이벤트 싱크, 키 핸들러
+src/                          # C++ SKSE 플러그인 (~2,800줄)
+  main.cpp                    # 플러그인 진입점, Prisma UI 연동, 하트비트, 스케줄러
   StatsCollector.cpp/h        # 게임 스탯 수집 → JSON
+  WidgetEvents.cpp/h          # 전투/메뉴/장비/액티브이펙트 이벤트 싱크
+  WidgetBootstrap.cpp/h       # 뷰 생성, InteropCall, Show/Hide 라이프사이클
+  WidgetJsListeners.cpp/h     # JS → C++ 리스너 등록 (설정 변경, 프리셋 등)
+  WidgetHotkeys.cpp/h         # 핫키 이벤트 (Insert/F11 토글)
+  ResistanceEvaluator.cpp/h   # 저항력 평가 (캡 없음, 원시값 반환)
+  CriticalChanceEvaluator.cpp/h # 크리티컬 확률 런타임 평가 (0~100 클램프)
+  NativeStorage.cpp/h         # 설정 JSON 로드/저장
+  RuntimeDiagnostics.cpp/h    # 런타임 호환성 진단
+  JsonUtils.h                 # JSON 직렬화 유틸
   PrismaUI_API.h              # Prisma UI API 헤더 (외부)
   pch.h                       # 프리컴파일 헤더
   keyhandler/                 # 키 입력 핸들러 (Insert=설정 토글, ESC=닫기)
-view/                         # React 프론트엔드 (1,277줄)
+view/                         # React 프론트엔드 (~4,400줄)
   src/App.tsx                 # 메인 앱, 위젯 그룹 배치, 드래그 스냅 로직
   src/components/
     StatWidget.tsx             # 개별 스탯 위젯 (도로롱 PNG 아이콘 + lucide 뱃지)

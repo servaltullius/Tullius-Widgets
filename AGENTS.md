@@ -1,54 +1,82 @@
-# AGENTS.md (Repo Local)
+# PROJECT KNOWLEDGE BASE
 
-## Quick context
-- Project purpose: Skyrim SE용 전투 스탯 HUD 위젯 모드(Tullius Widgets).
-- Key directories: `src/`(SKSE C++ 플러그인), `view/`(React UI), `dist/`(배포 산출물), `docs/`.
-- Critical invariants (must not break):
-  - Prisma UI와의 JS 브릿지(`updateStats`, `updateSettings`) 호환성 유지
-  - 릴리즈 zip 루트 구조(`SKSE/Plugins/...`, `PrismaUI/views/TulliusWidgets/...`) 유지
-  - 기존 설정 파일 경로 호환(`Data/SKSE/Plugins/TulliusWidgets.json`)
+**Generated:** 2026-02-24 09:18:07 KST
+**Commit:** 61d6835
+**Branch:** master
 
-## Setup commands
-- Install: `cd view && npm install`
-- Dev server: `cd view && npm run dev`
-- Env vars (.env.example / secrets policy): 현재 별도 `.env` 미사용
-- Database/migrations: 해당 없음
+## OVERVIEW
+Skyrim SE combat-stat HUD widget mod. Two active code domains: native SKSE C++ plugin (`src/`) and React/TypeScript Prisma UI view (`view/`).
 
-## Test & verification
-- Unit tests: `cd view && npm test`
-- Integration/e2e: `N/A (현재 명령 미구성)`
-- Lint/format: `cd view && npm run lint`
-- Typecheck/build:
-  - 프론트: `cd view && npm run build`
-  - 플러그인(Windows/MSVC): `xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false && xmake build`
-- How to run a single test quickly: `cd view && npm test -- src/hooks/useGameStats.test.tsx`
+## STRUCTURE
+```
+Tullius Widgets/
+|- src/           # SKSE plugin runtime, game hooks, C++ bridge source
+|- view/          # React UI, bridge handlers, settings/runtime rendering
+|- docs/          # Release notes, payload schema, plans, screenshots
+|- scripts/       # Packaging/release/vibe automation
+|- dist/          # Release layout target (must keep compatibility)
+`- xmake.lua      # Plugin version + build source of truth
+```
 
-## Coding standards
-- Language/version: C++23, TypeScript(React 19)
-- Style rules (lint/formatter): `view/`는 ESLint 규칙 준수, C++은 기존 코드 스타일 유지
-- Error handling conventions: 런타임 실패는 안전한 기본값/가드 처리 후 로그 기록
-- Logging conventions: SKSE logger 사용 (`logger::info/error/critical`)
-- API conventions: JSON payload 키 스키마는 하위호환 유지
+## WHERE TO LOOK
+| Task | Location | Notes |
+|------|----------|-------|
+| Plugin startup, game event wiring | `src/main.cpp` | SKSE entrypoint + heartbeat + Prisma view lifecycle |
+| Stats payload shape and limits | `src/StatsCollector.cpp`, `docs/stats-payload-schema.md` | Keep JSON keys backward compatible |
+| JS bridge contracts | `src/WidgetJsListeners.cpp`, `view/src/types/bridge.d.ts`, `view/src/hooks/useSettings.ts`, `view/src/hooks/useGameStats.ts` | `updateStats`/`updateSettings` compatibility is critical |
+| Frontend render/layout behavior | `view/src/App.tsx`, `view/src/components/`, `view/src/hooks/` | Drag/snap and widget visibility behavior |
+| Release packaging policy | `scripts/release-local.ps1`, `scripts/package.sh`, `docs/local-release.ko.md` | Windows build required for plugin DLL |
 
-## Required fields
-- Install command: `cd view && npm install`
-- Dev server command: `cd view && npm run dev`
-- Unit test command: `cd view && npm test`
-- Lint/format command: `cd view && npm run lint`
-- Typecheck/build command: `cd view && npm run build` / `xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false && xmake build`
-- Primary entrypoint path: `src/main.cpp` (plugin), `view/src/main.tsx` (UI)
+## AGENTS HIERARCHY
+- `src/AGENTS.md`: Native plugin conventions, boundaries, and verification.
+- `view/AGENTS.md`: Frontend conventions, bridge handling, and tests.
+- No dedicated `docs/` or `scripts/` AGENTS in this pass (covered sufficiently at root + low complexity).
 
-## Release policy (required)
-- Release/Pre-release name format: `Tullius Widgets v<version>`
-- Patch notes language: 한국어로 작성
-- ZIP artifact:
-  - 기본(권장, CI 없이): `TulliusWidgets-v<version>.zip`
-  - CI 아티팩트(선택): `TulliusWidgets-v<version>-ci.zip`
-  - 릴리즈마다 ZIP 산출물 첨부 필수
-- Patch note file path: `docs/release-notes/<version>.ko.md`
-- Local release script (Windows): `pwsh -File .\scripts\release-local.ps1`
-- Local release guide: `docs/local-release.ko.md`
-- Minimum patch note sections:
-  - 변경 요약
-  - 사용자 영향/호환성
-  - 설치/업데이트 안내
+## CODE MAP
+| Symbol | Type | Location | Refs | Role |
+|--------|------|----------|------|------|
+| `SKSEPlugin_Load` | entrypoint | `src/main.cpp` | high | Plugin bootstrap and SKSE listener registration |
+| `SKSEMessageHandler` | function | `src/main.cpp` | high | DataLoaded/NewGame/PostLoad dispatch into widget bootstrap |
+| `StartHeartbeat` | function | `src/main.cpp` | medium | Throttled stats sync when no game events fire |
+| `StatsCollector::CollectStatsJson` | function | `src/StatsCollector.cpp` | high | Runtime stats serialization consumed by UI |
+| `useGameStats` | hook | `view/src/hooks/useGameStats.ts` | high | Receives native `updateStats` payload |
+| `useSettings` | hook | `view/src/hooks/useSettings.ts` | high | Receives/persists settings and bridge handlers |
+
+## CONVENTIONS
+- Keep changes localized; prefer existing patterns over introducing framework/style churn.
+- C++ uses C++23 + SKSE logger (`logger::info/error/critical`) and guard-first runtime handling.
+- Frontend uses ESLint + Vitest conventions from `view/` scripts; no separate env/db setup.
+- Version source of truth is `xmake.lua` `set_version("...")`; release tag/title must match.
+
+## ANTI-PATTERNS (THIS PROJECT)
+- Breaking JS bridge compatibility (`updateStats`, `updateSettings`, and related bridge handlers).
+- Altering release ZIP root layout (`SKSE/Plugins/...` + `PrismaUI/views/TulliusWidgets/...`).
+- Changing legacy config path (`Data/SKSE/Plugins/TulliusWidgets.json`).
+- Shipping release notes without Korean language and required sections.
+- Using non-SKSE logging paths for plugin runtime diagnostics.
+
+## UNIQUE STYLES
+- Runtime data is event-driven plus heartbeat fallback to avoid stale UI during quiet gameplay windows.
+- Settings merge strategy prioritizes backward-compatible defaults over strict schema rejection.
+- Display cap is intentional for critical hit chance only (0–100 clamp). Resistances are uncapped (raw actor values).
+
+## COMMANDS
+```bash
+# Frontend
+cd view && npm install
+cd view && npm run dev
+cd view && npm run lint
+cd view && npm test
+cd view && npm run build
+
+# Plugin (Windows/MSVC)
+xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false && xmake build
+
+# Local release (Windows)
+pwsh -File .\scripts\release-local.ps1 -NoPublish
+```
+
+## NOTES
+- No `.env` workflow in current repo.
+- C++ plugin build is Windows/MSVC-only; WSL/Linux path supports frontend and packaging steps only.
+- Required release note path: `docs/release-notes/<version>.ko.md` with sections `변경 요약`, `사용자 영향/호환성`, `설치/업데이트 안내`.
