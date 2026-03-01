@@ -268,7 +268,7 @@ static void ScheduleStatsUpdateAfter(std::chrono::milliseconds delay) {
     const auto targetMs = SteadyNowMs() + delay.count();
     auto dueMs = g.scheduledStatsDueMs.load(std::memory_order_acquire);
     while (true) {
-        if (dueMs > 0 && dueMs <= targetMs) {
+        if (dueMs > SteadyNowMs() && dueMs <= targetMs) {
             return;
         }
         if (g.scheduledStatsDueMs.compare_exchange_weak(

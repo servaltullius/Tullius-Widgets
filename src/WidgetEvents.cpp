@@ -200,6 +200,7 @@ public:
         } else if (!event->opening && IsGameLoaded() && ui && !ui->GameIsPaused() && !IsAnyHiddenMenuOpen(ui)) {
             if (ShowView()) {
                 SendStatsForced();
+                ScheduleStatsUpdateAfter(std::chrono::milliseconds(500));
             }
         }
 
