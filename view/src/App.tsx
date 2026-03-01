@@ -16,8 +16,6 @@ import { t } from './i18n/translations';
 
 const ELEMENTAL_RESIST_CAP = 85;
 const ELEMENTAL_RESIST_MIN = -100;
-const DISEASE_RESIST_CAP = 100;
-const DISEASE_RESIST_MIN = 0;
 const WEAPON_DAMAGE_CAP = 9999;
 const WEAPON_DAMAGE_MIN = 0;
 const CRIT_CHANCE_CAP = 100;
@@ -360,8 +358,6 @@ export function App() {
 
   const elementalCap = stats.calcMeta.caps.elementalResist || ELEMENTAL_RESIST_CAP;
   const elementalMin = stats.calcMeta.caps.elementalResistMin;
-  const diseaseCap = stats.calcMeta.caps.diseaseResist || DISEASE_RESIST_CAP;
-  const diseaseMin = stats.calcMeta.caps.diseaseResistMin;
   const critCap = stats.calcMeta.caps.critChance || CRIT_CHANCE_CAP;
   const damageReductionCap = stats.calcMeta.caps.damageReduction;
   const armorCapForMaxReduction = stats.calcMeta.armorCapForMaxReduction;
@@ -507,11 +503,6 @@ export function App() {
                 value={stats.resistances.poison}
                 unit="%"
                 visible={settings.resistances.poison}
-                min={ELEMENTAL_RESIST_MIN}
-                cap={elementalCap}
-                helperText={resistanceHelper(stats.calcMeta.rawResistances.poison, stats.resistances.poison)}
-                helperTone={stats.calcMeta.rawResistances.poison > elementalCap + 0.05 ? 'warning' : 'neutral'}
-                tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.poison)}% | ${capLabel} ${elementalMin}~${elementalCap}%`}
               />
               <StatWidget
                 icon="disease"
@@ -519,11 +510,6 @@ export function App() {
                 value={stats.resistances.disease}
                 unit="%"
                 visible={settings.resistances.disease}
-                min={DISEASE_RESIST_MIN}
-                cap={diseaseCap}
-                helperText={resistanceHelper(stats.calcMeta.rawResistances.disease, stats.resistances.disease)}
-                helperTone={stats.calcMeta.rawResistances.disease > diseaseCap + 0.05 ? 'warning' : 'neutral'}
-                tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.disease)}% | ${capLabel} ${diseaseMin}~${diseaseCap}%`}
               />
             </DraggableWidgetGroup>
           )}

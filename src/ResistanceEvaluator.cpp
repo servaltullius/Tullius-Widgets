@@ -19,9 +19,8 @@ ResistanceLimits GetLimits(RE::ActorValue av) {
     case RE::ActorValue::kResistFrost:
     case RE::ActorValue::kResistShock:
     case RE::ActorValue::kPoisonResist:
-        return { -100.0f, 85.0f, true };
     case RE::ActorValue::kResistDisease:
-        return { 0.0f, 100.0f, true };
+        return { 0.0f, 0.0f, false };
     default:
         return { 0.0f, 0.0f, false };
     }

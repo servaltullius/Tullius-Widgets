@@ -479,9 +479,9 @@ std::string StatsCollector::CollectStats() {
     float dmgHP = player->GetActorValueModifier(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kHealth);
     float dmgMP = player->GetActorValueModifier(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kMagicka);
     float dmgSP = player->GetActorValueModifier(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kStamina);
-    float curHP = maxHP + dmgHP;
-    float curMP = maxMP + dmgMP;
-    float curSP = maxSP + dmgSP;
+    float curHP = (std::max)(maxHP + dmgHP, 0.0f);
+    float curMP = (std::max)(maxMP + dmgMP, 0.0f);
+    float curSP = (std::max)(maxSP + dmgSP, 0.0f);
     float experience = 0.0f;
     float expToNextLevel = 0.0f;
     float nextLevelTotalXp = 0.0f;
