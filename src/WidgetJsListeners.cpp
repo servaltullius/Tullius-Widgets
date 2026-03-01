@@ -124,6 +124,7 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
             }
 
             if (!TryImportSettingsToView(json)) {
+                logger::warn("Failed to send preset import payload to view (interop call failed)");
                 NotifyImportResult(false);
                 return;
             }

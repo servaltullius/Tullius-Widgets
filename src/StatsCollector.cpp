@@ -180,7 +180,7 @@ static std::vector<TimedEffectEntry> collectTimedEffects(RE::PlayerCharacter* pl
 
     // During save/load transitions, active effect data can be unstable. Skip this frame.
     auto* ui = RE::UI::GetSingleton();
-    if (ui && ui->GameIsPaused()) return out;
+    if (!ui || ui->GameIsPaused()) return out;
 
     auto* activeEffects = magicTarget->GetActiveEffectList();
     if (!activeEffects) return out;
@@ -355,6 +355,7 @@ int32_t StatsCollector::GetGoldCount() {
 }
 
 std::string StatsCollector::CollectStats() {
+  try {
     auto player = RE::PlayerCharacter::GetSingleton();
     if (!player) return "{}";
 
@@ -551,6 +552,13 @@ std::string StatsCollector::CollectStats() {
 
     json += '}';
     return json;
+  } catch (const std::exception& e) {
+    logger::error("CollectStats exception: {}", e.what());
+    return "{}";
+  } catch (...) {
+    logger::error("CollectStats unknown exception");
+    return "{}";
+  }
 }
 
 }  // namespace TulliusWidgets

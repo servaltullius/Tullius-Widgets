@@ -69,25 +69,34 @@ export function DraggableWidgetGroup({
   useEffect(() => {
     if (!dragging) return;
 
+    let rafId: number | null = null;
     const handleMove = (e: MouseEvent) => {
-      const nextX = e.clientX - dragStateRef.current.offsetX;
-      const nextY = e.clientY - dragStateRef.current.offsetY;
-      dragStateRef.current.currentX = nextX;
-      dragStateRef.current.currentY = nextY;
-      callbacksRef.current.onMove(callbacksRef.current.groupId, nextX, nextY);
+      dragStateRef.current.currentX = e.clientX - dragStateRef.current.offsetX;
+      dragStateRef.current.currentY = e.clientY - dragStateRef.current.offsetY;
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        callbacksRef.current.onMove(
+          callbacksRef.current.groupId,
+          dragStateRef.current.currentX,
+          dragStateRef.current.currentY,
+        );
+      });
     };
     const handleUp = () => {
+      if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
       setDragging(false);
       callbacksRef.current.onDragEnd(
         callbacksRef.current.groupId,
         dragStateRef.current.currentX,
-        dragStateRef.current.currentY
+        dragStateRef.current.currentY,
       );
     };
 
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('mouseup', handleUp);
     return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', handleUp);
     };

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { GroupPosition, UpdateSettingFn } from '../types/settings';
 
 interface UseWidgetPositionsParams {
@@ -95,10 +95,12 @@ export function useWidgetPositions({
   fallbackPos,
 }: UseWidgetPositionsParams) {
   const [dragPositions, setDragPositions] = useState<Record<string, GroupPosition>>({});
+  const dragPositionsRef = useRef(dragPositions);
+  dragPositionsRef.current = dragPositions;
 
   const resolvePosition = useCallback((groupId: string): GroupPosition => {
-    return resolvePositionById(dragPositions, settingsPositions, defaults, fallbackPos, groupId);
-  }, [defaults, dragPositions, fallbackPos, settingsPositions]);
+    return resolvePositionById(dragPositionsRef.current, settingsPositions, defaults, fallbackPos, groupId);
+  }, [defaults, fallbackPos, settingsPositions]);
 
   const handleGroupMove = useCallback((groupId: string, rawX: number, rawY: number) => {
     setDragPositions(previous => {

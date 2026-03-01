@@ -9,7 +9,7 @@ namespace TulliusWidgets::JsonUtils {
 inline std::string Escape(std::string_view input)
 {
     std::string out;
-    out.reserve(input.size() + 8);
+    out.reserve(input.size() * 2 + 2);
     for (unsigned char c : input) {
         switch (c) {
         case '\\':

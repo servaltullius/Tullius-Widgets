@@ -42,7 +42,7 @@ function pad2(value: number): string {
   return value.toString().padStart(2, '0');
 }
 
-function normalizeGameTime(gameTime: GameTimeInfo): NormalizedGameTime {
+function formatGameTime(gameTime: GameTimeInfo): NormalizedGameTime {
   const month = clamp(Math.trunc(gameTime.month), 0, 11);
   const maxDay = DAYS_IN_MONTH[month] ?? 31;
   return {
@@ -95,7 +95,7 @@ function addGameMinutes(base: NormalizedGameTime, minutesToAdd: number): Normali
 }
 
 function advanceGameTime(gameTime: GameTimeInfo, nowMs: number): NormalizedGameTime {
-  const base = normalizeGameTime(gameTime);
+  const base = formatGameTime(gameTime);
   const elapsedMs = Math.max(0, nowMs - gameTime.snapshotAtMs);
   const timeScale = Number.isFinite(gameTime.timeScale) ? Math.max(0, gameTime.timeScale) : 0;
   const elapsedGameMinutes = Math.floor((elapsedMs / 60000) * timeScale);

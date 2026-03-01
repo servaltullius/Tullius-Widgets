@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import {
   Flame, Snowflake, Zap, Sparkles, Skull, Bug,
   Shield, ShieldCheck, Swords, Sword, Target,
@@ -44,7 +45,7 @@ interface StatWidgetProps {
   tooltip?: string;
 }
 
-export function StatWidget({
+export const StatWidget = memo(function StatWidget({
   icon,
   iconColor,
   value,
@@ -169,4 +170,4 @@ export function StatWidget({
       </div>
     </div>
   );
-}
+});

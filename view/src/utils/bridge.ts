@@ -26,8 +26,12 @@ export function registerDualBridgeHandler<K extends BridgeHandlerKey>(
   const windowBridge = window as Pick<Window, BridgeHandlerKey>;
   const windowHandler = handler as Pick<Window, BridgeHandlerKey>[K];
 
-  bridgeV1[key] = handler;
-  windowBridge[key] = windowHandler;
+  try {
+    bridgeV1[key] = handler;
+    windowBridge[key] = windowHandler;
+  } catch (e) {
+    console.error(`[TulliusWidgets] Failed to register bridge handler '${String(key)}':`, e);
+  }
 
   return () => {
     if (windowBridge[key] === windowHandler) {

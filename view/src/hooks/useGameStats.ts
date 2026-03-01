@@ -338,7 +338,8 @@ export function useGameStatsState(): { stats: CombatStats; hasLiveStats: boolean
         setStats(prev => normalizeCombatStats(parsed, prev));
         setHasLiveStats(true);
       } catch (e) {
-        console.error('Failed to parse stats JSON:', e);
+        console.error('[TulliusWidgets] Failed to parse stats JSON:', e);
+        setHasLiveStats(false);
       }
     };
 
