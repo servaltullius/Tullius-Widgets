@@ -134,6 +134,7 @@ export function StatWidget({
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: isNumeric ? 'flex-end' : 'flex-start', minWidth }}>
         <span style={{
+          display: 'block',
           color: valueColor,
           fontFamily: 'sans-serif',
           fontSize: '18px',

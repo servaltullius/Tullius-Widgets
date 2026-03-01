@@ -99,6 +99,10 @@ public:
             } else {
                 SendStatsForced();
             }
+            // Follow-up: equipment slot data may lag behind the event by
+            // several frames, so schedule a second collection to catch the
+            // final state without waiting for the 2-second heartbeat.
+            ScheduleStatsUpdateAfter(std::chrono::milliseconds(200));
         }
         return RE::BSEventNotifyControl::kContinue;
     }

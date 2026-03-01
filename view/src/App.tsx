@@ -574,12 +574,14 @@ export function App() {
           {hasVisibleEquipped && (
             <DraggableWidgetGroup {...groupProps('equipped')}>
               <StatWidget
+                key={`r-${stats.equipped.rightHand}`}
                 icon="rightHand"
                 iconColor="#e85050"
                 value={stats.equipped.rightHand || t(lang, 'equippedEmpty')}
                 visible={settings.equipped.rightHand}
               />
               <StatWidget
+                key={`l-${stats.equipped.leftHand}`}
                 icon="leftHand"
                 iconColor="#4090e8"
                 value={stats.equipped.leftHand || t(lang, 'equippedEmpty')}
