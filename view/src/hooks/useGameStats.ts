@@ -263,6 +263,7 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
       experience: normalizedExperience,
       expToNextLevel: normalizedExpToNextLevel,
       nextLevelTotalXp: normalizedNextLevelTotalXp,
+      expectedLevelThreshold: quantize2(readNumber(rawPlayerInfo?.expectedLevelThreshold, fallback.playerInfo.expectedLevelThreshold, 0, 999999999)),
       gold: Math.trunc(readNumber(rawPlayerInfo?.gold, fallback.playerInfo.gold, 0, 999999999)),
       carryWeight: readNumber(rawPlayerInfo?.carryWeight, fallback.playerInfo.carryWeight, -100000, 100000),
       maxCarryWeight: readNumber(rawPlayerInfo?.maxCarryWeight, fallback.playerInfo.maxCarryWeight, 1, 100000),

@@ -536,11 +536,14 @@ std::string StatsCollector::CollectStats() {
         nextLevelTotalXp = experience;
     }
 
+    const float expectedLevelThreshold = ComputeLevelThreshold(currentLevel);
+
     json += "\"playerInfo\":{";
-    json += "\"level\":"; appendInt(json, static_cast<std::int32_t>(player->GetLevel())); json += ',';
+    json += "\"level\":"; appendInt(json, currentLevel); json += ',';
     json += "\"experience\":"; appendFloat(json, experience); json += ',';
     json += "\"expToNextLevel\":"; appendFloat(json, expToNextLevel); json += ',';
     json += "\"nextLevelTotalXp\":"; appendFloat(json, nextLevelTotalXp); json += ',';
+    json += "\"expectedLevelThreshold\":"; appendFloat(json, expectedLevelThreshold); json += ',';
     json += "\"gold\":"; appendInt(json, GetGoldCount()); json += ',';
     json += "\"carryWeight\":"; appendFloat(json, av->GetActorValue(RE::ActorValue::kInventoryWeight)); json += ',';
     json += "\"maxCarryWeight\":"; appendFloat(json, av->GetActorValue(RE::ActorValue::kCarryWeight)); json += ',';

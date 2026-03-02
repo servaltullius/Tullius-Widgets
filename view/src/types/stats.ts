@@ -43,6 +43,7 @@ export interface PlayerInfo {
   experience: number;
   expToNextLevel: number;
   nextLevelTotalXp: number;
+  expectedLevelThreshold: number;
   gold: number;
   carryWeight: number;
   maxCarryWeight: number;

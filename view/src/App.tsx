@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { DraggableWidgetGroup } from './components/DraggableWidgetGroup';
 import { StatWidget } from './components/StatWidget';
 import { TimedEffectList } from './components/TimedEffectList';
@@ -347,10 +347,26 @@ export function App() {
   const hasVisibleMovement = settings.movement.speedMult;
   const hasVisibleExperience = settings.experience.enabled;
   const hasVisiblePlayerInfo = Object.values(settings.playerInfo).some(Boolean);
-  const currentXp = Math.max(0, Math.round(stats.playerInfo.experience));
+  // --- XP stale detection: after level-up, the engine may leave xp/threshold
+  // at their old values.  Detect this by comparing the provided threshold against
+  // expectedLevelThreshold (computed from fXPLevelUpBase + fXPLevelUpMult * level).
+  const prevLevelRef = useRef(stats.playerInfo.level);
+  let currentXp = Math.max(0, Math.round(stats.playerInfo.experience));
   const rawNextLevelXp = Math.max(0, Math.round(stats.playerInfo.expToNextLevel));
   const providedTotalXp = Math.max(0, Math.round(stats.playerInfo.nextLevelTotalXp));
-  const totalXpForNextLevel = Math.max(currentXp + rawNextLevelXp, providedTotalXp);
+  const expectedThreshold = Math.max(0, Math.round(stats.playerInfo.expectedLevelThreshold));
+  let totalXpForNextLevel = Math.max(currentXp + rawNextLevelXp, providedTotalXp);
+
+  if (currentXp >= totalXpForNextLevel && totalXpForNextLevel > 0 &&
+      expectedThreshold > 0 && Math.abs(totalXpForNextLevel - expectedThreshold) > 1) {
+    // XP data is stale — threshold belongs to a previous level
+    currentXp = Math.max(0, currentXp - totalXpForNextLevel);
+    totalXpForNextLevel = expectedThreshold;
+  }
+  // Track level changes for ref (used above on next render)
+  if (stats.playerInfo.level !== prevLevelRef.current) {
+    prevLevelRef.current = stats.playerInfo.level;
+  }
   const experienceProgressValue = `${formatInteger(currentXp)} / ${formatInteger(totalXpForNextLevel)} XP`;
   const rawLabel = t(lang, 'capRawLabel');
   const capLabel = t(lang, 'capLimitLabel');
