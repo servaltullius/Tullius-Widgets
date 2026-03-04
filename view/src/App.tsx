@@ -459,7 +459,7 @@ export function App() {
 
           {hasVisibleExperience && (
             <DraggableWidgetGroup {...groupProps('experience')}>
-              <StatWidget icon="experience" iconColor="#5ec8ff" value={experienceProgressValue} visible={settings.experience.enabled} />
+              <StatWidget key={`xp-${totalXpForNextLevel}`} icon="experience" iconColor="#5ec8ff" value={experienceProgressValue} visible={settings.experience.enabled} />
             </DraggableWidgetGroup>
           )}
 
