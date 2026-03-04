@@ -3,22 +3,9 @@ import type { CombatStats, GameTimeInfo, TimedEffect } from '../types/stats';
 import { mockStats } from '../data/mockStats';
 import { isPlainObject, readBoolean, readNumber, readText } from '../utils/normalize';
 import { registerDualBridgeHandler } from '../utils/bridge';
+import { SKYRIM_MONTH_NAMES } from '../data/constants';
 
 const isDev = !('sendDataToSKSE' in window);
-const SKYRIM_MONTH_NAMES = [
-  'Morning Star',
-  "Sun's Dawn",
-  'First Seed',
-  "Rain's Hand",
-  'Second Seed',
-  'Midyear',
-  "Sun's Height",
-  'Last Seed',
-  'Hearthfire',
-  'Frostfall',
-  "Sun's Dusk",
-  'Evening Star',
-];
 
 function quantize2(value: number): number {
   return Math.round(value * 100) / 100;

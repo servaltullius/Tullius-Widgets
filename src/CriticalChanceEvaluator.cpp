@@ -2,11 +2,34 @@
 
 #include <algorithm>
 #include <cmath>
+#include <windows.h>
 
 namespace TulliusWidgets {
 namespace {
 static constexpr float kCritChanceMin = 0.0f;
 static constexpr float kCritChanceCap = 100.0f;
+
+// SEH and C++ EH cannot coexist in the same function (MSVC restriction).
+// Isolate the potentially crashing HandleEntryPoint call in its own function.
+static bool TryHandleEntryPoint_SEH(
+    RE::PlayerCharacter* player,
+    RE::TESObjectWEAP* weapon,
+    RE::Actor* evalTarget,
+    float* critChance)
+{
+    __try {
+        RE::BGSEntryPoint::HandleEntryPoint(
+            RE::BGSEntryPoint::ENTRY_POINT::kCalculateMyCriticalHitChance,
+            player,
+            weapon,
+            evalTarget,
+            critChance);
+        return true;
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        logger::error("SEH exception in BGSEntryPoint::HandleEntryPoint (critChance)");
+        return false;
+    }
+}
 
 RE::TESObjectWEAP* SelectActiveWeapon(RE::PlayerCharacter* player) {
     if (!player) return nullptr;
@@ -68,12 +91,9 @@ CritChanceEvaluation CriticalChanceEvaluator::Evaluate(RE::PlayerCharacter* play
     auto* target = SelectCurrentTarget(player);
     RE::Actor* evalTarget = target ? target : static_cast<RE::Actor*>(player);
 
-    RE::BGSEntryPoint::HandleEntryPoint(
-        RE::BGSEntryPoint::ENTRY_POINT::kCalculateMyCriticalHitChance,
-        player,
-        weapon,
-        evalTarget,
-        std::addressof(critChance));
+    if (!TryHandleEntryPoint_SEH(player, weapon, evalTarget, std::addressof(critChance))) {
+        critChance = 0.0f;
+    }
 
     if (!std::isfinite(critChance)) critChance = 0.0f;
     const float effective = std::clamp(critChance, kCritChanceMin, kCritChanceCap);

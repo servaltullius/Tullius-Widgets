@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { GameTimeInfo } from '../types/stats';
 import { StatWidget } from './StatWidget';
+import { SKYRIM_MONTH_NAMES, DAYS_IN_MONTH } from '../data/constants';
 
 interface TimeWidgetListProps {
   gameTime: GameTimeInfo;
@@ -8,23 +9,6 @@ interface TimeWidgetListProps {
   showRealDateTime: boolean;
   lang: 'ko' | 'en';
 }
-
-const SKYRIM_MONTH_NAMES = [
-  'Morning Star',
-  "Sun's Dawn",
-  'First Seed',
-  "Rain's Hand",
-  'Second Seed',
-  'Midyear',
-  "Sun's Height",
-  'Last Seed',
-  'Hearthfire',
-  'Frostfall',
-  "Sun's Dusk",
-  'Evening Star',
-];
-
-const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
 interface NormalizedGameTime {
   year: number;
@@ -120,8 +104,10 @@ function formatGameDateTime(gameTime: GameTimeInfo, nowMs: number, lang: 'ko' | 
   return `4E ${current.year}, ${monthName} ${current.day} ${hhmm}`;
 }
 
-function formatRealDateTime(nowMs: number, lang: 'ko' | 'en'): string {
-  const formatter = new Intl.DateTimeFormat(lang === 'ko' ? 'ko-KR' : 'en-US', {
+const cachedFormatters: Record<string, Intl.DateTimeFormat> = {};
+function getCachedFormatter(lang: 'ko' | 'en'): Intl.DateTimeFormat {
+  const locale = lang === 'ko' ? 'ko-KR' : 'en-US';
+  return cachedFormatters[locale] ??= new Intl.DateTimeFormat(locale, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -130,7 +116,10 @@ function formatRealDateTime(nowMs: number, lang: 'ko' | 'en'): string {
     second: '2-digit',
     hour12: false,
   });
-  return formatter.format(new Date(nowMs));
+}
+
+function formatRealDateTime(nowMs: number, lang: 'ko' | 'en'): string {
+  return getCachedFormatter(lang).format(new Date(nowMs));
 }
 
 export function TimeWidgetList({ gameTime, showGameDateTime, showRealDateTime, lang }: TimeWidgetListProps) {

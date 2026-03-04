@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import type {
   GroupPosition,
   Language,
@@ -296,7 +296,16 @@ export function useSettings() {
   const [hudColor, setHudColor] = useState('#ffffff');
   const [runtimeDiagnostics, setRuntimeDiagnostics] = useState<RuntimeDiagnostics | null>(null);
   const [lastSettingsSyncOk, setLastSettingsSyncOk] = useState<boolean | null>(null);
-  const [sessionVisibleOverride, setSessionVisibleOverride] = useState<boolean | null>(null);
+  // useReducer instead of useState to guarantee state update even when the
+  // computed value is the same as the previous one (Object.is skip issue).
+  type VisibleAction = { type: 'toggle'; settingsVisible: boolean } | { type: 'reset' };
+  const [sessionVisibleOverride, dispatchVisibleOverride] = useReducer(
+    (prev: boolean | null, action: VisibleAction): boolean | null => {
+      if (action.type === 'reset') return null;
+      return prev === null ? !action.settingsVisible : !prev;
+    },
+    null,
+  );
   const debounceTimerRef = useRef<number | null>(null);
   const lastQueuedSettingsJsonRef = useRef('');
   const settingsRevisionRef = useRef(0);
@@ -345,7 +354,7 @@ export function useSettings() {
 
       const merged = mergeWithDefaults(parsed);
       setSettings(merged);
-      setSessionVisibleOverride(null);
+      dispatchVisibleOverride({ type: 'reset' });
 
       if (persist) {
         notifySettingsChanged(merged);
@@ -383,9 +392,7 @@ export function useSettings() {
     };
 
     const toggleWidgetsVisibilityHandler = () => {
-      setSessionVisibleOverride(prev =>
-        prev === null ? !settingsRef.current.general.visible : !prev
-      );
+      dispatchVisibleOverride({ type: 'toggle', settingsVisible: settingsRef.current.general.visible });
     };
 
     const closeSettingsHandler = () => {
@@ -450,7 +457,7 @@ export function useSettings() {
       }
 
       if (path === 'general.visible') {
-        setSessionVisibleOverride(null);
+        dispatchVisibleOverride({ type: 'reset' });
       }
 
       if (options?.persist !== false) {

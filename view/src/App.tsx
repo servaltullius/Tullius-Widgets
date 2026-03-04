@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DraggableWidgetGroup } from './components/DraggableWidgetGroup';
 import { StatWidget } from './components/StatWidget';
 import { TimedEffectList } from './components/TimedEffectList';
@@ -13,6 +13,7 @@ import { WIDGET_GROUP_IDS } from './data/widgetRegistry';
 import type { GroupPosition, Language } from './types/settings';
 import type { RuntimeDiagnostics } from './types/runtime';
 import { t } from './i18n/translations';
+import './assets/screen-effects.css';
 
 const ELEMENTAL_RESIST_CAP = 85;
 const ELEMENTAL_RESIST_MIN = -100;
@@ -320,7 +321,7 @@ export function App() {
     (!settings.general.combatOnly || stats.isInCombat) &&
     changeWindowActive;
 
-  const groupProps = (groupId: string) => {
+  const groupProps = useCallback((groupId: string) => {
     const pos = resolvePosition(groupId);
     return {
       groupId,
@@ -335,7 +336,7 @@ export function App() {
       onMove: handleGroupMove,
       onDragEnd: handleGroupMoveEnd,
     };
-  };
+  }, [resolvePosition, settings.general.opacity, settings.general.size, settings.layouts, accentColor, settings.general.transparentBg, settingsOpen, handleGroupMove, handleGroupMoveEnd]);
 
   const hasVisibleResistance = Object.values(settings.resistances).some(Boolean);
   const hasVisibleDefense = Object.values(settings.defense).some(Boolean);
@@ -364,9 +365,9 @@ export function App() {
     totalXpForNextLevel = expectedThreshold;
   }
   // Track level changes for ref (used above on next render)
-  if (stats.playerInfo.level !== prevLevelRef.current) {
+  useEffect(() => {
     prevLevelRef.current = stats.playerInfo.level;
-  }
+  }, [stats.playerInfo.level]);
   const experienceProgressValue = `${formatInteger(currentXp)} / ${formatInteger(totalXpForNextLevel)}`;
   const rawLabel = t(lang, 'capRawLabel');
   const capLabel = t(lang, 'capLimitLabel');

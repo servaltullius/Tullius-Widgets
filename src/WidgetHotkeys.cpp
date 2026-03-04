@@ -72,11 +72,6 @@ void RegisterDefaultHotkeys(const Callbacks& callbacks)
         }
     });
 
-    (void)keyHandler->Register(0x57, KeyEventType::KEY_DOWN, []() {
-        if (IsViewReady() && IsGameLoaded()) {
-            InvokeScript("toggleWidgetsVisibility()");
-        }
-    });
 }
 
 }  // namespace TulliusWidgets::WidgetHotkeys

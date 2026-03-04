@@ -15,10 +15,8 @@ function intensity(current: number, threshold: number, invert = false): number {
   return Math.min((threshold - current) / threshold, 1);
 }
 
-function buildShadow(color: string, intensity: number, spread: number): string {
-  if (intensity <= 0) return '';
-  const alpha = intensity * 0.45;
-  return `inset 0 0 ${spread}px ${spread * 0.4}px ${color.replace(/[\d.]+\)$/, `${alpha})`)}`;
+function buildShadow(color: string, spread: number): string {
+  return `inset 0 0 ${spread}px ${spread * 0.4}px ${color}`;
 }
 
 export function ScreenEffects({ alertData, settings }: ScreenEffectsProps) {
@@ -35,38 +33,50 @@ export function ScreenEffects({ alertData, settings }: ScreenEffectsProps) {
 
   if (healthI <= 0 && staminaI <= 0 && magickaI <= 0 && carryI <= 0) return null;
 
-  const healthShadow = buildShadow('rgba(180, 20, 20, 1)', healthI, 180);
-  const secondaryShadows = [
-    buildShadow('rgba(200, 160, 30, 1)', staminaI, 150),
-    buildShadow('rgba(40, 60, 180, 1)', magickaI, 150),
-    buildShadow('rgba(140, 100, 40, 1)', carryI, 130),
-  ].filter(Boolean).join(', ');
+  const hasSecondary = staminaI > 0 || magickaI > 0 || carryI > 0;
+  const secondaryShadows = hasSecondary
+    ? [
+        staminaI > 0 ? buildShadow('rgba(200, 160, 30, 0.45)', 150) : '',
+        magickaI > 0 ? buildShadow('rgba(40, 60, 180, 0.45)', 150) : '',
+        carryI > 0 ? buildShadow('rgba(140, 100, 40, 0.45)', 130) : '',
+      ].filter(Boolean).join(', ')
+    : '';
 
-  if (!healthShadow && !secondaryShadows) return null;
+  const secondaryOpacity = Math.max(staminaI, magickaI, carryI) * 0.45;
+  const healthOpacity = healthI * 0.45;
+
+  if (healthI <= 0 && !secondaryShadows) return null;
 
   return (
     <>
-      {shouldPulse && healthShadow && (
-        <style>{'@keyframes tw-health-pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }'}</style>
-      )}
       {secondaryShadows && (
         <div style={{
           position: 'fixed',
-          inset: 0,
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
           pointerEvents: 'none',
           zIndex: 500,
           boxShadow: secondaryShadows,
-          transition: 'box-shadow 0.8s ease',
+          opacity: secondaryOpacity,
+          transition: 'opacity 0.8s ease',
+          willChange: 'opacity',
         }} />
       )}
-      {healthShadow && (
+      {healthI > 0 && (
         <div style={{
           position: 'fixed',
-          inset: 0,
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
           pointerEvents: 'none',
           zIndex: 501,
-          boxShadow: healthShadow,
-          transition: 'box-shadow 0.8s ease',
+          boxShadow: buildShadow('rgba(180, 20, 20, 0.45)', 180),
+          opacity: healthOpacity,
+          transition: 'opacity 0.8s ease',
+          willChange: 'opacity',
           animation: shouldPulse ? 'tw-health-pulse 1.3s ease-in-out infinite' : undefined,
         }} />
       )}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, useRef, memo, type ReactNode } from 'react';
 import type { WidgetSize, WidgetLayout } from '../types/settings';
 
 interface DraggableWidgetGroupProps {
@@ -34,7 +34,7 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-export function DraggableWidgetGroup({
+export const DraggableWidgetGroup = memo(function DraggableWidgetGroup({
   groupId, x, y, opacity, size, layout, accentColor, transparentBg, draggable, onMove, onDragEnd, children,
 }: DraggableWidgetGroupProps) {
   const [dragging, setDragging] = useState(false);
@@ -138,4 +138,4 @@ export function DraggableWidgetGroup({
       {children}
     </div>
   );
-}
+});

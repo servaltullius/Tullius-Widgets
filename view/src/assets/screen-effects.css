@@ -1,0 +1,4 @@
+@keyframes tw-health-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}

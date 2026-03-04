@@ -231,7 +231,10 @@ void RunAsyncSettingsWriter(std::stop_token stopToken)
         lock.unlock();
 
         if (!SaveSettingsSync(write.gameRootPath, write.jsonData)) {
-            logger::warn("Async settings save failed");
+            logger::warn("Async settings save failed, retrying once");
+            if (!SaveSettingsSync(write.gameRootPath, write.jsonData)) {
+                logger::error("Async settings save retry also failed");
+            }
         }
 
         lock.lock();

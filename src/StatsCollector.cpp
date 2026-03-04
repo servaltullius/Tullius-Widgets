@@ -31,19 +31,14 @@ std::atomic<std::uint32_t> gStatsPayloadSequence{0};
 // after AdvanceLevel(). Detect staleness by comparing rawThreshold against the
 // expected threshold for the current level (fXPLevelUpBase + fXPLevelUpMult * level).
 static float ComputeLevelThreshold(std::int32_t level) {
-    static float cachedBase = -1.0f;
-    static float cachedMult = -1.0f;
-    if (cachedBase < 0.0f) {
-        cachedBase = 75.0f;
-        cachedMult = 25.0f;
-        auto* gs = RE::GameSettingCollection::GetSingleton();
-        if (gs) {
-            if (auto* s = gs->GetSetting("fXPLevelUpBase")) cachedBase = s->data.f;
-            if (auto* s = gs->GetSetting("fXPLevelUpMult")) cachedMult = s->data.f;
-        }
-        logger::info("XP threshold formula: {} + {} * level", cachedBase, cachedMult);
+    float base = 75.0f;
+    float mult = 25.0f;
+    auto* gs = RE::GameSettingCollection::GetSingleton();
+    if (gs) {
+        if (auto* s = gs->GetSetting("fXPLevelUpBase")) base = s->data.f;
+        if (auto* s = gs->GetSetting("fXPLevelUpMult")) mult = s->data.f;
     }
-    return cachedBase + cachedMult * static_cast<float>(level);
+    return base + mult * static_cast<float>(level);
 }
 
 static RE::TESForm* getEquippedForm(RE::PlayerCharacter* player, bool leftHand) {
@@ -528,8 +523,12 @@ std::string StatsCollector::CollectStats() {
                 experience = (std::max)(rawXp - rawThreshold, 0.0f);
                 nextLevelTotalXp = expectedThreshold;
                 expToNextLevel = (std::max)(expectedThreshold - experience, 0.0f);
-                logger::info("XP stale: level={} rawXp={:.0f} rawThreshold={:.0f} expected={:.0f} -> exp={:.0f} next={:.0f}",
-                    currentLevel, rawXp, rawThreshold, expectedThreshold, experience, nextLevelTotalXp);
+                static std::int32_t lastStaleLoggedLevel = -1;
+                if (currentLevel != lastStaleLoggedLevel) {
+                    lastStaleLoggedLevel = currentLevel;
+                    logger::info("XP stale: level={} rawXp={:.0f} rawThreshold={:.0f} expected={:.0f} -> exp={:.0f} next={:.0f}",
+                        currentLevel, rawXp, rawThreshold, expectedThreshold, experience, nextLevelTotalXp);
+                }
             }
         }
     } else {
@@ -538,6 +537,9 @@ std::string StatsCollector::CollectStats() {
 
     const float expectedLevelThreshold = ComputeLevelThreshold(currentLevel);
 
+    const float carryCur = av->GetActorValue(RE::ActorValue::kInventoryWeight);
+    const float carryMax = av->GetActorValue(RE::ActorValue::kCarryWeight);
+
     json += "\"playerInfo\":{";
     json += "\"level\":"; appendInt(json, currentLevel); json += ',';
     json += "\"experience\":"; appendFloat(json, experience); json += ',';
@@ -545,20 +547,18 @@ std::string StatsCollector::CollectStats() {
     json += "\"nextLevelTotalXp\":"; appendFloat(json, nextLevelTotalXp); json += ',';
     json += "\"expectedLevelThreshold\":"; appendFloat(json, expectedLevelThreshold); json += ',';
     json += "\"gold\":"; appendInt(json, GetGoldCount()); json += ',';
-    json += "\"carryWeight\":"; appendFloat(json, av->GetActorValue(RE::ActorValue::kInventoryWeight)); json += ',';
-    json += "\"maxCarryWeight\":"; appendFloat(json, av->GetActorValue(RE::ActorValue::kCarryWeight)); json += ',';
+    json += "\"carryWeight\":"; appendFloat(json, carryCur); json += ',';
+    json += "\"maxCarryWeight\":"; appendFloat(json, carryMax); json += ',';
     json += "\"health\":"; appendFloat(json, curHP); json += ',';
     json += "\"magicka\":"; appendFloat(json, curMP); json += ',';
     json += "\"stamina\":"; appendFloat(json, curSP);
     json += "},";
 
     // Alert data: current percentages for visual alerts
-    float hpPct = maxHP > 0 ? (curHP / maxHP) * 100.0f : 100.0f;
-    float mpPct = maxMP > 0 ? (curMP / maxMP) * 100.0f : 100.0f;
-    float spPct = maxSP > 0 ? (curSP / maxSP) * 100.0f : 100.0f;
-    float carryMax = av->GetActorValue(RE::ActorValue::kCarryWeight);
-    float carryCur = av->GetActorValue(RE::ActorValue::kInventoryWeight);
-    float carryPct = carryMax > 0 ? (carryCur / carryMax) * 100.0f : 0.0f;
+    const float hpPct = maxHP > 0 ? (curHP / maxHP) * 100.0f : 100.0f;
+    const float mpPct = maxMP > 0 ? (curMP / maxMP) * 100.0f : 100.0f;
+    const float spPct = maxSP > 0 ? (curSP / maxSP) * 100.0f : 100.0f;
+    const float carryPct = carryMax > 0 ? (carryCur / carryMax) * 100.0f : 0.0f;
 
     json += "\"alertData\":{";
     json += "\"healthPct\":"; appendFloat(json, hpPct); json += ',';

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
 import type { UpdateSettingFn, WidgetLayout } from '../../types/settings';
 import { t } from '../../i18n/translations';
 
@@ -30,10 +30,22 @@ interface CustomSelectProps {
 
 export function CustomSelect({ value, options, onChange }: CustomSelectProps) {
   const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const selected = options.find(option => option.value === value);
 
+  useEffect(() => {
+    if (!open) return;
+    const handleMouseDown = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => document.removeEventListener('mousedown', handleMouseDown);
+  }, [open]);
+
   return (
-    <div style={{ position: 'relative' }}>
+    <div ref={containerRef} style={{ position: 'relative' }}>
       <div onClick={() => setOpen(!open)} style={{
         background: '#333', color: '#fff', border: '1px solid #555',
         borderRadius: '6px', padding: '8px 16px', fontSize: '24px',

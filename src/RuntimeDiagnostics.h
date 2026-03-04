@@ -12,8 +12,8 @@ namespace TulliusWidgets::RuntimeDiagnostics {
 struct State {
     REL::Version runtimeVersion{};
     REL::Version skseVersion{};
-    bool runtimeSupported{true};
-    bool addressLibraryPresent{true};
+    bool runtimeSupported{false};
+    bool addressLibraryPresent{false};
     std::string addressLibraryPath;
     std::filesystem::path gameRootPath;
 };
