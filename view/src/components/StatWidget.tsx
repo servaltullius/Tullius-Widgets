@@ -73,6 +73,7 @@ export const StatWidget = memo(function StatWidget({
   const displayValue = isNumeric
     ? (format ? format(displayNumber) : Math.round(displayNumber).toString())
     : value;
+  const textAlign = isNumeric ? 'right' : 'left';
   const minWidth = isNumeric ? '40px' : '140px';
   const helperColor = helperTone === 'warning' ? '#ffcf7a' : '#aeb8c6';
 
@@ -134,18 +135,18 @@ export const StatWidget = memo(function StatWidget({
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: isNumeric ? 'flex-end' : 'flex-start', minWidth }}>
         <span style={{
-          display: 'inline-block',
+          display: 'block',
           color: valueColor,
           fontFamily: 'sans-serif',
           fontSize: '18px',
           fontWeight: 600,
           textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+          textAlign,
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
-          maxWidth: '280px',
+          maxWidth: '220px',
           lineHeight: 1.1,
-          backfaceVisibility: 'hidden',
         }}>
           {displayValue}{unit}
         </span>

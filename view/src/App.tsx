@@ -367,7 +367,7 @@ export function App() {
   if (stats.playerInfo.level !== prevLevelRef.current) {
     prevLevelRef.current = stats.playerInfo.level;
   }
-  const experienceProgressValue = `${formatInteger(currentXp)} / ${formatInteger(totalXpForNextLevel)} XP`;
+  const experienceProgressValue = `${formatInteger(currentXp)} / ${formatInteger(totalXpForNextLevel)}`;
   const rawLabel = t(lang, 'capRawLabel');
   const capLabel = t(lang, 'capLimitLabel');
   const armorLimitLabel = t(lang, 'capArmorLimitLabel');
@@ -459,7 +459,7 @@ export function App() {
 
           {hasVisibleExperience && (
             <DraggableWidgetGroup {...groupProps('experience')}>
-              <StatWidget key={`xp-${totalXpForNextLevel}`} icon="experience" iconColor="#5ec8ff" value={experienceProgressValue} visible={settings.experience.enabled} />
+              <StatWidget key={`xp-${totalXpForNextLevel}`} icon="experience" iconColor="#5ec8ff" value={experienceProgressValue} unit=" XP" visible={settings.experience.enabled} />
             </DraggableWidgetGroup>
           )}
 
