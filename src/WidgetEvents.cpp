@@ -108,6 +108,26 @@ public:
     }
 };
 
+class QuestStageEventSink : public RE::BSTEventSink<RE::TESQuestStageEvent> {
+public:
+    static QuestStageEventSink* GetSingleton()
+    {
+        static QuestStageEventSink singleton;
+        return &singleton;
+    }
+
+    RE::BSEventNotifyControl ProcessEvent(
+        const RE::TESQuestStageEvent*,
+        RE::BSTEventSource<RE::TESQuestStageEvent>*) override
+    {
+        // Quest stage change often awards XP; the reward may be applied
+        // in the same frame or deferred, so schedule a follow-up.
+        SendStatsForced();
+        ScheduleStatsUpdateAfter(std::chrono::milliseconds(500));
+        return RE::BSEventNotifyControl::kContinue;
+    }
+};
+
 class ActiveEffectEventSink : public RE::BSTEventSink<RE::TESActiveEffectApplyRemoveEvent> {
 public:
     static ActiveEffectEventSink* GetSingleton()
@@ -219,6 +239,7 @@ void RegisterEventSinks(const Callbacks& callbacks)
         scriptEventSource->AddEventSink(CombatEventSink::GetSingleton());
         scriptEventSource->AddEventSink(EquipEventSink::GetSingleton());
         scriptEventSource->AddEventSink(ActiveEffectEventSink::GetSingleton());
+        scriptEventSource->AddEventSink(QuestStageEventSink::GetSingleton());
         logger::info("Event sinks registered");
     }
 
