@@ -133,9 +133,9 @@ export const StatWidget = memo(function StatWidget({
           </div>
         )}
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: isNumeric ? 'flex-end' : 'flex-start', minWidth }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: isNumeric ? 'flex-end' : 'flex-start', flexShrink: 0, minWidth }}>
         <span style={{
-          display: 'block',
+          display: 'inline-block',
           color: valueColor,
           fontFamily: 'sans-serif',
           fontSize: '18px',
