@@ -149,7 +149,7 @@ public:
     }
 };
 
-static constexpr std::array<std::string_view, 20> kHiddenMenus = {
+static constexpr std::array<std::string_view, 19> kHiddenMenus = {
     RE::InventoryMenu::MENU_NAME,
     RE::MagicMenu::MENU_NAME,
     RE::MapMenu::MENU_NAME,
@@ -168,8 +168,7 @@ static constexpr std::array<std::string_view, 20> kHiddenMenus = {
     RE::SleepWaitMenu::MENU_NAME,
     RE::RaceSexMenu::MENU_NAME,
     RE::LevelUpMenu::MENU_NAME,
-    RE::LoadingMenu::MENU_NAME,
-    "Photo Mode"sv
+    RE::LoadingMenu::MENU_NAME
 };
 
 bool ShouldHideForMenu(const RE::BSFixedString& menuName)
@@ -219,7 +218,8 @@ public:
 
         if (event->opening && (ShouldHideForMenu(event->menuName) || (ui && ui->GameIsPaused()))) {
             HideView();
-        } else if (!event->opening && IsGameLoaded() && ui && !ui->GameIsPaused() && !IsAnyHiddenMenuOpen(ui)) {
+        } else if (!event->opening && IsGameLoaded() && ui && !ui->GameIsPaused()
+                   && ui->IsShowingMenus() && !IsAnyHiddenMenuOpen(ui)) {
             if (ShowView()) {
                 SendStatsForced();
                 ScheduleStatsUpdateAfter(std::chrono::milliseconds(500));

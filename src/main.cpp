@@ -37,6 +37,7 @@ struct PluginState {
     std::atomic<bool> statsDispatchRunning{false};
     std::atomic<bool> statsDispatchPending{false};
     std::atomic<bool> statsDispatchForcePending{false};
+    std::atomic<bool> menusWereHidden{false};
 
     std::jthread heartbeatThread;
 };
@@ -215,7 +216,7 @@ static void SendStatsToView(bool force = false) {
     if (!IsInteropReady() || !g.gameLoaded.load()) return;
 
     auto* ui = RE::UI::GetSingleton();
-    if (ui && ui->GameIsPaused()) {
+    if (ui && (ui->GameIsPaused() || !ui->IsShowingMenus())) {
         ScheduleStatsUpdateAfter(kPausedRetryDelay);
         return;
     }
@@ -338,13 +339,16 @@ static void StartHeartbeat() {
     if (g.heartbeatStarted.exchange(true)) return;
 
     g.heartbeatThread = std::jthread([](std::stop_token stopToken) {
+        constexpr auto kVisibilityCheckInterval = std::chrono::milliseconds(500);
         auto nextHeartbeatDue = std::chrono::steady_clock::now() + kHeartbeatInterval;
+        auto nextVisibilityCheck = std::chrono::steady_clock::now() + kVisibilityCheckInterval;
         while (!stopToken.stop_requested()) {
             std::this_thread::sleep_for(kHeartbeatPoll);
             if (stopToken.stop_requested()) break;
 
             if (!g.gameLoaded.load()) {
                 nextHeartbeatDue = std::chrono::steady_clock::now() + kHeartbeatInterval;
+                nextVisibilityCheck = std::chrono::steady_clock::now() + kVisibilityCheckInterval;
                 continue;
             }
 
@@ -355,10 +359,31 @@ static void StartHeartbeat() {
             const auto nowMs = SteadyNowMs();
             const bool heartbeatDue = now >= nextHeartbeatDue;
             const bool scheduledDue = TryConsumeScheduledStatsUpdate(nowMs);
-            if (!heartbeatDue && !scheduledDue) continue;
+            const bool visibilityCheckDue = now >= nextVisibilityCheck;
+            if (!heartbeatDue && !scheduledDue && !visibilityCheckDue) continue;
 
-            taskInterface->AddTask([heartbeatDue, scheduledDue]() {
+            if (visibilityCheckDue) {
+                nextVisibilityCheck = now + kVisibilityCheckInterval;
+            }
+
+            taskInterface->AddTask([heartbeatDue, scheduledDue, visibilityCheckDue]() {
                 if (!g.gameLoaded.load()) return;
+
+                // Check HUD menu visibility (e.g., Photo Mode hides via UI->ShowMenus(false))
+                if (visibilityCheckDue || heartbeatDue) {
+                    auto* ui = RE::UI::GetSingleton();
+                    if (ui && !ui->IsShowingMenus()) {
+                        TryHideView();
+                        g.menusWereHidden.store(true, std::memory_order_release);
+                        return;
+                    }
+                    // Recover after menus become visible again
+                    if (g.menusWereHidden.exchange(false, std::memory_order_acq_rel)) {
+                        if (TryShowView()) {
+                            SendStatsToViewForced();
+                        }
+                    }
+                }
 
                 if (heartbeatDue || scheduledDue) {
                     RequestStatsDispatch(true);
