@@ -149,7 +149,7 @@ public:
     }
 };
 
-static constexpr std::array<std::string_view, 19> kHiddenMenus = {
+static constexpr std::array<std::string_view, 20> kHiddenMenus = {
     RE::InventoryMenu::MENU_NAME,
     RE::MagicMenu::MENU_NAME,
     RE::MapMenu::MENU_NAME,
@@ -168,7 +168,8 @@ static constexpr std::array<std::string_view, 19> kHiddenMenus = {
     RE::SleepWaitMenu::MENU_NAME,
     RE::RaceSexMenu::MENU_NAME,
     RE::LevelUpMenu::MENU_NAME,
-    RE::LoadingMenu::MENU_NAME
+    RE::LoadingMenu::MENU_NAME,
+    "Photo Mode"sv
 };
 
 bool ShouldHideForMenu(const RE::BSFixedString& menuName)

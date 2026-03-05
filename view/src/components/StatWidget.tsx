@@ -74,7 +74,7 @@ export const StatWidget = memo(function StatWidget({
     ? (format ? format(displayNumber) : Math.round(displayNumber).toString())
     : value;
   const textAlign = isNumeric ? 'right' : 'left';
-  const minWidth = isNumeric ? '40px' : '140px';
+  const minWidth = isNumeric ? '40px' : 'auto';
   const helperColor = helperTone === 'warning' ? '#ffcf7a' : '#aeb8c6';
 
   const iconSrc = iconMap[icon];
@@ -143,9 +143,9 @@ export const StatWidget = memo(function StatWidget({
           textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
           textAlign,
           whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          maxWidth: '220px',
+          overflow: isNumeric ? 'hidden' : 'visible',
+          textOverflow: isNumeric ? 'ellipsis' : undefined,
+          maxWidth: isNumeric ? '220px' : undefined,
           lineHeight: 1.1,
         }}>
           {displayValue}{unit}
