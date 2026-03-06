@@ -9,11 +9,11 @@ import type {
   WidgetSize,
 } from '../types/settings';
 import { defaultSettings } from '../data/defaultSettings';
-import type { RuntimeDiagnostics, RuntimeWarningCode } from '../types/runtime';
-import { isPlainObject, readBoolean, readNumber, readText } from '../utils/normalize';
-import { registerDualBridgeHandler } from '../utils/bridge';
-
-const SETTINGS_SCHEMA_VERSION = 1;
+import type { RuntimeDiagnostics } from '../types/runtime';
+import { isPlainObject, readBoolean, readNumber } from '../utils/normalize';
+import { readRevision, SETTINGS_SCHEMA_VERSION, updateValueByPath } from './settingsShared';
+import { useSettingsBridge } from './useSettingsBridge';
+import { useSettingsSync } from './useSettingsSync';
 
 function readEnum<T extends string>(value: unknown, fallback: T, allowed: readonly T[]): T {
   if (typeof value !== 'string') return fallback;
@@ -24,50 +24,6 @@ function readAccentColor(value: unknown, fallback: string): string {
   if (typeof value !== 'string') return fallback;
   if (value === '') return '';
   return /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback;
-}
-
-function readRuntimeWarningCode(value: unknown): RuntimeWarningCode {
-  if (value === 'none' || value === 'unsupported-runtime' || value === 'missing-address-library' || value === 'unsupported-runtime-and-missing-address-library') {
-    return value;
-  }
-  return 'none';
-}
-
-function readRevision(value: unknown): number | null {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
-  const revision = Math.trunc(value);
-  if (revision < 0) return null;
-  return revision;
-}
-
-function serializeSettingsPayload(settings: WidgetSettings, revision: number): string {
-  return JSON.stringify({
-    ...settings,
-    schemaVersion: SETTINGS_SCHEMA_VERSION,
-    rev: revision,
-  });
-}
-
-interface SettingsBridgeHandlers {
-  updateSettings: NonNullable<TulliusWidgetsBridgeV1['updateSettings']>;
-  updateRuntimeStatus: NonNullable<TulliusWidgetsBridgeV1['updateRuntimeStatus']>;
-  importSettingsFromNative: NonNullable<TulliusWidgetsBridgeV1['importSettingsFromNative']>;
-  toggleSettings: NonNullable<TulliusWidgetsBridgeV1['toggleSettings']>;
-  toggleWidgetsVisibility: NonNullable<TulliusWidgetsBridgeV1['toggleWidgetsVisibility']>;
-  closeSettings: NonNullable<TulliusWidgetsBridgeV1['closeSettings']>;
-  setHUDColor: NonNullable<TulliusWidgetsBridgeV1['setHUDColor']>;
-}
-
-function registerSettingsBridgeHandlers(handlers: SettingsBridgeHandlers): Array<() => void> {
-  return [
-    registerDualBridgeHandler('updateSettings', handlers.updateSettings),
-    registerDualBridgeHandler('updateRuntimeStatus', handlers.updateRuntimeStatus),
-    registerDualBridgeHandler('importSettingsFromNative', handlers.importSettingsFromNative),
-    registerDualBridgeHandler('toggleSettings', handlers.toggleSettings),
-    registerDualBridgeHandler('toggleWidgetsVisibility', handlers.toggleWidgetsVisibility),
-    registerDualBridgeHandler('closeSettings', handlers.closeSettings),
-    registerDualBridgeHandler('setHUDColor', handlers.setHUDColor),
-  ];
 }
 
 function mergeBooleanSection<T extends Record<string, boolean>>(defaults: T, incoming: unknown): T {
@@ -105,20 +61,6 @@ function sanitizeLayouts(incoming: unknown): Record<string, WidgetLayout> {
     }
   }
   return out;
-}
-
-function normalizeRuntimeDiagnostics(value: unknown): RuntimeDiagnostics | null {
-  if (!isPlainObject(value)) return null;
-
-  return {
-    runtimeVersion: readText(value.runtimeVersion, ''),
-    skseVersion: readText(value.skseVersion, ''),
-    addressLibraryPath: readText(value.addressLibraryPath, ''),
-    addressLibraryPresent: readBoolean(value.addressLibraryPresent, true),
-    runtimeSupported: readBoolean(value.runtimeSupported, true),
-    usesAddressLibrary: readBoolean(value.usesAddressLibrary, true),
-    warningCode: readRuntimeWarningCode(value.warningCode),
-  };
 }
 
 function cloneDefaultSettings(): WidgetSettings {
@@ -214,43 +156,6 @@ function mergeWithDefaults(saved: Record<string, unknown>): WidgetSettings {
   return merged;
 }
 
-function updateValueByPath(current: WidgetSettings, path: string, value: unknown): WidgetSettings {
-  const keys = path.split('.');
-  if (keys.length === 0) return current;
-
-  const parentChain: Array<{ parent: Record<string, unknown>; key: string }> = [];
-  let cursor: unknown = current as unknown as Record<string, unknown>;
-  for (let i = 0; i < keys.length - 1; i++) {
-    if (!isPlainObject(cursor)) return current;
-    const parent = cursor as Record<string, unknown>;
-    const key = keys[i];
-    const next = parent[key];
-    if (!isPlainObject(next)) return current;
-    parentChain.push({ parent, key });
-    cursor = next;
-  }
-
-  if (!isPlainObject(cursor)) return current;
-
-  const leafParent = cursor as Record<string, unknown>;
-  const leafKey = keys[keys.length - 1];
-  if (Object.is(leafParent[leafKey], value)) return current;
-
-  let updatedNode: Record<string, unknown> = {
-    ...leafParent,
-    [leafKey]: value,
-  };
-  for (let i = parentChain.length - 1; i >= 0; i--) {
-    const { parent, key } = parentChain[i];
-    updatedNode = {
-      ...parent,
-      [key]: updatedNode,
-    };
-  }
-
-  return updatedNode as unknown as WidgetSettings;
-}
-
 function warnFutureSettingsSchemaVersion(
   parsed: Record<string, unknown>,
   warnedFutureSettingsSchemaRef: { current: boolean },
@@ -295,7 +200,6 @@ export function useSettings() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [hudColor, setHudColor] = useState('#ffffff');
   const [runtimeDiagnostics, setRuntimeDiagnostics] = useState<RuntimeDiagnostics | null>(null);
-  const [lastSettingsSyncOk, setLastSettingsSyncOk] = useState<boolean | null>(null);
   // useReducer instead of useState to guarantee state update even when the
   // computed value is the same as the previous one (Object.is skip issue).
   type VisibleAction = { type: 'toggle'; settingsVisible: boolean } | { type: 'reset' };
@@ -306,38 +210,21 @@ export function useSettings() {
     },
     null,
   );
-  const debounceTimerRef = useRef<number | null>(null);
-  const lastQueuedSettingsJsonRef = useRef('');
   const settingsRevisionRef = useRef(0);
   const lastAppliedSettingsRevisionRef = useRef<number | null>(null);
   const warnedFutureSettingsSchemaRef = useRef(false);
   const settingsRef = useRef(settings);
+  const {
+    lastSettingsSyncOk,
+    notifySettingsChanged,
+    rememberQueuedSettings,
+    handleSettingsSyncResult,
+    retryPersistedSettings,
+  } = useSettingsSync({ settingsRevisionRef });
 
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
-
-  const notifySettingsChanged = useCallback((nextSettings: WidgetSettings, explicitRevision?: number) => {
-    const nextRevision = explicitRevision !== undefined
-      ? explicitRevision
-      : settingsRevisionRef.current + 1;
-    settingsRevisionRef.current = Math.max(settingsRevisionRef.current, nextRevision);
-
-    const json = serializeSettingsPayload(nextSettings, settingsRevisionRef.current);
-
-    if (json === lastQueuedSettingsJsonRef.current) {
-      return;
-    }
-    lastQueuedSettingsJsonRef.current = json;
-
-    if (debounceTimerRef.current !== null) {
-      window.clearTimeout(debounceTimerRef.current);
-    }
-
-    debounceTimerRef.current = window.setTimeout(() => {
-      window.onSettingsChanged?.(json);
-    }, 200);
-  }, []);
 
   const applyIncomingSettings = useCallback((jsonString: string, persist: boolean): boolean => {
     try {
@@ -359,83 +246,40 @@ export function useSettings() {
       if (persist) {
         notifySettingsChanged(merged);
       } else {
-        lastQueuedSettingsJsonRef.current = serializeSettingsPayload(merged, settingsRevisionRef.current);
+        rememberQueuedSettings(merged, settingsRevisionRef.current);
       }
       return true;
     } catch (e) {
       console.error('Failed to parse settings JSON:', e);
       return false;
     }
-  }, [notifySettingsChanged]);
+  }, [notifySettingsChanged, rememberQueuedSettings]);
 
-  useEffect(() => {
-    const updateSettingsHandler = (jsonString: string) => {
-      applyIncomingSettings(jsonString, false);
-    };
+  const toggleSettings = useCallback(() => {
+    setSettingsOpen(prev => !prev);
+  }, []);
 
-    const updateRuntimeStatusHandler = (jsonString: string) => {
-      try {
-        const parsed = JSON.parse(jsonString) as unknown;
-        setRuntimeDiagnostics(normalizeRuntimeDiagnostics(parsed));
-      } catch (e) {
-        console.error('Failed to parse runtime diagnostics JSON:', e);
-      }
-    };
+  const toggleWidgetsVisibility = useCallback(() => {
+    dispatchVisibleOverride({ type: 'toggle', settingsVisible: settingsRef.current.general.visible });
+  }, []);
 
-    const importSettingsFromNativeHandler = (jsonString: string) => {
-      const success = applyIncomingSettings(jsonString, true);
-      window.onImportResult?.(success);
-    };
+  const closeSettingsFromBridge = useCallback(() => {
+    setSettingsOpen(false);
+  }, []);
 
-    const toggleSettingsHandler = () => {
-      setSettingsOpen(prev => !prev);
-    };
+  const setHUDColor = useCallback((hex: string) => {
+    setHudColor(hex);
+  }, []);
 
-    const toggleWidgetsVisibilityHandler = () => {
-      dispatchVisibleOverride({ type: 'toggle', settingsVisible: settingsRef.current.general.visible });
-    };
-
-    const closeSettingsHandler = () => {
-      setSettingsOpen(false);
-    };
-
-    const setHUDColorHandler = (hex: string) => {
-      setHudColor(hex);
-    };
-
-    const settingsSyncResultHandler = (success: boolean) => {
-      setLastSettingsSyncOk(success);
-      if (!success) {
-        console.error('Settings save failed in native layer');
-      }
-    };
-
-    const unregisterBridgeHandlers = registerSettingsBridgeHandlers({
-      updateSettings: updateSettingsHandler,
-      updateRuntimeStatus: updateRuntimeStatusHandler,
-      importSettingsFromNative: importSettingsFromNativeHandler,
-      toggleSettings: toggleSettingsHandler,
-      toggleWidgetsVisibility: toggleWidgetsVisibilityHandler,
-      closeSettings: closeSettingsHandler,
-      setHUDColor: setHUDColorHandler,
-    });
-
-    window.onSettingsSyncResult = settingsSyncResultHandler;
-
-    return () => {
-      for (const unregister of unregisterBridgeHandlers) {
-        unregister();
-      }
-
-      if (window.onSettingsSyncResult === settingsSyncResultHandler) {
-        delete window.onSettingsSyncResult;
-      }
-
-      if (debounceTimerRef.current !== null) {
-        window.clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, [applyIncomingSettings]);
+  useSettingsBridge({
+    applyIncomingSettings,
+    setRuntimeDiagnostics,
+    toggleSettings,
+    toggleWidgetsVisibility,
+    closeSettings: closeSettingsFromBridge,
+    setHUDColor,
+    handleSettingsSyncResult,
+  });
 
   // ESC key closes settings and requests unfocus.
   useEffect(() => {
@@ -450,6 +294,13 @@ export function useSettings() {
   }, [settingsOpen]);
 
   const updateSetting = useCallback<UpdateSettingFn>((path: string, value: unknown, options?: UpdateSettingOptions) => {
+    if (options?.persist !== false) {
+      const currentSettings = settingsRef.current;
+      if (updateValueByPath(currentSettings, path, value) === currentSettings && retryPersistedSettings(currentSettings)) {
+        return;
+      }
+    }
+
     setSettings(prev => {
       const next = updateValueByPath(prev, path, value);
       if (next === prev) {
@@ -466,7 +317,7 @@ export function useSettings() {
 
       return next;
     });
-  }, [notifySettingsChanged]);
+  }, [notifySettingsChanged, retryPersistedSettings]);
 
   const closeSettings = useCallback(() => {
     setSettingsOpen(false);
