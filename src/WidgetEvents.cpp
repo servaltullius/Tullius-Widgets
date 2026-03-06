@@ -20,6 +20,11 @@ bool IsGameLoaded()
     return g_callbacks.isGameLoaded && g_callbacks.isGameLoaded();
 }
 
+bool HasViewFocus()
+{
+    return g_callbacks.hasViewFocus && g_callbacks.hasViewFocus();
+}
+
 void SetGameLoaded(bool loaded)
 {
     if (g_callbacks.setGameLoaded) {
@@ -182,9 +187,12 @@ public:
         }
 
         if (event->opening && (WidgetVisibilityState::ShouldHideForMenu(event->menuName)
-                               || WidgetVisibilityState::IsBlockingUiState(ui))) {
+                               || WidgetVisibilityState::IsBlockingUiState(ui, HasViewFocus()))) {
             HideView();
-        } else if (!event->opening && IsGameLoaded() && ui && !WidgetVisibilityState::IsBlockingUiState(ui)) {
+        } else if (!event->opening
+                   && IsGameLoaded()
+                   && ui
+                   && !WidgetVisibilityState::IsBlockingUiState(ui, HasViewFocus())) {
             if (ShowView()) {
                 SendStatsForced();
                 ScheduleStatsUpdateAfter(std::chrono::milliseconds(500));

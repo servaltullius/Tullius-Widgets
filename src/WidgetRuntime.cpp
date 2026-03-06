@@ -44,6 +44,11 @@ bool IsInteropReady()
     return g_callbacks.isInteropReady && g_callbacks.isInteropReady();
 }
 
+bool HasViewFocus()
+{
+    return g_callbacks.hasViewFocus && g_callbacks.hasViewFocus();
+}
+
 void QueueGameTask(std::function<void()> task)
 {
     if (!task) {
@@ -118,7 +123,7 @@ void SendStatsToView(bool force)
     }
 
     auto* ui = RE::UI::GetSingleton();
-    if (WidgetVisibilityState::IsBlockingUiState(ui)) {
+    if (WidgetVisibilityState::IsBlockingUiState(ui, HasViewFocus())) {
         ScheduleStatsUpdateAfter(kPausedRetryDelay);
         return;
     }
@@ -243,7 +248,7 @@ void StartHeartbeat()
 
                 if (visibilityCheckDue || heartbeatDue) {
                     auto* ui = RE::UI::GetSingleton();
-                    if (WidgetVisibilityState::IsBlockingUiState(ui)) {
+                    if (WidgetVisibilityState::IsBlockingUiState(ui, HasViewFocus())) {
                         HideView();
                         g_state.menusWereHidden.store(true, std::memory_order_release);
                         return;

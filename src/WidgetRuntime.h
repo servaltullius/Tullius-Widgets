@@ -8,6 +8,7 @@ namespace TulliusWidgets::WidgetRuntime {
 
 struct Callbacks {
     std::function<bool()> isInteropReady;
+    std::function<bool()> hasViewFocus;
     std::function<std::string()> collectStatsJson;
     std::function<bool(const char*, const char*)> interopCall;
     std::function<bool()> showView;

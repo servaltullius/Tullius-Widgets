@@ -7,8 +7,11 @@ const resistanceText = readFileSync(new URL('../src/ResistanceEvaluator.cpp', im
 const hotkeysText = readFileSync(new URL('../src/WidgetHotkeys.cpp', import.meta.url), 'utf8');
 const jsListenersText = readFileSync(new URL('../src/WidgetJsListeners.cpp', import.meta.url), 'utf8');
 const widgetEventsText = readFileSync(new URL('../src/WidgetEvents.cpp', import.meta.url), 'utf8');
+const widgetEventsHeaderText = readFileSync(new URL('../src/WidgetEvents.h', import.meta.url), 'utf8');
 const widgetRuntimeText = readFileSync(new URL('../src/WidgetRuntime.cpp', import.meta.url), 'utf8');
+const widgetRuntimeHeaderText = readFileSync(new URL('../src/WidgetRuntime.h', import.meta.url), 'utf8');
 const widgetVisibilityStateText = readFileSync(new URL('../src/WidgetVisibilityState.cpp', import.meta.url), 'utf8');
+const widgetVisibilityHeaderText = readFileSync(new URL('../src/WidgetVisibilityState.h', import.meta.url), 'utf8');
 const viewBridgeText = readFileSync(new URL('../src/WidgetViewBridge.cpp', import.meta.url), 'utf8');
 
 test('native orchestration is extracted into WidgetRuntime module', () => {
@@ -64,6 +67,15 @@ test('menu visibility heuristics cover transient photo or capture menus', () => 
   assert.match(widgetVisibilityStateText, /IsInFreeCameraMode\(\)/);
   assert.match(widgetVisibilityStateText, /IsModalMenuOpen\(\)/);
   assert.match(widgetVisibilityStateText, /IsApplicationMenuOpen\(\)/);
+});
+
+test('visibility checks allow PrismaUI focus without hiding the widget view', () => {
+  assert.match(widgetEventsHeaderText, /bool \(\*hasViewFocus\)\(\) = nullptr;/);
+  assert.match(widgetRuntimeHeaderText, /std::function<bool\(\)> hasViewFocus;/);
+  assert.match(widgetVisibilityHeaderText, /IsBlockingUiState\(RE::UI\* ui, bool allowFocusedWidgetMenu = false\)/);
+  assert.match(widgetEventsText, /IsBlockingUiState\(ui, HasViewFocus\(\)\)/);
+  assert.match(widgetRuntimeText, /IsBlockingUiState\(ui, HasViewFocus\(\)\)/);
+  assert.match(widgetVisibilityStateText, /const bool genericUiBlockersActive = !allowFocusedWidgetMenu/);
 });
 
 test('view focus path shows the view and requests PrismaUI focus with pauseGame support', () => {

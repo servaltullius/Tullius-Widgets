@@ -85,6 +85,11 @@ static void HideViewIfReady() {
     (void)TryHideView();
 }
 
+static bool ViewHasFocus() {
+    SyncViewBridgeApi();
+    return g_viewBridge.HasFocus();
+}
+
 static bool TryFocusView() {
     SyncViewBridgeApi();
     return g_viewBridge.Focus();
@@ -183,6 +188,7 @@ static void RegisterWidgetEventSinks() {
     TulliusWidgets::WidgetEvents::Callbacks eventCallbacks{};
     eventCallbacks.isViewReady = &IsViewReady;
     eventCallbacks.isGameLoaded = &IsGameLoaded;
+    eventCallbacks.hasViewFocus = &ViewHasFocus;
     eventCallbacks.setGameLoaded = &SetGameLoaded;
     eventCallbacks.showView = &TryShowView;
     eventCallbacks.hideView = &HideViewIfReady;
@@ -218,6 +224,9 @@ static TulliusWidgets::WidgetRuntime::Callbacks BuildWidgetRuntimeCallbacks() {
     TulliusWidgets::WidgetRuntime::Callbacks callbacks{};
     callbacks.isInteropReady = []() {
         return IsInteropReady();
+    };
+    callbacks.hasViewFocus = []() {
+        return ViewHasFocus();
     };
     callbacks.collectStatsJson = []() {
         return TulliusWidgets::StatsCollector::CollectStats();

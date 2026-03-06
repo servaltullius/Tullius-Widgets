@@ -119,16 +119,19 @@ void NoteMenuOpenClose(const RE::BSFixedString& menuName, bool opening)
     }
 }
 
-bool IsBlockingUiState(RE::UI* ui)
+bool IsBlockingUiState(RE::UI* ui, bool allowFocusedWidgetMenu)
 {
     if (!ui) {
         return false;
     }
 
-    return !ui->IsShowingMenus()
+    const bool genericUiBlockersActive = !allowFocusedWidgetMenu && (
+        !ui->IsShowingMenus()
         || ui->GameIsPaused()
         || ui->IsModalMenuOpen()
-        || ui->IsApplicationMenuOpen()
+        || ui->IsApplicationMenuOpen());
+
+    return genericUiBlockersActive
         || IsFreeCameraModeActive()
         || IsAnyKnownHiddenMenuOpen(ui)
         || g_transientHideMenuCount.load(std::memory_order_acquire) > 0;

@@ -7,6 +7,7 @@ namespace TulliusWidgets::WidgetEvents {
 struct Callbacks {
     bool (*isViewReady)() = nullptr;
     bool (*isGameLoaded)() = nullptr;
+    bool (*hasViewFocus)() = nullptr;
     void (*setGameLoaded)(bool) = nullptr;
     bool (*showView)() = nullptr;
     void (*hideView)() = nullptr;
