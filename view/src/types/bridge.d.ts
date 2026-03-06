@@ -34,6 +34,7 @@ declare global {
     onExportSettings?: (jsonString: string) => void;
     onImportSettings?: (argument: string) => void;
     onRequestUnfocus?: (argument: string) => void;
+    onSettingsVisibilityChanged?: (argument: string) => void;
 
     onExportResult?: (success: boolean) => void;
     onImportResult?: (success: boolean) => void;

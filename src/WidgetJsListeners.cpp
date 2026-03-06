@@ -54,6 +54,13 @@ void UnfocusView()
     }
 }
 
+void SetSettingsOpen(bool open)
+{
+    if (g_callbacks.setSettingsOpen) {
+        g_callbacks.setSettingsOpen(open);
+    }
+}
+
 bool TryImportSettingsToView(const std::string& json)
 {
     if (!g_callbacks.interopCall) return false;
@@ -143,6 +150,14 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
     prismaUI->RegisterJSListener(view, "onRequestUnfocus", [](const char*) -> void {
         DispatchToGameThread([]() {
             UnfocusView();
+        });
+    });
+
+    prismaUI->RegisterJSListener(view, "onSettingsVisibilityChanged", [](const char* data) -> void {
+        const std::string_view state = data ? std::string_view(data) : std::string_view{};
+        const bool open = state == "open" || state == "true" || state == "1";
+        DispatchToGameThread([open]() {
+            SetSettingsOpen(open);
         });
     });
 }

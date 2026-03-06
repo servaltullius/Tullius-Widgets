@@ -1,5 +1,7 @@
 #include "WidgetVisibilityState.h"
 
+#include "RE/P/PlayerCamera.h"
+
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -80,6 +82,12 @@ bool IsAnyKnownHiddenMenuOpen(RE::UI* ui)
         [ui](const auto& menuName) { return ui->IsMenuOpen(menuName); });
 }
 
+bool IsFreeCameraModeActive()
+{
+    const auto* playerCamera = RE::PlayerCamera::GetSingleton();
+    return playerCamera && playerCamera->IsInFreeCameraMode();
+}
+
 }  // namespace
 
 bool ShouldHideForMenu(const RE::BSFixedString& menuName)
@@ -121,6 +129,7 @@ bool IsBlockingUiState(RE::UI* ui)
         || ui->GameIsPaused()
         || ui->IsModalMenuOpen()
         || ui->IsApplicationMenuOpen()
+        || IsFreeCameraModeActive()
         || IsAnyKnownHiddenMenuOpen(ui)
         || g_transientHideMenuCount.load(std::memory_order_acquire) > 0;
 }

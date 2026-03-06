@@ -5,7 +5,7 @@ namespace TulliusWidgets::WidgetHotkeys {
 struct Callbacks {
     bool (*isViewReady)() = nullptr;
     bool (*isGameLoaded)() = nullptr;
-    bool (*viewHasFocus)() = nullptr;
+    bool (*isSettingsPanelOpen)() = nullptr;
     bool (*focusView)() = nullptr;
     void (*unfocusView)() = nullptr;
     bool (*invokeScript)(const char*) = nullptr;

@@ -11,6 +11,7 @@ struct Callbacks {
     bool (*invokeScript)(const char*) = nullptr;
     bool (*interopCall)(const char*, const char*) = nullptr;
     void (*unfocusView)() = nullptr;
+    void (*setSettingsOpen)(bool) = nullptr;
 };
 
 void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callbacks& callbacks);

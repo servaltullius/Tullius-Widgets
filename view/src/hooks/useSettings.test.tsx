@@ -60,6 +60,7 @@ describe('useSettings', () => {
     delete window.setHUDColor;
     delete window.onSettingsSyncResult;
     delete window.onImportResult;
+    delete window.onSettingsVisibilityChanged;
     delete window.TulliusWidgetsBridge;
   });
 
@@ -219,5 +220,29 @@ describe('useSettings', () => {
     });
 
     expect(onImportResult).toHaveBeenCalledWith(false);
+  });
+
+  it('reports settings panel visibility changes to native bridge listeners', async () => {
+    const onSettingsVisibilityChanged = vi.fn();
+    window.onSettingsVisibilityChanged = onSettingsVisibilityChanged;
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onSettings={settings => { latest = settings; }} />);
+    });
+
+    expect(onSettingsVisibilityChanged).toHaveBeenNthCalledWith(1, 'closed');
+
+    await act(async () => {
+      window.toggleSettings?.();
+    });
+
+    expect(onSettingsVisibilityChanged).toHaveBeenNthCalledWith(2, 'open');
+
+    await act(async () => {
+      window.closeSettings?.();
+    });
+
+    expect(onSettingsVisibilityChanged).toHaveBeenNthCalledWith(3, 'closed');
   });
 });

@@ -115,6 +115,10 @@ export function useSettings() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [settingsOpen]);
 
+  useEffect(() => {
+    window.onSettingsVisibilityChanged?.(settingsOpen ? 'open' : 'closed');
+  }, [settingsOpen]);
+
   const updateSetting = useCallback<UpdateSettingFn>((path: string, value: unknown, options?: UpdateSettingOptions) => {
     if (options?.persist !== false) {
       const currentSettings = settingsRef.current;

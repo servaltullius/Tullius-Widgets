@@ -25,7 +25,7 @@ public:
     bool Show() const;
     bool Hide() const;
     bool HasFocus() const;
-    bool Focus() const;
+    bool Focus(bool pauseGame = true, bool disableFocusMenu = false) const;
     void Unfocus() const;
 
 private:

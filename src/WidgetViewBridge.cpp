@@ -118,14 +118,19 @@ bool Runtime::HasFocus() const
     return api_->HasFocus(view);
 }
 
-bool Runtime::Focus() const
+bool Runtime::Focus(bool pauseGame, bool disableFocusMenu) const
 {
     const auto view = LoadValidView();
     if (view == 0) {
         return false;
     }
 
-    return api_->Focus(view);
+    api_->Show(view);
+    if (api_->HasFocus(view)) {
+        return true;
+    }
+
+    return api_->Focus(view, pauseGame, disableFocusMenu);
 }
 
 void Runtime::Unfocus() const

@@ -9,6 +9,7 @@ const jsListenersText = readFileSync(new URL('../src/WidgetJsListeners.cpp', imp
 const widgetEventsText = readFileSync(new URL('../src/WidgetEvents.cpp', import.meta.url), 'utf8');
 const widgetRuntimeText = readFileSync(new URL('../src/WidgetRuntime.cpp', import.meta.url), 'utf8');
 const widgetVisibilityStateText = readFileSync(new URL('../src/WidgetVisibilityState.cpp', import.meta.url), 'utf8');
+const viewBridgeText = readFileSync(new URL('../src/WidgetViewBridge.cpp', import.meta.url), 'utf8');
 
 test('native orchestration is extracted into WidgetRuntime module', () => {
   assert.equal(existsSync(new URL('../src/WidgetRuntime.h', import.meta.url)), true);
@@ -36,10 +37,21 @@ test('default hotkeys include F11 widget visibility toggle', () => {
   );
 });
 
+test('settings hotkey uses tracked settings-panel state and closes explicitly', () => {
+  assert.match(hotkeysText, /if \(IsSettingsPanelOpen\(\)\) \{/);
+  assert.match(hotkeysText, /InvokeScript\("closeSettings\(\)"\);/);
+  assert.match(hotkeysText, /InvokeScript\("toggleSettings\(\)"\)/);
+});
+
 test('settings bridge listener uses async native settings save path', () => {
   assert.match(jsListenersText, /RegisterJSListener\(view, "onSettingsChanged"/);
   assert.match(jsListenersText, /NativeStorage::SaveSettingsAsync\(/);
   assert.doesNotMatch(jsListenersText, /NativeStorage::SaveSettings\(ResolveStorageBasePath\(\), payload\)/);
+});
+
+test('settings bridge listener tracks settings panel visibility for native hotkeys', () => {
+  assert.match(jsListenersText, /RegisterJSListener\(view, "onSettingsVisibilityChanged"/);
+  assert.match(jsListenersText, /SetSettingsOpen\(open\)/);
 });
 
 test('menu visibility heuristics cover transient photo or capture menus', () => {
@@ -47,6 +59,12 @@ test('menu visibility heuristics cover transient photo or capture menus', () => 
   assert.match(widgetRuntimeText, /#include "WidgetVisibilityState\.h"/);
   assert.match(widgetVisibilityStateText, /"photo"/);
   assert.match(widgetVisibilityStateText, /"screenshot"/);
+  assert.match(widgetVisibilityStateText, /IsInFreeCameraMode\(\)/);
   assert.match(widgetVisibilityStateText, /IsModalMenuOpen\(\)/);
   assert.match(widgetVisibilityStateText, /IsApplicationMenuOpen\(\)/);
+});
+
+test('view focus path shows the view and requests PrismaUI focus with pauseGame support', () => {
+  assert.match(viewBridgeText, /api_->Show\(view\);/);
+  assert.match(viewBridgeText, /api_->Focus\(view, pauseGame, disableFocusMenu\)/);
 });

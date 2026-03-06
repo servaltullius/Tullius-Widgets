@@ -18,6 +18,7 @@ namespace {
 
 struct PluginState {
     TulliusWidgets::RuntimeDiagnostics::State runtimeDiagnostics{};
+    std::atomic<bool> settingsPanelOpen{ false };
 };
 
 PluginState g;
@@ -84,11 +85,6 @@ static void HideViewIfReady() {
     (void)TryHideView();
 }
 
-static bool ViewHasFocus() {
-    SyncViewBridgeApi();
-    return g_viewBridge.HasFocus();
-}
-
 static bool TryFocusView() {
     SyncViewBridgeApi();
     return g_viewBridge.Focus();
@@ -136,6 +132,17 @@ static bool IsGameLoaded() {
 
 static void SetGameLoaded(bool loaded) {
     TulliusWidgets::WidgetRuntime::SetGameLoaded(loaded);
+    if (!loaded) {
+        g.settingsPanelOpen.store(false, std::memory_order_release);
+    }
+}
+
+static bool IsSettingsPanelOpen() {
+    return g.settingsPanelOpen.load(std::memory_order_acquire);
+}
+
+static void SetSettingsPanelOpen(bool open) {
+    g.settingsPanelOpen.store(open, std::memory_order_release);
 }
 
 static void SendStatsToViewThrottled() {
@@ -165,6 +172,7 @@ static void RegisterWidgetJsListeners() {
     jsListenerCallbacks.invokeScript = &TryInvoke;
     jsListenerCallbacks.interopCall = &TryInteropCall;
     jsListenerCallbacks.unfocusView = &TryUnfocusView;
+    jsListenerCallbacks.setSettingsOpen = &SetSettingsPanelOpen;
     TulliusWidgets::WidgetJsListeners::Register(
         g_viewBridge.GetApi(),
         g_viewBridge.GetView(),
@@ -188,7 +196,7 @@ static void RegisterWidgetHotkeys() {
     TulliusWidgets::WidgetHotkeys::Callbacks hotkeyCallbacks{};
     hotkeyCallbacks.isViewReady = &IsViewReady;
     hotkeyCallbacks.isGameLoaded = &IsGameLoaded;
-    hotkeyCallbacks.viewHasFocus = &ViewHasFocus;
+    hotkeyCallbacks.isSettingsPanelOpen = &IsSettingsPanelOpen;
     hotkeyCallbacks.focusView = &TryFocusView;
     hotkeyCallbacks.unfocusView = &TryUnfocusView;
     hotkeyCallbacks.invokeScript = &TryInvoke;

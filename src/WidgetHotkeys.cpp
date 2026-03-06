@@ -17,9 +17,9 @@ bool IsGameLoaded()
     return g_callbacks.isGameLoaded && g_callbacks.isGameLoaded();
 }
 
-bool ViewHasFocus()
+bool IsSettingsPanelOpen()
 {
-    return g_callbacks.viewHasFocus && g_callbacks.viewHasFocus();
+    return g_callbacks.isSettingsPanelOpen && g_callbacks.isSettingsPanelOpen();
 }
 
 bool FocusView()
@@ -34,11 +34,13 @@ void UnfocusView()
     }
 }
 
-void InvokeScript(const char* script)
+bool InvokeScript(const char* script)
 {
     if (g_callbacks.invokeScript) {
-        (void)g_callbacks.invokeScript(script);
+        return g_callbacks.invokeScript(script);
     }
+
+    return false;
 }
 
 }  // namespace
@@ -56,17 +58,22 @@ void RegisterDefaultHotkeys(const Callbacks& callbacks)
 
     (void)keyHandler->Register(0xD2, KeyEventType::KEY_DOWN, []() {
         if (IsViewReady() && IsGameLoaded()) {
-            InvokeScript("toggleSettings()");
-            if (!ViewHasFocus()) {
-                FocusView();
-            } else {
+            if (IsSettingsPanelOpen()) {
+                InvokeScript("closeSettings()");
                 UnfocusView();
+                return;
             }
+
+            if (!InvokeScript("toggleSettings()")) {
+                return;
+            }
+
+            (void)FocusView();
         }
     });
 
     (void)keyHandler->Register(0x01, KeyEventType::KEY_DOWN, []() {
-        if (IsViewReady() && IsGameLoaded() && ViewHasFocus()) {
+        if (IsViewReady() && IsGameLoaded() && IsSettingsPanelOpen()) {
             InvokeScript("closeSettings()");
             UnfocusView();
         }
