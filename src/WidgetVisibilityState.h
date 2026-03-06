@@ -1,7 +1,8 @@
 #pragma once
 
+#include "RE/B/BSFixedString.h"
+
 namespace RE {
-class BSFixedString;
 class UI;
 }
 
