@@ -191,6 +191,7 @@ export function App() {
     accentColor,
     runtimeDiagnostics,
     lastSettingsSyncOk,
+    settingsSyncState,
   } = useSettings();
   const [lastChangeAtMs, setLastChangeAtMs] = useState<number>(() => Date.now());
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
@@ -406,11 +407,14 @@ export function App() {
   }, [lang, runtimeDiagnostics]);
 
   const settingsSyncWarningText = useMemo(() => {
-    if (lastSettingsSyncOk !== false) return null;
-    return lang === 'ko'
-      ? '설정 저장에 실패했습니다. 경로/권한을 확인해 주세요.'
-      : 'Failed to save settings. Check file path and permissions.';
-  }, [lang, lastSettingsSyncOk]);
+    if (settingsSyncState === 'retrying') {
+      return t(lang, 'settingsSyncRetrying');
+    }
+    if (settingsSyncState === 'failed' || lastSettingsSyncOk === false) {
+      return t(lang, 'settingsSyncFailed');
+    }
+    return null;
+  }, [lang, lastSettingsSyncOk, settingsSyncState]);
 
   const handleOnboardingDismiss = () => {
     updateSetting('general.onboardingSeen', true);

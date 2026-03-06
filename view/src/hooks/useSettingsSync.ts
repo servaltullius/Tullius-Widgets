@@ -2,12 +2,15 @@ import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 
 import type { WidgetSettings } from '../types/settings';
 import { serializeSettingsPayload } from './settingsShared';
 
+export type SettingsSyncState = 'idle' | 'retrying' | 'failed' | 'saved';
+
 interface UseSettingsSyncParams {
   settingsRevisionRef: MutableRefObject<number>;
 }
 
 export function useSettingsSync({ settingsRevisionRef }: UseSettingsSyncParams) {
   const [lastSettingsSyncOk, setLastSettingsSyncOk] = useState<boolean | null>(null);
+  const [settingsSyncState, setSettingsSyncState] = useState<SettingsSyncState>('idle');
   const debounceTimerRef = useRef<number | null>(null);
   const lastQueuedSettingsJsonRef = useRef('');
   const lastDispatchedSettingsJsonRef = useRef('');
@@ -40,6 +43,7 @@ export function useSettingsSync({ settingsRevisionRef }: UseSettingsSyncParams) 
     lastQueuedSettingsJsonRef.current = json;
     lastRetriedSettingsJsonRef.current = '';
     allowSameValueRetryRef.current = false;
+    setSettingsSyncState('idle');
     dispatchSettingsJson(json);
   }, [dispatchSettingsJson, settingsRevisionRef]);
 
@@ -49,6 +53,7 @@ export function useSettingsSync({ settingsRevisionRef }: UseSettingsSyncParams) 
     lastQueuedSettingsJsonRef.current = serializeSettingsPayload(settings, settingsRevisionRef.current);
     lastRetriedSettingsJsonRef.current = '';
     allowSameValueRetryRef.current = false;
+    setSettingsSyncState('idle');
   }, [settingsRevisionRef]);
 
   const handleSettingsSyncResult = useCallback((success: boolean) => {
@@ -56,6 +61,7 @@ export function useSettingsSync({ settingsRevisionRef }: UseSettingsSyncParams) 
     if (success) {
       lastRetriedSettingsJsonRef.current = '';
       allowSameValueRetryRef.current = false;
+      setSettingsSyncState('saved');
       return;
     }
 
@@ -67,10 +73,12 @@ export function useSettingsSync({ settingsRevisionRef }: UseSettingsSyncParams) 
       || failedJson !== lastQueuedSettingsJsonRef.current
       || failedJson === lastRetriedSettingsJsonRef.current
     ) {
+      setSettingsSyncState('failed');
       return;
     }
 
     lastRetriedSettingsJsonRef.current = failedJson;
+    setSettingsSyncState('retrying');
     dispatchSettingsJson(failedJson);
   }, [dispatchSettingsJson]);
 
@@ -94,6 +102,7 @@ export function useSettingsSync({ settingsRevisionRef }: UseSettingsSyncParams) 
 
   return {
     lastSettingsSyncOk,
+    settingsSyncState,
     notifySettingsChanged,
     rememberQueuedSettings,
     handleSettingsSyncResult,

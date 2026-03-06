@@ -8,6 +8,7 @@ import type { WidgetSettings } from '../types/settings';
 import { useSettingsSync } from './useSettingsSync';
 
 interface SyncHarnessValue {
+  settingsSyncState: string;
   notifySettingsChanged: (settings: WidgetSettings, explicitRevision?: number) => void;
   rememberQueuedSettings: (settings: WidgetSettings, explicitRevision?: number) => void;
   retryPersistedSettings: (currentSettings: WidgetSettings) => boolean;
@@ -70,6 +71,7 @@ describe('useSettingsSync', () => {
       vi.advanceTimersByTime(200);
     });
 
+    expect(api!.settingsSyncState).toBe('retrying');
     expect(onSettingsChanged).toHaveBeenCalledTimes(2);
     expect(onSettingsChanged.mock.calls[1]?.[0]).toBe(onSettingsChanged.mock.calls[0]?.[0]);
   });
@@ -113,5 +115,36 @@ describe('useSettingsSync', () => {
     const retriedPayload = JSON.parse(onSettingsChanged.mock.calls[2]?.[0] as string) as WidgetSettings & { rev?: number };
     expect(retriedPayload.general.opacity).toBe(77);
     expect(retriedPayload.rev).toBeGreaterThan(0);
+  });
+
+  it('marks the sync state as failed after the retry also fails', async () => {
+    vi.useFakeTimers();
+    let api: SyncHarnessValue | null = null;
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<SyncHarness onReady={value => { api = value; }} />);
+    });
+
+    expect(api).not.toBeNull();
+
+    await act(async () => {
+      api!.notifySettingsChanged(defaultSettings);
+      vi.advanceTimersByTime(200);
+    });
+
+    await act(async () => {
+      api!.handleSettingsSyncResult(false);
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(api!.settingsSyncState).toBe('retrying');
+
+    await act(async () => {
+      api!.handleSettingsSyncResult(false);
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(api!.settingsSyncState).toBe('failed');
   });
 });
