@@ -1,8 +1,7 @@
 #include "WidgetEvents.h"
+#include "WidgetVisibilityState.h"
 
 #include <algorithm>
-#include <array>
-#include <string_view>
 
 namespace TulliusWidgets::WidgetEvents {
 namespace {
@@ -149,45 +148,6 @@ public:
     }
 };
 
-static constexpr std::array<std::string_view, 19> kHiddenMenus = {
-    RE::InventoryMenu::MENU_NAME,
-    RE::MagicMenu::MENU_NAME,
-    RE::MapMenu::MENU_NAME,
-    RE::StatsMenu::MENU_NAME,
-    RE::JournalMenu::MENU_NAME,
-    RE::TweenMenu::MENU_NAME,
-    RE::ContainerMenu::MENU_NAME,
-    RE::BarterMenu::MENU_NAME,
-    RE::GiftMenu::MENU_NAME,
-    RE::LockpickingMenu::MENU_NAME,
-    RE::BookMenu::MENU_NAME,
-    RE::FavoritesMenu::MENU_NAME,
-    RE::Console::MENU_NAME,
-    RE::CraftingMenu::MENU_NAME,
-    RE::TrainingMenu::MENU_NAME,
-    RE::SleepWaitMenu::MENU_NAME,
-    RE::RaceSexMenu::MENU_NAME,
-    RE::LevelUpMenu::MENU_NAME,
-    RE::LoadingMenu::MENU_NAME
-};
-
-bool ShouldHideForMenu(const RE::BSFixedString& menuName)
-{
-    for (const auto& name : kHiddenMenus) {
-        if (menuName == name) return true;
-    }
-    return false;
-}
-
-bool IsAnyHiddenMenuOpen(RE::UI* ui)
-{
-    if (!ui) return false;
-    return std::any_of(
-        kHiddenMenus.begin(),
-        kHiddenMenus.end(),
-        [ui](const auto& name) { return ui->IsMenuOpen(name); });
-}
-
 class MenuEventSink : public RE::BSTEventSink<RE::MenuOpenCloseEvent> {
 public:
     static MenuEventSink* GetSingleton()
@@ -200,7 +160,11 @@ public:
         const RE::MenuOpenCloseEvent* event,
         RE::BSTEventSource<RE::MenuOpenCloseEvent>*) override
     {
-        if (!event || !IsViewReady()) return RE::BSEventNotifyControl::kContinue;
+        if (!event) return RE::BSEventNotifyControl::kContinue;
+
+        WidgetVisibilityState::NoteMenuOpenClose(event->menuName, event->opening);
+
+        if (!IsViewReady()) return RE::BSEventNotifyControl::kContinue;
 
         auto* ui = RE::UI::GetSingleton();
         const bool levelUpMenuClosed =
@@ -211,15 +175,16 @@ public:
         }
 
         if (event->menuName == RE::MainMenu::MENU_NAME && event->opening) {
+            WidgetVisibilityState::Reset();
             HideView();
             SetGameLoaded(false);
             return RE::BSEventNotifyControl::kContinue;
         }
 
-        if (event->opening && (ShouldHideForMenu(event->menuName) || (ui && ui->GameIsPaused()))) {
+        if (event->opening && (WidgetVisibilityState::ShouldHideForMenu(event->menuName)
+                               || WidgetVisibilityState::IsBlockingUiState(ui))) {
             HideView();
-        } else if (!event->opening && IsGameLoaded() && ui && !ui->GameIsPaused()
-                   && ui->IsShowingMenus() && !IsAnyHiddenMenuOpen(ui)) {
+        } else if (!event->opening && IsGameLoaded() && ui && !WidgetVisibilityState::IsBlockingUiState(ui)) {
             if (ShowView()) {
                 SendStatsForced();
                 ScheduleStatsUpdateAfter(std::chrono::milliseconds(500));

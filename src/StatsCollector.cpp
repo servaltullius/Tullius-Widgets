@@ -1,36 +1,19 @@
 #include "StatsCollector.h"
-#include "CriticalChanceEvaluator.h"
-#include "JsonUtils.h"
-#include "ResistanceEvaluator.h"
+#include "StatsJsonWriter.h"
+#include "StatsPayload.h"
 #include "RE/C/Calendar.h"
 #include <algorithm>
 #include <atomic>
-#include <cstdint>
 #include <cmath>
-#include <cstdio>
 #include <string_view>
 #include <utility>
-#include <vector>
 
-namespace TulliusWidgets {
+namespace TulliusWidgets::StatsCollectorInternal {
 
-static constexpr float kDisplayedDamageMin = 0.0f;
-static constexpr float kDisplayedDamageMax = 9999.0f;
-static constexpr float kElementalResistCap = 85.0f;
-static constexpr float kElementalResistMin = -100.0f;
-static constexpr float kDiseaseResistCap = 100.0f;
-static constexpr float kDiseaseResistMin = 0.0f;
-static constexpr float kCritChanceCap = 100.0f;
-static constexpr float kDamageReductionCap = 80.0f;
-static constexpr float kArmorRatingMultiplier = 0.12f;
-static constexpr float kArmorRatingForMaxReduction = 666.67f;
-static constexpr std::uint32_t kStatsSchemaVersion = 1;
 std::atomic<std::uint32_t> gStatsPayloadSequence{0};
 
-// Level-up XP correction: game engine may not reset xp/levelThreshold immediately
-// after AdvanceLevel(). Detect staleness by comparing rawThreshold against the
-// expected threshold for the current level (fXPLevelUpBase + fXPLevelUpMult * level).
-static float ComputeLevelThreshold(std::int32_t level) {
+static float ComputeLevelThreshold(std::int32_t level)
+{
     float base = 75.0f;
     float mult = 25.0f;
     auto* gs = RE::GameSettingCollection::GetSingleton();
@@ -41,7 +24,8 @@ static float ComputeLevelThreshold(std::int32_t level) {
     return base + mult * static_cast<float>(level);
 }
 
-static RE::TESForm* getEquippedForm(RE::PlayerCharacter* player, bool leftHand) {
+static RE::TESForm* GetEquippedForm(RE::PlayerCharacter* player, bool leftHand)
+{
     if (!player) return nullptr;
 
     if (auto* equipped = player->GetEquippedObject(leftHand)) {
@@ -54,7 +38,6 @@ static RE::TESForm* getEquippedForm(RE::PlayerCharacter* player, bool leftHand) 
         }
     }
 
-    // Some setups report shields only as worn armor, not as left-hand object.
     if (leftHand) {
         if (auto* shield = player->GetWornArmor(RE::BGSBipedObjectForm::BipedObjectSlot::kShield, false)) {
             return shield;
@@ -64,7 +47,8 @@ static RE::TESForm* getEquippedForm(RE::PlayerCharacter* player, bool leftHand) 
     return nullptr;
 }
 
-static std::string getEquippedName(RE::PlayerCharacter* player, bool leftHand) {
+static std::string GetEquippedName(RE::PlayerCharacter* player, bool leftHand)
+{
     if (!player) return "";
     if (auto* entry = player->GetEquippedEntryData(leftHand)) {
         if (const char* displayName = entry->GetDisplayName(); displayName && displayName[0] != '\0') {
@@ -77,7 +61,7 @@ static std::string getEquippedName(RE::PlayerCharacter* player, bool leftHand) {
         }
     }
 
-    auto* equipped = getEquippedForm(player, leftHand);
+    auto* equipped = GetEquippedForm(player, leftHand);
     if (!equipped) return "";
 
     if (const auto* weapon = equipped->As<RE::TESObjectWEAP>()) {
@@ -96,23 +80,13 @@ static std::string getEquippedName(RE::PlayerCharacter* player, bool leftHand) {
         const char* name = armor->GetName();
         return name ? name : "";
     }
+
     const char* name = equipped->GetName();
     return name ? name : "";
 }
 
-struct TimedEffectEntry {
-    std::int32_t instanceId;
-    std::string sourceName;
-    std::string effectName;
-    std::int32_t remainingSec;
-    std::int32_t totalSec;
-    bool isDebuff;
-    std::uint32_t sourceFormId;
-    std::uint32_t effectFormId;
-    std::uint32_t spellFormId;
-};
-
-static bool shouldDisplayActiveEffect(const RE::ActiveEffect* effect) {
+static bool ShouldDisplayActiveEffect(const RE::ActiveEffect* effect)
+{
     if (!effect) return false;
     if (effect->flags.all(RE::ActiveEffect::Flag::kInactive)) return false;
     if (effect->flags.all(RE::ActiveEffect::Flag::kDispelled)) return false;
@@ -127,7 +101,8 @@ static bool shouldDisplayActiveEffect(const RE::ActiveEffect* effect) {
     return true;
 }
 
-static std::string getFormName(const RE::TESForm* form) {
+static std::string GetFormName(const RE::TESForm* form)
+{
     if (!form) return "";
     const char* name = form->GetName();
     if (name && name[0] != '\0') {
@@ -136,11 +111,13 @@ static std::string getFormName(const RE::TESForm* form) {
     return "";
 }
 
-static std::uint32_t getFormId(const RE::TESForm* form) {
+static std::uint32_t GetFormId(const RE::TESForm* form)
+{
     return form ? static_cast<std::uint32_t>(form->GetFormID()) : 0u;
 }
 
-static std::string getTimedEffectName(const RE::ActiveEffect* effect) {
+static std::string GetTimedEffectName(const RE::ActiveEffect* effect)
+{
     if (!effect) return "";
 
     if (const auto* baseEffect = effect->GetBaseObject()) {
@@ -153,7 +130,7 @@ static std::string getTimedEffectName(const RE::ActiveEffect* effect) {
     }
 
     if (effect->spell) {
-        auto spellName = getFormName(effect->spell);
+        auto spellName = GetFormName(effect->spell);
         if (!spellName.empty()) {
             return spellName;
         }
@@ -162,37 +139,35 @@ static std::string getTimedEffectName(const RE::ActiveEffect* effect) {
     return "";
 }
 
-static std::string getTimedEffectSourceName(const RE::ActiveEffect* effect, std::string_view effectName) {
+static std::string GetTimedEffectSourceName(const RE::ActiveEffect* effect, std::string_view effectName)
+{
     if (!effect) return "";
 
     if (effect->spell) {
-        auto spellName = getFormName(effect->spell);
+        auto spellName = GetFormName(effect->spell);
         if (!spellName.empty()) {
             return spellName;
         }
     }
 
     if (effect->source) {
-        auto sourceName = getFormName(effect->source);
-        if (!sourceName.empty()) {
-            if (sourceName != effectName) {
-                return sourceName;
-            }
+        auto sourceName = GetFormName(effect->source);
+        if (!sourceName.empty() && sourceName != effectName) {
+            return sourceName;
         }
     }
 
     return "";
 }
 
-static std::vector<TimedEffectEntry> collectTimedEffects(RE::PlayerCharacter* player) {
+static std::vector<TimedEffectEntry> CollectTimedEffects(RE::PlayerCharacter* player)
+{
     std::vector<TimedEffectEntry> out;
     if (!player) return out;
 
-    // Actor has runtime-dependent base offsets (SE/AE), so always cast through accessor.
     auto* magicTarget = player->AsMagicTarget();
     if (!magicTarget) return out;
 
-    // During save/load transitions, active effect data can be unstable. Skip this frame.
     auto* ui = RE::UI::GetSingleton();
     if (!ui || ui->GameIsPaused()) return out;
 
@@ -200,7 +175,7 @@ static std::vector<TimedEffectEntry> collectTimedEffects(RE::PlayerCharacter* pl
     if (!activeEffects) return out;
 
     for (auto* effect : *activeEffects) {
-        if (!shouldDisplayActiveEffect(effect)) {
+        if (!ShouldDisplayActiveEffect(effect)) {
             continue;
         }
 
@@ -209,8 +184,8 @@ static std::vector<TimedEffectEntry> collectTimedEffects(RE::PlayerCharacter* pl
             continue;
         }
 
-        auto effectName = getTimedEffectName(effect);
-        auto sourceName = getTimedEffectSourceName(effect, effectName);
+        auto effectName = GetTimedEffectName(effect);
+        auto sourceName = GetTimedEffectSourceName(effect, effectName);
         if (sourceName.empty() && effectName.empty()) {
             continue;
         }
@@ -219,22 +194,16 @@ static std::vector<TimedEffectEntry> collectTimedEffects(RE::PlayerCharacter* pl
 
         const auto* baseEffect = effect->GetBaseObject();
         const bool isDebuff = baseEffect && (baseEffect->IsDetrimental() || baseEffect->IsHostile());
-        const auto remainingSec = static_cast<std::int32_t>(std::ceil((std::max)(remaining, 0.0f)));
-        const auto totalSec = static_cast<std::int32_t>(std::ceil((std::max)(effect->duration, 0.0f)));
-        const auto instanceId = static_cast<std::int32_t>(effect->usUniqueID);
-        const auto sourceFormId = getFormId(effect->source);
-        const auto effectFormId = getFormId(baseEffect);
-        const auto spellFormId = getFormId(effect->spell);
         out.push_back(TimedEffectEntry{
-            instanceId,
+            static_cast<std::int32_t>(effect->usUniqueID),
             std::move(sourceName),
             std::move(effectName),
-            remainingSec,
-            totalSec,
+            static_cast<std::int32_t>(std::ceil((std::max)(remaining, 0.0f))),
+            static_cast<std::int32_t>(std::ceil((std::max)(effect->duration, 0.0f))),
             isDebuff,
-            sourceFormId,
-            effectFormId,
-            spellFormId
+            GetFormId(effect->source),
+            GetFormId(baseEffect),
+            GetFormId(effect->spell)
         });
     }
 
@@ -252,17 +221,8 @@ static std::vector<TimedEffectEntry> collectTimedEffects(RE::PlayerCharacter* pl
     return out;
 }
 
-struct GameTimeEntry {
-    std::uint32_t year;
-    std::uint32_t month;
-    std::uint32_t day;
-    std::uint32_t hour;
-    std::uint32_t minute;
-    float timeScale;
-    std::string monthName;
-};
-
-static GameTimeEntry collectGameTime() {
+static GameTimeEntry CollectGameTime()
+{
     GameTimeEntry out{
         201,
         static_cast<std::uint32_t>(RE::Calendar::Month::kMorningStar),
@@ -288,8 +248,7 @@ static GameTimeEntry collectGameTime() {
 
     const float rawHour = calendar->GetHour();
     if (std::isfinite(rawHour)) {
-        const float hourFloor = std::floor(rawHour);
-        const auto hour = static_cast<int>(hourFloor);
+        const auto hour = static_cast<int>(std::floor(rawHour));
         out.hour = static_cast<std::uint32_t>(std::clamp(hour, 0, 23));
         out.minute = (std::min)(calendar->GetMinutes(), 59u);
     } else {
@@ -307,193 +266,115 @@ static GameTimeEntry collectGameTime() {
     return out;
 }
 
-// In-place append variants to avoid temporary std::string allocations.
-static void appendFloat(std::string& out, float v) {
-    if (std::isnan(v) || std::isinf(v)) { out += '0'; return; }
-    char buf[32];
-    std::snprintf(buf, sizeof(buf), "%.2f", v);
-    out += buf;
-}
-
-static void appendInt(std::string& out, std::int32_t v) {
-    char buf[16];
-    std::snprintf(buf, sizeof(buf), "%d", v);
-    out += buf;
-}
-
-static void appendUInt(std::string& out, std::uint32_t v) {
-    char buf[16];
-    std::snprintf(buf, sizeof(buf), "%u", v);
-    out += buf;
-}
-
-static void appendBool(std::string& out, bool v) {
-    out += v ? "true" : "false";
-}
-
-static void appendEscapedString(std::string& out, std::string_view s) {
-    out += '"';
-    out += JsonUtils::Escape(std::string(s));
-    out += '"';
-}
-
-float StatsCollector::GetArmorRating() {
-    auto player = RE::PlayerCharacter::GetSingleton();
+static float GetArmorRating(RE::PlayerCharacter* player)
+{
     if (!player) return 0.0f;
     return player->AsActorValueOwner()->GetActorValue(RE::ActorValue::kDamageResist);
 }
 
-float StatsCollector::CalculateRawDamageReduction(float armorRating) {
+static float CalculateRawDamageReduction(float armorRating)
+{
     return armorRating * kArmorRatingMultiplier;
 }
 
-float StatsCollector::CalculateDamageReduction(float armorRating) {
-    // Skyrim formula: displayed_armor_rating * 0.12, capped at 80%
-    float reduction = CalculateRawDamageReduction(armorRating);
-    return (std::min)(reduction, kDamageReductionCap);
+static float CalculateDamageReduction(float armorRating)
+{
+    return (std::min)(CalculateRawDamageReduction(armorRating), kDamageReductionCap);
 }
 
-int32_t StatsCollector::GetGoldCount() {
-    auto player = RE::PlayerCharacter::GetSingleton();
+static std::int32_t GetGoldCount(RE::PlayerCharacter* player)
+{
     if (!player) return 0;
     auto gold = RE::TESForm::LookupByID<RE::TESBoundObject>(0x0000000F);
     if (!gold) return 0;
     return player->GetItemCount(gold);
 }
 
-std::string StatsCollector::CollectStats() {
-  try {
-    auto player = RE::PlayerCharacter::GetSingleton();
-    if (!player) return "{}";
+static float CollectHandDamage(RE::PlayerCharacter* player, bool leftHand)
+{
+    if (!player) return 0.0f;
 
-    auto av = player->AsActorValueOwner();
-    float armorRating = GetArmorRating();
-    float rawDamageReduction = CalculateRawDamageReduction(armorRating);
-    float effectiveDamageReduction = CalculateDamageReduction(armorRating);
-    bool inCombat = player->IsInCombat();
-
-    const auto resistMagic = ResistanceEvaluator::Evaluate(player, RE::ActorValue::kResistMagic);
-    const auto resistFire = ResistanceEvaluator::Evaluate(player, RE::ActorValue::kResistFire);
-    const auto resistFrost = ResistanceEvaluator::Evaluate(player, RE::ActorValue::kResistFrost);
-    const auto resistShock = ResistanceEvaluator::Evaluate(player, RE::ActorValue::kResistShock);
-    const auto resistPoison = ResistanceEvaluator::Evaluate(player, RE::ActorValue::kPoisonResist);
-    const auto resistDisease = ResistanceEvaluator::Evaluate(player, RE::ActorValue::kResistDisease);
-    const auto critChance = CriticalChanceEvaluator::Evaluate(player);
-
-    std::string json;
-    json.reserve(4096);
-    json += '{';
-    json += "\"schemaVersion\":";
-    appendUInt(json, kStatsSchemaVersion);
-    json += ',';
-    json += "\"seq\":";
-    appendUInt(json, gStatsPayloadSequence.fetch_add(1, std::memory_order_relaxed) + 1);
-    json += ',';
-
-    json += "\"resistances\":{";
-    json += "\"magic\":"; appendFloat(json, resistMagic.effective); json += ',';
-    json += "\"fire\":"; appendFloat(json, resistFire.effective); json += ',';
-    json += "\"frost\":"; appendFloat(json, resistFrost.effective); json += ',';
-    json += "\"shock\":"; appendFloat(json, resistShock.effective); json += ',';
-    json += "\"poison\":"; appendFloat(json, resistPoison.effective); json += ',';
-    json += "\"disease\":"; appendFloat(json, resistDisease.effective);
-    json += "},";
-
-    json += "\"defense\":{";
-    json += "\"armorRating\":"; appendFloat(json, armorRating); json += ',';
-    json += "\"damageReduction\":"; appendFloat(json, effectiveDamageReduction);
-    json += "},";
-
-    float rightDmg = 0.0f;
-    float leftDmg = 0.0f;
-
-    if (auto* entry = player->GetEquippedEntryData(false)) {
+    float damage = 0.0f;
+    if (auto* entry = player->GetEquippedEntryData(leftHand)) {
         if (entry->object && entry->object->As<RE::TESObjectWEAP>()) {
-            rightDmg = player->GetDamage(entry);
+            damage = player->GetDamage(entry);
         }
     }
-    if (auto* entry = player->GetEquippedEntryData(true)) {
-        if (entry->object && entry->object->As<RE::TESObjectWEAP>()) {
-            leftDmg = player->GetDamage(entry);
-        }
-    }
-    rightDmg = std::clamp(rightDmg, kDisplayedDamageMin, kDisplayedDamageMax);
-    leftDmg = std::clamp(leftDmg, kDisplayedDamageMin, kDisplayedDamageMax);
 
-    json += "\"offense\":{";
-    json += "\"rightHandDamage\":"; appendFloat(json, rightDmg); json += ',';
-    json += "\"leftHandDamage\":"; appendFloat(json, leftDmg); json += ',';
-    json += "\"critChance\":"; appendFloat(json, critChance.effective);
-    json += "},";
+    return std::clamp(damage, kDisplayedDamageMin, kDisplayedDamageMax);
+}
 
-    const bool anyResistanceClamped =
-        resistMagic.clamped || resistFire.clamped || resistFrost.clamped ||
-        resistShock.clamped || resistPoison.clamped || resistDisease.clamped;
-    const bool damageReductionClamped = rawDamageReduction > kDamageReductionCap + 0.001f;
+static ResistanceSnapshot CollectResistanceSnapshot(RE::PlayerCharacter* player)
+{
+    ResistanceSnapshot snapshot{};
+    snapshot.magic = ResistanceEvaluator::Evaluate(player, RE::ActorValue::kResistMagic);
+    snapshot.fire = ResistanceEvaluator::Evaluate(player, RE::ActorValue::kResistFire);
+    snapshot.frost = ResistanceEvaluator::Evaluate(player, RE::ActorValue::kResistFrost);
+    snapshot.shock = ResistanceEvaluator::Evaluate(player, RE::ActorValue::kResistShock);
+    snapshot.poison = ResistanceEvaluator::Evaluate(player, RE::ActorValue::kPoisonResist);
+    snapshot.disease = ResistanceEvaluator::Evaluate(player, RE::ActorValue::kResistDisease);
+    snapshot.anyClamped =
+        snapshot.magic.clamped || snapshot.fire.clamped || snapshot.frost.clamped ||
+        snapshot.shock.clamped || snapshot.poison.clamped || snapshot.disease.clamped;
+    return snapshot;
+}
 
-    json += "\"calcMeta\":{";
-    json += "\"rawResistances\":{";
-    json += "\"magic\":"; appendFloat(json, resistMagic.raw); json += ',';
-    json += "\"fire\":"; appendFloat(json, resistFire.raw); json += ',';
-    json += "\"frost\":"; appendFloat(json, resistFrost.raw); json += ',';
-    json += "\"shock\":"; appendFloat(json, resistShock.raw); json += ',';
-    json += "\"poison\":"; appendFloat(json, resistPoison.raw); json += ',';
-    json += "\"disease\":"; appendFloat(json, resistDisease.raw);
-    json += "},";
-    json += "\"rawCritChance\":"; appendFloat(json, critChance.raw); json += ',';
-    json += "\"rawDamageReduction\":"; appendFloat(json, rawDamageReduction); json += ',';
-    json += "\"armorCapForMaxReduction\":"; appendFloat(json, kArmorRatingForMaxReduction); json += ',';
-    json += "\"caps\":{";
-    json += "\"elementalResist\":"; appendFloat(json, kElementalResistCap); json += ',';
-    json += "\"elementalResistMin\":"; appendFloat(json, kElementalResistMin); json += ',';
-    json += "\"diseaseResist\":"; appendFloat(json, kDiseaseResistCap); json += ',';
-    json += "\"diseaseResistMin\":"; appendFloat(json, kDiseaseResistMin); json += ',';
-    json += "\"critChance\":"; appendFloat(json, kCritChanceCap); json += ',';
-    json += "\"damageReduction\":"; appendFloat(json, kDamageReductionCap);
-    json += "},";
-    json += "\"flags\":{";
-    json += "\"anyResistanceClamped\":"; appendBool(json, anyResistanceClamped); json += ',';
-    json += "\"critChanceClamped\":"; appendBool(json, critChance.clamped); json += ',';
-    json += "\"damageReductionClamped\":"; appendBool(json, damageReductionClamped);
-    json += "}";
-    json += "},";
+static DefenseSnapshot CollectDefenseSnapshot(RE::PlayerCharacter* player)
+{
+    const float armorRating = GetArmorRating(player);
+    const float rawDamageReduction = CalculateRawDamageReduction(armorRating);
+    return DefenseSnapshot{
+        armorRating,
+        rawDamageReduction,
+        CalculateDamageReduction(armorRating),
+        rawDamageReduction > kDamageReductionCap + 0.001f
+    };
+}
 
-    const auto rightEquipped = getEquippedName(player, false);
-    const auto leftEquipped = getEquippedName(player, true);
-    json += "\"equipped\":{";
-    json += "\"rightHand\":"; appendEscapedString(json, rightEquipped); json += ',';
-    json += "\"leftHand\":"; appendEscapedString(json, leftEquipped);
-    json += "},";
+static OffenseSnapshot CollectOffenseSnapshot(RE::PlayerCharacter* player)
+{
+    OffenseSnapshot snapshot{};
+    snapshot.rightHandDamage = CollectHandDamage(player, false);
+    snapshot.leftHandDamage = CollectHandDamage(player, true);
+    snapshot.critChance = CriticalChanceEvaluator::Evaluate(player);
+    return snapshot;
+}
 
-    json += "\"movement\":{";
-    json += "\"speedMult\":"; appendFloat(json, av->GetActorValue(RE::ActorValue::kSpeedMult));
-    json += "},";
+static EquippedSnapshot CollectEquippedSnapshot(RE::PlayerCharacter* player)
+{
+    return EquippedSnapshot{
+        GetEquippedName(player, false),
+        GetEquippedName(player, true)
+    };
+}
 
-    const auto gameTime = collectGameTime();
-    json += "\"time\":{";
-    json += "\"year\":"; appendUInt(json, gameTime.year); json += ',';
-    json += "\"month\":"; appendUInt(json, gameTime.month); json += ',';
-    json += "\"day\":"; appendUInt(json, gameTime.day); json += ',';
-    json += "\"hour\":"; appendUInt(json, gameTime.hour); json += ',';
-    json += "\"minute\":"; appendUInt(json, gameTime.minute); json += ',';
-    json += "\"monthName\":"; appendEscapedString(json, gameTime.monthName); json += ',';
-    json += "\"timeScale\":"; appendFloat(json, gameTime.timeScale);
-    json += "},";
+static MovementSnapshot CollectMovementSnapshot(RE::PlayerCharacter* player)
+{
+    if (!player) return {};
+    return MovementSnapshot{
+        player->AsActorValueOwner()->GetActorValue(RE::ActorValue::kSpeedMult)
+    };
+}
 
-    // Current values: base + damage modifier (damage modifier is negative)
-    float maxHP = av->GetActorValue(RE::ActorValue::kHealth);
-    float maxMP = av->GetActorValue(RE::ActorValue::kMagicka);
-    float maxSP = av->GetActorValue(RE::ActorValue::kStamina);
-    float dmgHP = player->GetActorValueModifier(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kHealth);
-    float dmgMP = player->GetActorValueModifier(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kMagicka);
-    float dmgSP = player->GetActorValueModifier(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kStamina);
-    float curHP = (std::max)(maxHP + dmgHP, 0.0f);
-    float curMP = (std::max)(maxMP + dmgMP, 0.0f);
-    float curSP = (std::max)(maxSP + dmgSP, 0.0f);
+static PlayerStateSnapshot CollectPlayerStateSnapshot(RE::PlayerCharacter* player)
+{
+    PlayerStateSnapshot snapshot{};
+    if (!player) return snapshot;
+
+    auto* av = player->AsActorValueOwner();
+    const float maxHP = av->GetActorValue(RE::ActorValue::kHealth);
+    const float maxMP = av->GetActorValue(RE::ActorValue::kMagicka);
+    const float maxSP = av->GetActorValue(RE::ActorValue::kStamina);
+    const float dmgHP = player->GetActorValueModifier(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kHealth);
+    const float dmgMP = player->GetActorValueModifier(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kMagicka);
+    const float dmgSP = player->GetActorValueModifier(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kStamina);
+    const float curHP = (std::max)(maxHP + dmgHP, 0.0f);
+    const float curMP = (std::max)(maxMP + dmgMP, 0.0f);
+    const float curSP = (std::max)(maxSP + dmgSP, 0.0f);
+    const std::int32_t currentLevel = static_cast<std::int32_t>(player->GetLevel());
     float experience = 0.0f;
     float expToNextLevel = 0.0f;
     float nextLevelTotalXp = 0.0f;
-    const std::int32_t currentLevel = static_cast<std::int32_t>(player->GetLevel());
 
     auto& infoRuntime = player->GetInfoRuntimeData();
     if (infoRuntime.skills && infoRuntime.skills->data) {
@@ -504,23 +385,24 @@ std::string StatsCollector::CollectStats() {
         nextLevelTotalXp = (std::max)(safeThreshold, experience);
         expToNextLevel = (std::max)(safeThreshold - experience, 0.0f);
 
-        // --- Level-up XP correction ---
-        // If XP >= threshold, check whether the threshold belongs to the current
-        // level.  After AdvanceLevel() the engine may leave xp/levelThreshold at
-        // their old values while GetLevel() already returns the new level.
-        // Detect this by comparing rawThreshold against the expected threshold.
         if (rawXp >= rawThreshold && rawThreshold > 0.0f && currentLevel > 1) {
             const float expectedThreshold = ComputeLevelThreshold(currentLevel);
             if (std::abs(rawThreshold - expectedThreshold) > 1.0f) {
-                // Threshold is stale — it was computed for a previous level
                 experience = (std::max)(rawXp - rawThreshold, 0.0f);
                 nextLevelTotalXp = expectedThreshold;
                 expToNextLevel = (std::max)(expectedThreshold - experience, 0.0f);
+
                 static std::int32_t lastStaleLoggedLevel = -1;
                 if (currentLevel != lastStaleLoggedLevel) {
                     lastStaleLoggedLevel = currentLevel;
-                    logger::info("XP stale: level={} rawXp={:.0f} rawThreshold={:.0f} expected={:.0f} -> exp={:.0f} next={:.0f}",
-                        currentLevel, rawXp, rawThreshold, expectedThreshold, experience, nextLevelTotalXp);
+                    logger::info(
+                        "XP stale: level={} rawXp={:.0f} rawThreshold={:.0f} expected={:.0f} -> exp={:.0f} next={:.0f}",
+                        currentLevel,
+                        rawXp,
+                        rawThreshold,
+                        expectedThreshold,
+                        experience,
+                        nextLevelTotalXp);
                 }
             }
         }
@@ -529,69 +411,71 @@ std::string StatsCollector::CollectStats() {
     }
 
     const float expectedLevelThreshold = ComputeLevelThreshold(currentLevel);
-
     const float carryCur = av->GetActorValue(RE::ActorValue::kInventoryWeight);
     const float carryMax = av->GetActorValue(RE::ActorValue::kCarryWeight);
 
-    json += "\"playerInfo\":{";
-    json += "\"level\":"; appendInt(json, currentLevel); json += ',';
-    json += "\"experience\":"; appendFloat(json, experience); json += ',';
-    json += "\"expToNextLevel\":"; appendFloat(json, expToNextLevel); json += ',';
-    json += "\"nextLevelTotalXp\":"; appendFloat(json, nextLevelTotalXp); json += ',';
-    json += "\"expectedLevelThreshold\":"; appendFloat(json, expectedLevelThreshold); json += ',';
-    json += "\"gold\":"; appendInt(json, GetGoldCount()); json += ',';
-    json += "\"carryWeight\":"; appendFloat(json, carryCur); json += ',';
-    json += "\"maxCarryWeight\":"; appendFloat(json, carryMax); json += ',';
-    json += "\"health\":"; appendFloat(json, curHP); json += ',';
-    json += "\"magicka\":"; appendFloat(json, curMP); json += ',';
-    json += "\"stamina\":"; appendFloat(json, curSP);
-    json += "},";
+    snapshot.playerInfo = PlayerInfoSnapshot{
+        currentLevel,
+        experience,
+        expToNextLevel,
+        nextLevelTotalXp,
+        expectedLevelThreshold,
+        GetGoldCount(player),
+        carryCur,
+        carryMax,
+        curHP,
+        curMP,
+        curSP
+    };
+    snapshot.alertData = AlertDataSnapshot{
+        maxHP > 0 ? (curHP / maxHP) * 100.0f : 100.0f,
+        maxMP > 0 ? (curMP / maxMP) * 100.0f : 100.0f,
+        maxSP > 0 ? (curSP / maxSP) * 100.0f : 100.0f,
+        carryMax > 0 ? (carryCur / carryMax) * 100.0f : 0.0f
+    };
+    return snapshot;
+}
 
-    // Alert data: current percentages for visual alerts
-    const float hpPct = maxHP > 0 ? (curHP / maxHP) * 100.0f : 100.0f;
-    const float mpPct = maxMP > 0 ? (curMP / maxMP) * 100.0f : 100.0f;
-    const float spPct = maxSP > 0 ? (curSP / maxSP) * 100.0f : 100.0f;
-    const float carryPct = carryMax > 0 ? (carryCur / carryMax) * 100.0f : 0.0f;
+StatsPayload CollectStatsPayload(RE::PlayerCharacter* player)
+{
+    StatsPayload payload{};
+    payload.sequence = gStatsPayloadSequence.fetch_add(1, std::memory_order_relaxed) + 1;
+    payload.resistances = CollectResistanceSnapshot(player);
+    payload.defense = CollectDefenseSnapshot(player);
+    payload.offense = CollectOffenseSnapshot(player);
+    payload.equipped = CollectEquippedSnapshot(player);
+    payload.movement = CollectMovementSnapshot(player);
+    payload.time = CollectGameTime();
+    const auto playerState = CollectPlayerStateSnapshot(player);
+    payload.playerInfo = playerState.playerInfo;
+    payload.alertData = playerState.alertData;
+    payload.timedEffects = CollectTimedEffects(player);
+    payload.inCombat = player && player->IsInCombat();
+    return payload;
+}
 
-    json += "\"alertData\":{";
-    json += "\"healthPct\":"; appendFloat(json, hpPct); json += ',';
-    json += "\"magickaPct\":"; appendFloat(json, mpPct); json += ',';
-    json += "\"staminaPct\":"; appendFloat(json, spPct); json += ',';
-    json += "\"carryPct\":"; appendFloat(json, carryPct);
-    json += "},";
+}  // namespace TulliusWidgets::StatsCollectorInternal
 
-    const auto timedEffects = collectTimedEffects(player);
-    json += "\"timedEffects\":[";
-    for (std::size_t i = 0; i < timedEffects.size(); ++i) {
-        const auto& effect = timedEffects[i];
-        json += '{';
-        json += "\"instanceId\":"; appendInt(json, effect.instanceId); json += ',';
-        json += "\"sourceName\":"; appendEscapedString(json, effect.sourceName); json += ',';
-        json += "\"effectName\":"; appendEscapedString(json, effect.effectName); json += ',';
-        json += "\"remainingSec\":"; appendInt(json, effect.remainingSec); json += ',';
-        json += "\"totalSec\":"; appendInt(json, effect.totalSec); json += ',';
-        json += "\"isDebuff\":"; appendBool(json, effect.isDebuff); json += ',';
-        json += "\"sourceFormId\":"; appendUInt(json, effect.sourceFormId); json += ',';
-        json += "\"effectFormId\":"; appendUInt(json, effect.effectFormId); json += ',';
-        json += "\"spellFormId\":"; appendUInt(json, effect.spellFormId);
-        json += '}';
-        if (i + 1 < timedEffects.size()) {
-            json += ',';
+namespace TulliusWidgets {
+
+std::string StatsCollector::CollectStats()
+{
+    try {
+        auto* player = RE::PlayerCharacter::GetSingleton();
+        if (!player) {
+            return "{}";
         }
+
+        const auto payload = StatsCollectorInternal::CollectStatsPayload(player);
+        StatsCollectorInternal::StatsJsonWriter writer;
+        return writer.Build(payload);
+    } catch (const std::exception& e) {
+        logger::error("CollectStats exception: {}", e.what());
+        return "{}";
+    } catch (...) {
+        logger::error("CollectStats unknown exception");
+        return "{}";
     }
-    json += "],";
-
-    json += "\"isInCombat\":"; appendBool(json, inCombat);
-
-    json += '}';
-    return json;
-  } catch (const std::exception& e) {
-    logger::error("CollectStats exception: {}", e.what());
-    return "{}";
-  } catch (...) {
-    logger::error("CollectStats unknown exception");
-    return "{}";
-  }
 }
 
 }  // namespace TulliusWidgets

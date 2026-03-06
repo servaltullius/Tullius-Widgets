@@ -26,3 +26,13 @@ test('verify-runtime-windows reuses shared helpers instead of redefining them lo
   assert.match(sharedLibText, /function Parse-VersionFromXmake/);
   assert.match(sharedLibText, /function Assert-TulliusWidgetsBuildOutputs/);
 });
+
+test('verify-runtime-windows stages frontend and plugin builds when launched from a WSL UNC worktree', () => {
+  assert.match(scriptText, /\$usesUncWorkRoot = \$workRoot\.StartsWith\("\\\\"\)/);
+  assert.match(scriptText, /Get-WslContext -Path \$workRoot/);
+  assert.match(scriptText, /Prepare-FrontendBuildWorkspace -SourceRoot \$repoRoot -WslContext \$wslContext/);
+  assert.match(scriptText, /Prepare-PluginBuildWorkspace -SourceRoot \$repoRoot -WslContext \$wslContext/);
+  assert.match(scriptText, /Invoke-CmdCommands -Path \$frontendViewPath -Commands @\(/);
+  assert.match(scriptText, /Invoke-CmdCommands -Path \$pluginBuildRoot -Commands @\(/);
+  assert.match(scriptText, /Remove-StageRoots -Paths \$stageRoots/);
+});

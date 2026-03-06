@@ -47,6 +47,8 @@ interface StatWidgetProps {
   meterPct?: number;
   meterColor?: string;
   tooltip?: string;
+  valueMaxWidth?: number;
+  helperMaxWidth?: number;
 }
 
 const prominenceStyles = {
@@ -106,6 +108,8 @@ export const StatWidget = memo(function StatWidget({
   meterPct,
   meterColor,
   tooltip,
+  valueMaxWidth,
+  helperMaxWidth,
 }: StatWidgetProps) {
   if (!visible) return null;
 
@@ -129,6 +133,8 @@ export const StatWidget = memo(function StatWidget({
   const normalizedMeterPct = typeof meterPct === 'number' && Number.isFinite(meterPct)
     ? clampPercent(meterPct)
     : null;
+  const resolvedValueMaxWidth = valueMaxWidth ?? styles.maxWidth;
+  const resolvedHelperMaxWidth = helperMaxWidth ?? styles.maxWidth;
 
   const iconSrc = iconMap[icon];
   const BadgeIcon = badgeIconMap[icon];
@@ -198,7 +204,7 @@ export const StatWidget = memo(function StatWidget({
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
-          maxWidth: styles.maxWidth,
+          maxWidth: resolvedValueMaxWidth,
           lineHeight: 1.1,
         }}>
           {displayValue}{unit}
@@ -213,7 +219,7 @@ export const StatWidget = memo(function StatWidget({
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            maxWidth: styles.maxWidth,
+            maxWidth: resolvedHelperMaxWidth,
             opacity: 0.95,
             marginTop: '1px',
           }}>

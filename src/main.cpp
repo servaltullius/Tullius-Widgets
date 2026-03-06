@@ -7,6 +7,7 @@
 #include "WidgetHotkeys.h"
 #include "WidgetJsListeners.h"
 #include "WidgetRuntime.h"
+#include "WidgetViewBridge.h"
 #include <atomic>
 #include <filesystem>
 #include <functional>
@@ -16,12 +17,11 @@ PRISMA_UI_API::IVPrismaUI1* PrismaUI = nullptr;
 namespace {
 
 struct PluginState {
-    std::atomic<PrismaView> view{0};
-    std::atomic<bool> viewDomReady{false};
     TulliusWidgets::RuntimeDiagnostics::State runtimeDiagnostics{};
 };
 
 PluginState g;
+TulliusWidgets::WidgetViewBridge::Runtime g_viewBridge{};
 
 }  // namespace
 
@@ -46,46 +46,38 @@ static void InitializeRuntimeDiagnostics(const SKSE::LoadInterface* loadInterfac
         g.runtimeDiagnostics.addressLibraryPresent);
 }
 
+static void SyncViewBridgeApi() {
+    g_viewBridge.SetApi(PrismaUI);
+}
+
 static bool IsViewReady() {
-    if (!PrismaUI) return false;
-    const auto view = g.view.load(std::memory_order_acquire);
-    return view != 0 && PrismaUI->IsValid(view);
+    SyncViewBridgeApi();
+    return g_viewBridge.IsViewReady();
 }
 
 static bool IsInteropReady() {
-    return IsViewReady() && g.viewDomReady.load();
+    SyncViewBridgeApi();
+    return g_viewBridge.IsInteropReady();
 }
 
 static bool TryInteropCall(const char* functionName, const char* argument) {
-    if (!PrismaUI || !g.viewDomReady.load(std::memory_order_acquire)) return false;
-    const auto view = g.view.load(std::memory_order_acquire);
-    if (view == 0 || !PrismaUI->IsValid(view)) return false;
-    PrismaUI->InteropCall(view, functionName, argument ? argument : "");
-    return true;
+    SyncViewBridgeApi();
+    return g_viewBridge.InteropCall(functionName, argument);
 }
 
 static bool TryInvoke(const char* script) {
-    if (!PrismaUI || !g.viewDomReady.load(std::memory_order_acquire)) return false;
-    const auto view = g.view.load(std::memory_order_acquire);
-    if (view == 0 || !PrismaUI->IsValid(view)) return false;
-    PrismaUI->Invoke(view, script);
-    return true;
+    SyncViewBridgeApi();
+    return g_viewBridge.Invoke(script);
 }
 
 static bool TryShowView() {
-    if (!PrismaUI) return false;
-    const auto view = g.view.load(std::memory_order_acquire);
-    if (view == 0 || !PrismaUI->IsValid(view)) return false;
-    PrismaUI->Show(view);
-    return true;
+    SyncViewBridgeApi();
+    return g_viewBridge.Show();
 }
 
 static bool TryHideView() {
-    if (!PrismaUI) return false;
-    const auto view = g.view.load(std::memory_order_acquire);
-    if (view == 0 || !PrismaUI->IsValid(view)) return false;
-    PrismaUI->Hide(view);
-    return true;
+    SyncViewBridgeApi();
+    return g_viewBridge.Hide();
 }
 
 static void HideViewIfReady() {
@@ -93,24 +85,18 @@ static void HideViewIfReady() {
 }
 
 static bool ViewHasFocus() {
-    if (!PrismaUI) return false;
-    const auto view = g.view.load(std::memory_order_acquire);
-    if (view == 0 || !PrismaUI->IsValid(view)) return false;
-    return PrismaUI->HasFocus(view);
+    SyncViewBridgeApi();
+    return g_viewBridge.HasFocus();
 }
 
 static bool TryFocusView() {
-    if (!PrismaUI) return false;
-    const auto view = g.view.load(std::memory_order_acquire);
-    if (view == 0 || !PrismaUI->IsValid(view)) return false;
-    return PrismaUI->Focus(view);
+    SyncViewBridgeApi();
+    return g_viewBridge.Focus();
 }
 
 static void TryUnfocusView() {
-    if (!PrismaUI) return;
-    const auto view = g.view.load(std::memory_order_acquire);
-    if (view == 0 || !PrismaUI->IsValid(view)) return;
-    PrismaUI->Unfocus(view);
+    SyncViewBridgeApi();
+    g_viewBridge.Unfocus();
 }
 
 static void SendHUDColorToView() {
@@ -165,22 +151,23 @@ static void ScheduleStatsUpdateAfter(std::chrono::milliseconds delay) {
 }
 
 static void SetView(PrismaView newView) {
-    g.view.store(newView, std::memory_order_release);
+    g_viewBridge.SetView(newView);
 }
 
 static void SetViewDomReady(bool ready) {
-    g.viewDomReady.store(ready);
+    g_viewBridge.SetDomReady(ready);
 }
 
 static void RegisterWidgetJsListeners() {
+    SyncViewBridgeApi();
     TulliusWidgets::WidgetJsListeners::Callbacks jsListenerCallbacks{};
     jsListenerCallbacks.resolveStorageBasePath = &ResolveStorageBasePath;
     jsListenerCallbacks.invokeScript = &TryInvoke;
     jsListenerCallbacks.interopCall = &TryInteropCall;
     jsListenerCallbacks.unfocusView = &TryUnfocusView;
     TulliusWidgets::WidgetJsListeners::Register(
-        PrismaUI,
-        g.view.load(std::memory_order_acquire),
+        g_viewBridge.GetApi(),
+        g_viewBridge.GetView(),
         jsListenerCallbacks);
 }
 

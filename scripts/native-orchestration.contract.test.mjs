@@ -6,6 +6,9 @@ const mainText = readFileSync(new URL('../src/main.cpp', import.meta.url), 'utf8
 const resistanceText = readFileSync(new URL('../src/ResistanceEvaluator.cpp', import.meta.url), 'utf8');
 const hotkeysText = readFileSync(new URL('../src/WidgetHotkeys.cpp', import.meta.url), 'utf8');
 const jsListenersText = readFileSync(new URL('../src/WidgetJsListeners.cpp', import.meta.url), 'utf8');
+const widgetEventsText = readFileSync(new URL('../src/WidgetEvents.cpp', import.meta.url), 'utf8');
+const widgetRuntimeText = readFileSync(new URL('../src/WidgetRuntime.cpp', import.meta.url), 'utf8');
+const widgetVisibilityStateText = readFileSync(new URL('../src/WidgetVisibilityState.cpp', import.meta.url), 'utf8');
 
 test('native orchestration is extracted into WidgetRuntime module', () => {
   assert.equal(existsSync(new URL('../src/WidgetRuntime.h', import.meta.url)), true);
@@ -37,4 +40,13 @@ test('settings bridge listener uses async native settings save path', () => {
   assert.match(jsListenersText, /RegisterJSListener\(view, "onSettingsChanged"/);
   assert.match(jsListenersText, /NativeStorage::SaveSettingsAsync\(/);
   assert.doesNotMatch(jsListenersText, /NativeStorage::SaveSettings\(ResolveStorageBasePath\(\), payload\)/);
+});
+
+test('menu visibility heuristics cover transient photo or capture menus', () => {
+  assert.match(widgetEventsText, /#include "WidgetVisibilityState\.h"/);
+  assert.match(widgetRuntimeText, /#include "WidgetVisibilityState\.h"/);
+  assert.match(widgetVisibilityStateText, /"photo"/);
+  assert.match(widgetVisibilityStateText, /"screenshot"/);
+  assert.match(widgetVisibilityStateText, /IsModalMenuOpen\(\)/);
+  assert.match(widgetVisibilityStateText, /IsApplicationMenuOpen\(\)/);
 });

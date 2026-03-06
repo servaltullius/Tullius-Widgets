@@ -110,6 +110,14 @@ xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyr
 xmake build
 ```
 
+### Windows Runtime Verify
+```powershell
+pwsh -File .\scripts\verify-runtime-windows.ps1
+```
+
+- Windows PowerShell에서 실행하는 검증 진입점입니다.
+- WSL UNC worktree에서 호출해도 필요한 frontend/plugin 빌드는 임시 로컬 경로로 스테이징해서 실행합니다.
+
 ### Packaging
 ```bash
 # 권장 (Windows 로컬 빌드 + 패키징)

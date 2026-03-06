@@ -64,8 +64,8 @@ const BASE_GROUP_DIMENSIONS: Record<WidgetGroupId, {
     horizontal: { width: 756, height: 88 },
   },
   experience: {
-    vertical: { width: 304, height: 72 },
-    horizontal: { width: 304, height: 72 },
+    vertical: { width: 360, height: 92 },
+    horizontal: { width: 360, height: 92 },
   },
   resistances: {
     vertical: { width: 304, height: 252 },

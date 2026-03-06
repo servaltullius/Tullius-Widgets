@@ -28,6 +28,15 @@ xmake build
 
 설치된 Visual Studio 에디션/버전에 따라 `VsDevCmd.bat` 경로는 달라질 수 있습니다.
 
+Windows PowerShell에서 검증만 먼저 돌리고 싶다면 아래 스크립트를 사용할 수 있습니다.
+
+```powershell
+pwsh -File .\scripts\verify-runtime-windows.ps1
+```
+
+- 이 스크립트는 frontend lint/test/build와 native plugin build를 함께 확인합니다.
+- WSL UNC worktree에서 실행해도 필요한 빌드는 임시 로컬 스테이징 경로에서 수행한 뒤 결과물을 작업 저장소로 복사합니다.
+
 ## 1) 버전/패치노트 준비
 1. `xmake.lua`의 `set_version("...")`를 원하는 버전으로 설정
 2. `docs/release-notes/<version>.ko.md` 생성

@@ -1,4 +1,5 @@
 #include "WidgetRuntime.h"
+#include "WidgetVisibilityState.h"
 
 #include <atomic>
 #include <cstdint>
@@ -117,7 +118,7 @@ void SendStatsToView(bool force)
     }
 
     auto* ui = RE::UI::GetSingleton();
-    if (ui && (ui->GameIsPaused() || !ui->IsShowingMenus())) {
+    if (WidgetVisibilityState::IsBlockingUiState(ui)) {
         ScheduleStatsUpdateAfter(kPausedRetryDelay);
         return;
     }
@@ -242,7 +243,7 @@ void StartHeartbeat()
 
                 if (visibilityCheckDue || heartbeatDue) {
                     auto* ui = RE::UI::GetSingleton();
-                    if (ui && !ui->IsShowingMenus()) {
+                    if (WidgetVisibilityState::IsBlockingUiState(ui)) {
                         HideView();
                         g_state.menusWereHidden.store(true, std::memory_order_release);
                         return;

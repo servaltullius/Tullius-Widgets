@@ -10,6 +10,18 @@ $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path $scriptDir "release-local.lib.ps1")
 $repoRoot = Split-Path -Parent $scriptDir
+$workRoot = $repoRoot
+$usesUncWorkRoot = $workRoot.StartsWith("\\")
+$wslContext = $null
+$stageRoots = New-Object System.Collections.Generic.List[string]
+
+if ($usesUncWorkRoot) {
+  $wslContext = Get-WslContext -Path $workRoot
+  if (-not $wslContext) {
+    throw "Failed to parse WSL UNC path: $workRoot"
+  }
+  Write-Host "[verify] UNC worktree detected. Build commands will run from staged local paths."
+}
 
 Push-Location $repoRoot
 
@@ -19,22 +31,60 @@ try {
   if (-not $SkipFrontendChecks) {
     Require-Command "npm"
     Write-Host "[verify] Running frontend checks..."
-    Push-Location "view"
-    try {
-      npm run lint
-      npm test -- --run
-      npm run build
-    }
-    finally {
-      Pop-Location
+    $frontendBuildRoot = $repoRoot
+    $frontendViewPath = Join-Path $repoRoot "view"
+
+    if ($usesUncWorkRoot) {
+      $frontendBuildRoot = Prepare-FrontendBuildWorkspace -SourceRoot $repoRoot -WslContext $wslContext
+      $stageRoots.Add($frontendBuildRoot) | Out-Null
+      $frontendViewPath = Join-Path $frontendBuildRoot "view"
+      Invoke-CmdCommands -Path $frontendViewPath -Commands @(
+        "npm ci",
+        "npm run lint",
+        "npm test -- --run",
+        "npm run build"
+      )
+
+      $stagedViewDist = Join-Path $frontendBuildRoot "dist/PrismaUI/views/TulliusWidgets"
+      $repoViewDist = Join-Path $repoRoot "dist/PrismaUI/views/TulliusWidgets"
+      if (Test-Path $repoViewDist) {
+        Remove-Item -LiteralPath $repoViewDist -Recurse -Force
+      }
+      New-Item -ItemType Directory -Path (Split-Path $repoViewDist -Parent) -Force | Out-Null
+      Copy-Item -LiteralPath $stagedViewDist -Destination $repoViewDist -Recurse -Force
+    } else {
+      Push-Location "view"
+      try {
+        npm run lint
+        npm test -- --run
+        npm run build
+      }
+      finally {
+        Pop-Location
+      }
     }
   }
 
   if (-not $SkipPluginBuild) {
     Require-Command "xmake"
     Write-Host "[verify] Building native plugin (Windows/MSVC)..."
-    xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false
-    xmake build
+    if ($usesUncWorkRoot) {
+      $pluginBuildRoot = Prepare-PluginBuildWorkspace -SourceRoot $repoRoot -WslContext $wslContext
+      $stageRoots.Add($pluginBuildRoot) | Out-Null
+
+      Invoke-CmdCommands -Path $pluginBuildRoot -Commands @(
+        "xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false --ccache=y",
+        "xmake build -y -v"
+      )
+
+      $stagedDllPath = Join-Path $pluginBuildRoot "build/windows/x64/release/TulliusWidgets.dll"
+      $repoBuildDir = Join-Path $repoRoot "build/windows/x64/release"
+      New-Item -ItemType Directory -Path $repoBuildDir -Force | Out-Null
+      Copy-Item -LiteralPath $stagedDllPath -Destination (Join-Path $repoBuildDir "TulliusWidgets.dll") -Force
+    } else {
+      xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false
+      xmake build
+    }
   }
 
   Assert-TulliusWidgetsBuildOutputs
@@ -79,4 +129,5 @@ try {
 }
 finally {
   Pop-Location
+  Remove-StageRoots -Paths $stageRoots
 }
