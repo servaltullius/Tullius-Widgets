@@ -38,9 +38,11 @@ test('default hotkeys include F11 widget visibility toggle', () => {
 });
 
 test('settings hotkey uses tracked settings-panel state and closes explicitly', () => {
+  assert.match(hotkeysText, /DispatchToGameThread\(\[\]\(\) \{/);
   assert.match(hotkeysText, /if \(IsSettingsPanelOpen\(\)\) \{/);
   assert.match(hotkeysText, /InvokeScript\("closeSettings\(\)"\);/);
   assert.match(hotkeysText, /InvokeScript\("toggleSettings\(\)"\)/);
+  assert.match(hotkeysText, /Focus on the next task tick/);
 });
 
 test('settings bridge listener uses async native settings save path', () => {

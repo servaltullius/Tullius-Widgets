@@ -7,6 +7,16 @@ namespace {
 
 Callbacks g_callbacks{};
 
+template <class Fn>
+void DispatchToGameThread(Fn&& fn)
+{
+    if (auto* taskInterface = SKSE::GetTaskInterface()) {
+        taskInterface->AddTask(std::forward<Fn>(fn));
+        return;
+    }
+    std::forward<Fn>(fn)();
+}
+
 bool IsViewReady()
 {
     return g_callbacks.isViewReady && g_callbacks.isViewReady();
@@ -57,7 +67,11 @@ void RegisterDefaultHotkeys(const Callbacks& callbacks)
     }
 
     (void)keyHandler->Register(0xD2, KeyEventType::KEY_DOWN, []() {
-        if (IsViewReady() && IsGameLoaded()) {
+        DispatchToGameThread([]() {
+            if (!IsViewReady() || !IsGameLoaded()) {
+                return;
+            }
+
             if (IsSettingsPanelOpen()) {
                 InvokeScript("closeSettings()");
                 UnfocusView();
@@ -68,21 +82,32 @@ void RegisterDefaultHotkeys(const Callbacks& callbacks)
                 return;
             }
 
-            (void)FocusView();
-        }
+            // Focus on the next task tick so PrismaUI can finish opening the
+            // settings overlay before it switches the game into cursor mode.
+            DispatchToGameThread([]() {
+                if (!IsViewReady() || !IsGameLoaded()) {
+                    return;
+                }
+                (void)FocusView();
+            });
+        });
     });
 
     (void)keyHandler->Register(0x01, KeyEventType::KEY_DOWN, []() {
-        if (IsViewReady() && IsGameLoaded() && IsSettingsPanelOpen()) {
-            InvokeScript("closeSettings()");
-            UnfocusView();
-        }
+        DispatchToGameThread([]() {
+            if (IsViewReady() && IsGameLoaded() && IsSettingsPanelOpen()) {
+                InvokeScript("closeSettings()");
+                UnfocusView();
+            }
+        });
     });
 
     (void)keyHandler->Register(0x57, KeyEventType::KEY_DOWN, []() {
-        if (IsViewReady() && IsGameLoaded()) {
-            InvokeScript("toggleWidgetsVisibility()");
-        }
+        DispatchToGameThread([]() {
+            if (IsViewReady() && IsGameLoaded()) {
+                InvokeScript("toggleWidgetsVisibility()");
+            }
+        });
     });
 
 }
