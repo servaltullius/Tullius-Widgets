@@ -6,40 +6,19 @@
 #include "WidgetEvents.h"
 #include "WidgetHotkeys.h"
 #include "WidgetJsListeners.h"
+#include "WidgetRuntime.h"
 #include <atomic>
-#include <cstdint>
-#include <chrono>
 #include <filesystem>
-#include <mutex>
-#include <thread>
+#include <functional>
 
 PRISMA_UI_API::IVPrismaUI1* PrismaUI = nullptr;
 
 namespace {
 
-// Compile-time throttle intervals
-constexpr auto kFastIntervalCombat = std::chrono::milliseconds(100);
-constexpr auto kFastIntervalIdle   = std::chrono::milliseconds(500);
-constexpr auto kHeartbeatInterval  = std::chrono::seconds(2);
-constexpr auto kHeartbeatPoll      = std::chrono::milliseconds(100);
-constexpr auto kPausedRetryDelay   = std::chrono::milliseconds(100);
-
 struct PluginState {
     std::atomic<PrismaView> view{0};
-    std::atomic<bool> gameLoaded{false};
     std::atomic<bool> viewDomReady{false};
-    std::atomic<bool> heartbeatStarted{false};
-    std::atomic<std::int64_t> scheduledStatsDueMs{0};
     TulliusWidgets::RuntimeDiagnostics::State runtimeDiagnostics{};
-
-    std::chrono::steady_clock::time_point lastFastUpdateTime{};
-    std::mutex statsUpdateMutex;
-    std::atomic<bool> statsDispatchRunning{false};
-    std::atomic<bool> statsDispatchPending{false};
-    std::atomic<bool> statsDispatchForcePending{false};
-    std::atomic<bool> menusWereHidden{false};
-
-    std::jthread heartbeatThread;
 };
 
 PluginState g;
@@ -165,130 +144,24 @@ static void SendRuntimeDiagnosticsToView() {
     if (!TryInteropCall("updateRuntimeStatus", json.c_str())) return;
 }
 
-enum class StatsDispatchMode {
-    kSkip,
-    kReady
-};
-
-static std::int64_t SteadyNowMs() {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
-               std::chrono::steady_clock::now().time_since_epoch())
-        .count();
-}
-
-static void ScheduleStatsUpdateAfter(std::chrono::milliseconds delay);
-
-static bool TryConsumeScheduledStatsUpdate(std::int64_t nowMs) {
-    auto dueMs = g.scheduledStatsDueMs.load(std::memory_order_acquire);
-    while (dueMs > 0 && nowMs >= dueMs) {
-        if (g.scheduledStatsDueMs.compare_exchange_weak(
-                dueMs,
-                0,
-                std::memory_order_acq_rel,
-                std::memory_order_acquire)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-static StatsDispatchMode SelectStatsDispatchMode(bool force) {
-    const auto now = std::chrono::steady_clock::now();
-
-    if (force) {
-        std::scoped_lock lock(g.statsUpdateMutex);
-        g.lastFastUpdateTime = now;
-        return StatsDispatchMode::kReady;
-    }
-
-    const auto* player = RE::PlayerCharacter::GetSingleton();
-    const bool inCombat = player && player->IsInCombat();
-    const auto interval = inCombat ? kFastIntervalCombat : kFastIntervalIdle;
-
-    std::scoped_lock lock(g.statsUpdateMutex);
-    if (now - g.lastFastUpdateTime < interval) return StatsDispatchMode::kSkip;
-
-    g.lastFastUpdateTime = now;
-    return StatsDispatchMode::kReady;
-}
-
-static void SendStatsToView(bool force = false) {
-    if (!IsInteropReady() || !g.gameLoaded.load()) return;
-
-    auto* ui = RE::UI::GetSingleton();
-    if (ui && (ui->GameIsPaused() || !ui->IsShowingMenus())) {
-        ScheduleStatsUpdateAfter(kPausedRetryDelay);
-        return;
-    }
-
-    if (!force && TryConsumeScheduledStatsUpdate(SteadyNowMs())) {
-        force = true;
-    }
-
-    const auto dispatchMode = SelectStatsDispatchMode(force);
-    if (dispatchMode == StatsDispatchMode::kSkip) return;
-
-    std::string stats = TulliusWidgets::StatsCollector::CollectStats();
-    TryInteropCall("updateStats", stats.c_str());
-}
-
-static void RequestStatsDispatch(bool force = false) {
-    if (force) {
-        g.statsDispatchForcePending.store(true, std::memory_order_release);
-    }
-    g.statsDispatchPending.store(true, std::memory_order_release);
-
-    bool expected = false;
-    if (!g.statsDispatchRunning.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
-        return;
-    }
-
-    do {
-        const bool shouldForce = g.statsDispatchForcePending.exchange(false, std::memory_order_acq_rel);
-        g.statsDispatchPending.store(false, std::memory_order_release);
-        SendStatsToView(shouldForce);
-    } while (g.statsDispatchPending.load(std::memory_order_acquire)
-             || g.statsDispatchForcePending.load(std::memory_order_acquire));
-
-    g.statsDispatchRunning.store(false, std::memory_order_release);
-}
-
-static void ScheduleStatsUpdateAfter(std::chrono::milliseconds delay) {
-    const auto targetMs = SteadyNowMs() + delay.count();
-    auto dueMs = g.scheduledStatsDueMs.load(std::memory_order_acquire);
-    while (true) {
-        if (dueMs > SteadyNowMs() && dueMs <= targetMs) {
-            return;
-        }
-        if (g.scheduledStatsDueMs.compare_exchange_weak(
-                dueMs,
-                targetMs,
-                std::memory_order_acq_rel,
-                std::memory_order_acquire)) {
-            return;
-        }
-    }
-}
-
 static bool IsGameLoaded() {
-    return g.gameLoaded.load();
+    return TulliusWidgets::WidgetRuntime::IsGameLoaded();
 }
 
 static void SetGameLoaded(bool loaded) {
-    g.gameLoaded.store(loaded);
-    if (!loaded) {
-        g.scheduledStatsDueMs.store(0, std::memory_order_release);
-        g.statsDispatchPending.store(false, std::memory_order_release);
-        g.statsDispatchForcePending.store(false, std::memory_order_release);
-    }
+    TulliusWidgets::WidgetRuntime::SetGameLoaded(loaded);
 }
 
 static void SendStatsToViewThrottled() {
-    RequestStatsDispatch(false);
+    TulliusWidgets::WidgetRuntime::RequestStatsDispatch(false);
 }
 
 static void SendStatsToViewForced() {
-    RequestStatsDispatch(true);
+    TulliusWidgets::WidgetRuntime::RequestStatsDispatch(true);
+}
+
+static void ScheduleStatsUpdateAfter(std::chrono::milliseconds delay) {
+    TulliusWidgets::WidgetRuntime::ScheduleStatsUpdateAfter(delay);
 }
 
 static void SetView(PrismaView newView) {
@@ -335,66 +208,42 @@ static void RegisterWidgetHotkeys() {
     TulliusWidgets::WidgetHotkeys::RegisterDefaultHotkeys(hotkeyCallbacks);
 }
 
-static void StartHeartbeat() {
-    if (g.heartbeatStarted.exchange(true)) return;
+static void QueueGameTask(std::function<void()> task) {
+    if (!task) return;
+    if (auto* taskInterface = SKSE::GetTaskInterface()) {
+        taskInterface->AddTask([task = std::move(task)]() mutable {
+            task();
+        });
+        return;
+    }
+    task();
+}
 
-    g.heartbeatThread = std::jthread([](std::stop_token stopToken) {
-        constexpr auto kVisibilityCheckInterval = std::chrono::milliseconds(500);
-        auto nextHeartbeatDue = std::chrono::steady_clock::now() + kHeartbeatInterval;
-        auto nextVisibilityCheck = std::chrono::steady_clock::now() + kVisibilityCheckInterval;
-        while (!stopToken.stop_requested()) {
-            std::this_thread::sleep_for(kHeartbeatPoll);
-            if (stopToken.stop_requested()) break;
+static TulliusWidgets::WidgetRuntime::Callbacks BuildWidgetRuntimeCallbacks() {
+    TulliusWidgets::WidgetRuntime::Callbacks callbacks{};
+    callbacks.isInteropReady = []() {
+        return IsInteropReady();
+    };
+    callbacks.collectStatsJson = []() {
+        return TulliusWidgets::StatsCollector::CollectStats();
+    };
+    callbacks.interopCall = [](const char* functionName, const char* argument) {
+        return TryInteropCall(functionName, argument);
+    };
+    callbacks.showView = []() {
+        return TryShowView();
+    };
+    callbacks.hideView = []() {
+        HideViewIfReady();
+    };
+    callbacks.queueGameTask = [](std::function<void()> task) {
+        QueueGameTask(std::move(task));
+    };
+    return callbacks;
+}
 
-            if (!g.gameLoaded.load()) {
-                nextHeartbeatDue = std::chrono::steady_clock::now() + kHeartbeatInterval;
-                nextVisibilityCheck = std::chrono::steady_clock::now() + kVisibilityCheckInterval;
-                continue;
-            }
-
-            auto* taskInterface = SKSE::GetTaskInterface();
-            if (!taskInterface) continue;
-
-            const auto now = std::chrono::steady_clock::now();
-            const auto nowMs = SteadyNowMs();
-            const bool heartbeatDue = now >= nextHeartbeatDue;
-            const bool scheduledDue = TryConsumeScheduledStatsUpdate(nowMs);
-            const bool visibilityCheckDue = now >= nextVisibilityCheck;
-            if (!heartbeatDue && !scheduledDue && !visibilityCheckDue) continue;
-
-            if (visibilityCheckDue) {
-                nextVisibilityCheck = now + kVisibilityCheckInterval;
-            }
-
-            taskInterface->AddTask([heartbeatDue, scheduledDue, visibilityCheckDue]() {
-                if (!g.gameLoaded.load()) return;
-
-                // Check HUD menu visibility (e.g., Photo Mode hides via UI->ShowMenus(false))
-                if (visibilityCheckDue || heartbeatDue) {
-                    auto* ui = RE::UI::GetSingleton();
-                    if (ui && !ui->IsShowingMenus()) {
-                        TryHideView();
-                        g.menusWereHidden.store(true, std::memory_order_release);
-                        return;
-                    }
-                    // Recover after menus become visible again
-                    if (g.menusWereHidden.exchange(false, std::memory_order_acq_rel)) {
-                        if (TryShowView()) {
-                            SendStatsToViewForced();
-                        }
-                    }
-                }
-
-                if (heartbeatDue || scheduledDue) {
-                    RequestStatsDispatch(true);
-                }
-            });
-
-            if (heartbeatDue) {
-                nextHeartbeatDue = now + kHeartbeatInterval;
-            }
-        }
-    });
+static void StartWidgetRuntime() {
+    TulliusWidgets::WidgetRuntime::StartHeartbeat();
 }
 
 static TulliusWidgets::WidgetBootstrap::Callbacks BuildWidgetBootstrapCallbacks() {
@@ -411,7 +260,7 @@ static TulliusWidgets::WidgetBootstrap::Callbacks BuildWidgetBootstrapCallbacks(
     callbacks.sendStatsForced = &SendStatsToViewForced;
     callbacks.registerJsListeners = &RegisterWidgetJsListeners;
     callbacks.registerEventSinks = &RegisterWidgetEventSinks;
-    callbacks.startHeartbeat = &StartHeartbeat;
+    callbacks.startHeartbeat = &StartWidgetRuntime;
     callbacks.registerHotkeys = &RegisterWidgetHotkeys;
     return callbacks;
 }
@@ -421,6 +270,7 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message) {
 
     switch (message->type) {
     case SKSE::MessagingInterface::kDataLoaded: {
+        TulliusWidgets::WidgetRuntime::Initialize(BuildWidgetRuntimeCallbacks());
         if (!TulliusWidgets::WidgetBootstrap::InitializeOnDataLoaded(PrismaUI, bootstrapCallbacks)) {
             return;
         }

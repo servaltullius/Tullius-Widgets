@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace TulliusWidgets {
 namespace {
@@ -19,8 +20,9 @@ ResistanceLimits GetLimits(RE::ActorValue av) {
     case RE::ActorValue::kResistFrost:
     case RE::ActorValue::kResistShock:
     case RE::ActorValue::kPoisonResist:
+        return { (std::numeric_limits<float>::lowest)(), 85.0f, true };
     case RE::ActorValue::kResistDisease:
-        return { 0.0f, 0.0f, false };
+        return { 0.0f, 100.0f, true };
     default:
         return { 0.0f, 0.0f, false };
     }

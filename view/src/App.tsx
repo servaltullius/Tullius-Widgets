@@ -16,7 +16,7 @@ import { t } from './i18n/translations';
 import './assets/screen-effects.css';
 
 const ELEMENTAL_RESIST_CAP = 85;
-const ELEMENTAL_RESIST_MIN = -100;
+const DISEASE_RESIST_MIN = 0;
 const WEAPON_DAMAGE_CAP = 9999;
 const WEAPON_DAMAGE_MIN = 0;
 const CRIT_CHANCE_CAP = 100;
@@ -24,6 +24,33 @@ const CRIT_CHANCE_MIN = 0;
 const SNAP_THRESHOLD = 15;
 const GRID = 10;
 const FALLBACK_POS: GroupPosition = { x: 100, y: 100 };
+const CARRY_WARNING_THRESHOLD = 85;
+const CARRY_DANGER_THRESHOLD = 100;
+
+function clampPercent(value: number): number {
+  return Math.min(100, Math.max(0, value));
+}
+
+function formatPercent(value: number): string {
+  return `${Math.round(clampPercent(value))}%`;
+}
+
+function getLowResourceTone(
+  percent: number,
+  warningThreshold: number,
+): 'default' | 'warning' | 'danger' {
+  const normalized = clampPercent(percent);
+  const dangerThreshold = Math.max(5, Math.round(warningThreshold * 0.55));
+  if (normalized <= dangerThreshold) return 'danger';
+  if (normalized <= warningThreshold) return 'warning';
+  return 'default';
+}
+
+function getCarryTone(percent: number): 'default' | 'warning' | 'danger' {
+  if (percent >= CARRY_DANGER_THRESHOLD) return 'danger';
+  if (percent >= CARRY_WARNING_THRESHOLD) return 'warning';
+  return 'default';
+}
 
 function formatWeight(v: number) {
   return v.toFixed(1);
@@ -181,6 +208,10 @@ function OnboardingPanel({
 
 export function App() {
   const { stats, hasLiveStats } = useGameStatsState();
+  const [viewport, setViewport] = useState(() => ({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }));
   const {
     settings,
     visible,
@@ -195,7 +226,15 @@ export function App() {
   } = useSettings();
   const [lastChangeAtMs, setLastChangeAtMs] = useState<number>(() => Date.now());
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
-  const defaults = getDefaultPositions();
+  const defaults = useMemo(
+    () => getDefaultPositions(
+      viewport.width,
+      viewport.height,
+      settings.general.size,
+      settings.layouts,
+    ),
+    [settings.general.size, settings.layouts, viewport.height, viewport.width],
+  );
   const lang = settings.general.language;
   const { resolvePosition, handleGroupMove, handleGroupMoveEnd } = useWidgetPositions({
     defaults,
@@ -206,6 +245,18 @@ export function App() {
     grid: GRID,
     fallbackPos: FALLBACK_POS,
   });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setViewport({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const trackedChangeSignature = useMemo(() => {
     const parts: string[] = [`combat:${stats.isInCombat ? 1 : 0}`];
@@ -375,7 +426,7 @@ export function App() {
   const armorLimitLabel = t(lang, 'capArmorLimitLabel');
 
   const elementalCap = stats.calcMeta.caps.elementalResist || ELEMENTAL_RESIST_CAP;
-  const elementalMin = stats.calcMeta.caps.elementalResistMin;
+  const diseaseCap = stats.calcMeta.caps.diseaseResist || 100;
   const critCap = stats.calcMeta.caps.critChance || CRIT_CHANCE_CAP;
   const damageReductionCap = stats.calcMeta.caps.damageReduction;
   const armorCapForMaxReduction = stats.calcMeta.armorCapForMaxReduction;
@@ -391,6 +442,10 @@ export function App() {
   const armorHelper = stats.defense.armorRating > armorCapForMaxReduction + 0.5
     ? `${armorLimitLabel} ${Math.round(armorCapForMaxReduction)}`
     : undefined;
+  const healthTone = getLowResourceTone(stats.alertData.healthPct, settings.visualAlerts.lowHealthThreshold);
+  const magickaTone = getLowResourceTone(stats.alertData.magickaPct, settings.visualAlerts.lowMagickaThreshold);
+  const staminaTone = getLowResourceTone(stats.alertData.staminaPct, settings.visualAlerts.lowStaminaThreshold);
+  const carryTone = getCarryTone(stats.alertData.carryPct);
 
   const runtimeWarningText = useMemo(() => {
     if (!runtimeDiagnostics || runtimeDiagnostics.warningCode === 'none') return null;
@@ -453,12 +508,55 @@ export function App() {
         <>
           {hasVisiblePlayerInfo && (
             <DraggableWidgetGroup {...groupProps('playerInfo')}>
-              <StatWidget icon="level" iconColor="#ffd700" value={stats.playerInfo.level} visible={settings.playerInfo.level} />
-              <StatWidget icon="gold" iconColor="#f0c040" value={stats.playerInfo.gold} visible={settings.playerInfo.gold} format={formatGold} />
-              <StatWidget icon="weight" iconColor="#cc9966" value={stats.playerInfo.carryWeight} unit={`/${Math.round(stats.playerInfo.maxCarryWeight)}`} visible={settings.playerInfo.carryWeight} format={formatWeight} />
-              <StatWidget icon="health" iconColor="#e84040" value={stats.playerInfo.health} visible={settings.playerInfo.health} />
-              <StatWidget icon="magicka" iconColor="#4090e8" value={stats.playerInfo.magicka} visible={settings.playerInfo.magicka} />
-              <StatWidget icon="stamina" iconColor="#40c840" value={stats.playerInfo.stamina} visible={settings.playerInfo.stamina} />
+              <StatWidget icon="level" iconColor="#ffd700" value={stats.playerInfo.level} visible={settings.playerInfo.level} prominence="secondary" />
+              <StatWidget icon="gold" iconColor="#f0c040" value={stats.playerInfo.gold} visible={settings.playerInfo.gold} format={formatGold} prominence="secondary" />
+              <StatWidget
+                icon="weight"
+                iconColor="#cc9966"
+                value={stats.playerInfo.carryWeight}
+                unit={`/${Math.round(stats.playerInfo.maxCarryWeight)}`}
+                visible={settings.playerInfo.carryWeight}
+                format={formatWeight}
+                prominence="secondary"
+                helperText={formatPercent(stats.alertData.carryPct)}
+                helperTone={carryTone === 'default' ? 'neutral' : 'warning'}
+                valueTone={carryTone}
+                meterPct={stats.alertData.carryPct}
+                meterColor={carryTone === 'danger' ? '#ff8d8d' : carryTone === 'warning' ? '#ffd36a' : '#d7a26b'}
+              />
+              <StatWidget
+                icon="health"
+                iconColor="#e84040"
+                value={stats.playerInfo.health}
+                visible={settings.playerInfo.health}
+                helperText={formatPercent(stats.alertData.healthPct)}
+                helperTone={healthTone === 'default' ? 'neutral' : 'warning'}
+                valueTone={healthTone}
+                meterPct={stats.alertData.healthPct}
+                meterColor={healthTone === 'danger' ? '#ff8d8d' : healthTone === 'warning' ? '#ffd36a' : '#ff6b6b'}
+              />
+              <StatWidget
+                icon="magicka"
+                iconColor="#4090e8"
+                value={stats.playerInfo.magicka}
+                visible={settings.playerInfo.magicka}
+                helperText={formatPercent(stats.alertData.magickaPct)}
+                helperTone={magickaTone === 'default' ? 'neutral' : 'warning'}
+                valueTone={magickaTone}
+                meterPct={stats.alertData.magickaPct}
+                meterColor={magickaTone === 'danger' ? '#ff8d8d' : magickaTone === 'warning' ? '#ffd36a' : '#61b8ff'}
+              />
+              <StatWidget
+                icon="stamina"
+                iconColor="#40c840"
+                value={stats.playerInfo.stamina}
+                visible={settings.playerInfo.stamina}
+                helperText={formatPercent(stats.alertData.staminaPct)}
+                helperTone={staminaTone === 'default' ? 'neutral' : 'warning'}
+                valueTone={staminaTone}
+                meterPct={stats.alertData.staminaPct}
+                meterColor={staminaTone === 'danger' ? '#ff8d8d' : staminaTone === 'warning' ? '#ffd36a' : '#72f07c'}
+              />
             </DraggableWidgetGroup>
           )}
 
@@ -476,11 +574,10 @@ export function App() {
                 value={stats.resistances.magic}
                 unit="%"
                 visible={settings.resistances.magic}
-                min={ELEMENTAL_RESIST_MIN}
                 cap={elementalCap}
                 helperText={resistanceHelper(stats.calcMeta.rawResistances.magic, stats.resistances.magic)}
-                helperTone={stats.calcMeta.flags.anyResistanceClamped ? 'warning' : 'neutral'}
-                tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.magic)}% | ${capLabel} ${elementalMin}~${elementalCap}%`}
+                helperTone={stats.calcMeta.rawResistances.magic > elementalCap + 0.05 ? 'warning' : 'neutral'}
+                tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.magic)}% | ${capLabel} <= ${elementalCap}%`}
               />
               <StatWidget
                 icon="fire"
@@ -488,11 +585,10 @@ export function App() {
                 value={stats.resistances.fire}
                 unit="%"
                 visible={settings.resistances.fire}
-                min={ELEMENTAL_RESIST_MIN}
                 cap={elementalCap}
                 helperText={resistanceHelper(stats.calcMeta.rawResistances.fire, stats.resistances.fire)}
                 helperTone={stats.calcMeta.rawResistances.fire > elementalCap + 0.05 ? 'warning' : 'neutral'}
-                tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.fire)}% | ${capLabel} ${elementalMin}~${elementalCap}%`}
+                tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.fire)}% | ${capLabel} <= ${elementalCap}%`}
               />
               <StatWidget
                 icon="frost"
@@ -500,11 +596,10 @@ export function App() {
                 value={stats.resistances.frost}
                 unit="%"
                 visible={settings.resistances.frost}
-                min={ELEMENTAL_RESIST_MIN}
                 cap={elementalCap}
                 helperText={resistanceHelper(stats.calcMeta.rawResistances.frost, stats.resistances.frost)}
                 helperTone={stats.calcMeta.rawResistances.frost > elementalCap + 0.05 ? 'warning' : 'neutral'}
-                tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.frost)}% | ${capLabel} ${elementalMin}~${elementalCap}%`}
+                tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.frost)}% | ${capLabel} <= ${elementalCap}%`}
               />
               <StatWidget
                 icon="shock"
@@ -512,11 +607,10 @@ export function App() {
                 value={stats.resistances.shock}
                 unit="%"
                 visible={settings.resistances.shock}
-                min={ELEMENTAL_RESIST_MIN}
                 cap={elementalCap}
                 helperText={resistanceHelper(stats.calcMeta.rawResistances.shock, stats.resistances.shock)}
                 helperTone={stats.calcMeta.rawResistances.shock > elementalCap + 0.05 ? 'warning' : 'neutral'}
-                tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.shock)}% | ${capLabel} ${elementalMin}~${elementalCap}%`}
+                tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.shock)}% | ${capLabel} <= ${elementalCap}%`}
               />
               <StatWidget
                 icon="poison"
@@ -524,6 +618,11 @@ export function App() {
                 value={stats.resistances.poison}
                 unit="%"
                 visible={settings.resistances.poison}
+                cap={elementalCap}
+                helperText={resistanceHelper(stats.calcMeta.rawResistances.poison, stats.resistances.poison)}
+                helperTone={stats.calcMeta.rawResistances.poison > elementalCap + 0.05 ? 'warning' : 'neutral'}
+                tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.poison)}% | ${capLabel} <= ${elementalCap}%`}
+                prominence="secondary"
               />
               <StatWidget
                 icon="disease"
@@ -531,6 +630,12 @@ export function App() {
                 value={stats.resistances.disease}
                 unit="%"
                 visible={settings.resistances.disease}
+                min={DISEASE_RESIST_MIN}
+                cap={diseaseCap}
+                helperText={resistanceHelper(stats.calcMeta.rawResistances.disease, stats.resistances.disease)}
+                helperTone={stats.calcMeta.rawResistances.disease > diseaseCap + 0.05 ? 'warning' : 'neutral'}
+                tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.disease)}% | ${capLabel} <= ${diseaseCap}%`}
+                prominence="secondary"
               />
             </DraggableWidgetGroup>
           )}
@@ -586,6 +691,7 @@ export function App() {
                 iconColor="#e85050"
                 value={stats.equipped.rightHand || t(lang, 'equippedEmpty')}
                 visible={settings.equipped.rightHand}
+                prominence="secondary"
               />
               <StatWidget
                 key={`l-${stats.equipped.leftHand}`}
@@ -593,6 +699,7 @@ export function App() {
                 iconColor="#4090e8"
                 value={stats.equipped.leftHand || t(lang, 'equippedEmpty')}
                 visible={settings.equipped.leftHand}
+                prominence="secondary"
               />
             </DraggableWidgetGroup>
           )}
@@ -620,7 +727,7 @@ export function App() {
 
           {hasVisibleMovement && (
             <DraggableWidgetGroup {...groupProps('movement')}>
-              <StatWidget icon="speed" iconColor="#44ddff" value={stats.movement.speedMult} unit="%" visible={settings.movement.speedMult} />
+              <StatWidget icon="speed" iconColor="#44ddff" value={stats.movement.speedMult} unit="%" visible={settings.movement.speedMult} prominence="secondary" />
             </DraggableWidgetGroup>
           )}
         </>

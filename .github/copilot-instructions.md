@@ -1,5 +1,5 @@
-# Copilot Instructions
+# Copilot Notes
 
-- Use `.vibe/context/LATEST_CONTEXT.md` for repo context.
-- (Once) Run: `python3 scripts/vibe.py configure --apply`
-- Prefer small, localized changes.
+- 코드와 현재 diff를 우선 본다.
+- 불필요한 자동 설정 절차를 가정하지 않는다.
+- 작은 변경을 선호하되, 사용자가 요청한 범위를 우선한다.

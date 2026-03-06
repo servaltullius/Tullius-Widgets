@@ -6,6 +6,7 @@ import { registerDualBridgeHandler } from '../utils/bridge';
 import { SKYRIM_MONTH_NAMES } from '../data/constants';
 
 const isDev = !('sendDataToSKSE' in window);
+const STATS_SCHEMA_VERSION = 1;
 
 function quantize2(value: number): number {
   return Math.round(value * 100) / 100;
@@ -40,6 +41,32 @@ function readSequence(value: unknown): number | null {
   const sequence = Math.trunc(value);
   if (sequence < 0) return null;
   return sequence;
+}
+
+function readSchemaVersion(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  const schemaVersion = Math.trunc(value);
+  if (schemaVersion < 0) return null;
+  return schemaVersion;
+}
+
+function warnFutureStatsSchemaVersion(
+  parsed: Record<string, unknown>,
+  warnedFutureStatsSchemaRef: { current: boolean },
+): void {
+  const schemaVersion = readSchemaVersion(parsed.schemaVersion);
+  if (
+    schemaVersion === null
+    || schemaVersion <= STATS_SCHEMA_VERSION
+    || warnedFutureStatsSchemaRef.current
+  ) {
+    return;
+  }
+
+  warnedFutureStatsSchemaRef.current = true;
+  console.warn(
+    `[TulliusWidgets] Received stats schemaVersion ${schemaVersion}, but UI supports up to ${STATS_SCHEMA_VERSION}. Falling back to tolerant parsing.`,
+  );
 }
 
 function normalizeGameTime(value: unknown, fallback?: GameTimeInfo): GameTimeInfo {
@@ -303,6 +330,7 @@ export function useGameStatsState(): { stats: CombatStats; hasLiveStats: boolean
   const [stats, setStats] = useState<CombatStats>(mockStats);
   const [hasLiveStats, setHasLiveStats] = useState<boolean>(isDev);
   const lastAppliedSequenceRef = useRef<number | null>(null);
+  const warnedFutureStatsSchemaRef = useRef(false);
 
   useEffect(() => {
     const updateStatsHandler = (jsonString: string) => {
@@ -313,6 +341,8 @@ export function useGameStatsState(): { stats: CombatStats; hasLiveStats: boolean
           setHasLiveStats(false);
           return;
         }
+
+        warnFutureStatsSchemaVersion(parsed, warnedFutureStatsSchemaRef);
 
         const sequence = readSequence(parsed.seq);
         if (sequence !== null) {

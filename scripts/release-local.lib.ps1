@@ -49,6 +49,47 @@ function Assert-ReleaseNote {
   }
 }
 
+function Parse-VersionFromXmake {
+  param([string]$Path)
+
+  $match = Select-String -Path $Path -Pattern 'set_version\("([^"]+)"\)' | Select-Object -First 1
+  if (-not $match) {
+    throw "Unable to parse version from $Path"
+  }
+
+  return $match.Matches[0].Groups[1].Value
+}
+
+function Get-ReleaseLocalArgumentsForPackaging {
+  param(
+    [switch]$SkipFrontendChecks,
+    [switch]$SkipPluginBuild
+  )
+
+  $arguments = @("-NoPublish")
+  if (-not $SkipFrontendChecks) {
+    $arguments += "-SkipLint"
+    $arguments += "-SkipFrontendBuild"
+  }
+  if (-not $SkipPluginBuild) {
+    $arguments += "-SkipPluginBuild"
+  }
+
+  return $arguments
+}
+
+function Get-ShortGitSha {
+  param([string]$RepoRoot = (Get-Location).Path)
+
+  $resolvedRepoRoot = [System.IO.Path]::GetFullPath($RepoRoot)
+  $output = & git -c "safe.directory=$resolvedRepoRoot" -C $resolvedRepoRoot rev-parse --short HEAD 2>&1
+  if ($LASTEXITCODE -ne 0) {
+    throw "git rev-parse failed for $resolvedRepoRoot : $output"
+  }
+
+  return ($output | Out-String).Trim()
+}
+
 function Invoke-CmdCommands {
   param(
     [string]$Path,
@@ -237,6 +278,20 @@ function Initialize-ReleasePackageStage {
 
   Copy-Item -LiteralPath $FrontendSourcePath -Destination (Join-Path $stageViewParent "TulliusWidgets") -Recurse -Force
   Copy-Item -LiteralPath $PluginDllPath -Destination (Join-Path $stagePluginDir "TulliusWidgets.dll") -Force
+}
+
+function Assert-TulliusWidgetsBuildOutputs {
+  param(
+    [string]$FrontendOutputPath = "dist/PrismaUI/views/TulliusWidgets",
+    [string]$PluginDllPath = "build/windows/x64/release/TulliusWidgets.dll"
+  )
+
+  if (-not (Test-Path (Join-Path $FrontendOutputPath "index.html"))) {
+    throw "Frontend output missing: $FrontendOutputPath/index.html"
+  }
+  if (-not (Test-Path $PluginDllPath)) {
+    throw "Plugin DLL missing: $PluginDllPath"
+  }
 }
 
 function Remove-StageRoots {

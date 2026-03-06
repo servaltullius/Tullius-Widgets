@@ -5,6 +5,7 @@ import { act } from 'react-dom/test-utils';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGameStats, useGameStatsState } from './useGameStats';
 import type { CombatStats } from '../types/stats';
+import { createStatsPayload, readPlayerInfo } from '../test-fixtures/bridgePayloads';
 
 function Harness({ onStats }: { onStats: (stats: CombatStats) => void }) {
   const stats = useGameStats();
@@ -56,19 +57,15 @@ describe('useGameStats', () => {
     expect(typeof window.updateStats).toBe('function');
 
     await act(async () => {
-      window.updateStats?.(JSON.stringify({
-        playerInfo: {
-          experience: 1280.25,
-          expToNextLevel: 619.75,
-          nextLevelTotalXp: 1900.0,
-        },
-      }));
+      window.updateStats?.(JSON.stringify(createStatsPayload()));
     });
 
     expect(latest).not.toBeNull();
-    expect(latest!.playerInfo.experience).toBeCloseTo(1280.25, 2);
-    expect(latest!.playerInfo.expToNextLevel).toBeCloseTo(619.75, 2);
-    expect(latest!.playerInfo.nextLevelTotalXp).toBeCloseTo(1900.0, 2);
+    const playerInfo = readPlayerInfo(latest!);
+    expect(playerInfo.experience).toBeCloseTo(1280.25, 2);
+    expect(playerInfo.expToNextLevel).toBeCloseTo(619.75, 2);
+    expect(playerInfo.nextLevelTotalXp).toBeCloseTo(1900.0, 2);
+    expect(playerInfo.expectedLevelThreshold).toBeCloseTo(1900.0, 2);
   });
 
   it('accepts updateStats from namespaced bridge handler', async () => {
@@ -155,6 +152,26 @@ describe('useGameStats', () => {
     expect(latest).not.toBeNull();
     expect(latest!.playerInfo.health).toBe(123);
     expect(latest!.timedEffects[0]?.stableKey).toBe(firstStableKey);
+  });
+
+  it('warns once when stats payload schemaVersion is newer than the UI contract', async () => {
+    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onStats={stats => { latest = stats; }} />);
+    });
+
+    await act(async () => {
+      window.updateStats?.(JSON.stringify(createStatsPayload({ schemaVersion: 2, seq: 201 })));
+    });
+
+    await act(async () => {
+      window.updateStats?.(JSON.stringify(createStatsPayload({ schemaVersion: 3, seq: 202 })));
+    });
+
+    expect(consoleWarn).toHaveBeenCalledTimes(1);
+    expect(consoleWarn.mock.calls[0]?.[0]).toContain('schemaVersion');
   });
 
   it('clamps negative health/magicka/stamina values to 0', async () => {

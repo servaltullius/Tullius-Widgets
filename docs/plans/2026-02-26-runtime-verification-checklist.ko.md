@@ -32,6 +32,11 @@ Windows/MSVC 환경에서 재현 가능하게 검증한다.
 pwsh -File .\scripts\verify-runtime-windows.ps1 -CreateLocalPackage
 ```
 
+메모:
+
+- `-CreateLocalPackage`는 이번 실행에서 이미 검증한 단계의 산출물만 재사용합니다.
+- `-SkipFrontendChecks` 또는 `-SkipPluginBuild`를 함께 쓴 경우, 패키지 생성 단계에서 빠진 쪽은 `release-local.ps1`이 다시 빌드합니다.
+
 수동 실행:
 
 1. 네이티브 빌드

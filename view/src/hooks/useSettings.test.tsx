@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { act } from 'react-dom/test-utils';
 import { createRoot, type Root } from 'react-dom/client';
 import { useSettings } from './useSettings';
-import type { WidgetSettings } from '../types/settings';
+import type { UpdateSettingFn, WidgetSettings } from '../types/settings';
 
 function Harness({ onSettings }: { onSettings: (settings: WidgetSettings) => void }) {
   const { settings } = useSettings();
@@ -19,6 +19,14 @@ function SyncResultHarness({ onSync }: { onSync: (result: boolean | null) => voi
   useEffect(() => {
     onSync(lastSettingsSyncOk);
   }, [lastSettingsSyncOk, onSync]);
+  return null;
+}
+
+function UpdateSettingHarness({ onReady }: { onReady: (updateSetting: UpdateSettingFn) => void }) {
+  const { updateSetting } = useSettings();
+  useEffect(() => {
+    onReady(updateSetting);
+  }, [onReady, updateSetting]);
   return null;
 }
 
@@ -41,6 +49,7 @@ describe('useSettings', () => {
     });
     root = null;
     container.remove();
+    vi.useRealTimers();
     vi.restoreAllMocks();
     delete window.updateSettings;
     delete window.updateRuntimeStatus;
@@ -131,6 +140,69 @@ describe('useSettings', () => {
     });
 
     expect(syncResult).toBe(false);
+  });
+
+  it('retries the last settings payload once after native sync failure', async () => {
+    vi.useFakeTimers();
+    const onSettingsChanged = vi.fn();
+    let updateSetting: UpdateSettingFn | null = null;
+    window.onSettingsChanged = onSettingsChanged;
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<UpdateSettingHarness onReady={value => { updateSetting = value; }} />);
+    });
+
+    await act(async () => {
+      updateSetting?.('general.opacity', 77);
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(onSettingsChanged).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      window.onSettingsSyncResult?.(false);
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(onSettingsChanged).toHaveBeenCalledTimes(2);
+    expect(onSettingsChanged.mock.calls[1]?.[0]).toBe(onSettingsChanged.mock.calls[0]?.[0]);
+    vi.useRealTimers();
+  });
+
+  it('allows retrying the same setting value again after repeated native sync failures', async () => {
+    vi.useFakeTimers();
+    const onSettingsChanged = vi.fn();
+    let updateSetting: UpdateSettingFn | null = null;
+    window.onSettingsChanged = onSettingsChanged;
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<UpdateSettingHarness onReady={value => { updateSetting = value; }} />);
+    });
+
+    await act(async () => {
+      updateSetting?.('general.opacity', 77);
+      vi.advanceTimersByTime(200);
+    });
+
+    await act(async () => {
+      window.onSettingsSyncResult?.(false);
+      vi.advanceTimersByTime(200);
+    });
+
+    await act(async () => {
+      window.onSettingsSyncResult?.(false);
+      updateSetting?.('general.opacity', 77);
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(onSettingsChanged).toHaveBeenCalledTimes(3);
+    const retriedPayload = JSON.parse(onSettingsChanged.mock.calls[2]?.[0] as string) as WidgetSettings & { rev?: number };
+    const originalPayload = JSON.parse(onSettingsChanged.mock.calls[0]?.[0] as string) as WidgetSettings & { rev?: number };
+    expect(retriedPayload.general.opacity).toBe(77);
+    expect(retriedPayload.rev).toBeGreaterThan(originalPayload.rev ?? 0);
+    vi.useRealTimers();
   });
 
   it('returns import failure for invalid non-object payload', async () => {

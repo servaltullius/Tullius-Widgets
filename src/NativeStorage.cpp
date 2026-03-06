@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <functional>
 #include <fstream>
 #include <mutex>
 #include <optional>
@@ -13,6 +14,7 @@ namespace {
 struct PendingSettingsWrite {
     std::filesystem::path gameRootPath;
     std::string jsonData;
+    SaveCompletion onComplete;
 };
 
 std::mutex g_asyncSettingsMutex;
@@ -234,7 +236,19 @@ void RunAsyncSettingsWriter(std::stop_token stopToken)
             logger::warn("Async settings save failed, retrying once");
             if (!SaveSettingsSync(write.gameRootPath, write.jsonData)) {
                 logger::error("Async settings save retry also failed");
+                if (write.onComplete) {
+                    write.onComplete(false);
+                }
+                lock.lock();
+                if (stopToken.stop_requested() && !g_pendingSettingsWrite.has_value()) {
+                    break;
+                }
+                continue;
             }
+        }
+
+        if (write.onComplete) {
+            write.onComplete(true);
         }
 
         lock.lock();
@@ -275,7 +289,10 @@ bool SaveSettings(const std::filesystem::path& gameRootPath, std::string_view js
     return SaveSettingsSync(gameRootPath, jsonData);
 }
 
-bool SaveSettingsAsync(const std::filesystem::path& gameRootPath, std::string_view jsonData)
+bool SaveSettingsAsync(
+    const std::filesystem::path& gameRootPath,
+    std::string_view jsonData,
+    SaveCompletion onComplete)
 {
     if (jsonData.size() > kMaxSettingsFileBytes) {
         logger::error("Refusing to queue settings larger than {} bytes: {}", kMaxSettingsFileBytes, jsonData.size());
@@ -285,7 +302,7 @@ bool SaveSettingsAsync(const std::filesystem::path& gameRootPath, std::string_vi
     EnsureAsyncSettingsWriterStarted();
     {
         std::scoped_lock lock(g_asyncSettingsMutex);
-        g_pendingSettingsWrite = PendingSettingsWrite{ gameRootPath, std::string(jsonData) };
+        g_pendingSettingsWrite = PendingSettingsWrite{ gameRootPath, std::string(jsonData), std::move(onComplete) };
     }
     g_asyncSettingsCv.notify_one();
     return true;

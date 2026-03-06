@@ -92,11 +92,18 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
 
         std::string payload(payloadView);
         DispatchToGameThread([payload = std::move(payload)]() {
-            const bool success = TulliusWidgets::NativeStorage::SaveSettings(ResolveStorageBasePath(), payload);
+            const bool success = TulliusWidgets::NativeStorage::SaveSettingsAsync(
+                ResolveStorageBasePath(),
+                payload,
+                [](bool saved) {
+                    DispatchToGameThread([saved]() {
+                        NotifySettingsSyncResult(saved);
+                    });
+                });
             if (!success) {
-                logger::warn("Failed to save settings from JS listener");
+                logger::warn("Failed to queue async settings save from JS listener");
+                NotifySettingsSyncResult(false);
             }
-            NotifySettingsSyncResult(success);
         });
     });
 

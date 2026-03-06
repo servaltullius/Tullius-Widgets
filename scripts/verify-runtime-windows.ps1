@@ -7,25 +7,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-function Require-Command {
-  param([string]$Name)
-  if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
-    throw "Required command not found: $Name"
-  }
-}
-
-function Parse-VersionFromXmake {
-  param([string]$Path)
-
-  $match = Select-String -Path $Path -Pattern 'set_version\("([^"]+)"\)' | Select-Object -First 1
-  if (-not $match) {
-    throw "Unable to parse version from $Path"
-  }
-
-  return $match.Matches[0].Groups[1].Value
-}
-
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $scriptDir "release-local.lib.ps1")
 $repoRoot = Split-Path -Parent $scriptDir
 
 Push-Location $repoRoot
@@ -54,17 +37,16 @@ try {
     xmake build
   }
 
-  if (Test-Path "dist/PrismaUI/views/TulliusWidgets/index.html") {
-    Write-Host "[verify] Frontend output found: dist/PrismaUI/views/TulliusWidgets/index.html"
-  }
-
-  if (Test-Path "build/windows/x64/release/TulliusWidgets.dll") {
-    Write-Host "[verify] Native DLL found: build/windows/x64/release/TulliusWidgets.dll"
-  }
+  Assert-TulliusWidgetsBuildOutputs
+  Write-Host "[verify] Frontend output found: dist/PrismaUI/views/TulliusWidgets/index.html"
+  Write-Host "[verify] Native DLL found: build/windows/x64/release/TulliusWidgets.dll"
 
   if ($CreateLocalPackage) {
     Write-Host "[verify] Creating local package (NoPublish)..."
-    & "$scriptDir/release-local.ps1" -NoPublish -SkipLint -SkipFrontendBuild -SkipPluginBuild
+    $releaseLocalArguments = Get-ReleaseLocalArgumentsForPackaging `
+      -SkipFrontendChecks:$SkipFrontendChecks `
+      -SkipPluginBuild:$SkipPluginBuild
+    & "$scriptDir/release-local.ps1" @releaseLocalArguments
   }
 
   $version = Parse-VersionFromXmake -Path "xmake.lua"
@@ -85,10 +67,11 @@ try {
     New-Item -ItemType Directory -Path $reportDir -Force | Out-Null
   }
 
+  $gitSha = Get-ShortGitSha -RepoRoot $repoRoot
   $report = Get-Content $templatePath -Raw
   $report = $report.Replace("{{GENERATED_AT}}", $generatedAt)
   $report = $report.Replace("{{VERSION}}", $version)
-  $report = $report.Replace("{{GIT_SHA}}", (git rev-parse --short HEAD).Trim())
+  $report = $report.Replace("{{GIT_SHA}}", $gitSha)
   Set-Content -Path $resolvedReportPath -Value $report -Encoding UTF8
 
   Write-Host "[verify] Runtime report created: $resolvedReportPath"

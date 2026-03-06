@@ -307,13 +307,6 @@ static GameTimeEntry collectGameTime() {
     return out;
 }
 
-static std::string safeFloat(float v) {
-    if (std::isnan(v) || std::isinf(v)) return "0";
-    char buf[32];
-    std::snprintf(buf, sizeof(buf), "%.2f", v);
-    return buf;
-}
-
 // In-place append variants to avoid temporary std::string allocations.
 static void appendFloat(std::string& out, float v) {
     if (std::isnan(v) || std::isinf(v)) { out += '0'; return; }

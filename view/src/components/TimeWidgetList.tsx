@@ -137,8 +137,8 @@ export function TimeWidgetList({ gameTime, showGameDateTime, showRealDateTime, l
 
   return (
     <>
-      <StatWidget icon="gameTime" iconColor="#d8b96b" value={gameDateTime} visible={showGameDateTime} />
-      <StatWidget icon="realTime" iconColor="#77d8ff" value={realDateTime} visible={showRealDateTime} />
+      <StatWidget icon="gameTime" iconColor="#d8b96b" value={gameDateTime} visible={showGameDateTime} prominence="secondary" />
+      <StatWidget icon="realTime" iconColor="#77d8ff" value={realDateTime} visible={showRealDateTime} prominence="secondary" />
     </>
   );
 }

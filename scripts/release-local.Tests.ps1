@@ -17,6 +17,35 @@ Describe "release-local helpers" {
     $result | Should Be $null
   }
 
+  It "parses version from xmake.lua style content" {
+    $root = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
+    $xmakePath = Join-Path $root "xmake.lua"
+    New-Item -ItemType Directory -Path $root -Force | Out-Null
+    Set-Content -Path $xmakePath -Value 'set_version("1.2.1-rc.3")' -Encoding UTF8
+
+    try {
+      (Parse-VersionFromXmake -Path $xmakePath) | Should Be "1.2.1-rc.3"
+    }
+    finally {
+      if (Test-Path $root) {
+        Remove-Item -LiteralPath $root -Recurse -Force
+      }
+    }
+  }
+
+  It "builds release-local packaging arguments from skipped verification phases" {
+    $full = @(Get-ReleaseLocalArgumentsForPackaging)
+    $skipAll = @(Get-ReleaseLocalArgumentsForPackaging -SkipFrontendChecks -SkipPluginBuild)
+
+    ($full -join ",") | Should Be "-NoPublish,-SkipLint,-SkipFrontendBuild,-SkipPluginBuild"
+    ($skipAll -join ",") | Should Be "-NoPublish"
+  }
+
+  It "returns a short git sha for the current repository with safe.directory override" {
+    $sha = Get-ShortGitSha -RepoRoot (Split-Path -Parent $here)
+    $sha.Length | Should Be 7
+  }
+
   It "throws when local gh returns a non-zero exit code" {
     $root = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
     $binDir = Join-Path $root "bin"
@@ -66,6 +95,26 @@ Describe "release-local helpers" {
       (Test-Path (Join-Path $stageRoot "PrismaUI\views\TulliusWidgets\index.html")) | Should Be $true
       (Test-Path (Join-Path $stageRoot "SKSE\Plugins\TulliusWidgets.dll")) | Should Be $true
       (Test-Path (Join-Path $stageRoot "stale.txt")) | Should Be $false
+    }
+    finally {
+      if (Test-Path $root) {
+        Remove-Item -LiteralPath $root -Recurse -Force
+      }
+    }
+  }
+
+  It "asserts required frontend and plugin build outputs" {
+    $root = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
+    $frontendSource = Join-Path $root "dist\PrismaUI\views\TulliusWidgets"
+    $pluginSource = Join-Path $root "build\windows\x64\release\TulliusWidgets.dll"
+
+    New-Item -ItemType Directory -Path $frontendSource -Force | Out-Null
+    New-Item -ItemType Directory -Path (Split-Path $pluginSource -Parent) -Force | Out-Null
+    Set-Content -Path (Join-Path $frontendSource "index.html") -Value "frontend" -Encoding UTF8
+    Set-Content -Path $pluginSource -Value "dll" -Encoding UTF8
+
+    try {
+      { Assert-TulliusWidgetsBuildOutputs -FrontendOutputPath $frontendSource -PluginDllPath $pluginSource } | Should Not Throw
     }
     finally {
       if (Test-Path $root) {

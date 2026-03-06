@@ -41,6 +41,10 @@ jobs:
           npm run test
           npm run build
 
+      - name: Run contract tests
+        shell: bash
+        run: node --test scripts/*.test.mjs
+
       - name: Setup xmake
         uses: xmake-io/github-action-setup-xmake@v1
         with:

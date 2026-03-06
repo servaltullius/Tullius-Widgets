@@ -5,6 +5,7 @@ import { act } from 'react-dom/test-utils';
 import { createRoot, type Root } from 'react-dom/client';
 import type { RuntimeDiagnostics } from '../types/runtime';
 import { useSettingsBridge } from './useSettingsBridge';
+import { createRuntimeDiagnosticsPayload } from '../test-fixtures/bridgePayloads';
 
 function BridgeHarness(props: {
   applyIncomingSettings: (jsonString: string, persist: boolean) => boolean;
@@ -106,15 +107,10 @@ describe('useSettingsBridge', () => {
     });
 
     await act(async () => {
-      window.updateRuntimeStatus?.(JSON.stringify({
-        runtimeVersion: '1.6.1170',
-        skseVersion: '2.2.6',
-        addressLibraryPath: 'Data/SKSE/Plugins/versionlib-1-6-1170-0.bin',
+      window.updateRuntimeStatus?.(JSON.stringify(createRuntimeDiagnosticsPayload({
         addressLibraryPresent: false,
-        runtimeSupported: true,
-        usesAddressLibrary: true,
         warningCode: 'missing-address-library',
-      }));
+      })));
     });
 
     expect(setRuntimeDiagnostics).toHaveBeenCalledWith({
@@ -125,6 +121,37 @@ describe('useSettingsBridge', () => {
       runtimeSupported: true,
       usesAddressLibrary: true,
       warningCode: 'missing-address-library',
+    });
+  });
+
+  it('falls back to warningCode none for unknown runtime warning codes', async () => {
+    const setRuntimeDiagnostics = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <BridgeHarness
+          applyIncomingSettings={() => true}
+          setRuntimeDiagnostics={setRuntimeDiagnostics}
+          toggleSettings={() => {}}
+          toggleWidgetsVisibility={() => {}}
+          closeSettings={() => {}}
+          setHUDColor={() => {}}
+          handleSettingsSyncResult={() => {}}
+        />,
+      );
+    });
+
+    await act(async () => {
+      window.TulliusWidgetsBridge?.v1?.updateRuntimeStatus?.(JSON.stringify({
+        ...createRuntimeDiagnosticsPayload(),
+        warningCode: 'totally-unknown-code',
+      }));
+    });
+
+    expect(setRuntimeDiagnostics).toHaveBeenCalledWith({
+      ...createRuntimeDiagnosticsPayload(),
+      warningCode: 'none',
     });
   });
 });

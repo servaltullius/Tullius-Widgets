@@ -48,6 +48,7 @@
     "experience": 1280.0,
     "expToNextLevel": 620.0,
     "nextLevelTotalXp": 1900.0,
+    "expectedLevelThreshold": 1900.0,
     "gold": 3433,
     "carryWeight": 241.71,
     "maxCarryWeight": 445.0,
@@ -112,6 +113,7 @@
 - `resistances`, `offense.critChance`, `defense.damageReduction`는 **실효 표시값**입니다.
 - 원본 계산값은 `calcMeta.rawResistances`, `calcMeta.rawCritChance`, `calcMeta.rawDamageReduction`에 전달됩니다.
 - UI는 `calcMeta.caps` 기준으로 캡/보조 텍스트를 표시합니다.
+- 원소/독 저항은 현재 `85%` 상한 clamp를 기준으로 안내하며, 음수 하한은 엔진/모드 조합에 따라 달라질 수 있어 고정 clamp 계약으로 두지 않습니다.
 - 고빈도 fast 동기화 payload에서는 `timedEffects`가 생략될 수 있으며, UI는 이전 목록을 유지해야 합니다.
 - 장착 표시 계약:
   - `equipped.rightHand`, `equipped.leftHand`는 가능한 경우 인벤토리 표시명(`InventoryEntryData::GetDisplayName`)을 우선 사용합니다.
@@ -121,6 +123,9 @@
   - `playerInfo.experience` = 현재 누적 XP
   - `playerInfo.expToNextLevel` = 레벨업까지 남은 XP
   - `playerInfo.nextLevelTotalXp` = 다음 레벨 총 필요 XP(누적 기준)
+  - `playerInfo.expectedLevelThreshold` = 현재 레벨 기준 게임 설정값(`fXPLevelUpBase`, `fXPLevelUpMult`)으로 계산한 다음 레벨 임계치
+    - 레벨업 직후 엔진이 이전 레벨 threshold를 잠시 유지하는 구간에서 UI stale 보정에 사용
+    - 구버전 payload에서는 생략될 수 있으며, UI는 이 경우 `nextLevelTotalXp`만으로 표시를 유지
   - UI 권장 표기: `experience / nextLevelTotalXp`
 
 ## 2) `updateRuntimeStatus(jsonString)`

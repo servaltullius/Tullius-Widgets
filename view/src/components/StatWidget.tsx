@@ -42,7 +42,52 @@ interface StatWidgetProps {
   format?: (v: number) => string;
   helperText?: string;
   helperTone?: 'neutral' | 'warning';
+  valueTone?: 'default' | 'positive' | 'warning' | 'danger' | 'muted';
+  prominence?: 'primary' | 'secondary';
+  meterPct?: number;
+  meterColor?: string;
   tooltip?: string;
+}
+
+const prominenceStyles = {
+  primary: {
+    gap: '10px',
+    iconSize: 40,
+    badgeSize: 18,
+    badgeIconSize: 11,
+    fontSize: '20px',
+    helperFontSize: '11px',
+    minWidth: '48px',
+    maxWidth: '240px',
+  },
+  secondary: {
+    gap: '8px',
+    iconSize: 34,
+    badgeSize: 16,
+    badgeIconSize: 10,
+    fontSize: '16px',
+    helperFontSize: '10px',
+    minWidth: '36px',
+    maxWidth: '220px',
+  },
+} as const;
+
+function clampPercent(value: number): number {
+  return Math.min(100, Math.max(0, value));
+}
+
+function resolveValueColor(
+  valueTone: StatWidgetProps['valueTone'],
+  isAtCap: boolean,
+  isNegative: boolean,
+): string {
+  if (valueTone === 'danger') return '#ff8d8d';
+  if (valueTone === 'warning') return '#ffd36a';
+  if (valueTone === 'positive') return '#8cffb0';
+  if (valueTone === 'muted') return '#d2d9e7';
+  if (isAtCap) return '#ffd700';
+  if (isNegative) return '#ff6b6b';
+  return '#ffffff';
 }
 
 export const StatWidget = memo(function StatWidget({
@@ -56,6 +101,10 @@ export const StatWidget = memo(function StatWidget({
   format,
   helperText,
   helperTone = 'neutral',
+  valueTone = 'default',
+  prominence = 'primary',
+  meterPct,
+  meterColor,
   tooltip,
 }: StatWidgetProps) {
   if (!visible) return null;
@@ -69,13 +118,17 @@ export const StatWidget = memo(function StatWidget({
 
   const isAtCap = isNumeric && cap !== undefined && value >= cap;
   const isNegative = isNumeric && displayNumber < 0;
-  const valueColor = isAtCap ? '#ffd700' : isNegative ? '#ff4444' : '#ffffff';
+  const styles = prominenceStyles[prominence];
+  const valueColor = resolveValueColor(valueTone, isAtCap, isNegative);
   const displayValue = isNumeric
     ? (format ? format(displayNumber) : Math.round(displayNumber).toString())
     : value;
   const textAlign = isNumeric ? 'right' : 'left';
-  const minWidth = isNumeric ? '40px' : 'auto';
+  const minWidth = isNumeric ? styles.minWidth : 'auto';
   const helperColor = helperTone === 'warning' ? '#ffcf7a' : '#aeb8c6';
+  const normalizedMeterPct = typeof meterPct === 'number' && Number.isFinite(meterPct)
+    ? clampPercent(meterPct)
+    : null;
 
   const iconSrc = iconMap[icon];
   const BadgeIcon = badgeIconMap[icon];
@@ -84,27 +137,27 @@ export const StatWidget = memo(function StatWidget({
     <div style={{
       display: 'flex',
       alignItems: 'center',
-      gap: '8px',
+      gap: styles.gap,
       padding: '2px 0',
     }} title={tooltip}>
       <div style={{
         position: 'relative',
-        width: '38px',
-        height: '38px',
+        width: `${styles.iconSize}px`,
+        height: `${styles.iconSize}px`,
         filter: `drop-shadow(0 0 3px ${iconColor}66)`,
       }}>
         {iconSrc ? (
           <img
             src={iconSrc}
             alt={icon}
-            width={38}
-            height={38}
+            width={styles.iconSize}
+            height={styles.iconSize}
             style={{ objectFit: 'contain', borderRadius: '4px' }}
           />
         ) : BadgeIcon ? (
           <div style={{
-            width: '38px',
-            height: '38px',
+            width: `${styles.iconSize}px`,
+            height: `${styles.iconSize}px`,
             borderRadius: '50%',
             background: 'rgba(0, 0, 0, 0.65)',
             border: `1px solid ${iconColor}aa`,
@@ -112,7 +165,7 @@ export const StatWidget = memo(function StatWidget({
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            <BadgeIcon size={20} color={iconColor} strokeWidth={2.2} />
+            <BadgeIcon size={prominence === 'primary' ? 20 : 18} color={iconColor} strokeWidth={2.2} />
           </div>
         ) : null}
         {iconSrc && BadgeIcon && (
@@ -120,8 +173,8 @@ export const StatWidget = memo(function StatWidget({
             position: 'absolute',
             right: '-3px',
             bottom: '-3px',
-            width: '18px',
-            height: '18px',
+            width: `${styles.badgeSize}px`,
+            height: `${styles.badgeSize}px`,
             borderRadius: '50%',
             background: 'rgba(0, 0, 0, 0.75)',
             border: `1px solid ${iconColor}aa`,
@@ -129,7 +182,7 @@ export const StatWidget = memo(function StatWidget({
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            <BadgeIcon size={11} color={iconColor} strokeWidth={2.5} />
+            <BadgeIcon size={styles.badgeIconSize} color={iconColor} strokeWidth={2.5} />
           </div>
         )}
       </div>
@@ -138,14 +191,14 @@ export const StatWidget = memo(function StatWidget({
           display: 'inline-block',
           color: valueColor,
           fontFamily: 'sans-serif',
-          fontSize: '18px',
-          fontWeight: 600,
+          fontSize: styles.fontSize,
+          fontWeight: prominence === 'primary' ? 700 : 600,
           textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
           textAlign,
           whiteSpace: 'nowrap',
-          overflow: isNumeric ? 'hidden' : 'visible',
-          textOverflow: isNumeric ? 'ellipsis' : undefined,
-          maxWidth: isNumeric ? '220px' : undefined,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          maxWidth: styles.maxWidth,
           lineHeight: 1.1,
         }}>
           {displayValue}{unit}
@@ -154,18 +207,38 @@ export const StatWidget = memo(function StatWidget({
           <span style={{
             color: helperColor,
             fontFamily: 'sans-serif',
-            fontSize: '11px',
+            fontSize: styles.helperFontSize,
             fontWeight: 600,
             textShadow: '1px 1px 2px rgba(0,0,0,0.75)',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            maxWidth: '220px',
+            maxWidth: styles.maxWidth,
             opacity: 0.95,
             marginTop: '1px',
           }}>
             {helperText}
           </span>
+        )}
+        {normalizedMeterPct !== null && (
+          <div style={{
+            width: styles.maxWidth,
+            maxWidth: '112px',
+            height: '4px',
+            marginTop: helperText ? '4px' : '6px',
+            background: 'rgba(255,255,255,0.12)',
+            borderRadius: '999px',
+            overflow: 'hidden',
+            boxShadow: 'inset 0 0 4px rgba(0,0,0,0.35)',
+          }}>
+            <div style={{
+              width: `${normalizedMeterPct}%`,
+              height: '100%',
+              borderRadius: '999px',
+              background: meterColor ?? iconColor,
+              boxShadow: `0 0 8px ${(meterColor ?? iconColor)}88`,
+            }} />
+          </div>
         )}
       </div>
     </div>

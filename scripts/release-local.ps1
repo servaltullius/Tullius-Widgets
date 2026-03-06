@@ -44,11 +44,7 @@ function Invoke-ReleaseLocal {
     Require-Command "xmake"
     Require-Command "npm"
 
-    $versionMatch = Select-String -Path "xmake.lua" -Pattern 'set_version\("([^"]+)"\)' | Select-Object -First 1
-    if (-not $versionMatch) {
-      throw "Unable to parse version from xmake.lua"
-    }
-    $version = $versionMatch.Matches[0].Groups[1].Value
+    $version = Parse-VersionFromXmake -Path "xmake.lua"
     $tag = "v$version"
     $title = "Tullius Widgets v$version"
     $notePath = "docs/release-notes/$version.ko.md"
@@ -106,12 +102,9 @@ function Invoke-ReleaseLocal {
     $frontendOutputPath = "dist/PrismaUI/views/TulliusWidgets"
     $pluginDllPath = "build/windows/x64/release/TulliusWidgets.dll"
 
-    if (-not (Test-Path (Join-Path $frontendOutputPath "index.html"))) {
-      throw "Frontend output missing: dist/PrismaUI/views/TulliusWidgets/index.html"
-    }
-    if (-not (Test-Path $pluginDllPath)) {
-      throw "Plugin DLL missing: build/windows/x64/release/TulliusWidgets.dll"
-    }
+    Assert-TulliusWidgetsBuildOutputs `
+      -FrontendOutputPath $frontendOutputPath `
+      -PluginDllPath $pluginDllPath
 
     New-Item -ItemType Directory -Path "dist/SKSE/Plugins" -Force | Out-Null
     Copy-Item $pluginDllPath "dist/SKSE/Plugins/TulliusWidgets.dll" -Force

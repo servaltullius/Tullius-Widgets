@@ -1,4 +1,4 @@
-import type { GroupPosition, WidgetSettings } from '../types/settings';
+import type { GroupPosition, WidgetLayout, WidgetSettings, WidgetSize } from '../types/settings';
 import { getWidgetDefaultPositions } from './widgetRegistry';
 
 export const defaultSettings: WidgetSettings = {
@@ -71,6 +71,11 @@ export const defaultSettings: WidgetSettings = {
   layouts: {},
 };
 
-export function getDefaultPositions(): Record<string, GroupPosition> {
-  return getWidgetDefaultPositions(window.innerWidth);
+export function getDefaultPositions(
+  viewportWidth = window.innerWidth,
+  viewportHeight = window.innerHeight,
+  size: WidgetSize = defaultSettings.general.size,
+  layouts: Record<string, WidgetLayout> = defaultSettings.layouts,
+): Record<string, GroupPosition> {
+  return getWidgetDefaultPositions(viewportWidth, viewportHeight, size, layouts);
 }

@@ -36,3 +36,6 @@ jobs:
 
       - name: Test
         run: cd view && npm run test
+
+      - name: Contract tests
+        run: node --test scripts/*.test.mjs
