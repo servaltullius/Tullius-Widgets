@@ -41,6 +41,7 @@ describe('useSettings', () => {
     document.body.appendChild(container);
     vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(async () => {
@@ -160,9 +161,10 @@ describe('useSettings', () => {
     });
 
     expect(onSettingsChanged).toHaveBeenCalledTimes(1);
+    const firstRevision = (JSON.parse(onSettingsChanged.mock.calls[0]?.[0] as string) as { rev?: number }).rev;
 
     await act(async () => {
-      window.onSettingsSyncResult?.(false);
+      window.onSettingsSyncResult?.(false, firstRevision);
       vi.advanceTimersByTime(200);
     });
 
@@ -187,13 +189,15 @@ describe('useSettings', () => {
       vi.advanceTimersByTime(200);
     });
 
+    const firstRevision = (JSON.parse(onSettingsChanged.mock.calls[0]?.[0] as string) as { rev?: number }).rev;
+
     await act(async () => {
-      window.onSettingsSyncResult?.(false);
+      window.onSettingsSyncResult?.(false, firstRevision);
       vi.advanceTimersByTime(200);
     });
 
     await act(async () => {
-      window.onSettingsSyncResult?.(false);
+      window.onSettingsSyncResult?.(false, firstRevision);
       updateSetting?.('general.opacity', 77);
       vi.advanceTimersByTime(200);
     });

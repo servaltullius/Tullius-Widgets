@@ -163,4 +163,7 @@
 
 - `onExportResult(success: boolean)`
 - `onImportResult(success: boolean)`
-- `onSettingsSyncResult(success: boolean)`
+- `onSettingsSyncResult(success: boolean, revision?: number)`
+  - `revision`은 설정 저장 요청 payload의 `rev`를 그대로 반영하는 선택 인자입니다.
+  - 최신 UI는 이 값을 사용해 오래된 저장 결과 ack를 무시할 수 있습니다.
+  - 구버전 UI는 첫 번째 인자 `success`만 읽어도 동작합니다.

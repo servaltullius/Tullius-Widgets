@@ -34,6 +34,7 @@ describe('useGameStats', () => {
     document.body.appendChild(container);
     vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(async () => {
@@ -198,7 +199,7 @@ describe('useGameStats', () => {
     expect(latest!.playerInfo.stamina).toBe(0);
   });
 
-  it('marks live stats as unavailable when payload is empty object', async () => {
+  it('keeps the last live stats when an empty payload arrives', async () => {
     let latestState: { stats: CombatStats; hasLiveStats: boolean } | null = null;
 
     await act(async () => {
@@ -209,10 +210,58 @@ describe('useGameStats', () => {
     expect(typeof window.updateStats).toBe('function');
 
     await act(async () => {
+      window.updateStats?.(JSON.stringify(createStatsPayload({ seq: 1, playerInfo: { level: 42 } })));
+    });
+
+    await act(async () => {
       window.updateStats?.('{}');
     });
 
     expect(latestState).not.toBeNull();
-    expect(latestState!.hasLiveStats).toBe(false);
+    expect(latestState!.hasLiveStats).toBe(true);
+    expect(latestState!.stats.playerInfo.level).toBe(42);
+  });
+
+  it('warns once when calcMeta caps look suspicious', async () => {
+    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const baseCalcMeta = createStatsPayload().calcMeta as Record<string, unknown>;
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onStats={stats => { latest = stats; }} />);
+    });
+
+    await act(async () => {
+      window.updateStats?.(JSON.stringify(createStatsPayload({
+        seq: 501,
+        calcMeta: {
+          ...baseCalcMeta,
+          caps: {
+            elementalResist: 150,
+            diseaseResist: 100,
+            critChance: 100,
+            damageReduction: 80,
+          },
+        },
+      })));
+    });
+
+    await act(async () => {
+      window.updateStats?.(JSON.stringify(createStatsPayload({
+        seq: 502,
+        calcMeta: {
+          ...baseCalcMeta,
+          caps: {
+            elementalResist: 160,
+            diseaseResist: 100,
+            critChance: 100,
+            damageReduction: 80,
+          },
+        },
+      })));
+    });
+
+    expect(consoleWarn).toHaveBeenCalledTimes(1);
+    expect(consoleWarn.mock.calls[0]?.[0]).toContain('Suspicious stats contract metadata');
   });
 });

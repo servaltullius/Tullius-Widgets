@@ -1,3 +1,4 @@
+import { BRIDGE_HANDLERS, BRIDGE_CALLBACKS } from '../constants/bridge';
 import { useEffect } from 'react';
 import type { RuntimeDiagnostics, RuntimeWarningCode } from '../types/runtime';
 import { isPlainObject, readBoolean, readText } from '../utils/normalize';
@@ -20,7 +21,7 @@ interface UseSettingsBridgeParams {
   toggleWidgetsVisibility: () => void;
   closeSettings: () => void;
   setHUDColor: (hex: string) => void;
-  handleSettingsSyncResult: (success: boolean) => void;
+  handleSettingsSyncResult: (success: boolean, revision?: number) => void;
 }
 
 function readRuntimeWarningCode(value: unknown): RuntimeWarningCode {
@@ -46,13 +47,13 @@ function normalizeRuntimeDiagnostics(value: unknown): RuntimeDiagnostics | null 
 
 function registerSettingsBridgeHandlers(handlers: SettingsBridgeHandlers): Array<() => void> {
   return [
-    registerDualBridgeHandler('updateSettings', handlers.updateSettings),
-    registerDualBridgeHandler('updateRuntimeStatus', handlers.updateRuntimeStatus),
-    registerDualBridgeHandler('importSettingsFromNative', handlers.importSettingsFromNative),
-    registerDualBridgeHandler('toggleSettings', handlers.toggleSettings),
-    registerDualBridgeHandler('toggleWidgetsVisibility', handlers.toggleWidgetsVisibility),
-    registerDualBridgeHandler('closeSettings', handlers.closeSettings),
-    registerDualBridgeHandler('setHUDColor', handlers.setHUDColor),
+    registerDualBridgeHandler(BRIDGE_HANDLERS.updateSettings, handlers.updateSettings),
+    registerDualBridgeHandler(BRIDGE_HANDLERS.updateRuntimeStatus, handlers.updateRuntimeStatus),
+    registerDualBridgeHandler(BRIDGE_HANDLERS.importSettingsFromNative, handlers.importSettingsFromNative),
+    registerDualBridgeHandler(BRIDGE_HANDLERS.toggleSettings, handlers.toggleSettings),
+    registerDualBridgeHandler(BRIDGE_HANDLERS.toggleWidgetsVisibility, handlers.toggleWidgetsVisibility),
+    registerDualBridgeHandler(BRIDGE_HANDLERS.closeSettings, handlers.closeSettings),
+    registerDualBridgeHandler(BRIDGE_HANDLERS.setHUDColor, handlers.setHUDColor),
   ];
 }
 
@@ -81,7 +82,7 @@ export function useSettingsBridge({
 
     const importSettingsFromNativeHandler = (jsonString: string) => {
       const success = applyIncomingSettings(jsonString, true);
-      window.onImportResult?.(success);
+      window[BRIDGE_CALLBACKS.onImportResult]?.(success);
     };
 
     const unregisterBridgeHandlers = registerSettingsBridgeHandlers({
@@ -94,15 +95,15 @@ export function useSettingsBridge({
       setHUDColor,
     });
 
-    window.onSettingsSyncResult = handleSettingsSyncResult;
+    window[BRIDGE_CALLBACKS.onSettingsSyncResult] = handleSettingsSyncResult;
 
     return () => {
       for (const unregister of unregisterBridgeHandlers) {
         unregister();
       }
 
-      if (window.onSettingsSyncResult === handleSettingsSyncResult) {
-        delete window.onSettingsSyncResult;
+      if (window[BRIDGE_CALLBACKS.onSettingsSyncResult] === handleSettingsSyncResult) {
+        delete window[BRIDGE_CALLBACKS.onSettingsSyncResult];
       }
     };
   }, [

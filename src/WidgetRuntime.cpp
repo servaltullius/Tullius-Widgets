@@ -1,4 +1,5 @@
 #include "WidgetRuntime.h"
+#include "WidgetInteropContracts.h"
 #include "WidgetVisibilityState.h"
 
 #include <atomic>
@@ -140,7 +141,7 @@ void SendStatsToView(bool force)
     }
 
     std::string stats = g_callbacks.collectStatsJson();
-    (void)g_callbacks.interopCall("updateStats", stats.c_str());
+    (void)g_callbacks.interopCall(TulliusWidgets::WidgetInteropContracts::kUpdateStats, stats.c_str());
 }
 
 }  // namespace

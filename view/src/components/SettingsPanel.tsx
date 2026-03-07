@@ -3,6 +3,13 @@ import type { UpdateSettingFn, WidgetSettings, WidgetLayout } from '../types/set
 import { t } from '../i18n/translations';
 import { COMBAT_WIDGET_GROUP_IDS, EFFECT_WIDGET_GROUP_IDS } from '../data/widgetRegistry';
 import {
+  type PanelTab,
+  readStoredExpandedSections,
+  readStoredPanelTab,
+  writeStoredExpandedSections,
+  writeStoredPanelTab,
+} from './settings/settingsPanelState';
+import {
   AlertsTabSections,
   CombatTabSections,
   EffectsTabSections,
@@ -18,8 +25,6 @@ interface SettingsPanelProps {
   onUpdate: UpdateSettingFn;
   accentColor: string;
 }
-
-type PanelTab = 'general' | 'combat' | 'effects' | 'alerts' | 'presets';
 
 const TAB_ORDER: PanelTab[] = ['general', 'combat', 'effects', 'alerts', 'presets'];
 const TAB_SECTION_IDS: Record<PanelTab, string[]> = {
@@ -46,22 +51,18 @@ const DEFAULT_EXPANDED_SECTIONS: Record<string, boolean> = {
   layoutTools: true,
 };
 
-let rememberedPanelTab: PanelTab = 'general';
-let rememberedExpandedSections: Record<string, boolean> = { ...DEFAULT_EXPANDED_SECTIONS };
-
 export function SettingsPanel({ settings, effectiveVisible, open, onClose, onUpdate, accentColor }: SettingsPanelProps) {
-  const [activeTab, setActiveTab] = useState<PanelTab>(rememberedPanelTab);
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    ...DEFAULT_EXPANDED_SECTIONS,
-    ...rememberedExpandedSections,
-  });
+  const [activeTab, setActiveTab] = useState<PanelTab>(() => readStoredPanelTab('general', TAB_ORDER));
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() =>
+    readStoredExpandedSections(DEFAULT_EXPANDED_SECTIONS),
+  );
 
   useEffect(() => {
-    rememberedPanelTab = activeTab;
+    writeStoredPanelTab(activeTab);
   }, [activeTab]);
 
   useEffect(() => {
-    rememberedExpandedSections = expandedSections;
+    writeStoredExpandedSections(expandedSections);
   }, [expandedSections]);
 
   if (!open) return null;
@@ -100,27 +101,28 @@ export function SettingsPanel({ settings, effectiveVisible, open, onClose, onUpd
       top: '50%',
       left: '50%',
       transform: 'translate(-50%, -50%)',
-      background: 'rgba(20, 20, 30, 0.95)',
-      borderRadius: '16px',
+      background: 'var(--tw-color-panel-bg)',
+      borderRadius: 'var(--tw-radius-xl)',
       padding: '28px 30px',
-      border: '1px solid rgba(255, 215, 0, 0.3)',
+      border: '1px solid var(--tw-color-panel-border)',
       minWidth: '680px',
       maxHeight: '85vh',
       overflowY: 'auto',
       zIndex: 1000,
       pointerEvents: 'auto',
+      fontFamily: 'var(--tw-font-ui)',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h2 style={{ color: '#ffd700', margin: 0, fontSize: '36px' }}>{t(lang, 'title')}</h2>
+        <h2 style={{ color: 'var(--tw-color-panel-title)', margin: 0, fontSize: '36px' }}>{t(lang, 'title')}</h2>
         <button
           onClick={onClose}
           style={{
-            background: 'rgba(255,255,255,0.1)',
-            border: '1px solid rgba(255,255,255,0.2)',
-            color: '#ccc',
+            background: 'var(--tw-color-button-bg)',
+            border: '1px solid var(--tw-color-button-border)',
+            color: 'var(--tw-color-panel-text)',
             fontSize: '22px',
             cursor: 'pointer',
-            borderRadius: '8px',
+            borderRadius: 'var(--tw-radius-sm)',
             padding: '8px 20px',
           }}
         >
@@ -134,10 +136,16 @@ export function SettingsPanel({ settings, effectiveVisible, open, onClose, onUpd
             key={tab}
             onClick={() => setActiveTab(tab)}
             style={{
-              border: activeTab === tab ? '1px solid rgba(255,215,0,0.75)' : '1px solid rgba(255,255,255,0.2)',
-              background: activeTab === tab ? 'rgba(255,215,0,0.18)' : 'rgba(255,255,255,0.05)',
-              color: activeTab === tab ? '#ffd700' : '#cfd6e6',
-              borderRadius: '8px',
+              border: activeTab === tab
+                ? '1px solid var(--tw-color-tab-active-border)'
+                : '1px solid var(--tw-color-tab-idle-border)',
+              background: activeTab === tab
+                ? 'var(--tw-color-tab-active-bg)'
+                : 'var(--tw-color-tab-idle-bg)',
+              color: activeTab === tab
+                ? 'var(--tw-color-tab-active-text)'
+                : 'var(--tw-color-tab-idle-text)',
+              borderRadius: 'var(--tw-radius-sm)',
               fontSize: '20px',
               padding: '8px 14px',
               cursor: 'pointer',
@@ -152,10 +160,10 @@ export function SettingsPanel({ settings, effectiveVisible, open, onClose, onUpd
         <button
           onClick={() => setCurrentSectionsExpanded(true)}
           style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.2)',
-            color: '#d7d7d7',
-            borderRadius: '8px',
+            background: 'var(--tw-color-button-bg)',
+            border: '1px solid var(--tw-color-button-border)',
+            color: 'var(--tw-color-button-text)',
+            borderRadius: 'var(--tw-radius-sm)',
             fontSize: '16px',
             padding: '6px 10px',
             cursor: 'pointer',
@@ -166,10 +174,10 @@ export function SettingsPanel({ settings, effectiveVisible, open, onClose, onUpd
         <button
           onClick={() => setCurrentSectionsExpanded(false)}
           style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.2)',
-            color: '#d7d7d7',
-            borderRadius: '8px',
+            background: 'var(--tw-color-button-bg)',
+            border: '1px solid var(--tw-color-button-border)',
+            color: 'var(--tw-color-button-text)',
+            borderRadius: 'var(--tw-radius-sm)',
             fontSize: '16px',
             padding: '6px 10px',
             cursor: 'pointer',

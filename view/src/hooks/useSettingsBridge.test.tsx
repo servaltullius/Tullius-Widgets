@@ -14,7 +14,7 @@ function BridgeHarness(props: {
   toggleWidgetsVisibility: () => void;
   closeSettings: () => void;
   setHUDColor: (hex: string) => void;
-  handleSettingsSyncResult: (success: boolean) => void;
+  handleSettingsSyncResult: (success: boolean, revision?: number) => void;
 }) {
   useSettingsBridge(props);
   useEffect(() => undefined, []);

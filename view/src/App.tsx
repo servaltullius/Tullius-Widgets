@@ -15,6 +15,7 @@ import {
   getSettingsSyncWarningText,
   resolveHudVisibility,
 } from './utils/hudPresentation';
+import './assets/ui-theme.css';
 import './assets/screen-effects.css';
 const SNAP_THRESHOLD = 15;
 const GRID = 10;

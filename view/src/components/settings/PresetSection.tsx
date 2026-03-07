@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { BRIDGE_CALLBACKS } from '../../constants/bridge';
 import type { WidgetSettings } from '../../types/settings';
 import { t } from '../../i18n/translations';
 
@@ -22,19 +23,19 @@ export function PresetSection({ lang, settings }: PresetSectionProps) {
       }, 3000);
     };
 
-    window.onExportResult = (success: boolean) => {
+    window[BRIDGE_CALLBACKS.onExportResult] = (success: boolean) => {
       if (success) {
         setMessage(t(lang, 'exportDone'));
         scheduleMessageClear();
       }
     };
-    window.onImportResult = (success: boolean) => {
+    window[BRIDGE_CALLBACKS.onImportResult] = (success: boolean) => {
       setMessage(t(lang, success ? 'importDone' : 'importFail'));
       scheduleMessageClear();
     };
     return () => {
-      delete window.onExportResult;
-      delete window.onImportResult;
+      delete window[BRIDGE_CALLBACKS.onExportResult];
+      delete window[BRIDGE_CALLBACKS.onImportResult];
       if (messageTimerRef.current !== null) {
         window.clearTimeout(messageTimerRef.current);
         messageTimerRef.current = null;
@@ -43,30 +44,31 @@ export function PresetSection({ lang, settings }: PresetSectionProps) {
   }, [lang]);
 
   const buttonStyle = {
-    background: 'rgba(100,180,255,0.15)',
-    border: '1px solid rgba(100,180,255,0.4)',
-    color: '#88ccff',
+    background: 'var(--tw-color-button-strong-bg)',
+    border: '1px solid var(--tw-color-button-strong-border)',
+    color: 'var(--tw-color-button-strong-text)',
     fontSize: '20px',
     cursor: 'pointer',
-    borderRadius: '8px',
+    borderRadius: 'var(--tw-radius-sm)',
     padding: '12px 20px',
     flex: 1,
+    fontFamily: 'var(--tw-font-ui)',
   } as const;
 
   return (
     <>
       <div style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
-        <button style={buttonStyle} onClick={() => window.onExportSettings?.(JSON.stringify(settings))}>
+        <button style={buttonStyle} onClick={() => window[BRIDGE_CALLBACKS.onExportSettings]?.(JSON.stringify(settings))}>
           {t(lang, 'exportPreset')}
         </button>
-        <button style={buttonStyle} onClick={() => window.onImportSettings?.('')}>
+        <button style={buttonStyle} onClick={() => window[BRIDGE_CALLBACKS.onImportSettings]?.('')}>
           {t(lang, 'importPreset')}
         </button>
       </div>
       {message && (
-        <p style={{ color: '#88ff88', fontSize: '18px', margin: '4px 0', textAlign: 'center' }}>{message}</p>
+        <p style={{ color: 'var(--tw-color-success-text)', fontSize: '18px', margin: '4px 0', textAlign: 'center' }}>{message}</p>
       )}
-      <p style={{ color: '#666', fontSize: '16px', margin: '4px 0 0 0', textAlign: 'center', wordBreak: 'break-all' }}>
+      <p style={{ color: 'var(--tw-color-hint-text)', fontSize: '16px', margin: '4px 0 0 0', textAlign: 'center', wordBreak: 'break-all' }}>
         {t(lang, 'presetHint')}
       </p>
     </>

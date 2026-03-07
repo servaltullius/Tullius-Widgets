@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { BRIDGE_CALLBACKS } from '../constants/bridge';
 import type {
   UpdateSettingFn,
   UpdateSettingOptions,
@@ -108,7 +109,7 @@ export function useSettings() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && settingsOpen) {
         setSettingsOpen(false);
-        window.onRequestUnfocus?.('');
+        window[BRIDGE_CALLBACKS.onRequestUnfocus]?.('');
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -116,7 +117,7 @@ export function useSettings() {
   }, [settingsOpen]);
 
   useEffect(() => {
-    window.onSettingsVisibilityChanged?.(settingsOpen ? 'open' : 'closed');
+    window[BRIDGE_CALLBACKS.onSettingsVisibilityChanged]?.(settingsOpen ? 'open' : 'closed');
   }, [settingsOpen]);
 
   const updateSetting = useCallback<UpdateSettingFn>((path: string, value: unknown, options?: UpdateSettingOptions) => {
@@ -147,7 +148,7 @@ export function useSettings() {
 
   const closeSettings = useCallback(() => {
     setSettingsOpen(false);
-    window.onRequestUnfocus?.('');
+    window[BRIDGE_CALLBACKS.onRequestUnfocus]?.('');
   }, []);
 
   // Resolved accent color: manual override > auto HUD color.

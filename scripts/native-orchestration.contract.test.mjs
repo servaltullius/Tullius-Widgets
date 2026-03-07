@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from 'node:fs';
 const mainText = readFileSync(new URL('../src/main.cpp', import.meta.url), 'utf8');
 const resistanceText = readFileSync(new URL('../src/ResistanceEvaluator.cpp', import.meta.url), 'utf8');
 const hotkeysText = readFileSync(new URL('../src/WidgetHotkeys.cpp', import.meta.url), 'utf8');
+const interopContractsText = readFileSync(new URL('../src/WidgetInteropContracts.h', import.meta.url), 'utf8');
 const jsListenersText = readFileSync(new URL('../src/WidgetJsListeners.cpp', import.meta.url), 'utf8');
 const widgetEventsText = readFileSync(new URL('../src/WidgetEvents.cpp', import.meta.url), 'utf8');
 const widgetEventsHeaderText = readFileSync(new URL('../src/WidgetEvents.h', import.meta.url), 'utf8');
@@ -34,29 +35,44 @@ test('resistance evaluator clamps documented resistance ranges', () => {
 });
 
 test('default hotkeys include F11 widget visibility toggle', () => {
+  assert.match(interopContractsText, /kToggleWidgetsVisibilityScript\[] = "toggleWidgetsVisibility\(\)"/);
   assert.match(
     hotkeysText,
-    /Register\(0x57, KeyEventType::KEY_DOWN, \[\]\(\) \{[\s\S]*InvokeScript\("toggleWidgetsVisibility\(\)"\);[\s\S]*\}\);/,
+    /constexpr std::uint32_t kF11ScanCode = 0x57;/,
+  );
+  assert.match(
+    hotkeysText,
+    /Register\(kF11ScanCode, KeyEventType::KEY_DOWN, \[\]\(\) \{[\s\S]*InvokeScript\(TulliusWidgets::WidgetInteropContracts::kToggleWidgetsVisibilityScript\);[\s\S]*\}\);/,
   );
 });
 
 test('settings hotkey uses tracked settings-panel state and closes explicitly', () => {
   assert.match(hotkeysText, /DispatchToGameThread\(\[\]\(\) \{/);
   assert.match(hotkeysText, /if \(IsSettingsPanelOpen\(\)\) \{/);
-  assert.match(hotkeysText, /InvokeScript\("closeSettings\(\)"\);/);
-  assert.match(hotkeysText, /InvokeScript\("toggleSettings\(\)"\)/);
+  assert.match(interopContractsText, /kCloseSettingsScript\[] = "closeSettings\(\)"/);
+  assert.match(interopContractsText, /kToggleSettingsScript\[] = "toggleSettings\(\)"/);
+  assert.match(hotkeysText, /InvokeScript\(TulliusWidgets::WidgetInteropContracts::kCloseSettingsScript\);/);
+  assert.match(hotkeysText, /InvokeScript\(TulliusWidgets::WidgetInteropContracts::kToggleSettingsScript\)/);
   assert.match(hotkeysText, /Focus on the next task tick/);
 });
 
 test('settings bridge listener uses async native settings save path', () => {
-  assert.match(jsListenersText, /RegisterJSListener\(view, "onSettingsChanged"/);
+  assert.match(interopContractsText, /kOnSettingsChanged\[] = "onSettingsChanged"/);
+  assert.match(jsListenersText, /RegisterJSListener\(view, TulliusWidgets::WidgetInteropContracts::kOnSettingsChanged/);
   assert.match(jsListenersText, /NativeStorage::SaveSettingsAsync\(/);
   assert.doesNotMatch(jsListenersText, /NativeStorage::SaveSettings\(ResolveStorageBasePath\(\), payload\)/);
 });
 
 test('settings bridge listener tracks settings panel visibility for native hotkeys', () => {
-  assert.match(jsListenersText, /RegisterJSListener\(view, "onSettingsVisibilityChanged"/);
+  assert.match(interopContractsText, /kOnSettingsVisibilityChanged\[] = "onSettingsVisibilityChanged"/);
+  assert.match(jsListenersText, /RegisterJSListener\(view, TulliusWidgets::WidgetInteropContracts::kOnSettingsVisibilityChanged/);
   assert.match(jsListenersText, /SetSettingsOpen\(open\)/);
+});
+
+test('settings sync bridge result includes optional revision-aware ack support', () => {
+  assert.match(interopContractsText, /kOnSettingsSyncResult\[] = "onSettingsSyncResult"/);
+  assert.match(jsListenersText, /TryReadUIntField\(payloadView, "rev"\)/);
+  assert.match(jsListenersText, /NotifySettingsSyncResult\(saved, revision\)/);
 });
 
 test('menu visibility heuristics cover transient photo or capture menus', () => {

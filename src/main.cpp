@@ -5,6 +5,7 @@
 #include "WidgetBootstrap.h"
 #include "WidgetEvents.h"
 #include "WidgetHotkeys.h"
+#include "WidgetInteropContracts.h"
 #include "WidgetJsListeners.h"
 #include "WidgetRuntime.h"
 #include "WidgetViewBridge.h"
@@ -113,7 +114,7 @@ static void SendHUDColorToView() {
     }
     char hex[16];
     std::snprintf(hex, sizeof(hex), "#%06x", color);
-    if (!TryInteropCall("setHUDColor", hex)) return;
+    if (!TryInteropCall(TulliusWidgets::WidgetInteropContracts::kSetHUDColor, hex)) return;
     logger::info("HUD color sent: {}", hex);
 }
 
@@ -121,14 +122,14 @@ static void SendSettingsToView() {
     if (!IsInteropReady()) return;
     std::string json = TulliusWidgets::NativeStorage::LoadSettings(ResolveStorageBasePath());
     if (json.empty()) return;
-    if (!TryInteropCall("updateSettings", json.c_str())) return;
+    if (!TryInteropCall(TulliusWidgets::WidgetInteropContracts::kUpdateSettings, json.c_str())) return;
     logger::info("Saved settings sent to view");
 }
 
 static void SendRuntimeDiagnosticsToView() {
     if (!IsInteropReady()) return;
     const auto json = TulliusWidgets::RuntimeDiagnostics::BuildJson(g.runtimeDiagnostics);
-    if (!TryInteropCall("updateRuntimeStatus", json.c_str())) return;
+    if (!TryInteropCall(TulliusWidgets::WidgetInteropContracts::kUpdateRuntimeStatus, json.c_str())) return;
 }
 
 static bool IsGameLoaded() {

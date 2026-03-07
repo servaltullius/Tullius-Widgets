@@ -1,7 +1,10 @@
 #include "WidgetJsListeners.h"
 
+#include "JsonUtils.h"
 #include "NativeStorage.h"
+#include "WidgetInteropContracts.h"
 
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -32,19 +35,32 @@ std::filesystem::path ResolveStorageBasePath()
 void NotifyExportResult(bool success)
 {
     if (!g_callbacks.invokeScript) return;
-    (void)g_callbacks.invokeScript(success ? "onExportResult(true)" : "onExportResult(false)");
+    (void)g_callbacks.invokeScript(success
+        ? "onExportResult(true)"
+        : "onExportResult(false)");
 }
 
-void NotifySettingsSyncResult(bool success)
+void NotifySettingsSyncResult(bool success, std::optional<std::uint32_t> revision = std::nullopt)
 {
     if (!g_callbacks.invokeScript) return;
-    (void)g_callbacks.invokeScript(success ? "onSettingsSyncResult(true)" : "onSettingsSyncResult(false)");
+
+    std::string script = std::string(TulliusWidgets::WidgetInteropContracts::kOnSettingsSyncResult)
+        + '('
+        + (success ? "true" : "false");
+    if (revision.has_value()) {
+        script += ", ";
+        script += std::to_string(*revision);
+    }
+    script += ')';
+    (void)g_callbacks.invokeScript(script.c_str());
 }
 
 void NotifyImportResult(bool success)
 {
     if (!g_callbacks.invokeScript) return;
-    (void)g_callbacks.invokeScript(success ? "onImportResult(true)" : "onImportResult(false)");
+    (void)g_callbacks.invokeScript(success
+        ? "onImportResult(true)"
+        : "onImportResult(false)");
 }
 
 void UnfocusView()
@@ -64,7 +80,7 @@ void SetSettingsOpen(bool open)
 bool TryImportSettingsToView(const std::string& json)
 {
     if (!g_callbacks.interopCall) return false;
-    return g_callbacks.interopCall("importSettingsFromNative", json.c_str());
+    return g_callbacks.interopCall(TulliusWidgets::WidgetInteropContracts::kImportSettingsFromNative, json.c_str());
 }
 
 bool IsPayloadWithinLimit(std::string_view payload, std::string_view label)
@@ -89,7 +105,7 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
 
     g_callbacks = callbacks;
 
-    prismaUI->RegisterJSListener(view, "onSettingsChanged", [](const char* data) -> void {
+    prismaUI->RegisterJSListener(view, TulliusWidgets::WidgetInteropContracts::kOnSettingsChanged, [](const char* data) -> void {
         if (!data) return;
         const std::string_view payloadView(data);
         if (!IsPayloadWithinLimit(payloadView, "Settings update")) {
@@ -98,23 +114,24 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
         }
 
         std::string payload(payloadView);
-        DispatchToGameThread([payload = std::move(payload)]() {
+        const auto revision = TulliusWidgets::JsonUtils::TryReadUIntField(payloadView, "rev");
+        DispatchToGameThread([payload = std::move(payload), revision]() {
             const bool success = TulliusWidgets::NativeStorage::SaveSettingsAsync(
                 ResolveStorageBasePath(),
                 payload,
-                [](bool saved) {
-                    DispatchToGameThread([saved]() {
-                        NotifySettingsSyncResult(saved);
+                [revision](bool saved) {
+                    DispatchToGameThread([saved, revision]() {
+                        NotifySettingsSyncResult(saved, revision);
                     });
                 });
             if (!success) {
                 logger::warn("Failed to queue async settings save from JS listener");
-                NotifySettingsSyncResult(false);
+                NotifySettingsSyncResult(false, revision);
             }
         });
     });
 
-    prismaUI->RegisterJSListener(view, "onExportSettings", [](const char* data) -> void {
+    prismaUI->RegisterJSListener(view, TulliusWidgets::WidgetInteropContracts::kOnExportSettings, [](const char* data) -> void {
         if (!data) return;
         const std::string_view payload(data);
         if (!IsPayloadWithinLimit(payload, "Preset export")) {
@@ -129,7 +146,7 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
         });
     });
 
-    prismaUI->RegisterJSListener(view, "onImportSettings", [](const char*) -> void {
+    prismaUI->RegisterJSListener(view, TulliusWidgets::WidgetInteropContracts::kOnImportSettings, [](const char*) -> void {
         DispatchToGameThread([]() {
             std::string json;
             if (!TulliusWidgets::NativeStorage::LoadPreset(ResolveStorageBasePath(), json)) {
@@ -147,13 +164,13 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
         });
     });
 
-    prismaUI->RegisterJSListener(view, "onRequestUnfocus", [](const char*) -> void {
+    prismaUI->RegisterJSListener(view, TulliusWidgets::WidgetInteropContracts::kOnRequestUnfocus, [](const char*) -> void {
         DispatchToGameThread([]() {
             UnfocusView();
         });
     });
 
-    prismaUI->RegisterJSListener(view, "onSettingsVisibilityChanged", [](const char* data) -> void {
+    prismaUI->RegisterJSListener(view, TulliusWidgets::WidgetInteropContracts::kOnSettingsVisibilityChanged, [](const char* data) -> void {
         const std::string_view state = data ? std::string_view(data) : std::string_view{};
         const bool open = state == "open" || state == "true" || state == "1";
         DispatchToGameThread([open]() {

@@ -1,0 +1,52 @@
+:root {
+  --tw-font-ui: "Segoe UI", "Noto Sans KR", sans-serif;
+
+  --tw-radius-sm: 8px;
+  --tw-radius-md: 10px;
+  --tw-radius-lg: 14px;
+  --tw-radius-xl: 16px;
+
+  --tw-shadow-overlay-strong: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --tw-shadow-overlay-soft: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --tw-shadow-overlay-panel: 0 10px 22px rgba(0, 0, 0, 0.38);
+
+  --tw-color-panel-bg: rgba(20, 20, 30, 0.95);
+  --tw-color-panel-border: rgba(255, 215, 0, 0.3);
+  --tw-color-panel-title: #ffd700;
+  --tw-color-panel-text: #cfd6e6;
+  --tw-color-panel-muted: #d7d7d7;
+
+  --tw-color-tab-active-bg: rgba(255, 215, 0, 0.18);
+  --tw-color-tab-active-border: rgba(255, 215, 0, 0.75);
+  --tw-color-tab-active-text: #ffd700;
+  --tw-color-tab-idle-bg: rgba(255, 255, 255, 0.05);
+  --tw-color-tab-idle-border: rgba(255, 255, 255, 0.2);
+  --tw-color-tab-idle-text: #cfd6e6;
+
+  --tw-color-button-bg: rgba(255, 255, 255, 0.06);
+  --tw-color-button-border: rgba(255, 255, 255, 0.2);
+  --tw-color-button-text: #d7d7d7;
+  --tw-color-button-strong-bg: rgba(100, 180, 255, 0.15);
+  --tw-color-button-strong-border: rgba(100, 180, 255, 0.4);
+  --tw-color-button-strong-text: #88ccff;
+
+  --tw-color-runtime-bg: rgba(80, 18, 18, 0.92);
+  --tw-color-runtime-border: rgba(255, 120, 90, 0.85);
+  --tw-color-runtime-text: #ffd8c9;
+  --tw-color-sync-bg: rgba(88, 46, 10, 0.92);
+  --tw-color-sync-border: rgba(255, 191, 115, 0.8);
+  --tw-color-sync-text: #ffe2ba;
+
+  --tw-color-onboarding-bg: rgba(16, 18, 26, 0.92);
+  --tw-color-onboarding-border: rgba(120, 175, 255, 0.45);
+  --tw-color-onboarding-text: #e7eefc;
+  --tw-color-onboarding-primary-bg: rgba(80, 140, 255, 0.2);
+  --tw-color-onboarding-primary-border: rgba(120, 175, 255, 0.6);
+  --tw-color-onboarding-primary-text: #d7e6ff;
+  --tw-color-onboarding-secondary-bg: rgba(255, 255, 255, 0.06);
+  --tw-color-onboarding-secondary-border: rgba(220, 220, 220, 0.35);
+  --tw-color-onboarding-secondary-text: #d3d9e6;
+
+  --tw-color-success-text: #88ff88;
+  --tw-color-hint-text: #666666;
+}

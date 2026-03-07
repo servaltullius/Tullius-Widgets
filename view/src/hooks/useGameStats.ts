@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { BRIDGE_HANDLERS } from '../constants/bridge';
 import type { CombatStats, GameTimeInfo, TimedEffect } from '../types/stats';
 import { mockStats } from '../data/mockStats';
 import { isPlainObject, readBoolean, readNumber, readText } from '../utils/normalize';
@@ -66,6 +67,53 @@ function warnFutureStatsSchemaVersion(
   warnedFutureStatsSchemaRef.current = true;
   console.warn(
     `[TulliusWidgets] Received stats schemaVersion ${schemaVersion}, but UI supports up to ${STATS_SCHEMA_VERSION}. Falling back to tolerant parsing.`,
+  );
+}
+
+function warnInvalidStatsContract(
+  parsed: Record<string, unknown>,
+  warnedInvalidStatsContractRef: { current: boolean },
+): void {
+  if (warnedInvalidStatsContractRef.current) {
+    return;
+  }
+
+  const calcMeta = isPlainObject(parsed.calcMeta) ? parsed.calcMeta : null;
+  if (!calcMeta) {
+    return;
+  }
+
+  const caps = isPlainObject(calcMeta.caps) ? calcMeta.caps : null;
+  const suspicious: string[] = [];
+  if (!caps) {
+    suspicious.push('calcMeta.caps missing');
+  } else {
+    const elementalResist = typeof caps.elementalResist === 'number' ? caps.elementalResist : null;
+    const diseaseResist = typeof caps.diseaseResist === 'number' ? caps.diseaseResist : null;
+    const critChance = typeof caps.critChance === 'number' ? caps.critChance : null;
+    const damageReduction = typeof caps.damageReduction === 'number' ? caps.damageReduction : null;
+
+    if (elementalResist !== null && (elementalResist < 0 || elementalResist > 100)) {
+      suspicious.push(`elementalResist=${elementalResist}`);
+    }
+    if (diseaseResist !== null && (diseaseResist < 0 || diseaseResist > 100)) {
+      suspicious.push(`diseaseResist=${diseaseResist}`);
+    }
+    if (critChance !== null && (critChance < 0 || critChance > 100)) {
+      suspicious.push(`critChance=${critChance}`);
+    }
+    if (damageReduction !== null && (damageReduction < 0 || damageReduction > 100)) {
+      suspicious.push(`damageReduction=${damageReduction}`);
+    }
+  }
+
+  if (suspicious.length === 0) {
+    return;
+  }
+
+  warnedInvalidStatsContractRef.current = true;
+  console.warn(
+    `[TulliusWidgets] Suspicious stats contract metadata detected: ${suspicious.join(', ')}.`,
   );
 }
 
@@ -329,20 +377,40 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
 export function useGameStatsState(): { stats: CombatStats; hasLiveStats: boolean } {
   const [stats, setStats] = useState<CombatStats>(mockStats);
   const [hasLiveStats, setHasLiveStats] = useState<boolean>(isDev);
+  const hasLiveStatsRef = useRef(hasLiveStats);
   const lastAppliedSequenceRef = useRef<number | null>(null);
   const warnedFutureStatsSchemaRef = useRef(false);
+  const warnedInvalidStatsContractRef = useRef(false);
+  const warnedEmptyPayloadRef = useRef(false);
+  const warnedParseFailureRef = useRef(false);
+
+  useEffect(() => {
+    hasLiveStatsRef.current = hasLiveStats;
+  }, [hasLiveStats]);
 
   useEffect(() => {
     const updateStatsHandler = (jsonString: string) => {
       try {
         const parsed = JSON.parse(jsonString) as unknown;
 
-        if (!isPlainObject(parsed) || Object.keys(parsed).length === 0) {
-          setHasLiveStats(false);
+        if (!isPlainObject(parsed)) {
+          if (hasLiveStatsRef.current && !warnedParseFailureRef.current) {
+            warnedParseFailureRef.current = true;
+            console.warn('[TulliusWidgets] Ignoring non-object stats payload and keeping the last live HUD state.');
+          }
+          return;
+        }
+
+        if (Object.keys(parsed).length === 0) {
+          if (hasLiveStatsRef.current && !warnedEmptyPayloadRef.current) {
+            warnedEmptyPayloadRef.current = true;
+            console.warn('[TulliusWidgets] Ignoring empty stats payload and keeping the last live HUD state.');
+          }
           return;
         }
 
         warnFutureStatsSchemaVersion(parsed, warnedFutureStatsSchemaRef);
+        warnInvalidStatsContract(parsed, warnedInvalidStatsContractRef);
 
         const sequence = readSequence(parsed.seq);
         if (sequence !== null) {
@@ -354,14 +422,18 @@ export function useGameStatsState(): { stats: CombatStats; hasLiveStats: boolean
         }
 
         setStats(prev => normalizeCombatStats(parsed, prev));
+        hasLiveStatsRef.current = true;
         setHasLiveStats(true);
       } catch (e) {
         console.error('[TulliusWidgets] Failed to parse stats JSON:', e);
-        setHasLiveStats(false);
+        if (hasLiveStatsRef.current && !warnedParseFailureRef.current) {
+          warnedParseFailureRef.current = true;
+          console.warn('[TulliusWidgets] Failed to parse stats payload and kept the last live HUD state.');
+        }
       }
     };
 
-    const unregisterUpdateStats = registerDualBridgeHandler('updateStats', updateStatsHandler);
+    const unregisterUpdateStats = registerDualBridgeHandler(BRIDGE_HANDLERS.updateStats, updateStatsHandler);
 
     if (isDev) {
       console.log('[TulliusWidgets] Dev mode - using mock stats');

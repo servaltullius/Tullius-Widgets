@@ -1,11 +1,16 @@
 #include "WidgetHotkeys.h"
 
+#include "WidgetInteropContracts.h"
 #include <keyhandler/keyhandler.h>
+#include <cstdint>
 
 namespace TulliusWidgets::WidgetHotkeys {
 namespace {
 
 Callbacks g_callbacks{};
+constexpr std::uint32_t kInsertScanCode = 0xD2;
+constexpr std::uint32_t kEscapeScanCode = 0x01;
+constexpr std::uint32_t kF11ScanCode = 0x57;
 
 template <class Fn>
 void DispatchToGameThread(Fn&& fn)
@@ -66,19 +71,19 @@ void RegisterDefaultHotkeys(const Callbacks& callbacks)
         return;
     }
 
-    (void)keyHandler->Register(0xD2, KeyEventType::KEY_DOWN, []() {
+    (void)keyHandler->Register(kInsertScanCode, KeyEventType::KEY_DOWN, []() {
         DispatchToGameThread([]() {
             if (!IsViewReady() || !IsGameLoaded()) {
                 return;
             }
 
             if (IsSettingsPanelOpen()) {
-                InvokeScript("closeSettings()");
+                InvokeScript(TulliusWidgets::WidgetInteropContracts::kCloseSettingsScript);
                 UnfocusView();
                 return;
             }
 
-            if (!InvokeScript("toggleSettings()")) {
+            if (!InvokeScript(TulliusWidgets::WidgetInteropContracts::kToggleSettingsScript)) {
                 return;
             }
 
@@ -93,19 +98,19 @@ void RegisterDefaultHotkeys(const Callbacks& callbacks)
         });
     });
 
-    (void)keyHandler->Register(0x01, KeyEventType::KEY_DOWN, []() {
+    (void)keyHandler->Register(kEscapeScanCode, KeyEventType::KEY_DOWN, []() {
         DispatchToGameThread([]() {
             if (IsViewReady() && IsGameLoaded() && IsSettingsPanelOpen()) {
-                InvokeScript("closeSettings()");
+                InvokeScript(TulliusWidgets::WidgetInteropContracts::kCloseSettingsScript);
                 UnfocusView();
             }
         });
     });
 
-    (void)keyHandler->Register(0x57, KeyEventType::KEY_DOWN, []() {
+    (void)keyHandler->Register(kF11ScanCode, KeyEventType::KEY_DOWN, []() {
         DispatchToGameThread([]() {
             if (IsViewReady() && IsGameLoaded()) {
-                InvokeScript("toggleWidgetsVisibility()");
+                InvokeScript(TulliusWidgets::WidgetInteropContracts::kToggleWidgetsVisibilityScript);
             }
         });
     });
