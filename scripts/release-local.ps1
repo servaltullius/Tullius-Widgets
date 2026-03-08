@@ -73,7 +73,14 @@ function Invoke-ReleaseLocal {
       Invoke-CmdCommands -Path $frontendViewPath -Commands $frontendCommands
 
       if ($usesUncWorkRoot) {
-        $stagedViewDist = Join-Path $frontendBuildRoot "dist/PrismaUI/views/TulliusWidgets"
+        $stagedViewDistCandidates = @(
+          (Join-Path $frontendBuildRoot "dist/PrismaUI/views/TulliusWidgets"),
+          (Join-Path $frontendViewPath "dist/PrismaUI/views/TulliusWidgets")
+        ) | Select-Object -Unique
+        $stagedViewDist = $stagedViewDistCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+        if (-not $stagedViewDist) {
+          throw "Frontend build output was not found in the staged workspace."
+        }
         $repoViewDist = Join-Path $repoRoot "dist/PrismaUI/views/TulliusWidgets"
         if (Test-Path $repoViewDist) {
           Remove-Item -LiteralPath $repoViewDist -Recurse -Force
