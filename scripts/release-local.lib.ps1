@@ -122,6 +122,7 @@ function Invoke-CmdBatchScriptWithOutput {
         -FilePath "cmd.exe" `
         -ArgumentList @("/d", "/c", $commandScriptPath) `
         -WorkingDirectory $WorkingDirectory `
+        -WindowStyle Hidden `
         -Wait `
         -PassThru `
         -RedirectStandardOutput $stdoutPath `
