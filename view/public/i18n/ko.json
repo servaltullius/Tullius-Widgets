@@ -41,7 +41,7 @@
   "equippedEmpty": "(비어 있음)",
   "time": "시간",
   "gameDateTime": "스카이림 날짜/시간",
-  "gameDateTimePattern": "4E {year} {monthName} {day}일 {time}",
+  "gameDateTimePattern": "4E {year}년 {month}월 {day}일 {time}",
   "realDateTime": "현실 날짜/시간",
   "monthMorningStar": "모닝 스타",
   "monthSunsDawn": "선즈 던",

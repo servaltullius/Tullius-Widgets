@@ -160,4 +160,10 @@ describe('translations', () => {
       '4E 5 Etoile du Matin 201 08:30',
     );
   });
+
+  it('formats Korean Skyrim date/time with numeric months', () => {
+    expect(formatSkyrimDateTime('ko', { year: 201, month: 7, day: 21, time: '14:35' })).toBe(
+      '4E 201년 8월 21일 14:35',
+    );
+  });
 });

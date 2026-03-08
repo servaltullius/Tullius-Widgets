@@ -133,6 +133,7 @@ function formatRealDateTime(nowMs: number, lang: Language): string {
 
 export function TimeWidgetList({ gameTime, showGameDateTime, showRealDateTime, lang }: TimeWidgetListProps) {
   const [nowMs, setNowMs] = useState<number>(gameTime.snapshotAtMs);
+  const timeValueMaxWidth = 320;
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -146,8 +147,22 @@ export function TimeWidgetList({ gameTime, showGameDateTime, showRealDateTime, l
 
   return (
     <>
-      <StatWidget icon="gameTime" iconColor="#d8b96b" value={gameDateTime} visible={showGameDateTime} prominence="secondary" />
-      <StatWidget icon="realTime" iconColor="#77d8ff" value={realDateTime} visible={showRealDateTime} prominence="secondary" />
+      <StatWidget
+        icon="gameTime"
+        iconColor="#d8b96b"
+        value={gameDateTime}
+        visible={showGameDateTime}
+        prominence="secondary"
+        valueMaxWidth={timeValueMaxWidth}
+      />
+      <StatWidget
+        icon="realTime"
+        iconColor="#77d8ff"
+        value={realDateTime}
+        visible={showRealDateTime}
+        prominence="secondary"
+        valueMaxWidth={timeValueMaxWidth}
+      />
     </>
   );
 }

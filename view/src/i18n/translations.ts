@@ -45,7 +45,7 @@ export const bundledTranslations = {
     equippedEmpty: '(비어 있음)',
     time: '시간',
     gameDateTime: '스카이림 날짜/시간',
-    gameDateTimePattern: '4E {year} {monthName} {day}일 {time}',
+    gameDateTimePattern: '4E {year}년 {month}월 {day}일 {time}',
     realDateTime: '현실 날짜/시간',
     monthMorningStar: '모닝 스타',
     monthSunsDawn: '선즈 던',
@@ -518,9 +518,11 @@ export function getLocalizedSkyrimMonthName(lang: Language, month: number): stri
 export function formatSkyrimDateTime(lang: Language, parts: SkyrimDateTimeParts): string {
   const pattern = t(lang, 'gameDateTimePattern');
   const monthName = getLocalizedSkyrimMonthName(lang, parts.month);
+  const monthNumber = String(parts.month + 1);
 
   return pattern
     .split('{year}').join(String(parts.year))
+    .split('{month}').join(monthNumber)
     .split('{monthName}').join(monthName)
     .split('{day}').join(String(parts.day))
     .split('{time}').join(parts.time);
