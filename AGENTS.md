@@ -12,19 +12,29 @@ npm run build
 ```
 
 ### Plugin (Windows MSVC)
-```bash
+```powershell
 xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false
-xmake build
+xmake build -y -v
 ```
 
 ### Plugin Build Note (WSL)
 - Windows MSVC build is verified.
-- If you are working from WSL, do not run the plugin build directly from the WSL/UNC workspace path.
-- Stage or copy the repo to a local Windows path such as `C:\Users\Public\tullius-native-build`, open a Visual Studio Developer Command Prompt, and run the same `xmake` commands there.
+- If you are working from WSL/UNC, do not call `xmake` directly inside WSL for the native plugin build.
+- Preferred entrypoints from WSL are:
+  - `./scripts/package.sh`
+  - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath -w scripts/verify-runtime-windows.ps1)"`
+  - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath -w scripts/release-local.ps1)" -NoPublish`
+- These scripts stage the native build to a Windows temp path, initialize `VsDevCmd.bat`, and run Windows `xmake` there.
+- Only use direct `xmake` commands when you are already in a Windows PowerShell or Developer Command Prompt session.
 
 ### Package / Local Release
 ```powershell
 pwsh -File .\scripts\release-local.ps1 -NoPublish
+```
+
+### Package / Local Release (WSL)
+```bash
+./scripts/package.sh
 ```
 
 ## Source Of Truth

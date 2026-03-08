@@ -41,6 +41,30 @@ Describe "release-local helpers" {
     ($skipAll -join ",") | Should Be "-NoPublish"
   }
 
+  It "reuses an existing plugin DLL when native worktree is unchanged" {
+    $root = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
+    $pluginPath = Join-Path $root "build\windows\x64\release\TulliusWidgets.dll"
+
+    New-Item -ItemType Directory -Path (Join-Path $root ".git") -Force | Out-Null
+    New-Item -ItemType Directory -Path (Split-Path $pluginPath -Parent) -Force | Out-Null
+    Set-Content -Path $pluginPath -Value "dll" -Encoding UTF8
+
+    $gitStubPath = Join-Path $root "git.cmd"
+    Set-Content -Path $gitStubPath -Value "@echo off`r`nexit /b 0`r`n" -Encoding ASCII
+    $originalPath = $env:PATH
+    $env:PATH = "$root;$originalPath"
+
+    try {
+      (Test-CanReuseExistingPluginDll -RepoRoot $root -PluginDllPath $pluginPath) | Should Be $true
+    }
+    finally {
+      $env:PATH = $originalPath
+      if (Test-Path $root) {
+        Remove-Item -LiteralPath $root -Recurse -Force
+      }
+    }
+  }
+
   It "returns a short git sha for the current repository with safe.directory override" {
     $sha = Get-ShortGitSha -RepoRoot (Split-Path -Parent $here)
     $sha.Length | Should Be 7

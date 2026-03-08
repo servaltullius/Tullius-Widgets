@@ -21,6 +21,16 @@ describe('settingsSchema', () => {
     });
   });
 
+  it('preserves custom language codes for external localization packs', () => {
+    const merged = mergeWithDefaults({
+      general: {
+        language: 'fr',
+      },
+    });
+
+    expect(merged.general.language).toBe('fr');
+  });
+
   it('warns only once for future schema version payloads', () => {
     const warnedFutureSettingsSchemaRef = { current: false };
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});

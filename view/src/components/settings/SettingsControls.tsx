@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, type ReactNode } from 'react';
-import type { UpdateSettingFn, WidgetLayout } from '../../types/settings';
+import type { Language, UpdateSettingFn, WidgetLayout } from '../../types/settings';
 import { t } from '../../i18n/translations';
 
 export interface ToggleProps {
@@ -80,7 +80,7 @@ export function CustomSelect({ value, options, onChange }: CustomSelectProps) {
 }
 
 interface LayoutSelectProps {
-  lang: 'ko' | 'en';
+  lang: Language;
   groupId: string;
   value: WidgetLayout;
   onUpdate: UpdateSettingFn;

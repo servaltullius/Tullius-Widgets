@@ -32,7 +32,7 @@ Skyrim SE용 전투 스탯 HUD 위젯 모드. [Prisma UI](https://www.nexusmods.
   - 배경 투명 모드
   - 프리셋 내보내기/가져오기
 - **게임 메뉴 자동 숨김** — 인벤토리, 지도, 제작 등 18종 메뉴 감지
-- **한/영 다국어 지원**
+- **외부 JSON 다국어 지원** — 기본 한국어/영어 제공, 추가 언어는 JSON 파일로 확장 가능
 
 ![Settings](docs/screenshot-settings.png)
 
@@ -54,8 +54,24 @@ Skyrim SE용 전투 스탯 HUD 위젯 모드. [Prisma UI](https://www.nexusmods.
 Data/
   SKSE/Plugins/TulliusWidgets.dll
   PrismaUI/views/TulliusWidgets/index.html
+  PrismaUI/views/TulliusWidgets/i18n/manifest.json
+  PrismaUI/views/TulliusWidgets/i18n/ko.json
+  PrismaUI/views/TulliusWidgets/i18n/en.json
   PrismaUI/views/TulliusWidgets/assets/...
 ```
+
+## Localization
+
+- 기본 번역 파일 위치:
+  - `Data/PrismaUI/views/TulliusWidgets/i18n/manifest.json`
+  - `Data/PrismaUI/views/TulliusWidgets/i18n/ko.json`
+  - `Data/PrismaUI/views/TulliusWidgets/i18n/en.json`
+- 새 언어를 추가하려면:
+  1. `i18n/<language-code>.json` 파일을 추가합니다. 예: `fr.json`
+  2. `manifest.json`의 `defaultLanguage`와 `languages` 배열을 필요에 맞게 갱신합니다.
+  3. 게임에서 설정 패널의 `Language` 드롭다운으로 선택합니다.
+- 번역 JSON은 평평한 key-value 구조이며, 일부 키가 비어 있으면 기본 영어 문자열로 fallback됩니다.
+- 번역 파일이 깨지거나 누락돼도 기본 내장 한국어/영어 번역으로 UI가 계속 동작합니다.
 
 ## Controls
 
@@ -94,8 +110,18 @@ Data/
 ## Building from Source
 
 ### Requirements
-- Windows: Visual Studio 2022, [XMake](https://xmake.io/)
-- WSL/Linux: Node.js 22+, npm
+- Windows
+  - Visual Studio C++ Build Tools 또는 Visual Studio Community
+  - [XMake](https://xmake.io/)
+  - PowerShell
+- WSL/Linux
+  - Node.js 22+, npm
+  - `powershell.exe` 사용 가능한 WSL 환경
+
+### 권장 빌드 경로
+- 프런트만 확인할 때는 WSL/Linux에서 `view` 기준으로 빌드하면 됩니다.
+- DLL까지 포함한 전체 빌드/패키징은 Windows MSVC가 필요합니다.
+- WSL에서 저장소를 열고 작업 중이어도 `./scripts/package.sh` 또는 `scripts/release-local.ps1`가 내부적으로 Windows 쪽 빌드를 위임하므로, 별도 수동 복사 없이 현재 worktree에서 실행해도 됩니다.
 
 ### Frontend
 ```bash
@@ -105,29 +131,54 @@ npm run build
 ```
 
 ### C++ SKSE Plugin (Windows MSVC 필수)
-```bash
+Windows PowerShell 또는 Developer Command Prompt에서 실행:
+
+```powershell
 xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false
-xmake build
+xmake build -y -v
 ```
 
-### Windows Runtime Verify
+WSL에서 개발 중이라면 직접 `xmake`를 WSL 안에서 호출하지 말고, 아래 패키징/검증 스크립트를 사용하는 편이 안전합니다.
+
+### 전체 검증 (권장)
+Windows PowerShell:
+
+```powershell
+pwsh -File .\scripts\verify-runtime-windows.ps1
+```
+
+이 스크립트는 다음을 한 번에 확인합니다.
+- 프런트 lint/build
+- Windows MSVC 네이티브 빌드
+- WSL UNC worktree 사용 시 임시 Windows 스테이징 경로를 통한 빌드
+
+### Packaging
+Windows PowerShell:
+
+```powershell
+pwsh -File .\scripts\release-local.ps1 -NoPublish
+```
+
+WSL/Linux:
+
+```bash
+./scripts/package.sh
+```
+
+동작 방식:
+- WSL에서 `./scripts/package.sh` 실행 시 프런트는 WSL에서 빌드
+- 네이티브 DLL과 zip 패키징은 Windows `release-local.ps1`로 위임
+- 결과물: `TulliusWidgets-v<version>.zip`
+
+### 검증 스크립트 참고
+Windows 검증 스크립트:
+
 ```powershell
 pwsh -File .\scripts\verify-runtime-windows.ps1
 ```
 
 - Windows PowerShell에서 실행하는 검증 진입점입니다.
 - WSL UNC worktree에서 호출해도 필요한 frontend/plugin 빌드는 임시 로컬 경로로 스테이징해서 실행합니다.
-
-### Packaging
-```bash
-# 권장 (Windows 로컬 빌드 + 패키징)
-pwsh -File .\scripts\release-local.ps1 -NoPublish
-# 결과: TulliusWidgets-v<version>.zip
-
-# 대안 (WSL/Linux 스크립트)
-./scripts/package.sh
-# 결과: TulliusWidgets-v<version>.zip
-```
 
 ### 값 이상치 트러블슈팅
 - 치명타 확률이 `100%` 초과, 저항이 `85%` 초과로 보이면 구버전 DLL일 가능성이 큽니다.

@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
+import { formatSkyrimDateTime, getLanguageLocale } from '../i18n/translations';
+import type { Language } from '../types/settings';
 import type { GameTimeInfo } from '../types/stats';
 import { StatWidget } from './StatWidget';
-import { SKYRIM_MONTH_NAMES, DAYS_IN_MONTH } from '../data/constants';
+import { DAYS_IN_MONTH } from '../data/constants';
 
 interface TimeWidgetListProps {
   gameTime: GameTimeInfo;
   showGameDateTime: boolean;
   showRealDateTime: boolean;
-  lang: 'ko' | 'en';
+  lang: Language;
 }
 
 interface NormalizedGameTime {
@@ -86,28 +88,20 @@ function advanceGameTime(gameTime: GameTimeInfo, nowMs: number): NormalizedGameT
   return addGameMinutes(base, elapsedGameMinutes);
 }
 
-function resolveMonthName(gameTime: GameTimeInfo, month: number): string {
-  if (month === clamp(Math.trunc(gameTime.month), 0, 11) && gameTime.monthName) {
-    return gameTime.monthName;
-  }
-  return SKYRIM_MONTH_NAMES[month] ?? gameTime.monthName ?? 'Unknown';
-}
-
-function formatGameDateTime(gameTime: GameTimeInfo, nowMs: number, lang: 'ko' | 'en'): string {
+function formatGameDateTime(gameTime: GameTimeInfo, nowMs: number, lang: Language): string {
   const current = advanceGameTime(gameTime, nowMs);
-  const monthName = resolveMonthName(gameTime, current.month);
   const hhmm = `${pad2(current.hour)}:${pad2(current.minute)}`;
-
-  if (lang === 'ko') {
-    return `4E ${current.year} ${monthName} ${current.day}일 ${hhmm}`;
-  }
-  return `4E ${current.year}, ${monthName} ${current.day} ${hhmm}`;
+  return formatSkyrimDateTime(lang, {
+    year: current.year,
+    month: current.month,
+    day: current.day,
+    time: hhmm,
+  });
 }
 
 const cachedFormatters: Record<string, Intl.DateTimeFormat> = {};
-function getCachedFormatter(lang: 'ko' | 'en'): Intl.DateTimeFormat {
-  const locale = lang === 'ko' ? 'ko-KR' : 'en-US';
-  return cachedFormatters[locale] ??= new Intl.DateTimeFormat(locale, {
+function createDateTimeFormatter(locale: string): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat(locale, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -118,7 +112,22 @@ function getCachedFormatter(lang: 'ko' | 'en'): Intl.DateTimeFormat {
   });
 }
 
-function formatRealDateTime(nowMs: number, lang: 'ko' | 'en'): string {
+function getCachedFormatter(lang: Language): Intl.DateTimeFormat {
+  const locale = getLanguageLocale(lang);
+  if (cachedFormatters[locale]) {
+    return cachedFormatters[locale];
+  }
+
+  try {
+    cachedFormatters[locale] = createDateTimeFormatter(locale);
+  } catch {
+    cachedFormatters[locale] = createDateTimeFormatter('en-US');
+  }
+
+  return cachedFormatters[locale];
+}
+
+function formatRealDateTime(nowMs: number, lang: Language): string {
   return getCachedFormatter(lang).format(new Date(nowMs));
 }
 

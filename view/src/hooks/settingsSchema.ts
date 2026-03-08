@@ -14,6 +14,15 @@ function readEnum<T extends string>(value: unknown, fallback: T, allowed: readon
   return allowed.includes(value as T) ? (value as T) : fallback;
 }
 
+function readLanguageCode(value: unknown, fallback: Language): Language {
+  if (typeof value !== 'string') {
+    return fallback;
+  }
+
+  const normalized = value.trim();
+  return normalized || fallback;
+}
+
 function readAccentColor(value: unknown, fallback: string): string {
   if (typeof value !== 'string') return fallback;
   if (value === '') return '';
@@ -76,7 +85,7 @@ function mergeGeneralSettings(target: WidgetSettings['general'], incoming: unkno
   target.onboardingSeen = readBoolean(incoming.onboardingSeen, target.onboardingSeen);
   target.opacity = readNumber(incoming.opacity, target.opacity, 10, 100);
   target.size = readEnum<WidgetSize>(incoming.size, target.size, ['xsmall', 'small', 'medium', 'large']);
-  target.language = readEnum<Language>(incoming.language, target.language, ['ko', 'en']);
+  target.language = readLanguageCode(incoming.language, target.language);
   target.accentColor = readAccentColor(incoming.accentColor, target.accentColor);
   target.transparentBg = readBoolean(incoming.transparentBg, target.transparentBg);
 }

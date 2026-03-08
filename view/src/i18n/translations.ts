@@ -1,4 +1,7 @@
-export const translations = {
+import type { Language } from '../types/settings';
+import { isPlainObject } from '../utils/normalize';
+
+export const bundledTranslations = {
   ko: {
     title: '툴리우스 위젯',
     general: '일반',
@@ -42,7 +45,20 @@ export const translations = {
     equippedEmpty: '(비어 있음)',
     time: '시간',
     gameDateTime: '스카이림 날짜/시간',
+    gameDateTimePattern: '4E {year} {monthName} {day}일 {time}',
     realDateTime: '현실 날짜/시간',
+    monthMorningStar: '모닝 스타',
+    monthSunsDawn: '선즈 던',
+    monthFirstSeed: '퍼스트 시드',
+    monthRainsHand: '레인즈 핸드',
+    monthSecondSeed: '세컨드 시드',
+    monthMidyear: '미드이어',
+    monthSunsHeight: '선즈 하이트',
+    monthLastSeed: '라스트 시드',
+    monthHearthfire: '하스파이어',
+    monthFrostfall: '프로스트폴',
+    monthSunsDusk: '선즈 더스크',
+    monthEveningStar: '이브닝 스타',
     experienceWidget: '경험치',
     experienceProgress: '경험치 진행도',
     timedEffects: '지속 버프/디버프',
@@ -144,7 +160,20 @@ export const translations = {
     equippedEmpty: '(Empty)',
     time: 'Time',
     gameDateTime: 'Skyrim Date/Time',
+    gameDateTimePattern: '4E {year}, {monthName} {day} {time}',
     realDateTime: 'Real Date/Time',
+    monthMorningStar: 'Morning Star',
+    monthSunsDawn: "Sun's Dawn",
+    monthFirstSeed: 'First Seed',
+    monthRainsHand: "Rain's Hand",
+    monthSecondSeed: 'Second Seed',
+    monthMidyear: 'Midyear',
+    monthSunsHeight: "Sun's Height",
+    monthLastSeed: 'Last Seed',
+    monthHearthfire: 'Hearthfire',
+    monthFrostfall: 'Frostfall',
+    monthSunsDusk: "Sun's Dusk",
+    monthEveningStar: 'Evening Star',
     experienceWidget: 'Experience',
     experienceProgress: 'XP Progress',
     timedEffects: 'Timed Buffs/Debuffs',
@@ -205,8 +234,311 @@ export const translations = {
   },
 } as const;
 
-export type TranslationKey = keyof typeof translations.ko;
+export type BuiltInLanguage = keyof typeof bundledTranslations;
+export type TranslationKey = keyof typeof bundledTranslations.ko;
+export type TranslationCatalog = Record<TranslationKey, string>;
 
-export function t(lang: 'ko' | 'en', key: TranslationKey): string {
-  return translations[lang][key];
+export interface LocalizationLanguageEntry {
+  code: string;
+  label: string;
+  file: string;
+  locale?: string;
+}
+
+export interface LocalizationManifest {
+  defaultLanguage: string;
+  languages: LocalizationLanguageEntry[];
+}
+
+const DEFAULT_MANIFEST: LocalizationManifest = {
+  defaultLanguage: 'ko',
+  languages: [
+    { code: 'ko', label: '한국어', file: 'ko.json', locale: 'ko-KR' },
+    { code: 'en', label: 'English', file: 'en.json', locale: 'en-US' },
+  ],
+};
+
+const manifestListeners = new Set<() => void>();
+const warnedLocalizationTargets = new Set<string>();
+const runtimeCatalogs = new Map<string, Partial<TranslationCatalog>>();
+const loadedCatalogLanguages = new Set<string>();
+const catalogLoadPromises = new Map<string, Promise<void>>();
+
+let manifestState: LocalizationManifest = DEFAULT_MANIFEST;
+let manifestLoadPromise: Promise<LocalizationManifest> | null = null;
+
+function emitLocalizationChanged(): void {
+  for (const listener of manifestListeners) {
+    listener();
+  }
+}
+
+function warnLocalizationTargetOnce(target: string, error: unknown): void {
+  if (warnedLocalizationTargets.has(target)) {
+    return;
+  }
+  warnedLocalizationTargets.add(target);
+  console.warn(`[TulliusWidgets] Failed to load localization resource "${target}".`, error);
+}
+
+function isTranslationKey(value: string): value is TranslationKey {
+  return value in bundledTranslations.ko;
+}
+
+function sanitizeLanguageEntry(value: unknown): LocalizationLanguageEntry | null {
+  if (!isPlainObject(value)) return null;
+  const code = typeof value.code === 'string' ? value.code.trim() : '';
+  const label = typeof value.label === 'string' ? value.label.trim() : '';
+  const file = typeof value.file === 'string' ? value.file.trim() : '';
+  const locale = typeof value.locale === 'string' && value.locale.trim()
+    ? value.locale.trim()
+    : undefined;
+
+  if (!code || !label || !file) {
+    return null;
+  }
+
+  return { code, label, file, locale };
+}
+
+function sanitizeManifest(value: unknown): LocalizationManifest | null {
+  if (!isPlainObject(value) || !Array.isArray(value.languages)) {
+    return null;
+  }
+
+  const defaultLanguage = typeof value.defaultLanguage === 'string' && value.defaultLanguage.trim()
+    ? value.defaultLanguage.trim()
+    : DEFAULT_MANIFEST.defaultLanguage;
+  const seenCodes = new Set<string>();
+  const languages = value.languages
+    .map(sanitizeLanguageEntry)
+    .filter((entry): entry is LocalizationLanguageEntry => {
+      if (!entry) return false;
+      if (seenCodes.has(entry.code)) return false;
+      seenCodes.add(entry.code);
+      return true;
+    });
+
+  if (languages.length === 0) {
+    return null;
+  }
+
+  return {
+    defaultLanguage,
+    languages,
+  };
+}
+
+function sanitizeCatalog(value: unknown): Partial<TranslationCatalog> {
+  if (!isPlainObject(value)) {
+    return {};
+  }
+
+  const catalog: Partial<TranslationCatalog> = {};
+  for (const [key, rawValue] of Object.entries(value)) {
+    if (!isTranslationKey(key) || typeof rawValue !== 'string') {
+      continue;
+    }
+    catalog[key] = rawValue;
+  }
+  return catalog;
+}
+
+function getManifestLanguage(language: string): LocalizationLanguageEntry | null {
+  return manifestState.languages.find(entry => entry.code === language) ?? null;
+}
+
+function hasBundledLanguage(language: string): language is BuiltInLanguage {
+  return language in bundledTranslations;
+}
+
+function hasKnownLanguage(language: string): boolean {
+  return Boolean(language) && (hasBundledLanguage(language) || getManifestLanguage(language) !== null);
+}
+
+async function fetchJsonResource(target: string): Promise<unknown | null> {
+  try {
+    const response = await fetch(target, { cache: 'no-cache' });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    warnLocalizationTargetOnce(target, error);
+    return null;
+  }
+}
+
+export async function ensureLocalizationManifest(): Promise<LocalizationManifest> {
+  if (manifestLoadPromise) {
+    return manifestLoadPromise;
+  }
+
+  manifestLoadPromise = (async () => {
+    const parsed = sanitizeManifest(await fetchJsonResource('./i18n/manifest.json'));
+    if (parsed) {
+      manifestState = parsed;
+      emitLocalizationChanged();
+      return manifestState;
+    }
+    manifestLoadPromise = null;
+    return manifestState;
+  })();
+
+  return manifestLoadPromise;
+}
+
+export async function ensureLanguageCatalog(language: Language): Promise<void> {
+  await ensureLocalizationManifest();
+
+  const selectedLanguage = getManifestLanguage(language);
+  if (!selectedLanguage || loadedCatalogLanguages.has(language)) {
+    return;
+  }
+
+  const existingPromise = catalogLoadPromises.get(language);
+  if (existingPromise) {
+    await existingPromise;
+    return;
+  }
+
+  const promise = (async () => {
+    const resource = await fetchJsonResource(`./i18n/${selectedLanguage.file}`);
+    if (resource === null) {
+      catalogLoadPromises.delete(language);
+      return;
+    }
+
+    const parsed = sanitizeCatalog(resource);
+    loadedCatalogLanguages.add(language);
+    if (Object.keys(parsed).length > 0) {
+      runtimeCatalogs.set(language, parsed);
+    }
+    catalogLoadPromises.delete(language);
+    emitLocalizationChanged();
+  })();
+
+  catalogLoadPromises.set(language, promise);
+  await promise;
+}
+
+export function getLocalizationManifest(): LocalizationManifest {
+  return manifestState;
+}
+
+export function getAvailableLanguages(): LocalizationLanguageEntry[] {
+  return manifestState.languages;
+}
+
+export function getDefaultLanguage(): Language {
+  const manifestDefault = manifestState.defaultLanguage.trim();
+  if (hasKnownLanguage(manifestDefault)) {
+    return manifestDefault;
+  }
+
+  return DEFAULT_MANIFEST.defaultLanguage;
+}
+
+export function resolveLanguage(language: Language): Language {
+  const normalized = language.trim();
+  if (hasKnownLanguage(normalized)) {
+    return normalized;
+  }
+
+  return getDefaultLanguage();
+}
+
+export function getLanguageLocale(language: Language): string {
+  const resolvedLanguage = resolveLanguage(language);
+  const manifestLocale = getManifestLanguage(resolvedLanguage)?.locale;
+  if (manifestLocale) {
+    return manifestLocale;
+  }
+  if (resolvedLanguage === 'ko') {
+    return 'ko-KR';
+  }
+  if (resolvedLanguage === 'en') {
+    return 'en-US';
+  }
+  return resolvedLanguage || 'en-US';
+}
+
+function getBuiltInText(language: string, key: TranslationKey): string | null {
+  if (hasBundledLanguage(language)) {
+    return bundledTranslations[language as BuiltInLanguage][key];
+  }
+  return null;
+}
+
+export function t(lang: Language, key: TranslationKey): string {
+  const resolvedLanguage = resolveLanguage(lang);
+  const runtimeText = runtimeCatalogs.get(resolvedLanguage)?.[key];
+  if (runtimeText !== undefined) {
+    return runtimeText;
+  }
+
+  const builtInText = getBuiltInText(resolvedLanguage, key);
+  if (builtInText !== null) {
+    return builtInText;
+  }
+
+  return bundledTranslations.en[key] ?? bundledTranslations.ko[key] ?? key;
+}
+
+const SKYRIM_MONTH_KEYS = [
+  'monthMorningStar',
+  'monthSunsDawn',
+  'monthFirstSeed',
+  'monthRainsHand',
+  'monthSecondSeed',
+  'monthMidyear',
+  'monthSunsHeight',
+  'monthLastSeed',
+  'monthHearthfire',
+  'monthFrostfall',
+  'monthSunsDusk',
+  'monthEveningStar',
+] as const satisfies readonly TranslationKey[];
+
+interface SkyrimDateTimeParts {
+  year: number;
+  month: number;
+  day: number;
+  time: string;
+}
+
+export function getLocalizedSkyrimMonthName(lang: Language, month: number): string {
+  const monthKey = SKYRIM_MONTH_KEYS[month];
+  if (!monthKey) {
+    return bundledTranslations.en.monthMorningStar;
+  }
+  return t(lang, monthKey);
+}
+
+export function formatSkyrimDateTime(lang: Language, parts: SkyrimDateTimeParts): string {
+  const pattern = t(lang, 'gameDateTimePattern');
+  const monthName = getLocalizedSkyrimMonthName(lang, parts.month);
+
+  return pattern
+    .split('{year}').join(String(parts.year))
+    .split('{monthName}').join(monthName)
+    .split('{day}').join(String(parts.day))
+    .split('{time}').join(parts.time);
+}
+
+export function subscribeLocalization(listener: () => void): () => void {
+  manifestListeners.add(listener);
+  return () => {
+    manifestListeners.delete(listener);
+  };
+}
+
+export function resetLocalizationStateForTests(): void {
+  manifestState = DEFAULT_MANIFEST;
+  manifestLoadPromise = null;
+  warnedLocalizationTargets.clear();
+  runtimeCatalogs.clear();
+  loadedCatalogLanguages.clear();
+  catalogLoadPromises.clear();
+  emitLocalizationChanged();
 }

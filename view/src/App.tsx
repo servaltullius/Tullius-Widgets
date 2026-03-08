@@ -5,6 +5,7 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { ScreenEffects } from './components/ScreenEffects';
 import { useGameStatsState } from './hooks/useGameStats';
 import { useSettings } from './hooks/useSettings';
+import { useLocalization } from './i18n/useLocalization';
 import { useWidgetPositions } from './hooks/useWidgetPositions';
 import { getDefaultPositions } from './data/defaultSettings';
 import { WIDGET_GROUP_IDS } from './data/widgetRegistry';
@@ -50,7 +51,7 @@ export function App() {
     ),
     [settings.general.size, settings.layouts, viewport.height, viewport.width],
   );
-  const lang = settings.general.language;
+  const { activeLanguage: lang, availableLanguages } = useLocalization(settings.general.language);
   const { resolvePosition, handleGroupMove, handleGroupMoveEnd } = useWidgetPositions({
     defaults,
     settingsPositions: settings.positions,
@@ -174,11 +175,13 @@ export function App() {
 
       <SettingsPanel
         settings={settings}
+        lang={lang}
         effectiveVisible={visible}
         open={settingsOpen}
         onClose={closeSettings}
         onUpdate={updateSetting}
         accentColor={accentColor}
+        availableLanguages={availableLanguages}
       />
     </>
   );

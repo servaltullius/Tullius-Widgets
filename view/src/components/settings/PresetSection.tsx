@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { BRIDGE_CALLBACKS } from '../../constants/bridge';
-import type { WidgetSettings } from '../../types/settings';
+import type { Language, WidgetSettings } from '../../types/settings';
 import { t } from '../../i18n/translations';
 
 interface PresetSectionProps {
-  lang: 'ko' | 'en';
+  lang: Language;
   settings: WidgetSettings;
 }
 

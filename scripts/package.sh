@@ -42,13 +42,41 @@ build_plugin_native() {
 }
 
 build_plugin_via_powershell() {
-  if ! command -v powershell.exe >/dev/null 2>&1; then
+  if ! command -v cmd.exe >/dev/null 2>&1; then
     return 1
   fi
 
   local win_root
   win_root="$(wslpath -w "${ROOT_DIR}")"
-  powershell.exe -NoProfile -Command "Set-Location '${win_root}'; xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false; xmake build -y -v"
+  local escaped_root="${win_root//\"/\"\"}"
+  if [[ "${win_root}" == \\\\* ]]; then
+    cmd.exe /d /s /c "cd /d %SystemRoot% && pushd \"${escaped_root}\" && xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false && xmake build -y -v"
+  else
+    cmd.exe /d /s /c "cd /d %SystemRoot% && cd /d \"${escaped_root}\" && xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false && xmake build -y -v"
+  fi
+}
+
+windows_has_command() {
+  local name="${1:?command name is required}"
+  if ! command -v cmd.exe >/dev/null 2>&1; then
+    return 1
+  fi
+
+  cmd.exe /d /s /c "cd /d %SystemRoot% && where ${name} >nul 2>nul"
+}
+
+has_native_worktree_changes() {
+  if ! command -v git >/dev/null 2>&1; then
+    return 0
+  fi
+
+  local status_output
+  status_output="$(git -C "${ROOT_DIR}" status --short --untracked-files=all -- src xmake.lua lib/commonlibsse-ng 2>/dev/null || true)"
+  [[ -n "${status_output}" ]]
+}
+
+can_reuse_existing_plugin() {
+  [[ -f "${PLUGIN_DLL}" ]] && ! has_native_worktree_changes
 }
 
 is_wsl() {
@@ -58,6 +86,22 @@ is_wsl() {
 echo "=== Validating release note ==="
 validate_release_note
 
+if is_wsl && command -v powershell.exe >/dev/null 2>&1; then
+  echo "=== Cleaning dist ==="
+  rm -rf "${DIST_DIR}"
+
+  echo "=== Building React frontend ==="
+  (cd "${ROOT_DIR}/view" && npm run build)
+
+  echo "=== Delegating native build/package to Windows release-local script ==="
+  RELEASE_LOCAL_WIN="$(wslpath -w "${ROOT_DIR}/scripts/release-local.ps1")"
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${RELEASE_LOCAL_WIN}" -NoPublish -SkipLint -SkipFrontendBuild
+  echo "=== Package ready ==="
+  echo "Artifact: ${ZIP_PATH}"
+  echo "Install by extracting into Skyrim Special Edition/Data/"
+  exit 0
+fi
+
 echo "=== Cleaning dist ==="
 rm -rf "${DIST_DIR}"
 
@@ -65,12 +109,17 @@ echo "=== Building React frontend ==="
 (cd "${ROOT_DIR}/view" && npm run build)
 
 echo "=== Building SKSE plugin ==="
-if is_wsl && command -v powershell.exe >/dev/null 2>&1; then
+if is_wsl && windows_has_command xmake; then
   build_plugin_via_powershell
 elif command -v xmake >/dev/null 2>&1; then
   build_plugin_native
-elif ! build_plugin_via_powershell; then
-  echo "ERROR: xmake or powershell.exe not found. Build must run on Windows/MSVC or WSL with powershell.exe bridge." >&2
+elif is_wsl && can_reuse_existing_plugin; then
+  echo "WARNING: Windows xmake was not found. Reusing existing plugin DLL because native sources are unchanged."
+elif ! is_wsl && can_reuse_existing_plugin; then
+  echo "WARNING: xmake was not found. Reusing existing plugin DLL because native sources are unchanged."
+else
+  echo "ERROR: xmake was not found and the existing plugin DLL cannot be safely reused." >&2
+  echo "       Install Windows xmake/MSVC for native changes, or rebuild the DLL before packaging." >&2
   exit 1
 fi
 

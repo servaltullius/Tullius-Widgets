@@ -1,0 +1,17 @@
+{
+  "defaultLanguage": "ko",
+  "languages": [
+    {
+      "code": "ko",
+      "label": "한국어",
+      "file": "ko.json",
+      "locale": "ko-KR"
+    },
+    {
+      "code": "en",
+      "label": "English",
+      "file": "en.json",
+      "locale": "en-US"
+    }
+  ]
+}

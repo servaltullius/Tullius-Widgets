@@ -40,10 +40,6 @@ function Invoke-ReleaseLocal {
   Push-Location $workRoot
 
   try {
-    Require-Command "git"
-    Require-Command "xmake"
-    Require-Command "npm"
-
     $version = Parse-VersionFromXmake -Path "xmake.lua"
     $tag = "v$version"
     $title = "Tullius Widgets v$version"
@@ -53,6 +49,14 @@ function Invoke-ReleaseLocal {
     Assert-ReleaseNote -Path $notePath
 
     if (-not $SkipFrontendBuild) {
+      if ($usesUncWorkRoot) {
+        if (-not (Test-WindowsCommandAvailable "npm")) {
+          throw "Required command not found: npm"
+        }
+      } else {
+        Require-Command "npm"
+      }
+
       $frontendBuildRoot = $repoRoot
       $frontendViewPath = Join-Path $repoRoot "view"
       if ($usesUncWorkRoot) {
@@ -79,6 +83,28 @@ function Invoke-ReleaseLocal {
       }
     }
 
+    $pluginDllPath = "build/windows/x64/release/TulliusWidgets.dll"
+    if (-not $SkipPluginBuild) {
+      $xmakeCommand = if ($usesUncWorkRoot) {
+        Get-WindowsXmakeCommand
+      } else {
+        if (Test-CommandAvailable "xmake") { "xmake" } else { $null }
+      }
+      $vsDevCmd = if ($usesUncWorkRoot) { Get-WindowsVsDevCmd } else { $null }
+      $canRunXmake = $null -ne $xmakeCommand
+
+      if (-not $canRunXmake) {
+        if (Test-CanReuseExistingPluginDll -RepoRoot $repoRoot -PluginDllPath $pluginDllPath) {
+          Write-Host "xmake was not found. Reusing existing plugin DLL because native sources are unchanged."
+          $SkipPluginBuild = $true
+        } else {
+          throw "xmake was not found and the existing plugin DLL cannot be safely reused."
+        }
+      } elseif ($usesUncWorkRoot -and -not $vsDevCmd) {
+        throw "VsDevCmd.bat was not found. Visual Studio Build Tools environment could not be initialized."
+      }
+    }
+
     if (-not $SkipPluginBuild) {
       $pluginBuildRoot = $repoRoot
       if ($usesUncWorkRoot) {
@@ -86,10 +112,20 @@ function Invoke-ReleaseLocal {
         $stageRoots.Add($pluginBuildRoot) | Out-Null
       }
 
-      Invoke-CmdCommands -Path $pluginBuildRoot -Commands @(
-        "xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false --ccache=y",
-        "xmake build -y -v"
-      )
+      $pluginCommands = if ($usesUncWorkRoot) {
+        @(
+          "call `"$vsDevCmd`" -arch=amd64 -host_arch=amd64",
+          "`"$xmakeCommand`" f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false --ccache=y",
+          "`"$xmakeCommand`" build -y -v"
+        )
+      } else {
+        @(
+          "xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false --ccache=y",
+          "xmake build -y -v"
+        )
+      }
+
+      Invoke-CmdCommands -Path $pluginBuildRoot -Commands $pluginCommands
 
       if ($usesUncWorkRoot) {
         $stagedDllPath = Join-Path $pluginBuildRoot "build/windows/x64/release/TulliusWidgets.dll"
@@ -100,8 +136,6 @@ function Invoke-ReleaseLocal {
     }
 
     $frontendOutputPath = "dist/PrismaUI/views/TulliusWidgets"
-    $pluginDllPath = "build/windows/x64/release/TulliusWidgets.dll"
-
     Assert-TulliusWidgetsBuildOutputs `
       -FrontendOutputPath $frontendOutputPath `
       -PluginDllPath $pluginDllPath

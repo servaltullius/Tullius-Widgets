@@ -1,5 +1,5 @@
-import type { UpdateSettingFn, WidgetLayout, WidgetSettings } from '../../types/settings';
-import { t } from '../../i18n/translations';
+import type { Language, UpdateSettingFn, WidgetLayout, WidgetSettings } from '../../types/settings';
+import { t, type LocalizationLanguageEntry } from '../../i18n/translations';
 import { AccordionSection, CustomSelect, LayoutSelect, Toggle } from './SettingsControls';
 import { PresetSection } from './PresetSection';
 
@@ -8,24 +8,28 @@ const PRESET_COLORS = [
 ];
 
 interface SectionControlProps {
-  lang: 'ko' | 'en';
+  lang: Language;
   isSectionExpanded: (id: string) => boolean;
   toggleSection: (id: string) => void;
 }
 
 interface GeneralTabSectionsProps extends SectionControlProps {
   settings: WidgetSettings;
+  selectedLanguage: Language;
   effectiveVisible: boolean;
   onUpdate: UpdateSettingFn;
   accentColor: string;
+  availableLanguages: LocalizationLanguageEntry[];
 }
 
 export function GeneralTabSections({
   lang,
   settings,
+  selectedLanguage,
   effectiveVisible,
   onUpdate,
   accentColor,
+  availableLanguages,
   isSectionExpanded,
   toggleSection,
 }: GeneralTabSectionsProps) {
@@ -87,11 +91,8 @@ export function GeneralTabSections({
 
       <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
         <span style={{ color: '#ddd', fontSize: '24px' }}>{t(lang, 'language')}</span>
-        <CustomSelect value={settings.general.language}
-          options={[
-            { value: 'ko', label: t(lang, 'korean') },
-            { value: 'en', label: t(lang, 'english') },
-          ]}
+        <CustomSelect value={selectedLanguage}
+          options={availableLanguages.map(option => ({ value: option.code, label: option.label }))}
           onChange={nextValue => onUpdate('general.language', nextValue)}
         />
       </label>

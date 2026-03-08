@@ -1,8 +1,178 @@
 function Require-Command {
   param([string]$Name)
-  if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
+  if (-not (Get-ResolvedCommand $Name)) {
     throw "Required command not found: $Name"
   }
+}
+
+function Get-ResolvedCommand {
+  param([string]$Name)
+
+  foreach ($candidate in @("$Name.cmd", "$Name.bat", "$Name.exe", $Name)) {
+    $command = Get-Command $candidate -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($command) {
+      if ($command.Path) {
+        return $command.Path
+      }
+      return $command.Source
+    }
+  }
+
+  return $null
+}
+
+function Test-CommandAvailable {
+  param([string]$Name)
+  return $null -ne (Get-ResolvedCommand $Name)
+}
+
+function Test-WindowsCommandAvailable {
+  param([string]$Name)
+
+  if (-not (Get-Command "cmd.exe" -ErrorAction SilentlyContinue)) {
+    return $false
+  }
+
+  $bootstrapLocation = if ($env:SystemRoot -and (Test-Path $env:SystemRoot)) {
+    $env:SystemRoot
+  } elseif ($env:SystemDrive) {
+    "$($env:SystemDrive)\"
+  } else {
+    "C:\"
+  }
+
+  Push-Location $bootstrapLocation
+  try {
+    & cmd.exe /d /s /c "where $Name >nul 2>nul"
+    return $LASTEXITCODE -eq 0
+  }
+  finally {
+    Pop-Location
+  }
+}
+
+function Get-WindowsXmakeCommand {
+  if (Test-WindowsCommandAvailable "xmake") {
+    return "xmake"
+  }
+
+  $candidates = @()
+  if ($env:ProgramFiles) {
+    $candidates += (Join-Path $env:ProgramFiles "xmake\xmake.exe")
+  }
+  if ($env:LOCALAPPDATA) {
+    $candidates += (Join-Path $env:LOCALAPPDATA "Programs\xmake\xmake.exe")
+  }
+  if ($env:USERPROFILE) {
+    $candidates += (Join-Path $env:USERPROFILE "scoop\apps\xmake\current\xmake.exe")
+    $candidates += (Join-Path $env:USERPROFILE "scoop\shims\xmake.exe")
+  }
+  if ($env:ProgramData) {
+    $candidates += (Join-Path $env:ProgramData "chocolatey\bin\xmake.exe")
+    $candidates += (Join-Path $env:ProgramData "chocolatey\lib\xmake\tools\xmake.exe")
+  }
+
+  foreach ($candidate in $candidates) {
+    if ($candidate -and (Test-Path $candidate)) {
+      return $candidate
+    }
+  }
+
+  return $null
+}
+
+function Get-WindowsVsDevCmd {
+  $candidates = @(
+    "C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\VsDevCmd.bat",
+    "C:\Program Files\Microsoft Visual Studio\17\Community\Common7\Tools\VsDevCmd.bat",
+    "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat",
+    "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\VsDevCmd.bat"
+  )
+
+  foreach ($candidate in $candidates) {
+    if (Test-Path $candidate) {
+      return $candidate
+    }
+  }
+
+  return $null
+}
+
+function Convert-ToCmdArgument {
+  param([string]$Value)
+
+  return "`"$($Value.Replace('"', '""'))`""
+}
+
+function Invoke-CmdBatchScriptWithOutput {
+  param(
+    [string[]]$ScriptLines,
+    [string]$WorkingDirectory
+  )
+
+  $commandScriptPath = Join-Path $env:TEMP ("codex-cmd-" + [guid]::NewGuid().ToString("N") + ".cmd")
+  $stdoutPath = Join-Path $env:TEMP ("codex-cmd-out-" + [guid]::NewGuid().ToString("N") + ".log")
+  $stderrPath = Join-Path $env:TEMP ("codex-cmd-err-" + [guid]::NewGuid().ToString("N") + ".log")
+  Set-Content -Path $commandScriptPath -Value $ScriptLines -Encoding ASCII
+
+  try {
+    Push-Location $WorkingDirectory
+    try {
+      $process = Start-Process `
+        -FilePath "cmd.exe" `
+        -ArgumentList @("/d", "/c", $commandScriptPath) `
+        -WorkingDirectory $WorkingDirectory `
+        -Wait `
+        -PassThru `
+        -RedirectStandardOutput $stdoutPath `
+        -RedirectStandardError $stderrPath
+    }
+    finally {
+      Pop-Location
+    }
+
+    $stdout = if (Test-Path $stdoutPath) {
+      $content = Get-Content -Path $stdoutPath -Raw
+      if ($null -eq $content) { "" } else { $content }
+    } else {
+      ""
+    }
+    $stderr = if (Test-Path $stderrPath) {
+      $content = Get-Content -Path $stderrPath -Raw
+      if ($null -eq $content) { "" } else { $content }
+    } else {
+      ""
+    }
+    $combinedOutput = "$stdout$stderr"
+    $combinedOutput = [regex]::Replace(
+      $combinedOutput,
+      "(?ms)^'\\\\wsl(?:\.localhost|\$)\\.*?^UNC paths are not supported\.\s+Defaulting to Windows directory\.\r?\n?",
+      ""
+    )
+
+    return @{
+      Output = $combinedOutput
+      ExitCode = $process.ExitCode
+    }
+  }
+  finally {
+    Remove-Item -LiteralPath $commandScriptPath -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $stdoutPath -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
+  }
+}
+
+function Invoke-WslBashCommand {
+  param(
+    [string]$Distro,
+    [string]$BashCommand
+  )
+
+  return Invoke-CmdBatchScriptWithOutput -WorkingDirectory $env:SystemRoot -ScriptLines @(
+    "@echo off",
+    "wsl.exe -d `"$Distro`" bash -lc `"$BashCommand`"",
+    "exit /b %errorlevel%"
+  )
 }
 
 function Invoke-GhCommand {
@@ -12,10 +182,17 @@ function Invoke-GhCommand {
     [switch]$AllowFailure
   )
 
-  if (Get-Command "gh" -ErrorAction SilentlyContinue) {
-    & gh @Arguments
-    if (-not $AllowFailure -and $LASTEXITCODE -ne 0) {
-      throw "gh command failed with exit code ${LASTEXITCODE}: gh $($Arguments -join ' ')"
+  $ghCommand = Get-ResolvedCommand "gh"
+  if ($ghCommand) {
+    $commandLine = (Convert-ToCmdArgument $ghCommand)
+    if ($Arguments.Count -gt 0) {
+      $commandLine += " " + (($Arguments | ForEach-Object { Convert-ToCmdArgument $_ }) -join " ")
+    }
+    $result = Invoke-CmdBatchScriptWithOutput `
+      -WorkingDirectory ((Get-Location).Path) `
+      -ScriptLines @("@echo off", "setlocal", $commandLine, "exit /b %errorlevel%")
+    if (-not $AllowFailure -and $result.ExitCode -ne 0) {
+      throw "gh command failed with exit code $($result.ExitCode): gh $($Arguments -join ' ')"
     }
     return
   }
@@ -29,10 +206,10 @@ function Invoke-GhCommand {
     "'" + (Escape-BashSingleQuoted $_) + "'"
   }) -join " "
   $bashCommand = "cd '$repoLinuxPath' && gh $argText"
-  & wsl.exe -d $WslContext.Distro bash -lc $bashCommand
+  $result = Invoke-WslBashCommand -Distro $WslContext.Distro -BashCommand $bashCommand
 
-  if (-not $AllowFailure -and $LASTEXITCODE -ne 0) {
-    throw "gh command failed with exit code ${LASTEXITCODE}: gh $($Arguments -join ' ')"
+  if (-not $AllowFailure -and $result.ExitCode -ne 0) {
+    throw "gh command failed with exit code $($result.ExitCode): gh $($Arguments -join ' ')"
   }
 }
 
@@ -81,13 +258,64 @@ function Get-ReleaseLocalArgumentsForPackaging {
 function Get-ShortGitSha {
   param([string]$RepoRoot = (Get-Location).Path)
 
-  $resolvedRepoRoot = [System.IO.Path]::GetFullPath($RepoRoot)
-  $output = & git -c "safe.directory=$resolvedRepoRoot" -C $resolvedRepoRoot rev-parse --short HEAD 2>&1
-  if ($LASTEXITCODE -ne 0) {
-    throw "git rev-parse failed for $resolvedRepoRoot : $output"
+  $result = Invoke-GitInRepo -RepoRoot $RepoRoot -Arguments @("rev-parse", "--short", "HEAD")
+  if ($result.ExitCode -ne 0) {
+    throw "git rev-parse failed for $RepoRoot : $($result.Output)"
   }
 
-  return ($output | Out-String).Trim()
+  return $result.Output.Trim()
+}
+
+function Test-HasNativeWorktreeChanges {
+  param([string]$RepoRoot = (Get-Location).Path)
+
+  $result = Invoke-GitInRepo -RepoRoot $RepoRoot -Arguments @(
+    "status",
+    "--short",
+    "--untracked-files=all",
+    "--",
+    "src",
+    "xmake.lua",
+    "lib/commonlibsse-ng"
+  )
+  if ($result.ExitCode -ne 0) {
+    throw "git status failed for $RepoRoot : $($result.Output)"
+  }
+
+  return -not [string]::IsNullOrWhiteSpace($result.Output.Trim())
+}
+
+function Test-CanReuseExistingPluginDll {
+  param(
+    [string]$RepoRoot = (Get-Location).Path,
+    [string]$PluginDllPath = "build/windows/x64/release/TulliusWidgets.dll"
+  )
+
+  $resolvedRepoRoot = [System.IO.Path]::GetFullPath($RepoRoot)
+  $resolvedPluginDllPath = if ([System.IO.Path]::IsPathRooted($PluginDllPath)) {
+    $PluginDllPath
+  } else {
+    Join-Path $resolvedRepoRoot $PluginDllPath
+  }
+
+  if (-not (Test-Path $resolvedPluginDllPath)) {
+    return $false
+  }
+
+  return -not (Test-HasNativeWorktreeChanges -RepoRoot $resolvedRepoRoot)
+}
+
+function Invoke-CmdBatchScript {
+  param(
+    [string[]]$ScriptLines,
+    [string]$WorkingDirectory
+  )
+
+  $result = Invoke-CmdBatchScriptWithOutput -ScriptLines $ScriptLines -WorkingDirectory $WorkingDirectory
+  if ($result.Output) {
+    Write-Host -NoNewline $result.Output
+  }
+  return $result.ExitCode
 }
 
 function Invoke-CmdCommands {
@@ -112,20 +340,33 @@ function Invoke-CmdCommands {
 
   Push-Location $bootstrapLocation
   try {
+    $scriptLines = [System.Collections.Generic.List[string]]::new()
+    $scriptLines.Add("@echo off")
+    $scriptLines.Add("setlocal")
+
+    $exitCode = 0
+
     if ($Path.StartsWith("\\")) {
-      $escapedPath = $Path.Replace('"', '""')
-      & cmd.exe /d /s /c "pushd `"$escapedPath`" && $commandText"
+      $scriptLines.Add("pushd `"$Path`"")
     } else {
-      $escapedPath = $Path.Replace('"', '""')
-      & cmd.exe /d /s /c "cd /d `"$escapedPath`" && $commandText"
+      $scriptLines.Add("cd /d `"$Path`"")
     }
+    $scriptLines.Add("if errorlevel 1 exit /b %errorlevel%")
+
+    foreach ($command in $filteredCommands) {
+      $scriptLines.Add($command)
+      $scriptLines.Add("if errorlevel 1 exit /b %errorlevel%")
+    }
+
+    $scriptLines.Add("endlocal")
+    $exitCode = Invoke-CmdBatchScript -ScriptLines $scriptLines -WorkingDirectory $bootstrapLocation
   }
   finally {
     Pop-Location
   }
 
-  if ($LASTEXITCODE -ne 0) {
-    throw "Command failed with exit code ${LASTEXITCODE}: $commandText"
+  if ($exitCode -ne 0) {
+    throw "Command failed with exit code ${exitCode}: $commandText"
   }
 }
 
@@ -140,6 +381,36 @@ function Get-WslContext {
     Distro = $matches[1]
     LinuxPath = "/" + (($matches[2] -replace '\\', '/').TrimStart('/'))
   }
+}
+
+function Invoke-GitInRepo {
+  param(
+    [string]$RepoRoot = (Get-Location).Path,
+    [string[]]$Arguments
+  )
+
+  $resolvedRepoRoot = [System.IO.Path]::GetFullPath($RepoRoot)
+
+  $gitCommand = Get-ResolvedCommand "git"
+  if ($gitCommand) {
+    $gitArguments = @("-c", "safe.directory=$resolvedRepoRoot", "-C", $resolvedRepoRoot) + $Arguments
+    $commandLine = (Convert-ToCmdArgument $gitCommand) + " " + (($gitArguments | ForEach-Object { Convert-ToCmdArgument $_ }) -join " ")
+    return Invoke-CmdBatchScriptWithOutput `
+      -WorkingDirectory $resolvedRepoRoot `
+      -ScriptLines @("@echo off", "setlocal", $commandLine, "exit /b %errorlevel%")
+  }
+
+  $wslContext = Get-WslContext -Path $resolvedRepoRoot
+  if (-not $wslContext) {
+    throw "Required command not found: git"
+  }
+
+  $repoLinuxPath = Escape-BashSingleQuoted ($wslContext.LinuxPath.TrimEnd('/'))
+  $argText = @($Arguments | ForEach-Object {
+    "'" + (Escape-BashSingleQuoted $_) + "'"
+  }) -join " "
+  $bashCommand = "cd '$repoLinuxPath' && git -c 'safe.directory=$repoLinuxPath' -C '$repoLinuxPath' $argText"
+  return Invoke-WslBashCommand -Distro $wslContext.Distro -BashCommand $bashCommand
 }
 
 function Escape-BashSingleQuoted {
@@ -190,9 +461,32 @@ function Copy-DirectorySnapshot {
   }
 
   New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
-  robocopy $SourcePath $DestinationPath /MIR /SL /XD .git .xmake build dist node_modules /XF .git /NJH /NJS /NDL /NFL /NP | Out-Null
-  if ($LASTEXITCODE -gt 7) {
-    throw "robocopy failed with exit code ${LASTEXITCODE}: $SourcePath -> $DestinationPath"
+  $bootstrapLocation = if ($env:SystemRoot -and (Test-Path $env:SystemRoot)) {
+    $env:SystemRoot
+  } elseif ($env:SystemDrive) {
+    "$($env:SystemDrive)\"
+  } else {
+    "C:\"
+  }
+
+  $robocopyPath = if ($env:SystemRoot) {
+    Join-Path $env:SystemRoot "System32\robocopy.exe"
+  } else {
+    "robocopy.exe"
+  }
+
+  $robocopyCommand = "`"$robocopyPath`" `"$SourcePath`" `"$DestinationPath`" /MIR /SL /XD .git .xmake build dist node_modules /XF .git /NJH /NJS /NDL /NFL /NP"
+  $exitCode = Invoke-CmdBatchScript `
+    -WorkingDirectory $bootstrapLocation `
+    -ScriptLines @(
+      "@echo off",
+      "setlocal",
+      $robocopyCommand,
+      "exit /b %errorlevel%"
+    )
+
+  if ($exitCode -gt 7) {
+    throw "robocopy failed with exit code ${exitCode}: $SourcePath -> $DestinationPath"
   }
 }
 

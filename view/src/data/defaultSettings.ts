@@ -10,7 +10,7 @@ export const defaultSettings: WidgetSettings = {
     onboardingSeen: false,
     opacity: 70,
     size: 'medium',
-    language: 'ko',
+    language: '',
     accentColor: '',
     transparentBg: true,
   },

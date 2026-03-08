@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { UpdateSettingFn, WidgetSettings, WidgetLayout } from '../types/settings';
-import { t } from '../i18n/translations';
+import type { Language, UpdateSettingFn, WidgetSettings, WidgetLayout } from '../types/settings';
+import { t, type LocalizationLanguageEntry } from '../i18n/translations';
 import { COMBAT_WIDGET_GROUP_IDS, EFFECT_WIDGET_GROUP_IDS } from '../data/widgetRegistry';
 import {
   type PanelTab,
@@ -19,11 +19,13 @@ import {
 
 interface SettingsPanelProps {
   settings: WidgetSettings;
+  lang: Language;
   effectiveVisible: boolean;
   open: boolean;
   onClose: () => void;
   onUpdate: UpdateSettingFn;
   accentColor: string;
+  availableLanguages: LocalizationLanguageEntry[];
 }
 
 const TAB_ORDER: PanelTab[] = ['general', 'combat', 'effects', 'alerts', 'presets'];
@@ -51,7 +53,16 @@ const DEFAULT_EXPANDED_SECTIONS: Record<string, boolean> = {
   layoutTools: true,
 };
 
-export function SettingsPanel({ settings, effectiveVisible, open, onClose, onUpdate, accentColor }: SettingsPanelProps) {
+export function SettingsPanel({
+  settings,
+  lang,
+  effectiveVisible,
+  open,
+  onClose,
+  onUpdate,
+  accentColor,
+  availableLanguages,
+}: SettingsPanelProps) {
   const [activeTab, setActiveTab] = useState<PanelTab>(() => readStoredPanelTab('general', TAB_ORDER));
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() =>
     readStoredExpandedSections(DEFAULT_EXPANDED_SECTIONS),
@@ -67,7 +78,6 @@ export function SettingsPanel({ settings, effectiveVisible, open, onClose, onUpd
 
   if (!open) return null;
 
-  const lang = settings.general.language;
   const groupLayout = (groupId: string): WidgetLayout => settings.layouts[groupId] ?? 'vertical';
   const currentSectionIds = TAB_SECTION_IDS[activeTab] ?? [];
 
@@ -191,9 +201,11 @@ export function SettingsPanel({ settings, effectiveVisible, open, onClose, onUpd
         <GeneralTabSections
           lang={lang}
           settings={settings}
+          selectedLanguage={lang}
           effectiveVisible={effectiveVisible}
           onUpdate={onUpdate}
           accentColor={accentColor}
+          availableLanguages={availableLanguages}
           isSectionExpanded={isSectionExpanded}
           toggleSection={toggleSection}
         />

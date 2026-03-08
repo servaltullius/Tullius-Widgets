@@ -26,10 +26,14 @@ if ($usesUncWorkRoot) {
 Push-Location $repoRoot
 
 try {
-  Require-Command "git"
-
   if (-not $SkipFrontendChecks) {
-    Require-Command "npm"
+    if ($usesUncWorkRoot) {
+      if (-not (Test-WindowsCommandAvailable "npm")) {
+        throw "Required command not found: npm"
+      }
+    } else {
+      Require-Command "npm"
+    }
     Write-Host "[verify] Running frontend checks..."
     $frontendBuildRoot = $repoRoot
     $frontendViewPath = Join-Path $repoRoot "view"
@@ -66,15 +70,37 @@ try {
   }
 
   if (-not $SkipPluginBuild) {
-    Require-Command "xmake"
+    $pluginDllPath = "build/windows/x64/release/TulliusWidgets.dll"
+    $xmakeCommand = if ($usesUncWorkRoot) {
+      Get-WindowsXmakeCommand
+    } else {
+      if (Test-CommandAvailable "xmake") { "xmake" } else { $null }
+    }
+    $vsDevCmd = if ($usesUncWorkRoot) { Get-WindowsVsDevCmd } else { $null }
+    $canRunXmake = $null -ne $xmakeCommand
+
+    if (-not $canRunXmake) {
+      if (Test-CanReuseExistingPluginDll -RepoRoot $repoRoot -PluginDllPath $pluginDllPath) {
+        Write-Host "[verify] xmake was not found. Reusing existing plugin DLL because native sources are unchanged."
+        $SkipPluginBuild = $true
+      } else {
+        throw "xmake was not found and the existing plugin DLL cannot be safely reused."
+      }
+    } elseif ($usesUncWorkRoot -and -not $vsDevCmd) {
+      throw "VsDevCmd.bat was not found. Visual Studio Build Tools environment could not be initialized."
+    }
+  }
+
+  if (-not $SkipPluginBuild) {
     Write-Host "[verify] Building native plugin (Windows/MSVC)..."
     if ($usesUncWorkRoot) {
       $pluginBuildRoot = Prepare-PluginBuildWorkspace -SourceRoot $repoRoot -WslContext $wslContext
       $stageRoots.Add($pluginBuildRoot) | Out-Null
 
       Invoke-CmdCommands -Path $pluginBuildRoot -Commands @(
-        "xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false --ccache=y",
-        "xmake build -y -v"
+        "call `"$vsDevCmd`" -arch=amd64 -host_arch=amd64",
+        "`"$xmakeCommand`" f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false --ccache=y",
+        "`"$xmakeCommand`" build -y -v"
       )
 
       $stagedDllPath = Join-Path $pluginBuildRoot "build/windows/x64/release/TulliusWidgets.dll"

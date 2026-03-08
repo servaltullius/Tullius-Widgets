@@ -1,6 +1,6 @@
 export type WidgetSize = 'xsmall' | 'small' | 'medium' | 'large';
 export type WidgetLayout = 'vertical' | 'horizontal';
-export type Language = 'ko' | 'en';
+export type Language = string;
 
 export interface GroupPosition {
   x: number;
