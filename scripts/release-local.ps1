@@ -133,6 +133,8 @@ function Invoke-ReleaseLocal {
         New-Item -ItemType Directory -Path $repoBuildDir -Force | Out-Null
         Copy-Item -LiteralPath $stagedDllPath -Destination (Join-Path $repoBuildDir "TulliusWidgets.dll") -Force
       }
+
+      Write-PluginBuildStamp -RepoRoot $repoRoot -PluginDllPath $pluginDllPath
     }
 
     $frontendOutputPath = "dist/PrismaUI/views/TulliusWidgets"
@@ -161,8 +163,8 @@ function Invoke-ReleaseLocal {
       return
     }
 
-    Invoke-GhCommand -Arguments @("release", "view", $tag, "--repo", $Repo) -WslContext $wslContext -AllowFailure *> $null
-    $releaseExists = ($LASTEXITCODE -eq 0)
+    $releaseViewResult = Invoke-GhCommand -Arguments @("release", "view", $tag, "--repo", $Repo) -WslContext $wslContext -AllowFailure
+    $releaseExists = ($releaseViewResult.ExitCode -eq 0)
 
     if (-not $releaseExists) {
       $createArgs = @("release", "create", $tag, $zipName, "--repo", $Repo, "--title", $title, "--notes-file", $notePath)

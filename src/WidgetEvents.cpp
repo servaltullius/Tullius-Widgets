@@ -10,6 +10,12 @@ using namespace std::literals;
 
 Callbacks g_callbacks{};
 
+bool IsPlayerReference(const RE::TESObjectREFR* ref)
+{
+    auto* player = RE::PlayerCharacter::GetSingleton();
+    return player && ref && (ref == player || ref->GetFormID() == RE::FormID(0x00000014));
+}
+
 bool IsViewReady()
 {
     return g_callbacks.isViewReady && g_callbacks.isViewReady();
@@ -73,9 +79,15 @@ public:
         return &singleton;
     }
 
-    RE::BSEventNotifyControl ProcessEvent(const RE::TESCombatEvent*, RE::BSTEventSource<RE::TESCombatEvent>*) override
+    RE::BSEventNotifyControl ProcessEvent(const RE::TESCombatEvent* event, RE::BSTEventSource<RE::TESCombatEvent>*) override
     {
-        SendStats();
+        if (!event) return RE::BSEventNotifyControl::kContinue;
+
+        auto* actor = event->actor.get();
+        auto* target = event->targetActor.get();
+        if (IsPlayerReference(actor) || IsPlayerReference(target)) {
+            SendStats();
+        }
         return RE::BSEventNotifyControl::kContinue;
     }
 };
@@ -91,11 +103,8 @@ public:
     RE::BSEventNotifyControl ProcessEvent(const RE::TESEquipEvent* event, RE::BSTEventSource<RE::TESEquipEvent>*) override
     {
         if (!event) return RE::BSEventNotifyControl::kContinue;
-        auto player = RE::PlayerCharacter::GetSingleton();
         auto* actor = event->actor.get();
-        const bool isPlayerEvent =
-            player && actor && (actor == player || actor->GetFormID() == RE::FormID(0x00000014));
-        if (isPlayerEvent) {
+        if (IsPlayerReference(actor)) {
             if (auto* taskInterface = SKSE::GetTaskInterface()) {
                 taskInterface->AddTask([]() {
                     SendStatsForced();

@@ -41,6 +41,7 @@ xmake build -y -v
 - `verify-runtime-windows.ps1`는 frontend lint/build와 native plugin build를 함께 확인합니다.
 - `release-local.ps1`는 zip 생성과 GitHub 릴리즈 게시를 담당합니다.
 - 두 스크립트 모두 WSL UNC worktree에서 실행해도 필요한 빌드는 임시 로컬 스테이징 경로에서 수행한 뒤 결과물을 작업 저장소로 복사합니다.
+- GitHub 게시 단계에서는 WSL UNC worktree일 때 WSL `gh`를 우선 사용하고, 일반 Windows 경로일 때는 로컬 `gh` 실행 결과를 직접 판정해 릴리즈 조회/업로드를 진행합니다.
 
 ## 1) 버전/패치노트 준비
 1. `xmake.lua`의 `set_version("...")`를 원하는 버전으로 설정

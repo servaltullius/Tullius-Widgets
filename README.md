@@ -169,6 +169,7 @@ WSL/Linux:
 - WSL에서 `./scripts/package.sh` 실행 시 프런트는 WSL에서 빌드
 - 네이티브 DLL과 zip 패키징은 Windows `release-local.ps1`로 위임
 - 결과물: `TulliusWidgets-v<version>.zip`
+- GitHub 게시 시 WSL UNC worktree에서는 WSL `gh`를 우선 사용하고, 일반 Windows 경로에서는 로컬 `gh` 결과를 명시적으로 판정해 릴리즈 존재 확인과 업로드를 진행
 
 ### 검증 스크립트 참고
 Windows 검증 스크립트:
@@ -179,6 +180,18 @@ pwsh -File .\scripts\verify-runtime-windows.ps1
 
 - Windows PowerShell에서 실행하는 검증 진입점입니다.
 - WSL UNC worktree에서 호출해도 필요한 frontend/plugin 빌드는 임시 로컬 경로로 스테이징해서 실행합니다.
+
+### Optional pre-commit hook
+로컬 커밋 전에 저장소 기준의 경량 검증을 자동으로 돌리고 싶다면 아래 명령으로 훅을 설치합니다.
+
+```bash
+python3 scripts/install_hooks.py --force
+```
+
+현재 훅이 수행하는 작업:
+- staged `view/` 변경이 있으면 `view`에서 `npm run lint`
+- staged Python 파일이 있으면 `py_compile`
+- staged PowerShell 파일이 있으면 문법 파싱
 
 ### 값 이상치 트러블슈팅
 - 치명타 확률이 `100%` 초과, 저항이 `85%` 초과로 보이면 구버전 DLL일 가능성이 큽니다.

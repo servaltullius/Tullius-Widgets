@@ -76,6 +76,7 @@ CritChanceEvaluation CriticalChanceEvaluator::Evaluate(RE::PlayerCharacter* play
 
     float critChance = player->AsActorValueOwner()->GetActorValue(RE::ActorValue::kCriticalChance);
     if (!std::isfinite(critChance)) critChance = 0.0f;
+    const float baseCritChance = critChance;
 
     auto* weapon = SelectActiveWeapon(player);
     if (!weapon) {
@@ -89,10 +90,8 @@ CritChanceEvaluation CriticalChanceEvaluator::Evaluate(RE::PlayerCharacter* play
     }
 
     auto* target = SelectCurrentTarget(player);
-    RE::Actor* evalTarget = target ? target : static_cast<RE::Actor*>(player);
-
-    if (!TryHandleEntryPoint_SEH(player, weapon, evalTarget, std::addressof(critChance))) {
-        critChance = 0.0f;
+    if (target && !TryHandleEntryPoint_SEH(player, weapon, target, std::addressof(critChance))) {
+        critChance = baseCritChance;
     }
 
     if (!std::isfinite(critChance)) critChance = 0.0f;

@@ -40,7 +40,7 @@
 
 Run (WSL, 문법 확인만):
 ```bash
-cd "/home/kdw73/projects/Tullius Widgets" && grep -n "target" src/CriticalChanceEvaluator.cpp
+cd "$(git rev-parse --show-toplevel)" && grep -n "target" src/CriticalChanceEvaluator.cpp
 ```
 Expected: 수정된 null guard 코드 확인
 
@@ -144,14 +144,14 @@ git commit -m "fix(storage): use temp+rename for preset export to prevent corrup
 **Step 2: Run frontend tests**
 
 ```bash
-cd "/home/kdw73/projects/Tullius Widgets/view" && npm run test
+cd "$(git rev-parse --show-toplevel)/view" && npm run test
 ```
 Expected: PASS
 
 **Step 3: Run lint**
 
 ```bash
-cd "/home/kdw73/projects/Tullius Widgets/view" && npm run lint
+cd "$(git rev-parse --show-toplevel)/view" && npm run lint
 ```
 Expected: 0 errors
 
@@ -278,7 +278,7 @@ git commit -m "perf(stats): pre-allocate JSON buffer and eliminate temporary str
 **Step 2: Run lint and tests**
 
 ```bash
-cd "/home/kdw73/projects/Tullius Widgets/view" && npm run lint && npm run test
+cd "$(git rev-parse --show-toplevel)/view" && npm run lint && npm run test
 ```
 Expected: PASS
 
@@ -330,7 +330,7 @@ git commit -m "perf(app): granulate trackedChangeSignature deps to sub-objects"
 **Step 2: Run lint and tests**
 
 ```bash
-cd "/home/kdw73/projects/Tullius Widgets/view" && npm run lint && npm run test
+cd "$(git rev-parse --show-toplevel)/view" && npm run lint && npm run test
 ```
 Expected: PASS
 
@@ -394,7 +394,7 @@ jobs:
 **Step 2: Verify locally**
 
 ```bash
-cd "/home/kdw73/projects/Tullius Widgets/view" && npm run lint && npx tsc -b --noEmit && npm run test
+cd "$(git rev-parse --show-toplevel)/view" && npm run lint && npx tsc -b --noEmit && npm run test
 ```
 Expected: 모두 PASS
 

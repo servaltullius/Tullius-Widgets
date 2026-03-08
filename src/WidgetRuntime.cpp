@@ -178,14 +178,25 @@ void RequestStatsDispatch(bool force)
         return;
     }
 
-    do {
+    while (true) {
         const bool shouldForce = g_state.statsDispatchForcePending.exchange(false, std::memory_order_acq_rel);
         g_state.statsDispatchPending.store(false, std::memory_order_release);
         SendStatsToView(shouldForce);
-    } while (g_state.statsDispatchPending.load(std::memory_order_acquire)
-             || g_state.statsDispatchForcePending.load(std::memory_order_acquire));
 
-    g_state.statsDispatchRunning.store(false, std::memory_order_release);
+        // Release the running flag before the final pending check so a new
+        // caller can either pick up the work or let this loop reacquire it.
+        g_state.statsDispatchRunning.store(false, std::memory_order_release);
+
+        if (!g_state.statsDispatchPending.load(std::memory_order_acquire)
+            && !g_state.statsDispatchForcePending.load(std::memory_order_acquire)) {
+            return;
+        }
+
+        expected = false;
+        if (!g_state.statsDispatchRunning.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
+            return;
+        }
+    }
 }
 
 void ScheduleStatsUpdateAfter(std::chrono::milliseconds delay)

@@ -111,6 +111,8 @@ try {
       xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false
       xmake build
     }
+
+    Write-PluginBuildStamp -RepoRoot $repoRoot -PluginDllPath $pluginDllPath
   }
 
   Assert-TulliusWidgetsBuildOutputs

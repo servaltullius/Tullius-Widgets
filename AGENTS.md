@@ -37,6 +37,23 @@ pwsh -File .\scripts\release-local.ps1 -NoPublish
 ./scripts/package.sh
 ```
 
+## Workflow Notes
+
+### Pre-commit hook
+- The repo-managed hook entrypoint is `scripts/precommit.py`.
+- Install or refresh it with `python3 scripts/install_hooks.py --force`.
+- Do not restore the old `.vibe/brain/precommit.py` hook path in this repo. `.vibe/` is not a required runtime dependency here.
+- The current pre-commit checks are intentionally lightweight:
+  - staged `view/` changes: `npm run lint`
+  - staged Python files: `py_compile`
+  - staged PowerShell files: syntax parse only
+
+### GitHub release publish
+- `scripts/release-local.ps1` is the preferred publish entrypoint.
+- Release existence checks must use the explicit result returned by `Invoke-GhCommand`; do not rely on outer-scope `$LASTEXITCODE` after helper calls.
+- In WSL UNC worktrees, prefer WSL `gh` for release publish steps.
+- In regular Windows paths, local `gh` is supported and should be executed without showing helper `cmd` windows.
+
 ## Source Of Truth
 
 - version: `xmake.lua`

@@ -3,13 +3,13 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 Describe "release-local helpers" {
   It "parses both wsl.localhost and wsl$ UNC paths" {
-    $localhost = Get-WslContext -Path "\\wsl.localhost\Ubuntu\home\kdw73\projects\Tullius Widgets"
-    $legacy = Get-WslContext -Path "\\wsl$\Ubuntu\home\kdw73\projects\Tullius Widgets"
+    $localhost = Get-WslContext -Path "\\wsl.localhost\Ubuntu\home\sample\workspace\Tullius Widgets"
+    $legacy = Get-WslContext -Path "\\wsl$\Ubuntu\home\sample\workspace\Tullius Widgets"
 
     $localhost.Distro | Should Be "Ubuntu"
-    $localhost.LinuxPath | Should Be "/home/kdw73/projects/Tullius Widgets"
+    $localhost.LinuxPath | Should Be "/home/sample/workspace/Tullius Widgets"
     $legacy.Distro | Should Be "Ubuntu"
-    $legacy.LinuxPath | Should Be "/home/kdw73/projects/Tullius Widgets"
+    $legacy.LinuxPath | Should Be "/home/sample/workspace/Tullius Widgets"
   }
 
   It "ignores non-WSL UNC paths" {
@@ -41,21 +41,69 @@ Describe "release-local helpers" {
     ($skipAll -join ",") | Should Be "-NoPublish"
   }
 
-  It "reuses an existing plugin DLL when native worktree is unchanged" {
+  It "reuses an existing plugin DLL only when build stamp matches the current native revision" {
     $root = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
     $pluginPath = Join-Path $root "build\windows\x64\release\TulliusWidgets.dll"
+    $xmakePath = Join-Path $root "xmake.lua"
 
     New-Item -ItemType Directory -Path (Join-Path $root ".git") -Force | Out-Null
     New-Item -ItemType Directory -Path (Split-Path $pluginPath -Parent) -Force | Out-Null
     Set-Content -Path $pluginPath -Value "dll" -Encoding UTF8
+    Set-Content -Path $xmakePath -Value 'set_version("1.2.1-rc.3")' -Encoding UTF8
 
     $gitStubPath = Join-Path $root "git.cmd"
-    Set-Content -Path $gitStubPath -Value "@echo off`r`nexit /b 0`r`n" -Encoding ASCII
+    $gitStub = @'
+@echo off
+set args=%*
+echo %args% | findstr /C:"rev-parse --short HEAD" >nul && (echo abc1234& exit /b 0)
+echo %args% | findstr /C:"rev-parse" >nul && (echo abc1234& exit /b 0)
+echo %args% | findstr /C:"status" >nul && exit /b 0
+exit /b 1
+'@
+    Set-Content -Path $gitStubPath -Value $gitStub -Encoding ASCII
     $originalPath = $env:PATH
     $env:PATH = "$root;$originalPath"
 
     try {
+      Write-PluginBuildStamp -RepoRoot $root -PluginDllPath $pluginPath
       (Test-CanReuseExistingPluginDll -RepoRoot $root -PluginDllPath $pluginPath) | Should Be $true
+    }
+    finally {
+      $env:PATH = $originalPath
+      if (Test-Path $root) {
+        Remove-Item -LiteralPath $root -Recurse -Force
+      }
+    }
+  }
+
+  It "does not reuse an existing plugin DLL without a matching build stamp" {
+    $root = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
+    $pluginPath = Join-Path $root "build\windows\x64\release\TulliusWidgets.dll"
+    $xmakePath = Join-Path $root "xmake.lua"
+
+    New-Item -ItemType Directory -Path (Join-Path $root ".git") -Force | Out-Null
+    New-Item -ItemType Directory -Path (Split-Path $pluginPath -Parent) -Force | Out-Null
+    Set-Content -Path $pluginPath -Value "dll" -Encoding UTF8
+    Set-Content -Path $xmakePath -Value 'set_version("1.2.1-rc.3")' -Encoding UTF8
+
+    $gitStubPath = Join-Path $root "git.cmd"
+    $gitStub = @'
+@echo off
+set args=%*
+echo %args% | findstr /C:"rev-parse --short HEAD" >nul && (echo abc1234& exit /b 0)
+echo %args% | findstr /C:"rev-parse" >nul && (echo abc1234& exit /b 0)
+echo %args% | findstr /C:"status" >nul && exit /b 0
+exit /b 1
+'@
+    Set-Content -Path $gitStubPath -Value $gitStub -Encoding ASCII
+    $originalPath = $env:PATH
+    $env:PATH = "$root;$originalPath"
+
+    try {
+      (Test-CanReuseExistingPluginDll -RepoRoot $root -PluginDllPath $pluginPath) | Should Be $false
+      Write-PluginBuildStamp -RepoRoot $root -PluginDllPath $pluginPath
+      Set-Content -Path $xmakePath -Value 'set_version("1.2.1-rc.4")' -Encoding UTF8
+      (Test-CanReuseExistingPluginDll -RepoRoot $root -PluginDllPath $pluginPath) | Should Be $false
     }
     finally {
       $env:PATH = $originalPath
@@ -89,6 +137,52 @@ Describe "release-local helpers" {
       }
 
       $threw | Should Be $true
+    }
+    finally {
+      $env:PATH = $originalPath
+      if (Test-Path $root) {
+        Remove-Item -LiteralPath $root -Recurse -Force
+      }
+    }
+  }
+
+  It "returns local gh output and exit code without relying on LASTEXITCODE" {
+    $root = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
+    $binDir = Join-Path $root "bin"
+    $originalPath = $env:PATH
+    New-Item -ItemType Directory -Path $binDir -Force | Out-Null
+    Set-Content -Path (Join-Path $binDir "gh.cmd") -Value "@echo off`r`necho gh-ok`r`nexit /b 0`r`n" -Encoding ASCII
+    $env:PATH = "$binDir;$originalPath"
+
+    try {
+      $LASTEXITCODE = 123
+      $result = Invoke-GhCommand -Arguments @("release", "view", "v1.2.1-rc.3")
+
+      $result.ExitCode | Should Be 0
+      $result.Output.Trim() | Should Be "gh-ok"
+      $LASTEXITCODE | Should Be 123
+    }
+    finally {
+      $env:PATH = $originalPath
+      if (Test-Path $root) {
+        Remove-Item -LiteralPath $root -Recurse -Force
+      }
+    }
+  }
+
+  It "returns a failed gh result when AllowFailure is set" {
+    $root = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
+    $binDir = Join-Path $root "bin"
+    $originalPath = $env:PATH
+    New-Item -ItemType Directory -Path $binDir -Force | Out-Null
+    Set-Content -Path (Join-Path $binDir "gh.cmd") -Value "@echo off`r`necho missing release 1>&2`r`nexit /b 1`r`n" -Encoding ASCII
+    $env:PATH = "$binDir;$originalPath"
+
+    try {
+      $result = Invoke-GhCommand -Arguments @("release", "view", "v1.2.1-rc.3") -AllowFailure
+
+      $result.ExitCode | Should Be 1
+      $result.Output | Should Match "missing release"
     }
     finally {
       $env:PATH = $originalPath

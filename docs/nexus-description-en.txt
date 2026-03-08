@@ -2,57 +2,68 @@
 
 [size=4][b]Tullius Widgets[/b][/size]
 
-A combat stats HUD widget mod for Skyrim SE, powered by [url=https://www.nexusmods.com/skyrimspecialedition/mods/117592]Prisma UI[/url].
-Displays useful player stats directly on the HUD without opening any menus.
+A combat-stat HUD mod for Skyrim SE/AE, powered by [url=https://www.nexusmods.com/skyrimspecialedition/mods/117592]Prisma UI[/url].
+It shows the information you actually need during combat and exploration without opening menus.
 
 [line]
 
-[size=3][b]Features[/b][/size]
+[size=3][b]What It Does[/b][/size]
 
-[b]18 Stat Widgets[/b]
 [list]
-[*][b]Player Info[/b] — Level, Gold, Carry Weight, Health, Magicka, Stamina
-[*][b]Resistances[/b] — Magic, Fire, Frost, Shock, Poison, Disease
-[*][b]Defense[/b] — Armor Rating, Damage Reduction (%)
-[*][b]Offense[/b] — Right/Left Hand Damage, Critical Chance (%)
-[*][b]Movement[/b] — Speed Multiplier (%)
-[/list]
-
-[b]Visual Alerts[/b]
-Vignette screen effects warn you when Health, Magicka, or Stamina drops below a configurable threshold. Overencumbered warning included.
-
-[b]Fully Customizable[/b]
-[list]
-[*]Toggle each stat widget individually
-[*]Adjust opacity, size (Very Small / Small / Medium / Large)
-[*]Vertical or horizontal layout per widget group
-[*]Custom accent color or auto-detect from HUD color
-[*]Transparent background mode
-[*]Drag and reposition widget groups freely (auto-snaps to neighbors)
+[*]Shows [b]20 stat widgets[/b] on the HUD
+[*]Includes [b]Skyrim date/time + real date/time[/b] widgets
+[*]Shows [b]right/left hand equipped items[/b]
+[*]Shows [b]timed buffs/debuffs[/b] with remaining duration
+[*]Supports [b]drag-and-drop layout editing[/b] in the settings panel
+[*]Adds [b]visual vignette alerts[/b] for low Health/Magicka/Stamina and overencumbrance
+[*]Supports [b]external JSON localization files[/b] for additional languages
 [/list]
 
 [center][img]https://raw.githubusercontent.com/servaltullius/Tullius-Widgets/master/docs/screenshot-drag.webp[/img][/center]
 
+[size=3][b]Widget Categories[/b][/size]
+
 [list]
-[*]Preset export / import
-[*]Korean / English language support
+[*][b]Player Info[/b] — Level, Gold, Carry Weight, Health, Magicka, Stamina
+[*][b]Resistances[/b] — Magic, Fire, Frost, Shock, Poison, Disease
+[*][b]Defense[/b] — Armor Rating, Damage Reduction
+[*][b]Offense[/b] — Right/Left Hand Damage, Critical Chance
+[*][b]Movement[/b] — Speed Multiplier
+[*][b]Time[/b] — Skyrim date/time and real date/time
+[*][b]Timed Effects[/b] — Source name, effect name, and remaining seconds
 [/list]
 
-[b]Smart Behavior[/b]
+[size=3][b]Main Features[/b][/size]
+
 [list]
-[*]Auto-hides when game menus are open (Inventory, Map, Crafting, etc.)
-[*]Optional "Combat Only" mode — widgets appear only during combat
-[*]Critical chance reflects actual perk bonuses (Bladesman, Deep Wounds, Critical Shot)
-[*]Display ranges: Critical Chance 0~100%, Magic/Fire/Frost/Shock/Poison Resist -100~85%, Disease Resist 0~100%
-[*]Health/Magicka/Stamina show real-time current values
+[*]Per-widget show/hide toggles
+[*]Size, opacity, transparent background, and accent color controls
+[*]Vertical / horizontal layout per widget group
+[*]Automatic snapping while dragging widget groups
+[*]Optional [b]Combat Only[/b] mode
+[*]Optional [b]Show Only When Values Change[/b] mode
+[*]Heartbeat resync to reduce stale HUD values when events are quiet
+[*]Automatic hide behavior for inventory, map, crafting, and other menus
+[*]Runtime warning banner for unsupported runtime / missing Address Library combinations
+[*]First-run onboarding card with Insert / F11 usage hints
 [/list]
 
 [center][img]https://raw.githubusercontent.com/servaltullius/Tullius-Widgets/master/docs/screenshot-settings.png[/img][/center]
+
+[size=3][b]Stat Display Notes[/b][/size]
+
+[list]
+[*]Critical Chance is displayed in the safe range of [b]0% to 100%[/b]
+[*]Magic / Fire / Frost / Shock / Poison resist effective values are presented with the usual [b]85% cap[/b] in mind
+[*]Disease Resist is displayed in the safe range of [b]0% to 100%[/b]
+[*]Raw values and capped/effective values are separated where useful
+[/list]
 
 [line]
 
 [size=3][b]Requirements[/b][/size]
 [list]
+[*]Skyrim Special Edition / Anniversary Edition
 [*][url=https://skse.silverlock.org/]SKSE64[/url]
 [*][url=https://www.nexusmods.com/skyrimspecialedition/mods/117592]Prisma UI[/url]
 [*][url=https://www.nexusmods.com/skyrimspecialedition/mods/32444]Address Library for SKSE Plugins[/url]
@@ -62,39 +73,75 @@ Vignette screen effects warn you when Health, Magicka, or Stamina drops below a 
 
 [size=3][b]Installation[/b][/size]
 
-[b]Manual:[/b] Extract the zip contents into your [font=Courier New]Skyrim Special Edition/Data/[/font] folder.
+[b]Manual:[/b] Extract the archive into your [font=Courier New]Skyrim Special Edition/Data/[/font] folder.
 
-[b]Mod Manager:[/b] Install as usual.
-
-After installation:
+[b]Expected layout:[/b]
 [code]
 Data/
   SKSE/Plugins/TulliusWidgets.dll
-  PrismaUI/views/TulliusWidgets/...
+  PrismaUI/views/TulliusWidgets/index.html
+  PrismaUI/views/TulliusWidgets/i18n/manifest.json
+  PrismaUI/views/TulliusWidgets/i18n/en.json
+  PrismaUI/views/TulliusWidgets/i18n/ko.json
+  PrismaUI/views/TulliusWidgets/assets/...
 [/code]
 
 [line]
 
 [size=3][b]Controls[/b][/size]
-
 [list]
-[*][b]Insert[/b] — Open / close settings panel
-[*][b]ESC[/b] — Close settings panel
-[*][b]Drag[/b] — Reposition widget groups while settings panel is open
+[*][b]Insert[/b] — Open / close the settings panel
+[*][b]F11[/b] — Toggle widget visibility
+[*][b]ESC[/b] — Close the settings panel
+[*][b]Drag[/b] — Move widget groups while settings are open
 [/list]
 
 [line]
 
-[size=3][b]Settings[/b][/size]
+[size=3][b]Localization / Translating To Other Languages[/b][/size]
 
-Settings are saved automatically to [font=Courier New]Data/SKSE/Plugins/TulliusWidgets.json[/font].
-You can export/import presets from the settings panel.
-Preset file: [font=Courier New]Data/SKSE/Plugins/TulliusWidgets_preset.json[/font]
+This mod already supports [b]external JSON language files[/b].
+You do [b]not[/b] need to edit the DLL to add another language.
+
+[b]Language files are here:[/b]
+[code]
+Data/PrismaUI/views/TulliusWidgets/i18n/
+  manifest.json
+  en.json
+  ko.json
+[/code]
+
+[b]To add another language:[/b]
+[list]
+[*]Copy [font=Courier New]en.json[/font] and rename it, for example [font=Courier New]fr.json[/font]
+[*]Translate the values in that JSON file
+[*]Open [font=Courier New]manifest.json[/font] and add a new language entry
+[*]Select the new language from the in-game settings panel
+[/list]
+
+[b]Example manifest entry:[/b]
+[code]
+{
+  "code": "fr",
+  "label": "Français",
+  "file": "fr.json",
+  "locale": "fr-FR"
+}
+[/code]
+
+If a translated JSON file is missing some keys, the UI falls back to the default built-in text instead of breaking.
+
+[line]
+
+[size=3][b]Settings Files[/b][/size]
+[list]
+[*]Settings: [font=Courier New]Data/SKSE/Plugins/TulliusWidgets.json[/font]
+[*]Preset export/import: [font=Courier New]Data/SKSE/Plugins/TulliusWidgets_preset.json[/font]
+[/list]
 
 [line]
 
 [size=3][b]Source Code[/b][/size]
-
 [url=https://github.com/servaltullius/Tullius-Widgets]GitHub Repository[/url] (MIT License)
 
 [line]
@@ -103,5 +150,5 @@ Preset file: [font=Courier New]Data/SKSE/Plugins/TulliusWidgets_preset.json[/fon
 [list]
 [*][url=https://www.nexusmods.com/skyrimspecialedition/mods/117592]Prisma UI[/url] by jfmherokiller
 [*][url=https://github.com/CharmedBaryon/CommonLibSSE-NG]CommonLib-NG[/url] by CharmedBaryon
-[*][url=https://lucide.dev/]Lucide Icons[/url] (ISC License)
+[*][url=https://lucide.dev/]Lucide Icons[/url]
 [/list]

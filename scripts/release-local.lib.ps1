@@ -163,6 +163,58 @@ function Invoke-CmdBatchScriptWithOutput {
   }
 }
 
+function Invoke-ProcessWithOutput {
+  param(
+    [string]$FilePath,
+    [string[]]$ArgumentList,
+    [string]$WorkingDirectory
+  )
+
+  $stdoutPath = Join-Path $env:TEMP ("codex-proc-out-" + [guid]::NewGuid().ToString("N") + ".log")
+  $stderrPath = Join-Path $env:TEMP ("codex-proc-err-" + [guid]::NewGuid().ToString("N") + ".log")
+
+  try {
+    $process = Start-Process `
+      -FilePath $FilePath `
+      -ArgumentList $ArgumentList `
+      -WorkingDirectory $WorkingDirectory `
+      -WindowStyle Hidden `
+      -Wait `
+      -PassThru `
+      -RedirectStandardOutput $stdoutPath `
+      -RedirectStandardError $stderrPath
+
+    $stdout = if (Test-Path $stdoutPath) {
+      $content = Get-Content -Path $stdoutPath -Raw
+      if ($null -eq $content) { "" } else { $content }
+    } else {
+      ""
+    }
+    $stderr = if (Test-Path $stderrPath) {
+      $content = Get-Content -Path $stderrPath -Raw
+      if ($null -eq $content) { "" } else { $content }
+    } else {
+      ""
+    }
+
+    $combinedOutput = "$stdout$stderr"
+    $combinedOutput = [regex]::Replace(
+      $combinedOutput,
+      "(?ms)^'\\\\wsl(?:\.localhost|\$)\\.*?^UNC paths are not supported\.\s+Defaulting to Windows directory\.\r?\n?",
+      ""
+    )
+
+    return @{
+      Output = $combinedOutput
+      ExitCode = $process.ExitCode
+    }
+  }
+  finally {
+    Remove-Item -LiteralPath $stdoutPath -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
+  }
+}
+
 function Invoke-WslBashCommand {
   param(
     [string]$Distro,
@@ -194,22 +246,19 @@ function Invoke-GhCommand {
     if (-not $AllowFailure -and $result.ExitCode -ne 0) {
       throw "gh command failed with exit code $($result.ExitCode): gh $($Arguments -join ' ')"
     }
-    return
+    return $result
   }
 
   $ghCommand = Get-ResolvedCommand "gh"
   if ($ghCommand) {
-    $commandLine = (Convert-ToCmdArgument $ghCommand)
-    if ($Arguments.Count -gt 0) {
-      $commandLine += " " + (($Arguments | ForEach-Object { Convert-ToCmdArgument $_ }) -join " ")
-    }
-    $result = Invoke-CmdBatchScriptWithOutput `
-      -WorkingDirectory ((Get-Location).Path) `
-      -ScriptLines @("@echo off", "setlocal", $commandLine, "exit /b %errorlevel%")
+    $result = Invoke-ProcessWithOutput `
+      -FilePath $ghCommand `
+      -ArgumentList $Arguments `
+      -WorkingDirectory ((Get-Location).Path)
     if (-not $AllowFailure -and $result.ExitCode -ne 0) {
       throw "gh command failed with exit code $($result.ExitCode): gh $($Arguments -join ' ')"
     }
-    return
+    return $result
   }
 
   if (-not $WslContext) {
@@ -270,6 +319,66 @@ function Get-ShortGitSha {
   return $result.Output.Trim()
 }
 
+function Resolve-PluginBuildPaths {
+  param(
+    [string]$RepoRoot = (Get-Location).Path,
+    [string]$PluginDllPath = "build/windows/x64/release/TulliusWidgets.dll"
+  )
+
+  $resolvedRepoRoot = [System.IO.Path]::GetFullPath($RepoRoot)
+  $resolvedPluginDllPath = if ([System.IO.Path]::IsPathRooted($PluginDllPath)) {
+    [System.IO.Path]::GetFullPath($PluginDllPath)
+  } else {
+    Join-Path $resolvedRepoRoot $PluginDllPath
+  }
+
+  return @{
+    RepoRoot = $resolvedRepoRoot
+    PluginDllPath = $resolvedPluginDllPath
+    StampPath = "$resolvedPluginDllPath.build.json"
+  }
+}
+
+function Write-PluginBuildStamp {
+  param(
+    [string]$RepoRoot = (Get-Location).Path,
+    [string]$PluginDllPath = "build/windows/x64/release/TulliusWidgets.dll"
+  )
+
+  $paths = Resolve-PluginBuildPaths -RepoRoot $RepoRoot -PluginDllPath $PluginDllPath
+  $version = Parse-VersionFromXmake -Path (Join-Path $paths.RepoRoot "xmake.lua")
+  $gitSha = Get-ShortGitSha -RepoRoot $paths.RepoRoot
+  $stampDir = Split-Path -Parent $paths.StampPath
+  if ($stampDir) {
+    New-Item -ItemType Directory -Path $stampDir -Force | Out-Null
+  }
+
+  $stamp = [ordered]@{
+    version = $version
+    gitSha = $gitSha
+  }
+  $stamp | ConvertTo-Json -Compress | Set-Content -Path $paths.StampPath -Encoding UTF8
+}
+
+function Read-PluginBuildStamp {
+  param(
+    [string]$RepoRoot = (Get-Location).Path,
+    [string]$PluginDllPath = "build/windows/x64/release/TulliusWidgets.dll"
+  )
+
+  $paths = Resolve-PluginBuildPaths -RepoRoot $RepoRoot -PluginDllPath $PluginDllPath
+  if (-not (Test-Path $paths.StampPath)) {
+    return $null
+  }
+
+  try {
+    return Get-Content -Path $paths.StampPath -Raw | ConvertFrom-Json
+  }
+  catch {
+    return $null
+  }
+}
+
 function Test-HasNativeWorktreeChanges {
   param([string]$RepoRoot = (Get-Location).Path)
 
@@ -295,18 +404,24 @@ function Test-CanReuseExistingPluginDll {
     [string]$PluginDllPath = "build/windows/x64/release/TulliusWidgets.dll"
   )
 
-  $resolvedRepoRoot = [System.IO.Path]::GetFullPath($RepoRoot)
-  $resolvedPluginDllPath = if ([System.IO.Path]::IsPathRooted($PluginDllPath)) {
-    $PluginDllPath
-  } else {
-    Join-Path $resolvedRepoRoot $PluginDllPath
-  }
+  $paths = Resolve-PluginBuildPaths -RepoRoot $RepoRoot -PluginDllPath $PluginDllPath
 
-  if (-not (Test-Path $resolvedPluginDllPath)) {
+  if (-not (Test-Path $paths.PluginDllPath)) {
     return $false
   }
 
-  return -not (Test-HasNativeWorktreeChanges -RepoRoot $resolvedRepoRoot)
+  $stamp = Read-PluginBuildStamp -RepoRoot $paths.RepoRoot -PluginDllPath $paths.PluginDllPath
+  if (-not $stamp) {
+    return $false
+  }
+
+  $currentVersion = Parse-VersionFromXmake -Path (Join-Path $paths.RepoRoot "xmake.lua")
+  $currentGitSha = Get-ShortGitSha -RepoRoot $paths.RepoRoot
+  if ("$($stamp.version)" -ne $currentVersion -or "$($stamp.gitSha)" -ne $currentGitSha) {
+    return $false
+  }
+
+  return -not (Test-HasNativeWorktreeChanges -RepoRoot $paths.RepoRoot)
 }
 
 function Invoke-CmdBatchScript {
