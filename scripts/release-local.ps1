@@ -65,11 +65,11 @@ function Invoke-ReleaseLocal {
         $frontendViewPath = Join-Path $frontendBuildRoot "view"
       }
 
-      $frontendCommands = @("npm ci")
+      $frontendCommands = @("call npm ci")
       if (-not $SkipLint) {
-        $frontendCommands += "npm run lint"
+        $frontendCommands += "call npm run lint"
       }
-      $frontendCommands += "npm run build"
+      $frontendCommands += "call npm run build"
       Invoke-CmdCommands -Path $frontendViewPath -Commands $frontendCommands
 
       if ($usesUncWorkRoot) {
