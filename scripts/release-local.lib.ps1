@@ -183,6 +183,20 @@ function Invoke-GhCommand {
     [switch]$AllowFailure
   )
 
+  if ($WslContext) {
+    $repoLinuxPath = Escape-BashSingleQuoted ($WslContext.LinuxPath.TrimEnd('/'))
+    $argText = @($Arguments | ForEach-Object {
+      "'" + (Escape-BashSingleQuoted $_) + "'"
+    }) -join " "
+    $bashCommand = "cd '$repoLinuxPath' && gh $argText"
+    $result = Invoke-WslBashCommand -Distro $WslContext.Distro -BashCommand $bashCommand
+
+    if (-not $AllowFailure -and $result.ExitCode -ne 0) {
+      throw "gh command failed with exit code $($result.ExitCode): gh $($Arguments -join ' ')"
+    }
+    return
+  }
+
   $ghCommand = Get-ResolvedCommand "gh"
   if ($ghCommand) {
     $commandLine = (Convert-ToCmdArgument $ghCommand)
@@ -200,17 +214,6 @@ function Invoke-GhCommand {
 
   if (-not $WslContext) {
     throw "Required command not found: gh"
-  }
-
-  $repoLinuxPath = Escape-BashSingleQuoted ($WslContext.LinuxPath.TrimEnd('/'))
-  $argText = @($Arguments | ForEach-Object {
-    "'" + (Escape-BashSingleQuoted $_) + "'"
-  }) -join " "
-  $bashCommand = "cd '$repoLinuxPath' && gh $argText"
-  $result = Invoke-WslBashCommand -Distro $WslContext.Distro -BashCommand $bashCommand
-
-  if (-not $AllowFailure -and $result.ExitCode -ne 0) {
-    throw "gh command failed with exit code $($result.ExitCode): gh $($Arguments -join ' ')"
   }
 }
 
