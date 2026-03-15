@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Language, UpdateSettingFn, WidgetSettings } from '../types/settings';
+import type { SelectedItemLayoutActions } from '../hooks/useSelectedItemLayoutActions';
 import { t, type LocalizationLanguageEntry } from '../i18n/translations';
 import { COMBAT_WIDGET_GROUP_IDS, EFFECT_WIDGET_GROUP_IDS } from '../data/widgetRegistry';
 import {
@@ -26,6 +27,8 @@ interface SettingsPanelProps {
   onUpdate: UpdateSettingFn;
   accentColor: string;
   availableLanguages: LocalizationLanguageEntry[];
+  selectedItemId?: string | null;
+  selectedItemLayoutActions?: SelectedItemLayoutActions;
 }
 
 const TAB_ORDER: PanelTab[] = ['general', 'combat', 'effects', 'alerts', 'presets'];
@@ -62,6 +65,8 @@ export function SettingsPanel({
   onUpdate,
   accentColor,
   availableLanguages,
+  selectedItemId = null,
+  selectedItemLayoutActions,
 }: SettingsPanelProps) {
   const [activeTab, setActiveTab] = useState<PanelTab>(() => readStoredPanelTab('general', TAB_ORDER));
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() =>
@@ -79,6 +84,7 @@ export function SettingsPanel({
   if (!open) return null;
 
   const currentSectionIds = TAB_SECTION_IDS[activeTab] ?? [];
+  const hasSelectedItemActions = Boolean(selectedItemId && selectedItemLayoutActions);
 
   const tabLabels: Record<PanelTab, string> = {
     general: t(lang, 'tabGeneral'),
@@ -120,7 +126,10 @@ export function SettingsPanel({
       zIndex: 1000,
       pointerEvents: 'auto',
       fontFamily: 'var(--tw-font-ui)',
-    }}>
+    }}
+      data-selected-item-id={selectedItemId ?? undefined}
+      data-has-selected-item-actions={hasSelectedItemActions ? 'true' : 'false'}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <h2 style={{ color: 'var(--tw-color-panel-title)', margin: 0, fontSize: '36px' }}>{t(lang, 'title')}</h2>
         <button

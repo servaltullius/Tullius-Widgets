@@ -7,6 +7,7 @@ import { WidgetEditGuides } from './components/WidgetEditGuides';
 import { useGameStatsState } from './hooks/useGameStats';
 import { useSettings } from './hooks/useSettings';
 import { useWidgetEditSelection } from './hooks/useWidgetEditSelection';
+import { createSelectedItemLayoutActions } from './hooks/useSelectedItemLayoutActions';
 import { useLocalization } from './i18n/useLocalization';
 import { useWidgetItemLayouts } from './hooks/useWidgetItemLayouts';
 import type { WidgetItemLayout } from './types/settings';
@@ -74,6 +75,16 @@ export function App() {
       ...previewLayouts,
     };
   }, [canonicalItemLayouts, previewLayouts]);
+  const selectedItemLayoutActions = useMemo(() => {
+    return createSelectedItemLayoutActions({
+      selectedItemId,
+      itemLayouts,
+      settings,
+      viewportWidth: viewport.width,
+      viewportHeight: viewport.height,
+      updateSetting,
+    });
+  }, [itemLayouts, selectedItemId, settings, updateSetting, viewport.height, viewport.width]);
 
   const clearPreviewState = useCallback(() => {
     setPreviewLayouts(previous => (Object.keys(previous).length === 0 ? previous : {}));
@@ -301,6 +312,8 @@ export function App() {
         onUpdate={updateSetting}
         accentColor={accentColor}
         availableLanguages={availableLanguages}
+        selectedItemId={selectedItemId}
+        selectedItemLayoutActions={selectedItemLayoutActions}
       />
     </>
   );

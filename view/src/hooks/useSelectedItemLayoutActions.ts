@@ -19,6 +19,13 @@ export interface SelectedItemLayoutActionsParams {
   updateSetting: UpdateSettingFn;
 }
 
+export interface SelectedItemLayoutActions {
+  resetSelectedItemPosition: () => boolean;
+  nudgeSelectedItem: (deltaX: number, deltaY: number) => boolean;
+  bringSelectedItemForward: () => boolean;
+  sendSelectedItemBackward: () => boolean;
+}
+
 function commitCanonicalItemLayouts(
   updateSetting: UpdateSettingFn,
   currentLayouts: Record<string, WidgetItemLayout>,
@@ -39,7 +46,7 @@ export function createSelectedItemLayoutActions({
   viewportWidth,
   viewportHeight,
   updateSetting,
-}: SelectedItemLayoutActionsParams) {
+}: SelectedItemLayoutActionsParams): SelectedItemLayoutActions {
   const selectedLayout = selectedItemId ? itemLayouts[selectedItemId] : null;
 
   return {
