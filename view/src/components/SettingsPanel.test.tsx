@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { act } from 'react';
+import { useMemo, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { defaultSettings } from '../data/defaultSettings';
 import type { WidgetSettings } from '../types/settings';
@@ -79,6 +80,14 @@ describe('SettingsPanel', () => {
           accentColor="#4fd1c5"
           availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json', locale: 'ko-KR' }]}
           selectedItemId="player.level"
+          selectedItemLayout={{
+            visible: true,
+            x: 120,
+            y: 240,
+            scale: 1.4,
+            locked: false,
+            zIndex: 4,
+          }}
         />,
       );
     });
@@ -87,8 +96,12 @@ describe('SettingsPanel', () => {
     const tabs = container.querySelector('[data-settings-panel-tabs]') as HTMLDivElement | null;
 
     expect(quickEditCard).not.toBeNull();
+    expect(tabs).not.toBeNull();
+    if (!quickEditCard || !tabs) {
+      throw new Error('expected quick-edit card and tabs to render');
+    }
     expect(quickEditCard?.textContent).toContain('레벨');
-    expect(Boolean(quickEditCard?.compareDocumentPosition(tabs!) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+    expect(Boolean(quickEditCard.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
 
     const initialCardNode = quickEditCard;
     const effectsTab = Array.from(container.querySelectorAll('button')).find(
@@ -102,5 +115,210 @@ describe('SettingsPanel', () => {
     const afterTabSwitchCard = container.querySelector('[data-selected-widget-quick-edit-card]') as HTMLDivElement | null;
     expect(afterTabSwitchCard).toBe(initialCardNode);
     expect(afterTabSwitchCard?.textContent).toContain('레벨');
+  });
+
+  it('keeps the quick-edit card mounted while hiding the selected widget and allows showing it again', async () => {
+    function Harness() {
+      const [settings, setSettings] = useState(() => {
+        const next = cloneSettings();
+        next.itemLayouts['player.level'] = {
+          visible: true,
+          x: 120,
+          y: 240,
+          scale: 1.25,
+          locked: false,
+          zIndex: 3,
+        };
+        return next;
+      });
+
+      const selectedItemLayoutActions = useMemo(() => ({
+        setSelectedItemVisible(nextVisible: boolean) {
+          setSettings(current => ({
+            ...current,
+            itemLayouts: {
+              ...current.itemLayouts,
+              'player.level': {
+                ...current.itemLayouts['player.level'],
+                visible: nextVisible,
+              },
+            },
+          }));
+          return true;
+        },
+        setSelectedItemScale(nextScale: number) {
+          setSettings(current => ({
+            ...current,
+            itemLayouts: {
+              ...current.itemLayouts,
+              'player.level': {
+                ...current.itemLayouts['player.level'],
+                scale: nextScale,
+              },
+            },
+          }));
+          return true;
+        },
+        setSelectedItemLocked(nextLocked: boolean) {
+          setSettings(current => ({
+            ...current,
+            itemLayouts: {
+              ...current.itemLayouts,
+              'player.level': {
+                ...current.itemLayouts['player.level'],
+                locked: nextLocked,
+              },
+            },
+          }));
+          return true;
+        },
+        nudgeSelectedItem() {
+          return false;
+        },
+        resetSelectedItemPosition() {
+          return false;
+        },
+        bringSelectedItemForward() {
+          return false;
+        },
+        sendSelectedItemBackward() {
+          return false;
+        },
+      }), []);
+
+      return (
+        <SettingsPanel
+          settings={settings}
+          lang="ko"
+          effectiveVisible
+          open
+          onClose={() => {}}
+          onUpdate={() => {}}
+          accentColor="#4fd1c5"
+          availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json', locale: 'ko-KR' }]}
+          selectedItemId="player.level"
+          selectedItemLayout={settings.itemLayouts['player.level']}
+          selectedItemLayoutActions={selectedItemLayoutActions}
+        />
+      );
+    }
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness />);
+    });
+
+    const visibilityToggle = container.querySelector('[data-quick-edit-visibility-toggle="true"]') as HTMLInputElement | null;
+    const bringForwardButton = container.querySelector('[data-quick-edit-bring-forward="true"]') as HTMLButtonElement | null;
+    const sendBackwardButton = container.querySelector('[data-quick-edit-send-backward="true"]') as HTMLButtonElement | null;
+
+    await act(async () => {
+      visibilityToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(container.querySelector('[data-selected-widget-quick-edit-card]')).not.toBeNull();
+    expect((container.querySelector('[data-quick-edit-visibility-toggle="true"]') as HTMLInputElement).checked).toBe(false);
+    expect(bringForwardButton?.disabled).toBe(true);
+    expect(sendBackwardButton?.disabled).toBe(true);
+
+    await act(async () => {
+      (container.querySelector('[data-quick-edit-visibility-toggle="true"]') as HTMLInputElement)
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect((container.querySelector('[data-quick-edit-visibility-toggle="true"]') as HTMLInputElement).checked).toBe(true);
+  });
+
+  it('uses the selected item layout prop for live quick-edit values and wires size/lock callbacks', async () => {
+    function Harness() {
+      const [settings] = useState(() => {
+        const next = cloneSettings();
+        next.itemLayouts['player.level'] = {
+          visible: true,
+          x: 120,
+          y: 240,
+          scale: 1.25,
+          locked: false,
+          zIndex: 3,
+        };
+        return next;
+      });
+      const [selectedItemLayout, setSelectedItemLayout] = useState({
+        visible: true,
+        x: 160,
+        y: 260,
+        scale: 1.55,
+        locked: false,
+        zIndex: 7,
+      });
+
+      const selectedItemLayoutActions = useMemo(() => ({
+        setSelectedItemVisible(nextVisible: boolean) {
+          setSelectedItemLayout(current => ({ ...current, visible: nextVisible }));
+          return true;
+        },
+        setSelectedItemScale(nextScale: number) {
+          setSelectedItemLayout(current => ({ ...current, scale: nextScale }));
+          return true;
+        },
+        setSelectedItemLocked(nextLocked: boolean) {
+          setSelectedItemLayout(current => ({ ...current, locked: nextLocked }));
+          return true;
+        },
+        nudgeSelectedItem() {
+          return false;
+        },
+        resetSelectedItemPosition() {
+          return false;
+        },
+        bringSelectedItemForward() {
+          return false;
+        },
+        sendSelectedItemBackward() {
+          return false;
+        },
+      }), []);
+
+      return (
+        <SettingsPanel
+          settings={settings}
+          lang="ko"
+          effectiveVisible
+          open
+          onClose={() => {}}
+          onUpdate={() => {}}
+          accentColor="#4fd1c5"
+          availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json', locale: 'ko-KR' }]}
+          selectedItemId="player.level"
+          selectedItemLayout={selectedItemLayout}
+          selectedItemLayoutActions={selectedItemLayoutActions}
+        />
+      );
+    }
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness />);
+    });
+
+    const sizeSlider = container.querySelector('[data-quick-edit-size-slider="true"]') as HTMLInputElement | null;
+    const lockToggle = container.querySelector('[data-quick-edit-lock-toggle="true"]') as HTMLInputElement | null;
+
+    expect(sizeSlider?.value).toBe('1.55');
+    expect(container.textContent).toContain('z 7');
+
+    await act(async () => {
+      sizeSlider!.value = '1.7';
+      sizeSlider?.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    expect((container.querySelector('[data-quick-edit-size-slider="true"]') as HTMLInputElement).value).toBe('1.7');
+
+    await act(async () => {
+      lockToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect((container.querySelector('[data-quick-edit-lock-toggle="true"]') as HTMLInputElement).checked).toBe(true);
+    expect((container.querySelector('[data-quick-edit-size-slider="true"]') as HTMLInputElement).disabled).toBe(true);
   });
 });

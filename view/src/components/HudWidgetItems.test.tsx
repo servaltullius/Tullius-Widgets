@@ -144,4 +144,47 @@ describe('HudWidgetItems', () => {
     expect((container.querySelector('[data-widget-item-id="player.level"]') as HTMLDivElement).style.zIndex).toBe('2');
     expect((container.querySelector('[data-widget-item-id="time.game"]') as HTMLDivElement).style.zIndex).toBe('8');
   });
+
+  it('drops the selected widget from HUD rendering as soon as it becomes hidden', async () => {
+    const settings = cloneSettings();
+    const stats = cloneStats();
+    const itemLayouts = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+
+    for (const itemId of Object.keys(itemLayouts)) {
+      itemLayouts[itemId] = { ...itemLayouts[itemId], visible: false };
+    }
+
+    itemLayouts['player.level'] = {
+      ...itemLayouts['player.level'],
+      visible: false,
+    };
+    itemLayouts['time.game'] = {
+      ...itemLayouts['time.game'],
+      visible: true,
+    };
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <HudWidgetItems
+          shouldShow
+          stats={stats}
+          settings={settings}
+          settingsOpen
+          lang="ko"
+          itemLayouts={itemLayouts}
+          accentColor="#4fd1c5"
+          editable
+          selectedItemId="player.level"
+        />,
+      );
+    });
+
+    expect(container.querySelector('[data-widget-item-id="player.level"]')).toBeNull();
+    expect(container.querySelector('[data-widget-item-id="time.game"]')).toBeTruthy();
+  });
 });

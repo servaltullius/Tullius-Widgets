@@ -20,6 +20,9 @@ export interface SelectedItemLayoutActionsParams {
 }
 
 export interface SelectedItemLayoutActions {
+  setSelectedItemVisible: (nextVisible: boolean) => boolean;
+  setSelectedItemScale: (nextScale: number) => boolean;
+  setSelectedItemLocked: (nextLocked: boolean) => boolean;
   resetSelectedItemPosition: () => boolean;
   nudgeSelectedItem: (deltaX: number, deltaY: number) => boolean;
   bringSelectedItemForward: () => boolean;
@@ -49,7 +52,28 @@ export function createSelectedItemLayoutActions({
 }: SelectedItemLayoutActionsParams): SelectedItemLayoutActions {
   const selectedLayout = selectedItemId ? itemLayouts[selectedItemId] : null;
 
+  const commitSelectedItemLeaf = (
+    leafKey: keyof Pick<WidgetItemLayout, 'visible' | 'scale' | 'locked'>,
+    nextValue: boolean | number,
+  ): boolean => {
+    if (!selectedItemId || !selectedLayout || Object.is(selectedLayout[leafKey], nextValue)) {
+      return false;
+    }
+
+    updateSetting(`itemLayouts.${selectedItemId}.${leafKey}`, nextValue);
+    return true;
+  };
+
   return {
+    setSelectedItemVisible(nextVisible: boolean): boolean {
+      return commitSelectedItemLeaf('visible', nextVisible);
+    },
+    setSelectedItemScale(nextScale: number): boolean {
+      return commitSelectedItemLeaf('scale', nextScale);
+    },
+    setSelectedItemLocked(nextLocked: boolean): boolean {
+      return commitSelectedItemLeaf('locked', nextLocked);
+    },
     resetSelectedItemPosition(): boolean {
       if (!selectedItemId || !selectedLayout) {
         return false;

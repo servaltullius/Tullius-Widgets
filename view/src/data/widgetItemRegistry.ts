@@ -6,6 +6,7 @@ import type {
   WidgetSettings,
   WidgetSize,
 } from '../types/settings';
+import type { TranslationKey } from '../i18n/translations';
 import { isPlainObject } from '../utils/normalize';
 
 export type WidgetRendererKind = 'stat' | 'experience' | 'timed-effects-list';
@@ -20,7 +21,7 @@ export interface WidgetItemRegistryEntry {
   rendererKind: WidgetRendererKind;
   legacyGroupId: WidgetGroupId;
   visibilityPath: string;
-  labelKey: string;
+  labelKey: TranslationKey;
   minScale: number;
   maxScale: number;
   defaultPlacementHint: WidgetPlacementHint;

@@ -10,6 +10,33 @@ function cloneSettings(): WidgetSettings {
 }
 
 describe('App item layout actions', () => {
+  it('updates selected item visibility, scale, and lock through canonical itemLayouts paths', () => {
+    const settings = cloneSettings();
+    const itemLayouts = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+    const updateSetting = vi.fn();
+
+    const actions = createSelectedItemLayoutActions({
+      selectedItemId: 'player.level',
+      itemLayouts,
+      settings,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+      updateSetting,
+    });
+
+    actions.setSelectedItemVisible(false);
+    actions.setSelectedItemScale(1.55);
+    actions.setSelectedItemLocked(true);
+
+    expect(updateSetting).toHaveBeenNthCalledWith(1, 'itemLayouts.player.level.visible', false);
+    expect(updateSetting).toHaveBeenNthCalledWith(2, 'itemLayouts.player.level.scale', 1.55);
+    expect(updateSetting).toHaveBeenNthCalledWith(3, 'itemLayouts.player.level.locked', true);
+  });
+
   it('resets the selected item position without changing scale, lock, or zIndex', () => {
     const settings = cloneSettings();
     const itemLayouts = resolveWidgetItemLayouts({
@@ -99,6 +126,10 @@ describe('App item layout actions', () => {
       viewportHeight: 1080,
       updateSetting,
     });
+    hiddenActions.setSelectedItemVisible(true);
+    expect(updateSetting).toHaveBeenCalledWith('itemLayouts.player.gold.visible', true);
+
+    updateSetting.mockClear();
     hiddenActions.bringSelectedItemForward();
     expect(updateSetting).not.toHaveBeenCalled();
 

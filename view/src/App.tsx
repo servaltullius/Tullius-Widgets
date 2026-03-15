@@ -313,6 +313,7 @@ export function App() {
         accentColor={accentColor}
         availableLanguages={availableLanguages}
         selectedItemId={selectedItemId}
+        selectedItemLayout={selectedItemId ? itemLayouts[selectedItemId] ?? null : null}
         selectedItemLayoutActions={selectedItemLayoutActions}
       />
     </>
