@@ -12,8 +12,8 @@ describe('useWidgetItemLayouts', () => {
   it('preserves valid schema v2 item layouts as the canonical layout state', () => {
     const settings = cloneSettings();
     settings.itemLayouts = {
-      'player.level': { visible: true, x: 120, y: 240, scale: 1.5 },
-      'time.real': { visible: false, x: 700, y: 60, scale: 1.1 },
+      'player.level': { visible: true, x: 120, y: 240, scale: 1.5, locked: true, zIndex: 31 },
+      'time.real': { visible: false, x: 700, y: 60, scale: 1.1, locked: false, zIndex: 4 },
     };
 
     const resolved = resolveWidgetItemLayouts({
@@ -27,12 +27,16 @@ describe('useWidgetItemLayouts', () => {
       x: 120,
       y: 240,
       scale: 1.5,
+      locked: true,
+      zIndex: 31,
     });
     expect(resolved['time.real']).toEqual({
       visible: false,
       x: 700,
       y: 60,
       scale: 1.1,
+      locked: false,
+      zIndex: 4,
     });
   });
 

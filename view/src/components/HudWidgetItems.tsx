@@ -24,6 +24,7 @@ import {
   TIME_WIDGET_VALUE_MAX_WIDTH,
   useSharedTimeWidgetClock,
 } from '../utils/timeWidgetShared';
+import { sortItemIdsByZIndex } from '../utils/itemLayoutEditing';
 
 const ELEMENTAL_RESIST_CAP = 85;
 const DISEASE_RESIST_MIN = 0;
@@ -96,6 +97,8 @@ function renderItemShell(
       x={layout.x}
       y={layout.y}
       scale={layout.scale}
+      locked={layout.locked}
+      zIndex={layout.zIndex}
       minScale={resolvedOptions.minScale}
       maxScale={resolvedOptions.maxScale}
       opacity={opacity}
@@ -144,7 +147,10 @@ export function HudWidgetItems({
   const nowMs = useSharedTimeWidgetClock(stats.time.snapshotAtMs, hasVisibleTimeItem);
 
   const visibleItemIds = useMemo(() => {
-    return getVisibleHudItemIds(itemLayouts, stats, settingsOpen);
+    return sortItemIdsByZIndex(
+      itemLayouts,
+      getVisibleHudItemIds(itemLayouts, stats, settingsOpen),
+    );
   }, [itemLayouts, settingsOpen, stats]);
 
   if (!shouldShow) {

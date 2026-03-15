@@ -93,4 +93,55 @@ describe('HudWidgetItems', () => {
 
     expect(container.querySelectorAll('[data-widget-item-id="timedEffects.list"]')).toHaveLength(1);
   });
+
+  it('renders visible items in zIndex order so higher layers appear later', async () => {
+    const settings = cloneSettings();
+    const stats = cloneStats();
+    const itemLayouts = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+
+    for (const itemId of Object.keys(itemLayouts)) {
+      itemLayouts[itemId] = { ...itemLayouts[itemId], visible: false };
+    }
+
+    itemLayouts['player.level'] = {
+      ...itemLayouts['player.level'],
+      visible: true,
+      x: 300,
+      y: 300,
+      zIndex: 2,
+    };
+    itemLayouts['time.game'] = {
+      ...itemLayouts['time.game'],
+      visible: true,
+      x: 300,
+      y: 300,
+      zIndex: 8,
+    };
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <HudWidgetItems
+          shouldShow
+          stats={stats}
+          settings={settings}
+          settingsOpen={false}
+          lang="ko"
+          itemLayouts={itemLayouts}
+          accentColor="#4fd1c5"
+        />,
+      );
+    });
+
+    const renderedIds = Array.from(container.querySelectorAll('[data-widget-item-id]'))
+      .map(element => element.getAttribute('data-widget-item-id'));
+
+    expect(renderedIds).toEqual(['player.level', 'time.game']);
+    expect((container.querySelector('[data-widget-item-id="player.level"]') as HTMLDivElement).style.zIndex).toBe('2');
+    expect((container.querySelector('[data-widget-item-id="time.game"]') as HTMLDivElement).style.zIndex).toBe('8');
+  });
 });

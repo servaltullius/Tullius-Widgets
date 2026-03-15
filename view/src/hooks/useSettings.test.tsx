@@ -418,7 +418,7 @@ describe('useSettings', () => {
       vi.advanceTimersByTime(250);
     });
 
-    expect(JSON.parse(onSettingsChanged.mock.calls.at(-1)?.[0] as string).itemLayouts['player.level']).toEqual({
+    expect(JSON.parse(onSettingsChanged.mock.calls[onSettingsChanged.mock.calls.length - 1]?.[0] as string).itemLayouts['player.level']).toEqual({
       visible: false,
       x: 64,
       y: 96,

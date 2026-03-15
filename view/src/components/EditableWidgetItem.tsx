@@ -14,6 +14,8 @@ interface EditableWidgetItemProps {
   x: number;
   y: number;
   scale: number;
+  locked: boolean;
+  zIndex: number;
   minScale: number;
   maxScale: number;
   opacity: number;
@@ -66,6 +68,8 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
   x,
   y,
   scale,
+  locked,
+  zIndex,
   minScale,
   maxScale,
   opacity,
@@ -140,6 +144,9 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
 
     event.preventDefault();
     callbacksRef.current.onSelect(itemId);
+    if (locked) {
+      return;
+    }
     dragStateRef.current = {
       startClientX: event.clientX,
       startClientY: event.clientY,
@@ -150,7 +157,7 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
       started: false,
     };
     setPointerMode('drag');
-  }, [editable, itemId, x, y]);
+  }, [editable, itemId, locked, x, y]);
 
   const handleResizeMouseDown = useCallback((event: React.MouseEvent) => {
     if (!editable || !selected) {
@@ -165,6 +172,9 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
     event.preventDefault();
     event.stopPropagation();
     callbacksRef.current.onSelect(itemId);
+    if (locked) {
+      return;
+    }
     callbacksRef.current.onInteractionStart(itemId, 'resize');
     resizeStateRef.current = {
       left: rect.left,
@@ -174,7 +184,7 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
       currentScale: scale,
     };
     setPointerMode('resize');
-  }, [editable, itemId, scale, selected]);
+  }, [editable, itemId, locked, scale, selected]);
 
   useEffect(() => {
     if (!activePointerMode) {
@@ -275,7 +285,7 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
   const showHoverFrame = editable && hovered && !selected;
   const cursor = activePointerMode === 'drag'
     ? 'grabbing'
-    : editable ? 'grab' : 'default';
+    : editable ? (locked ? 'not-allowed' : 'grab') : 'default';
 
   return (
     <div
@@ -314,7 +324,7 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
         userSelect: 'none',
         pointerEvents: editable ? 'auto' : 'none',
         cursor,
-        zIndex: activePointerMode ? 110 : showSelectionFrame ? 90 : 1,
+        zIndex: activePointerMode ? zIndex + 1000 : zIndex,
       }}
     >
       {children}
@@ -334,7 +344,8 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
             border: `1px solid ${hexToRgba('#fff8dc', 0.95)}`,
             background: `linear-gradient(135deg, ${hexToRgba('#ffd700', 0.95)} 0%, ${hexToRgba('#ffb300', 0.9)} 100%)`,
             boxShadow: `0 0 10px ${hexToRgba('#ffd700', 0.35)}`,
-            cursor: 'nwse-resize',
+            cursor: locked ? 'not-allowed' : 'nwse-resize',
+            opacity: locked ? 0.55 : 1,
           }}
         />
       )}

@@ -39,7 +39,7 @@ describe('PresetSection', () => {
     settings.layouts = { playerInfo: 'horizontal' };
     settings.groupScales = { playerInfo: 1.4 };
     settings.itemLayouts = {
-      'player.level': { visible: true, x: 120, y: 240, scale: 1.5 },
+      'player.level': { visible: true, x: 120, y: 240, scale: 1.5, locked: true, zIndex: 14 },
     };
 
     await act(async () => {
@@ -59,7 +59,7 @@ describe('PresetSection', () => {
 
     const payload = JSON.parse(onExportSettings.mock.calls[0]?.[0] as string) as Record<string, unknown>;
     expect(payload.itemLayouts).toEqual({
-      'player.level': { visible: true, x: 120, y: 240, scale: 1.5 },
+      'player.level': { visible: true, x: 120, y: 240, scale: 1.5, locked: true, zIndex: 14 },
     });
     expect(payload.positions).toBeUndefined();
     expect(payload.layouts).toBeUndefined();
