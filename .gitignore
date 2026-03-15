@@ -34,6 +34,7 @@ __pycache__/
 
 # Worktrees
 .worktrees/
+.superpowers/
 
 # vibe-kit
 .vibe/db/
