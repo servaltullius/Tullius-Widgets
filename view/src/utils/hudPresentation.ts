@@ -1,5 +1,6 @@
+import { WIDGET_ITEM_IDS } from '../data/widgetItemRegistry';
 import { t } from '../i18n/translations';
-import type { Language, WidgetSettings } from '../types/settings';
+import type { Language, WidgetItemLayout, WidgetSettings } from '../types/settings';
 import type { RuntimeDiagnostics } from '../types/runtime';
 import type { CombatStats, PlayerInfo } from '../types/stats';
 
@@ -99,53 +100,54 @@ export function resolveExperienceProgress(playerInfo: PlayerInfo): ExperiencePro
 
 export function buildTrackedChangeSignature(
   stats: CombatStats,
-  settings: WidgetSettings,
+  itemLayouts: Record<string, WidgetItemLayout>,
   nowMs: number,
 ): string {
   const parts: string[] = [`combat:${stats.isInCombat ? 1 : 0}`];
+  const visibleItemIds = new Set(getVisibleHudItemIds(itemLayouts, stats, false));
 
-  if (settings.resistances.magic) parts.push(`res.magic:${stats.resistances.magic}`);
-  if (settings.resistances.fire) parts.push(`res.fire:${stats.resistances.fire}`);
-  if (settings.resistances.frost) parts.push(`res.frost:${stats.resistances.frost}`);
-  if (settings.resistances.shock) parts.push(`res.shock:${stats.resistances.shock}`);
-  if (settings.resistances.poison) parts.push(`res.poison:${stats.resistances.poison}`);
-  if (settings.resistances.disease) parts.push(`res.disease:${stats.resistances.disease}`);
-  if (settings.defense.armorRating) parts.push(`def.armor:${stats.defense.armorRating}`);
-  if (settings.defense.damageReduction) parts.push(`def.reduction:${stats.defense.damageReduction}`);
-  if (settings.offense.rightHandDamage) parts.push(`off.right:${stats.offense.rightHandDamage}`);
-  if (settings.offense.leftHandDamage) parts.push(`off.left:${stats.offense.leftHandDamage}`);
-  if (settings.offense.critChance) parts.push(`off.crit:${stats.offense.critChance}`);
-  if (settings.equipped.rightHand) parts.push(`eq.right:${stats.equipped.rightHand}`);
-  if (settings.equipped.leftHand) parts.push(`eq.left:${stats.equipped.leftHand}`);
-  if (settings.movement.speedMult) parts.push(`move.speed:${stats.movement.speedMult}`);
-  if (settings.playerInfo.level) parts.push(`pi.level:${stats.playerInfo.level}`);
-  if (settings.playerInfo.gold) parts.push(`pi.gold:${stats.playerInfo.gold}`);
-  if (settings.playerInfo.carryWeight) {
+  if (visibleItemIds.has('resistance.magic')) parts.push(`res.magic:${stats.resistances.magic}`);
+  if (visibleItemIds.has('resistance.fire')) parts.push(`res.fire:${stats.resistances.fire}`);
+  if (visibleItemIds.has('resistance.frost')) parts.push(`res.frost:${stats.resistances.frost}`);
+  if (visibleItemIds.has('resistance.shock')) parts.push(`res.shock:${stats.resistances.shock}`);
+  if (visibleItemIds.has('resistance.poison')) parts.push(`res.poison:${stats.resistances.poison}`);
+  if (visibleItemIds.has('resistance.disease')) parts.push(`res.disease:${stats.resistances.disease}`);
+  if (visibleItemIds.has('defense.armorRating')) parts.push(`def.armor:${stats.defense.armorRating}`);
+  if (visibleItemIds.has('defense.damageReduction')) parts.push(`def.reduction:${stats.defense.damageReduction}`);
+  if (visibleItemIds.has('offense.rightHandDamage')) parts.push(`off.right:${stats.offense.rightHandDamage}`);
+  if (visibleItemIds.has('offense.leftHandDamage')) parts.push(`off.left:${stats.offense.leftHandDamage}`);
+  if (visibleItemIds.has('offense.critChance')) parts.push(`off.crit:${stats.offense.critChance}`);
+  if (visibleItemIds.has('equipped.rightHand')) parts.push(`eq.right:${stats.equipped.rightHand}`);
+  if (visibleItemIds.has('equipped.leftHand')) parts.push(`eq.left:${stats.equipped.leftHand}`);
+  if (visibleItemIds.has('movement.speedMult')) parts.push(`move.speed:${stats.movement.speedMult}`);
+  if (visibleItemIds.has('player.level')) parts.push(`pi.level:${stats.playerInfo.level}`);
+  if (visibleItemIds.has('player.gold')) parts.push(`pi.gold:${stats.playerInfo.gold}`);
+  if (visibleItemIds.has('player.carryWeight')) {
     parts.push(`pi.carry:${stats.playerInfo.carryWeight}`);
     parts.push(`pi.maxCarry:${stats.playerInfo.maxCarryWeight}`);
   }
-  if (settings.playerInfo.health) parts.push(`pi.health:${stats.playerInfo.health}`);
-  if (settings.playerInfo.magicka) parts.push(`pi.magicka:${stats.playerInfo.magicka}`);
-  if (settings.playerInfo.stamina) parts.push(`pi.stamina:${stats.playerInfo.stamina}`);
+  if (visibleItemIds.has('player.health')) parts.push(`pi.health:${stats.playerInfo.health}`);
+  if (visibleItemIds.has('player.magicka')) parts.push(`pi.magicka:${stats.playerInfo.magicka}`);
+  if (visibleItemIds.has('player.stamina')) parts.push(`pi.stamina:${stats.playerInfo.stamina}`);
 
-  if (settings.experience.enabled) {
+  if (visibleItemIds.has('experience.progress')) {
     parts.push(`xp.current:${stats.playerInfo.experience}`);
     parts.push(`xp.toNext:${stats.playerInfo.expToNextLevel}`);
     parts.push(`xp.total:${stats.playerInfo.nextLevelTotalXp}`);
   }
 
-  if (settings.time.gameDateTime) {
+  if (visibleItemIds.has('time.game')) {
     parts.push(`time.year:${stats.time.year}`);
     parts.push(`time.month:${stats.time.month}`);
     parts.push(`time.day:${stats.time.day}`);
     parts.push(`time.hour:${stats.time.hour}`);
     parts.push(`time.minute:${stats.time.minute}`);
   }
-  if (settings.time.realDateTime) {
+  if (visibleItemIds.has('time.real')) {
     parts.push(`time.real:${Math.floor(nowMs / 1000)}`);
   }
 
-  if (settings.timedEffects.enabled) {
+  if (visibleItemIds.has('timedEffects.list')) {
     const timedEffectSignature = stats.timedEffects
       .map(effect => `${effect.stableKey}:${Math.trunc(effect.remainingSec)}:${Math.trunc(effect.totalSec)}:${effect.isDebuff ? 1 : 0}`)
       .join(';');
@@ -153,6 +155,25 @@ export function buildTrackedChangeSignature(
   }
 
   return parts.join('|');
+}
+
+export function getVisibleHudItemIds(
+  itemLayouts: Record<string, WidgetItemLayout>,
+  stats: CombatStats,
+  settingsOpen: boolean,
+): string[] {
+  return WIDGET_ITEM_IDS.filter(itemId => {
+    const layout = itemLayouts[itemId];
+    if (!layout?.visible) {
+      return false;
+    }
+
+    if (itemId === 'timedEffects.list') {
+      return settingsOpen || stats.timedEffects.length > 0;
+    }
+
+    return true;
+  });
 }
 
 export function getVisibleWidgetGroups(

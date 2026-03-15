@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { defaultSettings } from '../data/defaultSettings';
 import { mockStats } from '../data/mockStats';
+import { resolveWidgetItemLayouts } from '../hooks/useWidgetItemLayouts';
 import {
   buildTrackedChangeSignature,
+  getVisibleHudItemIds,
   getRuntimeWarningText,
   getSettingsSyncWarningText,
   getVisibleWidgetGroups,
@@ -24,16 +26,52 @@ describe('hudPresentation', () => {
   it('tracks only enabled widget values in the change signature', () => {
     const settings = cloneSettings();
     const stats = cloneStats();
+    const itemLayouts = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
 
-    settings.resistances.disease = false;
-    settings.playerInfo.health = false;
+    itemLayouts['resistance.disease'] = { ...itemLayouts['resistance.disease'], visible: false };
+    itemLayouts['player.health'] = { ...itemLayouts['player.health'], visible: false };
 
-    const signature = buildTrackedChangeSignature(stats, settings, 12345);
+    const signature = buildTrackedChangeSignature(stats, itemLayouts, 12345);
 
     expect(signature).toContain(`res.magic:${stats.resistances.magic}`);
     expect(signature).not.toContain(`res.disease:${stats.resistances.disease}`);
     expect(signature).not.toContain(`pi.health:${stats.playerInfo.health}`);
     expect(signature).toContain('effects:id:101:82:120:0');
+  });
+
+  it('treats time.game and time.real as independently visible widget items', () => {
+    const settings = cloneSettings();
+    const stats = cloneStats();
+    const itemLayouts = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+
+    itemLayouts['time.real'] = { ...itemLayouts['time.real'], visible: false };
+
+    const visibleItemIds = getVisibleHudItemIds(itemLayouts, stats, false);
+
+    expect(visibleItemIds).toContain('time.game');
+    expect(visibleItemIds).not.toContain('time.real');
+  });
+
+  it('keeps timed effects as one special list widget item', () => {
+    const settings = cloneSettings();
+    const stats = cloneStats();
+    const itemLayouts = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+
+    const visibleItemIds = getVisibleHudItemIds(itemLayouts, stats, false);
+
+    expect(visibleItemIds.filter(itemId => itemId.startsWith('timedEffects.'))).toEqual(['timedEffects.list']);
   });
 
   it('resets stale experience progress to the new level threshold safely', () => {

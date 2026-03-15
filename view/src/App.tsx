@@ -1,17 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { HudWidgetGroups } from './components/HudWidgetGroups';
+import { HudWidgetItems } from './components/HudWidgetItems';
 import { OnboardingPanel, RuntimeWarningBanner, SettingsSyncWarningBanner } from './components/HudOverlays';
 import { SettingsPanel } from './components/SettingsPanel';
 import { ScreenEffects } from './components/ScreenEffects';
-import { WidgetEditGuides } from './components/WidgetEditGuides';
 import { useGameStatsState } from './hooks/useGameStats';
 import { useSettings } from './hooks/useSettings';
 import { useLocalization } from './i18n/useLocalization';
-import { getPresetGroupScale, useGroupEditor } from './hooks/useGroupEditor';
-import { useWidgetPositions } from './hooks/useWidgetPositions';
-import { getDefaultPositions } from './data/defaultSettings';
-import { WIDGET_GROUP_IDS } from './data/widgetRegistry';
-import type { GroupPosition } from './types/settings';
+import { useWidgetItemLayouts } from './hooks/useWidgetItemLayouts';
 import {
   buildTrackedChangeSignature,
   getRuntimeWarningText,
@@ -20,9 +15,6 @@ import {
 } from './utils/hudPresentation';
 import './assets/ui-theme.css';
 import './assets/screen-effects.css';
-const SNAP_THRESHOLD = 15;
-const GRID = 10;
-const FALLBACK_POS: GroupPosition = { x: 100, y: 100 };
 
 export function App() {
   const { stats, hasLiveStats } = useGameStatsState();
@@ -44,61 +36,12 @@ export function App() {
   } = useSettings();
   const [lastChangeAtMs, setLastChangeAtMs] = useState<number>(() => Date.now());
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
-  const defaults = useMemo(
-    () => getDefaultPositions(
-      viewport.width,
-      viewport.height,
-      settings.general.size,
-      settings.layouts,
-    ),
-    [settings.general.size, settings.layouts, viewport.height, viewport.width],
-  );
   const { activeLanguage: lang, availableLanguages } = useLocalization(settings.general.language);
-  const {
-    resolvePosition,
-    handleGroupMove,
-    handleGroupMoveEnd,
-    clearPreviewPositions,
-    activeGuides,
-  } = useWidgetPositions({
-    defaults,
-    settingsPositions: settings.positions,
-    updateSetting,
-    groupIds: WIDGET_GROUP_IDS,
-    snapThreshold: SNAP_THRESHOLD,
-    grid: GRID,
-    fallbackPos: FALLBACK_POS,
+  const itemLayouts = useWidgetItemLayouts({
+    settings,
+    viewportWidth: viewport.width,
+    viewportHeight: viewport.height,
   });
-  const {
-    selectedGroupId,
-    interactionResetToken,
-    selectGroup,
-    clearSelection,
-    startInteraction,
-    endInteraction,
-    resolveGroupScale,
-    updateGroupScale,
-    commitGroupScale,
-  } = useGroupEditor({
-    settingsOpen,
-    groupScales: settings.groupScales,
-    updateSetting,
-  });
-
-  useEffect(() => {
-    if (!settingsOpen) {
-      clearSelection();
-      clearPreviewPositions();
-    }
-  }, [clearPreviewPositions, clearSelection, settingsOpen]);
-
-  useEffect(() => {
-    if (interactionResetToken === 0) {
-      return;
-    }
-
-    clearPreviewPositions();
-  }, [clearPreviewPositions, interactionResetToken]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -113,8 +56,8 @@ export function App() {
   }, []);
 
   const trackedChangeSignature = useMemo(() => {
-    return buildTrackedChangeSignature(stats, settings, nowMs);
-  }, [nowMs, settings, stats]);
+    return buildTrackedChangeSignature(stats, itemLayouts, nowMs);
+  }, [itemLayouts, nowMs, stats]);
 
   useEffect(() => {
     const changedAt = Date.now();
@@ -147,48 +90,6 @@ export function App() {
     lastChangeAtMs,
   });
 
-  const groupProps = useCallback((groupId: string) => {
-    const pos = resolvePosition(groupId);
-    const groupScale = resolveGroupScale(groupId);
-    return {
-      groupId,
-      x: pos.x,
-      y: pos.y,
-      opacity: settings.general.opacity,
-      effectiveScale: getPresetGroupScale(settings.general.size) * groupScale,
-      groupScale,
-      layout: settings.layouts[groupId] ?? 'vertical',
-      accentColor,
-      transparentBg: settings.general.transparentBg,
-      draggable: settingsOpen,
-      selected: selectedGroupId === groupId,
-      onSelect: selectGroup,
-      onInteractionStart: startInteraction,
-      onInteractionEnd: endInteraction,
-      onMove: handleGroupMove,
-      onDragEnd: handleGroupMoveEnd,
-      onResize: updateGroupScale,
-      onResizeEnd: commitGroupScale,
-    };
-  }, [
-    resolvePosition,
-    resolveGroupScale,
-    settings.general.opacity,
-    settings.general.size,
-    settings.layouts,
-    accentColor,
-    settings.general.transparentBg,
-    settingsOpen,
-    selectedGroupId,
-    selectGroup,
-    startInteraction,
-    endInteraction,
-    handleGroupMove,
-    handleGroupMoveEnd,
-    updateGroupScale,
-    commitGroupScale,
-  ]);
-
   const runtimeWarningText = getRuntimeWarningText(lang, runtimeDiagnostics);
   const settingsSyncWarningText = getSettingsSyncWarningText(lang, settingsSyncState, lastSettingsSyncOk);
 
@@ -201,9 +102,8 @@ export function App() {
   };
 
   const handleCloseSettings = useCallback(() => {
-    clearSelection();
     closeSettings();
-  }, [clearSelection, closeSettings]);
+  }, [closeSettings]);
 
   return (
     <>
@@ -230,17 +130,15 @@ export function App() {
         />
       )}
 
-      <HudWidgetGroups
+      <HudWidgetItems
         shouldShow={shouldShow}
         stats={stats}
         settings={settings}
         settingsOpen={settingsOpen}
         lang={lang}
-        interactionResetToken={interactionResetToken}
-        getGroupProps={groupProps}
+        itemLayouts={itemLayouts}
+        accentColor={accentColor}
       />
-
-      <WidgetEditGuides visible={settingsOpen} guides={activeGuides} />
 
       {hasLiveStats && <ScreenEffects alertData={stats.alertData} settings={settings} />}
 
