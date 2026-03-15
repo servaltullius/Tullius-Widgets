@@ -355,4 +355,57 @@ describe('useSettings', () => {
       scale: 1.5,
     });
   });
+
+  it('rewrites legacy visibility toggles to canonical itemLayouts entries', async () => {
+    let updateSetting: UpdateSettingFn | null = null;
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <SettingsAndUpdateHarness
+          onSettings={settings => { latest = settings; }}
+          onReady={value => { updateSetting = value; }}
+        />,
+      );
+    });
+
+    expect(latest?.playerInfo.level).toBe(true);
+    expect(latest?.itemLayouts['player.level']).toBeUndefined();
+
+    await act(async () => {
+      updateSetting?.('playerInfo.level', false);
+    });
+
+    expect(latest?.itemLayouts['player.level']?.visible).toBe(false);
+    expect(latest?.playerInfo.level).toBe(true);
+  });
+
+  it('imports canonical itemLayouts payloads without requiring legacy layout fields', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onSettings={settings => { latest = settings; }} />);
+    });
+
+    await act(async () => {
+      window.importSettingsFromNative?.(JSON.stringify({
+        itemLayouts: {
+          'time.game': { visible: false, x: 320, y: 120, scale: 1.2 },
+          'player.level': { visible: true, x: 64, y: 96, scale: 1.1 },
+        },
+      }));
+    });
+
+    expect(latest?.itemLayouts['time.game']).toEqual({
+      visible: false,
+      x: 320,
+      y: 120,
+      scale: 1.2,
+    });
+    expect(latest?.itemLayouts['player.level']).toEqual({
+      visible: true,
+      x: 64,
+      y: 96,
+      scale: 1.1,
+    });
+  });
 });

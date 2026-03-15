@@ -6,6 +6,7 @@ import type {
   WidgetSettings,
 } from '../types/settings';
 import { defaultSettings } from '../data/defaultSettings';
+import { getWidgetItemIdByVisibilityPath } from '../data/widgetItemRegistry';
 import type { RuntimeDiagnostics } from '../types/runtime';
 import { isPlainObject } from '../utils/normalize';
 import { updateValueByPath } from './settingsShared';
@@ -121,20 +122,27 @@ export function useSettings() {
   }, [settingsOpen]);
 
   const updateSetting = useCallback<UpdateSettingFn>((path: string, value: unknown, options?: UpdateSettingOptions) => {
+    const canonicalItemId = typeof value === 'boolean'
+      ? getWidgetItemIdByVisibilityPath(path)
+      : null;
+    const effectivePath = canonicalItemId
+      ? `itemLayouts.${canonicalItemId}.visible`
+      : path;
+
     if (options?.persist !== false) {
       const currentSettings = settingsRef.current;
-      if (updateValueByPath(currentSettings, path, value) === currentSettings && retryPersistedSettings(currentSettings)) {
+      if (updateValueByPath(currentSettings, effectivePath, value) === currentSettings && retryPersistedSettings(currentSettings)) {
         return;
       }
     }
 
     setSettings(prev => {
-      const next = updateValueByPath(prev, path, value);
+      const next = updateValueByPath(prev, effectivePath, value);
       if (next === prev) {
         return prev;
       }
 
-      if (path === 'general.visible') {
+      if (effectivePath === 'general.visible') {
         dispatchVisibleOverride({ type: 'reset' });
       }
 

@@ -278,12 +278,20 @@ export const WIDGET_ITEM_REGISTRY = Object.fromEntries(
   WIDGET_ITEM_REGISTRY_ENTRIES.map(entry => [entry.id, entry]),
 ) as Record<string, WidgetItemRegistryEntry>;
 
+export const WIDGET_ITEM_ID_BY_VISIBILITY_PATH = Object.fromEntries(
+  WIDGET_ITEM_REGISTRY_ENTRIES.map(entry => [entry.visibilityPath, entry.id]),
+) as Record<string, string>;
+
 export function getWidgetItemRegistryEntry(itemId: string): WidgetItemRegistryEntry {
   const entry = WIDGET_ITEM_REGISTRY[itemId];
   if (!entry) {
     throw new Error(`Unknown widget item id: ${itemId}`);
   }
   return entry;
+}
+
+export function getWidgetItemIdByVisibilityPath(path: string): string | null {
+  return WIDGET_ITEM_ID_BY_VISIBILITY_PATH[path] ?? null;
 }
 
 export function getLegacyEffectiveScale(size: WidgetSize, groupScale = 1): number {

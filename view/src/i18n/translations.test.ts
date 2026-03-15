@@ -12,6 +12,7 @@ import {
 describe('translations', () => {
   beforeEach(() => {
     resetLocalizationStateForTests();
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {

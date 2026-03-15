@@ -40,9 +40,11 @@ describe('useGroupEditor', () => {
   let container: HTMLDivElement;
   let root: Root | null = null;
   let latestApi: HookApi | null = null;
+  const reactActEnvironment = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
 
   beforeEach(() => {
     latestApi = null;
+    reactActEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
     container = document.createElement('div');
     document.body.appendChild(container);
   });
@@ -53,6 +55,7 @@ describe('useGroupEditor', () => {
     });
     root = null;
     container.remove();
+    delete reactActEnvironment.IS_REACT_ACT_ENVIRONMENT;
     vi.restoreAllMocks();
   });
 

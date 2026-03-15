@@ -8,6 +8,14 @@ interface PresetSectionProps {
   settings: WidgetSettings;
 }
 
+function buildPresetExportPayload(settings: WidgetSettings): string {
+  const presetSettings: Partial<WidgetSettings> = { ...settings };
+  delete presetSettings.positions;
+  delete presetSettings.layouts;
+  delete presetSettings.groupScales;
+  return JSON.stringify(presetSettings);
+}
+
 export function PresetSection({ lang, settings }: PresetSectionProps) {
   const [message, setMessage] = useState<string | null>(null);
   const messageTimerRef = useRef<number | null>(null);
@@ -58,7 +66,7 @@ export function PresetSection({ lang, settings }: PresetSectionProps) {
   return (
     <>
       <div style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
-        <button style={buttonStyle} onClick={() => window[BRIDGE_CALLBACKS.onExportSettings]?.(JSON.stringify(settings))}>
+        <button style={buttonStyle} onClick={() => window[BRIDGE_CALLBACKS.onExportSettings]?.(buildPresetExportPayload(settings))}>
           {t(lang, 'exportPreset')}
         </button>
         <button style={buttonStyle} onClick={() => window[BRIDGE_CALLBACKS.onImportSettings]?.('')}>

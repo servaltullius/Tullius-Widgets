@@ -1,6 +1,6 @@
-import type { Language, UpdateSettingFn, WidgetLayout, WidgetSettings } from '../../types/settings';
+import type { Language, UpdateSettingFn, WidgetSettings } from '../../types/settings';
 import { t, type LocalizationLanguageEntry } from '../../i18n/translations';
-import { AccordionSection, CustomSelect, LayoutSelect, Toggle } from './SettingsControls';
+import { AccordionSection, CustomSelect, Toggle } from './SettingsControls';
 import { PresetSection } from './PresetSection';
 
 const PRESET_COLORS = [
@@ -11,6 +11,14 @@ interface SectionControlProps {
   lang: Language;
   isSectionExpanded: (id: string) => boolean;
   toggleSection: (id: string) => void;
+}
+
+function readItemVisibility(settings: WidgetSettings, itemId: string, fallback: boolean): boolean {
+  return settings.itemLayouts[itemId]?.visible ?? fallback;
+}
+
+function updateItemVisibility(onUpdate: UpdateSettingFn, itemId: string, value: boolean): void {
+  onUpdate(`itemLayouts.${itemId}.visible`, value);
 }
 
 interface GeneralTabSectionsProps extends SectionControlProps {
@@ -77,19 +85,6 @@ export function GeneralTabSections({
       </label>
 
       <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
-        <span style={{ color: '#ddd', fontSize: '24px' }}>{t(lang, 'size')}</span>
-        <CustomSelect value={settings.general.size}
-          options={[
-            { value: 'xsmall', label: t(lang, 'xsmall') },
-            { value: 'small', label: t(lang, 'small') },
-            { value: 'medium', label: t(lang, 'medium') },
-            { value: 'large', label: t(lang, 'large') },
-          ]}
-          onChange={nextValue => onUpdate('general.size', nextValue)}
-        />
-      </label>
-
-      <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
         <span style={{ color: '#ddd', fontSize: '24px' }}>{t(lang, 'language')}</span>
         <CustomSelect value={selectedLanguage}
           options={availableLanguages.map(option => ({ value: option.code, label: option.label }))}
@@ -131,14 +126,12 @@ export function GeneralTabSections({
 interface WidgetTabSectionsProps extends SectionControlProps {
   settings: WidgetSettings;
   onUpdate: UpdateSettingFn;
-  groupLayout: (groupId: string) => WidgetLayout;
 }
 
 export function CombatTabSections({
   lang,
   settings,
   onUpdate,
-  groupLayout,
   isSectionExpanded,
   toggleSection,
 }: WidgetTabSectionsProps) {
@@ -150,11 +143,10 @@ export function CombatTabSections({
         expanded={isSectionExpanded('experience')}
         onToggle={toggleSection}
       >
-        <LayoutSelect lang={lang} groupId="experience" value={groupLayout('experience')} onUpdate={onUpdate} />
         <Toggle
           label={t(lang, 'experienceProgress')}
-          checked={settings.experience.enabled}
-          onChange={value => onUpdate('experience.enabled', value)}
+          checked={readItemVisibility(settings, 'experience.progress', settings.experience.enabled)}
+          onChange={value => updateItemVisibility(onUpdate, 'experience.progress', value)}
         />
       </AccordionSection>
 
@@ -164,13 +156,12 @@ export function CombatTabSections({
         expanded={isSectionExpanded('playerInfo')}
         onToggle={toggleSection}
       >
-        <LayoutSelect lang={lang} groupId="playerInfo" value={groupLayout('playerInfo')} onUpdate={onUpdate} />
-        <Toggle label={t(lang, 'level')} checked={settings.playerInfo.level} onChange={value => onUpdate('playerInfo.level', value)} />
-        <Toggle label={t(lang, 'gold')} checked={settings.playerInfo.gold} onChange={value => onUpdate('playerInfo.gold', value)} />
-        <Toggle label={t(lang, 'carryWeight')} checked={settings.playerInfo.carryWeight} onChange={value => onUpdate('playerInfo.carryWeight', value)} />
-        <Toggle label={t(lang, 'health')} checked={settings.playerInfo.health} onChange={value => onUpdate('playerInfo.health', value)} />
-        <Toggle label={t(lang, 'magicka')} checked={settings.playerInfo.magicka} onChange={value => onUpdate('playerInfo.magicka', value)} />
-        <Toggle label={t(lang, 'stamina')} checked={settings.playerInfo.stamina} onChange={value => onUpdate('playerInfo.stamina', value)} />
+        <Toggle label={t(lang, 'level')} checked={readItemVisibility(settings, 'player.level', settings.playerInfo.level)} onChange={value => updateItemVisibility(onUpdate, 'player.level', value)} />
+        <Toggle label={t(lang, 'gold')} checked={readItemVisibility(settings, 'player.gold', settings.playerInfo.gold)} onChange={value => updateItemVisibility(onUpdate, 'player.gold', value)} />
+        <Toggle label={t(lang, 'carryWeight')} checked={readItemVisibility(settings, 'player.carryWeight', settings.playerInfo.carryWeight)} onChange={value => updateItemVisibility(onUpdate, 'player.carryWeight', value)} />
+        <Toggle label={t(lang, 'health')} checked={readItemVisibility(settings, 'player.health', settings.playerInfo.health)} onChange={value => updateItemVisibility(onUpdate, 'player.health', value)} />
+        <Toggle label={t(lang, 'magicka')} checked={readItemVisibility(settings, 'player.magicka', settings.playerInfo.magicka)} onChange={value => updateItemVisibility(onUpdate, 'player.magicka', value)} />
+        <Toggle label={t(lang, 'stamina')} checked={readItemVisibility(settings, 'player.stamina', settings.playerInfo.stamina)} onChange={value => updateItemVisibility(onUpdate, 'player.stamina', value)} />
       </AccordionSection>
 
       <AccordionSection
@@ -179,13 +170,12 @@ export function CombatTabSections({
         expanded={isSectionExpanded('resistances')}
         onToggle={toggleSection}
       >
-        <LayoutSelect lang={lang} groupId="resistances" value={groupLayout('resistances')} onUpdate={onUpdate} />
-        <Toggle label={t(lang, 'magic')} checked={settings.resistances.magic} onChange={value => onUpdate('resistances.magic', value)} />
-        <Toggle label={t(lang, 'fire')} checked={settings.resistances.fire} onChange={value => onUpdate('resistances.fire', value)} />
-        <Toggle label={t(lang, 'frost')} checked={settings.resistances.frost} onChange={value => onUpdate('resistances.frost', value)} />
-        <Toggle label={t(lang, 'shock')} checked={settings.resistances.shock} onChange={value => onUpdate('resistances.shock', value)} />
-        <Toggle label={t(lang, 'poison')} checked={settings.resistances.poison} onChange={value => onUpdate('resistances.poison', value)} />
-        <Toggle label={t(lang, 'disease')} checked={settings.resistances.disease} onChange={value => onUpdate('resistances.disease', value)} />
+        <Toggle label={t(lang, 'magic')} checked={readItemVisibility(settings, 'resistance.magic', settings.resistances.magic)} onChange={value => updateItemVisibility(onUpdate, 'resistance.magic', value)} />
+        <Toggle label={t(lang, 'fire')} checked={readItemVisibility(settings, 'resistance.fire', settings.resistances.fire)} onChange={value => updateItemVisibility(onUpdate, 'resistance.fire', value)} />
+        <Toggle label={t(lang, 'frost')} checked={readItemVisibility(settings, 'resistance.frost', settings.resistances.frost)} onChange={value => updateItemVisibility(onUpdate, 'resistance.frost', value)} />
+        <Toggle label={t(lang, 'shock')} checked={readItemVisibility(settings, 'resistance.shock', settings.resistances.shock)} onChange={value => updateItemVisibility(onUpdate, 'resistance.shock', value)} />
+        <Toggle label={t(lang, 'poison')} checked={readItemVisibility(settings, 'resistance.poison', settings.resistances.poison)} onChange={value => updateItemVisibility(onUpdate, 'resistance.poison', value)} />
+        <Toggle label={t(lang, 'disease')} checked={readItemVisibility(settings, 'resistance.disease', settings.resistances.disease)} onChange={value => updateItemVisibility(onUpdate, 'resistance.disease', value)} />
       </AccordionSection>
 
       <AccordionSection
@@ -194,9 +184,8 @@ export function CombatTabSections({
         expanded={isSectionExpanded('defense')}
         onToggle={toggleSection}
       >
-        <LayoutSelect lang={lang} groupId="defense" value={groupLayout('defense')} onUpdate={onUpdate} />
-        <Toggle label={t(lang, 'armorRating')} checked={settings.defense.armorRating} onChange={value => onUpdate('defense.armorRating', value)} />
-        <Toggle label={t(lang, 'damageReduction')} checked={settings.defense.damageReduction} onChange={value => onUpdate('defense.damageReduction', value)} />
+        <Toggle label={t(lang, 'armorRating')} checked={readItemVisibility(settings, 'defense.armorRating', settings.defense.armorRating)} onChange={value => updateItemVisibility(onUpdate, 'defense.armorRating', value)} />
+        <Toggle label={t(lang, 'damageReduction')} checked={readItemVisibility(settings, 'defense.damageReduction', settings.defense.damageReduction)} onChange={value => updateItemVisibility(onUpdate, 'defense.damageReduction', value)} />
       </AccordionSection>
 
       <AccordionSection
@@ -205,10 +194,9 @@ export function CombatTabSections({
         expanded={isSectionExpanded('offense')}
         onToggle={toggleSection}
       >
-        <LayoutSelect lang={lang} groupId="offense" value={groupLayout('offense')} onUpdate={onUpdate} />
-        <Toggle label={t(lang, 'rightHandDamage')} checked={settings.offense.rightHandDamage} onChange={value => onUpdate('offense.rightHandDamage', value)} />
-        <Toggle label={t(lang, 'leftHandDamage')} checked={settings.offense.leftHandDamage} onChange={value => onUpdate('offense.leftHandDamage', value)} />
-        <Toggle label={t(lang, 'critChance')} checked={settings.offense.critChance} onChange={value => onUpdate('offense.critChance', value)} />
+        <Toggle label={t(lang, 'rightHandDamage')} checked={readItemVisibility(settings, 'offense.rightHandDamage', settings.offense.rightHandDamage)} onChange={value => updateItemVisibility(onUpdate, 'offense.rightHandDamage', value)} />
+        <Toggle label={t(lang, 'leftHandDamage')} checked={readItemVisibility(settings, 'offense.leftHandDamage', settings.offense.leftHandDamage)} onChange={value => updateItemVisibility(onUpdate, 'offense.leftHandDamage', value)} />
+        <Toggle label={t(lang, 'critChance')} checked={readItemVisibility(settings, 'offense.critChance', settings.offense.critChance)} onChange={value => updateItemVisibility(onUpdate, 'offense.critChance', value)} />
       </AccordionSection>
 
       <AccordionSection
@@ -217,9 +205,8 @@ export function CombatTabSections({
         expanded={isSectionExpanded('equipped')}
         onToggle={toggleSection}
       >
-        <LayoutSelect lang={lang} groupId="equipped" value={groupLayout('equipped')} onUpdate={onUpdate} />
-        <Toggle label={t(lang, 'rightHandEquipped')} checked={settings.equipped.rightHand} onChange={value => onUpdate('equipped.rightHand', value)} />
-        <Toggle label={t(lang, 'leftHandEquipped')} checked={settings.equipped.leftHand} onChange={value => onUpdate('equipped.leftHand', value)} />
+        <Toggle label={t(lang, 'rightHandEquipped')} checked={readItemVisibility(settings, 'equipped.rightHand', settings.equipped.rightHand)} onChange={value => updateItemVisibility(onUpdate, 'equipped.rightHand', value)} />
+        <Toggle label={t(lang, 'leftHandEquipped')} checked={readItemVisibility(settings, 'equipped.leftHand', settings.equipped.leftHand)} onChange={value => updateItemVisibility(onUpdate, 'equipped.leftHand', value)} />
       </AccordionSection>
 
       <AccordionSection
@@ -228,8 +215,7 @@ export function CombatTabSections({
         expanded={isSectionExpanded('movement')}
         onToggle={toggleSection}
       >
-        <LayoutSelect lang={lang} groupId="movement" value={groupLayout('movement')} onUpdate={onUpdate} />
-        <Toggle label={t(lang, 'speed')} checked={settings.movement.speedMult} onChange={value => onUpdate('movement.speedMult', value)} />
+        <Toggle label={t(lang, 'speed')} checked={readItemVisibility(settings, 'movement.speedMult', settings.movement.speedMult)} onChange={value => updateItemVisibility(onUpdate, 'movement.speedMult', value)} />
       </AccordionSection>
     </>
   );
@@ -239,7 +225,6 @@ export function EffectsTabSections({
   lang,
   settings,
   onUpdate,
-  groupLayout,
   isSectionExpanded,
   toggleSection,
 }: WidgetTabSectionsProps) {
@@ -251,9 +236,8 @@ export function EffectsTabSections({
         expanded={isSectionExpanded('time')}
         onToggle={toggleSection}
       >
-        <LayoutSelect lang={lang} groupId="time" value={groupLayout('time')} onUpdate={onUpdate} />
-        <Toggle label={t(lang, 'gameDateTime')} checked={settings.time.gameDateTime} onChange={value => onUpdate('time.gameDateTime', value)} />
-        <Toggle label={t(lang, 'realDateTime')} checked={settings.time.realDateTime} onChange={value => onUpdate('time.realDateTime', value)} />
+        <Toggle label={t(lang, 'gameDateTime')} checked={readItemVisibility(settings, 'time.game', settings.time.gameDateTime)} onChange={value => updateItemVisibility(onUpdate, 'time.game', value)} />
+        <Toggle label={t(lang, 'realDateTime')} checked={readItemVisibility(settings, 'time.real', settings.time.realDateTime)} onChange={value => updateItemVisibility(onUpdate, 'time.real', value)} />
       </AccordionSection>
 
       <AccordionSection
@@ -262,11 +246,10 @@ export function EffectsTabSections({
         expanded={isSectionExpanded('timedEffects')}
         onToggle={toggleSection}
       >
-        <LayoutSelect lang={lang} groupId="timedEffects" value={groupLayout('timedEffects')} onUpdate={onUpdate} />
         <Toggle
           label={t(lang, 'timedEffectsEnabled')}
-          checked={settings.timedEffects.enabled}
-          onChange={value => onUpdate('timedEffects.enabled', value)}
+          checked={readItemVisibility(settings, 'timedEffects.list', settings.timedEffects.enabled)}
+          onChange={value => updateItemVisibility(onUpdate, 'timedEffects.list', value)}
         />
         <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
           <span style={{ color: '#aaa', fontSize: '20px' }}>
@@ -387,7 +370,12 @@ export function PresetsTabSections({
         onToggle={toggleSection}
       >
         <button
-          onClick={() => onUpdate('positions', {})}
+          onClick={() => {
+            onUpdate('positions', {}, { persist: false });
+            onUpdate('layouts', {}, { persist: false });
+            onUpdate('groupScales', {}, { persist: false });
+            onUpdate('itemLayouts', {});
+          }}
           style={{
             background: 'rgba(255,100,100,0.2)',
             border: '1px solid rgba(255,100,100,0.4)',

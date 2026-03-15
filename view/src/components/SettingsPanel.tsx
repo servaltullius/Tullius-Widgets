@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Language, UpdateSettingFn, WidgetSettings, WidgetLayout } from '../types/settings';
+import type { Language, UpdateSettingFn, WidgetSettings } from '../types/settings';
 import { t, type LocalizationLanguageEntry } from '../i18n/translations';
 import { COMBAT_WIDGET_GROUP_IDS, EFFECT_WIDGET_GROUP_IDS } from '../data/widgetRegistry';
 import {
@@ -78,7 +78,6 @@ export function SettingsPanel({
 
   if (!open) return null;
 
-  const groupLayout = (groupId: string): WidgetLayout => settings.layouts[groupId] ?? 'vertical';
   const currentSectionIds = TAB_SECTION_IDS[activeTab] ?? [];
 
   const tabLabels: Record<PanelTab, string> = {
@@ -216,7 +215,6 @@ export function SettingsPanel({
           lang={lang}
           settings={settings}
           onUpdate={onUpdate}
-          groupLayout={groupLayout}
           isSectionExpanded={isSectionExpanded}
           toggleSection={toggleSection}
         />
@@ -227,7 +225,6 @@ export function SettingsPanel({
           lang={lang}
           settings={settings}
           onUpdate={onUpdate}
-          groupLayout={groupLayout}
           isSectionExpanded={isSectionExpanded}
           toggleSection={toggleSection}
         />
