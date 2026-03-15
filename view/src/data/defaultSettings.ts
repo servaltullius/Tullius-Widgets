@@ -69,6 +69,7 @@ export const defaultSettings: WidgetSettings = {
   },
   positions: {},
   layouts: {},
+  groupScales: {},
 };
 
 export function getDefaultPositions(

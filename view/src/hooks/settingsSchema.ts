@@ -66,6 +66,18 @@ function sanitizeLayouts(incoming: unknown): Record<string, WidgetLayout> {
   return out;
 }
 
+function sanitizeGroupScales(incoming: unknown): Record<string, number> {
+  if (!isPlainObject(incoming)) return {};
+  const out: Record<string, number> = {};
+  for (const [key, rawScale] of Object.entries(incoming)) {
+    if (typeof rawScale !== 'number' || !Number.isFinite(rawScale) || rawScale <= 0) {
+      continue;
+    }
+    out[key] = rawScale;
+  }
+  return out;
+}
+
 function cloneDefaultSettings(): WidgetSettings {
   if (typeof structuredClone === 'function') {
     return structuredClone(defaultSettings);
@@ -153,6 +165,7 @@ export function mergeWithDefaults(saved: Record<string, unknown>): WidgetSetting
   mergeVisualAlertsSettings(merged.visualAlerts, saved.visualAlerts);
   merged.positions = sanitizePositions(saved.positions);
   merged.layouts = sanitizeLayouts(saved.layouts);
+  merged.groupScales = sanitizeGroupScales(saved.groupScales);
   return merged;
 }
 

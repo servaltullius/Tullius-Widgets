@@ -75,6 +75,7 @@ export interface WidgetSettings {
   };
   positions: Record<string, GroupPosition>;
   layouts: Record<string, WidgetLayout>;
+  groupScales: Record<string, number>;
 }
 
 export interface UpdateSettingOptions {

@@ -21,6 +21,38 @@ describe('settingsSchema', () => {
     });
   });
 
+  it('accepts finite positive group scales while dropping invalid values', () => {
+    const merged = mergeWithDefaults({
+      groupScales: {
+        playerInfo: 1.25,
+        offense: 2,
+        unknownGroup: 1.75,
+        zero: 0,
+        negative: -1,
+        infinite: Infinity,
+        nan: Number.NaN,
+        text: 'bad',
+      },
+    });
+
+    expect(merged.groupScales).toEqual({
+      playerInfo: 1.25,
+      offense: 2,
+      unknownGroup: 1.75,
+    });
+  });
+
+  it('treats missing group scales as optional schema v1 data', () => {
+    const merged = mergeWithDefaults({
+      general: {
+        opacity: 55,
+      },
+    });
+
+    expect(merged.groupScales).toEqual({});
+    expect(merged.general.opacity).toBe(55);
+  });
+
   it('preserves custom language codes for external localization packs', () => {
     const merged = mergeWithDefaults({
       general: {

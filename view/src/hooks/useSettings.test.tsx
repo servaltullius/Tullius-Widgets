@@ -30,6 +30,23 @@ function UpdateSettingHarness({ onReady }: { onReady: (updateSetting: UpdateSett
   return null;
 }
 
+function SettingsAndUpdateHarness({
+  onSettings,
+  onReady,
+}: {
+  onSettings: (settings: WidgetSettings) => void;
+  onReady: (updateSetting: UpdateSettingFn) => void;
+}) {
+  const { settings, updateSetting } = useSettings();
+  useEffect(() => {
+    onSettings(settings);
+  }, [onSettings, settings]);
+  useEffect(() => {
+    onReady(updateSetting);
+  }, [onReady, updateSetting]);
+  return null;
+}
+
 describe('useSettings', () => {
   let container: HTMLDivElement;
   let root: Root | null = null;
@@ -99,6 +116,67 @@ describe('useSettings', () => {
 
     expect(latest).not.toBeNull();
     expect(latest!.general.opacity).toBe(55);
+  });
+
+  it('preserves imported group scales from native import when serializing later settings updates', async () => {
+    const onSettingsChanged = vi.fn();
+    const onImportResult = vi.fn();
+    let updateSetting: UpdateSettingFn | null = null;
+    vi.useFakeTimers();
+    window.onSettingsChanged = onSettingsChanged;
+    window.onImportResult = onImportResult;
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<SettingsAndUpdateHarness onSettings={settings => { latest = settings; }} onReady={value => { updateSetting = value; }} />);
+    });
+
+    expect(typeof window.importSettingsFromNative).toBe('function');
+
+    await act(async () => {
+      window.importSettingsFromNative?.(JSON.stringify({
+        groupScales: {
+          playerInfo: 1.4,
+          unknownGroup: 2.1,
+          invalid: 0,
+        },
+      }));
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(onImportResult).toHaveBeenCalledWith(true);
+    expect(latest).not.toBeNull();
+    expect(latest!.groupScales).toEqual({
+      playerInfo: 1.4,
+      unknownGroup: 2.1,
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+
+    expect(onSettingsChanged).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(onSettingsChanged.mock.calls[0]?.[0] as string).groupScales).toEqual({
+      playerInfo: 1.4,
+      unknownGroup: 2.1,
+    });
+
+    await act(async () => {
+      updateSetting?.('general.opacity', 75);
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+
+    expect(onSettingsChanged).toHaveBeenCalledTimes(2);
+    expect(JSON.parse(onSettingsChanged.mock.calls[1]?.[0] as string).groupScales).toEqual({
+      playerInfo: 1.4,
+      unknownGroup: 2.1,
+    });
   });
 
   it('ignores stale settings payload revision', async () => {
