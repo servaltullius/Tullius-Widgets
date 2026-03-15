@@ -6,6 +6,7 @@ import type {
   WidgetSize,
 } from '../types/settings';
 import { defaultSettings } from '../data/defaultSettings';
+import { sanitizeWidgetItemLayouts } from '../data/widgetItemRegistry';
 import { isPlainObject, readBoolean, readNumber } from '../utils/normalize';
 import { readRevision, SETTINGS_SCHEMA_VERSION } from './settingsShared';
 
@@ -166,6 +167,7 @@ export function mergeWithDefaults(saved: Record<string, unknown>): WidgetSetting
   merged.positions = sanitizePositions(saved.positions);
   merged.layouts = sanitizeLayouts(saved.layouts);
   merged.groupScales = sanitizeGroupScales(saved.groupScales);
+  merged.itemLayouts = sanitizeWidgetItemLayouts(saved.itemLayouts);
   return merged;
 }
 

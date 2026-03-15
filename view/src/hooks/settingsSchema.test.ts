@@ -42,6 +42,51 @@ describe('settingsSchema', () => {
     });
   });
 
+  it('accepts schema v2 item layouts while dropping invalid entries', () => {
+    const merged = mergeWithDefaults({
+      schemaVersion: 2,
+      itemLayouts: {
+        'player.level': { visible: true, x: 120, y: 240, scale: 1.4 },
+        'time.real': { visible: false, x: 640, y: 40, scale: 0.9 },
+        brokenScale: { visible: true, x: 0, y: 0, scale: 0 },
+        brokenShape: 10,
+      },
+    });
+
+    expect(merged.itemLayouts).toEqual({
+      'player.level': { visible: true, x: 120, y: 240, scale: 1.4 },
+      'time.real': { visible: false, x: 640, y: 40, scale: 0.9 },
+    });
+  });
+
+  it('keeps legacy layout fields readable when schema v1 payload has no item layouts', () => {
+    const merged = mergeWithDefaults({
+      schemaVersion: 1,
+      positions: {
+        playerInfo: { x: 120, y: 240 },
+      },
+      layouts: {
+        offense: 'horizontal',
+        broken: 'diagonal',
+      },
+      groupScales: {
+        playerInfo: 1.25,
+        broken: 0,
+      },
+    });
+
+    expect(merged.positions).toEqual({
+      playerInfo: { x: 120, y: 240 },
+    });
+    expect(merged.layouts).toEqual({
+      offense: 'horizontal',
+    });
+    expect(merged.groupScales).toEqual({
+      playerInfo: 1.25,
+    });
+    expect(merged.itemLayouts).toEqual({});
+  });
+
   it('treats missing group scales as optional schema v1 data', () => {
     const merged = mergeWithDefaults({
       general: {
@@ -50,6 +95,7 @@ describe('settingsSchema', () => {
     });
 
     expect(merged.groupScales).toEqual({});
+    expect(merged.itemLayouts).toEqual({});
     expect(merged.general.opacity).toBe(55);
   });
 

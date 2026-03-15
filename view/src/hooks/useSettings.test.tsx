@@ -327,4 +327,32 @@ describe('useSettings', () => {
 
     expect(onSettingsVisibilityChanged).toHaveBeenNthCalledWith(3, 'closed');
   });
+
+  it('updates itemLayouts entries addressed by dotted item ids', async () => {
+    let updateSetting: UpdateSettingFn | null = null;
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <SettingsAndUpdateHarness
+          onSettings={settings => { latest = settings; }}
+          onReady={value => { updateSetting = value; }}
+        />,
+      );
+    });
+
+    await act(async () => {
+      updateSetting?.('itemLayouts.player.level.visible', false);
+      updateSetting?.('itemLayouts.player.level.x', 42);
+      updateSetting?.('itemLayouts.player.level.y', 84);
+      updateSetting?.('itemLayouts.player.level.scale', 1.5);
+    });
+
+    expect(latest?.itemLayouts['player.level']).toEqual({
+      visible: false,
+      x: 42,
+      y: 84,
+      scale: 1.5,
+    });
+  });
 });

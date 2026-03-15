@@ -7,6 +7,13 @@ export interface GroupPosition {
   y: number;
 }
 
+export interface WidgetItemLayout {
+  visible: boolean;
+  x: number;
+  y: number;
+  scale: number;
+}
+
 export interface WidgetSettings {
   general: {
     visible: boolean;
@@ -76,6 +83,7 @@ export interface WidgetSettings {
   positions: Record<string, GroupPosition>;
   layouts: Record<string, WidgetLayout>;
   groupScales: Record<string, number>;
+  itemLayouts: Record<string, WidgetItemLayout>;
 }
 
 export interface UpdateSettingOptions {

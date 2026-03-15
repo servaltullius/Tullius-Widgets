@@ -1,7 +1,14 @@
-import type { WidgetSettings } from '../types/settings';
+import type { WidgetItemLayout, WidgetSettings } from '../types/settings';
 import { isPlainObject } from '../utils/normalize';
 
-export const SETTINGS_SCHEMA_VERSION = 1;
+export const SETTINGS_SCHEMA_VERSION = 2;
+
+const DEFAULT_ITEM_LAYOUT: WidgetItemLayout = {
+  visible: true,
+  x: 0,
+  y: 0,
+  scale: 1,
+};
 
 export function readRevision(value: unknown): number | null {
   if (typeof value !== 'number' || !Number.isFinite(value)) return null;
@@ -19,6 +26,31 @@ export function serializeSettingsPayload(settings: WidgetSettings, revision: num
 }
 
 export function updateValueByPath(current: WidgetSettings, path: string, value: unknown): WidgetSettings {
+  if (path.startsWith('itemLayouts.')) {
+    const keys = path.split('.');
+    if (keys.length >= 3) {
+      const itemId = keys.slice(1, -1).join('.');
+      const leafKey = keys[keys.length - 1] as keyof WidgetItemLayout;
+      if (leafKey === 'visible' || leafKey === 'x' || leafKey === 'y' || leafKey === 'scale') {
+        const currentItem = current.itemLayouts[itemId] ?? DEFAULT_ITEM_LAYOUT;
+        if (Object.is(currentItem[leafKey], value)) {
+          return current;
+        }
+
+        return {
+          ...current,
+          itemLayouts: {
+            ...current.itemLayouts,
+            [itemId]: {
+              ...currentItem,
+              [leafKey]: value,
+            },
+          },
+        };
+      }
+    }
+  }
+
   const keys = path.split('.');
   if (keys.length === 0) return current;
 
