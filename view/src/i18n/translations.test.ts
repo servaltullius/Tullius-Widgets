@@ -167,4 +167,20 @@ describe('translations', () => {
       '4E 201년 8월 21일 14:35',
     );
   });
+
+  it('includes quick-edit card strings in bundled languages', () => {
+    expect(t('ko', 'positionX')).toBe('X 위치');
+    expect(t('ko', 'positionY')).toBe('Y 위치');
+    expect(t('ko', 'resetPosition')).toBe('위치 초기화');
+    expect(t('ko', 'lock')).toBe('잠금');
+    expect(t('ko', 'bringForward')).toBe('앞으로');
+    expect(t('ko', 'sendBackward')).toBe('뒤로');
+
+    expect(t('en', 'positionX')).toBe('X Position');
+    expect(t('en', 'positionY')).toBe('Y Position');
+    expect(t('en', 'resetPosition')).toBe('Reset Position');
+    expect(t('en', 'lock')).toBe('Lock');
+    expect(t('en', 'bringForward')).toBe('Bring Forward');
+    expect(t('en', 'sendBackward')).toBe('Send Backward');
+  });
 });

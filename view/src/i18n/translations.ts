@@ -117,6 +117,12 @@ export const bundledTranslations = {
     capRawLabel: '원본',
     capLimitLabel: '캡',
     capArmorLimitLabel: '최대 효율 AR',
+    positionX: 'X 위치',
+    positionY: 'Y 위치',
+    resetPosition: '위치 초기화',
+    lock: '잠금',
+    bringForward: '앞으로',
+    sendBackward: '뒤로',
   },
   en: {
     title: 'Tullius Widgets',
@@ -233,6 +239,12 @@ export const bundledTranslations = {
     capRawLabel: 'Raw',
     capLimitLabel: 'Cap',
     capArmorLimitLabel: 'Max effective AR',
+    positionX: 'X Position',
+    positionY: 'Y Position',
+    resetPosition: 'Reset Position',
+    lock: 'Lock',
+    bringForward: 'Bring Forward',
+    sendBackward: 'Send Backward',
   },
 } as const;
 

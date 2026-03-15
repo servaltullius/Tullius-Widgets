@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Language, UpdateSettingFn, WidgetSettings } from '../types/settings';
 import type { SelectedItemLayoutActions } from '../hooks/useSelectedItemLayoutActions';
-import { t, type LocalizationLanguageEntry } from '../i18n/translations';
+import { t, type LocalizationLanguageEntry, type TranslationKey } from '../i18n/translations';
 import { COMBAT_WIDGET_GROUP_IDS, EFFECT_WIDGET_GROUP_IDS } from '../data/widgetRegistry';
 import {
   type PanelTab,
@@ -17,6 +17,12 @@ import {
   GeneralTabSections,
   PresetsTabSections,
 } from './settings/SettingsTabSections';
+import { SelectedWidgetQuickEditCard } from './settings/SelectedWidgetQuickEditCard';
+import {
+  getWidgetItemDefaultZIndex,
+  getWidgetItemRegistryEntry,
+} from '../data/widgetItemRegistry';
+import type { WidgetItemLayout } from '../types/settings';
 
 interface SettingsPanelProps {
   settings: WidgetSettings;
@@ -85,6 +91,17 @@ export function SettingsPanel({
 
   const currentSectionIds = TAB_SECTION_IDS[activeTab] ?? [];
   const hasSelectedItemActions = Boolean(selectedItemId && selectedItemLayoutActions);
+  const selectedRegistryEntry = selectedItemId ? getWidgetItemRegistryEntry(selectedItemId) : null;
+  const selectedItemLayout: WidgetItemLayout | null = selectedItemId
+    ? settings.itemLayouts[selectedItemId] ?? {
+      visible: true,
+      x: 0,
+      y: 0,
+      scale: 1,
+      locked: false,
+      zIndex: getWidgetItemDefaultZIndex(selectedItemId),
+    }
+    : null;
 
   const tabLabels: Record<PanelTab, string> = {
     general: t(lang, 'tabGeneral'),
@@ -148,7 +165,17 @@ export function SettingsPanel({
         </button>
       </div>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+      {selectedRegistryEntry && selectedItemLayout && (
+        <SelectedWidgetQuickEditCard
+          lang={lang}
+          title={t(lang, selectedRegistryEntry.labelKey as TranslationKey)}
+          layout={selectedItemLayout}
+          minScale={selectedRegistryEntry.minScale}
+          maxScale={selectedRegistryEntry.maxScale}
+        />
+      )}
+
+      <div data-settings-panel-tabs style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
         {TAB_ORDER.map(tab => (
           <button
             key={tab}
