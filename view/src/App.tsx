@@ -78,13 +78,13 @@ export function App() {
   const selectedItemLayoutActions = useMemo(() => {
     return createSelectedItemLayoutActions({
       selectedItemId,
-      itemLayouts,
+      itemLayouts: canonicalItemLayouts,
       settings,
       viewportWidth: viewport.width,
       viewportHeight: viewport.height,
       updateSetting,
     });
-  }, [itemLayouts, selectedItemId, settings, updateSetting, viewport.height, viewport.width]);
+  }, [canonicalItemLayouts, selectedItemId, settings, updateSetting, viewport.height, viewport.width]);
 
   const clearPreviewState = useCallback(() => {
     setPreviewLayouts(previous => (Object.keys(previous).length === 0 ? previous : {}));

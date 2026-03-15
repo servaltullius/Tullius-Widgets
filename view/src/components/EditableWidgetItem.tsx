@@ -324,11 +324,7 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
         userSelect: 'none',
         pointerEvents: editable ? 'auto' : 'none',
         cursor,
-        zIndex: activePointerMode
-          ? zIndex + 1000
-          : showSelectionFrame
-            ? zIndex + 500
-            : zIndex,
+        zIndex,
       }}
     >
       {children}
