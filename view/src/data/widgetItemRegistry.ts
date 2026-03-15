@@ -20,6 +20,7 @@ export interface WidgetItemRegistryEntry {
   rendererKind: WidgetRendererKind;
   legacyGroupId: WidgetGroupId;
   visibilityPath: string;
+  labelKey: string;
   minScale: number;
   maxScale: number;
   defaultPlacementHint: WidgetPlacementHint;
@@ -59,6 +60,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'experience',
     legacyGroupId: 'experience',
     visibilityPath: 'experience.enabled',
+    labelKey: 'experienceProgress',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'experience', order: 0 },
@@ -68,6 +70,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'playerInfo',
     visibilityPath: 'playerInfo.level',
+    labelKey: 'level',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'playerInfo', order: 0 },
@@ -77,6 +80,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'playerInfo',
     visibilityPath: 'playerInfo.gold',
+    labelKey: 'gold',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'playerInfo', order: 1 },
@@ -86,6 +90,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'playerInfo',
     visibilityPath: 'playerInfo.carryWeight',
+    labelKey: 'carryWeight',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'playerInfo', order: 2 },
@@ -95,6 +100,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'playerInfo',
     visibilityPath: 'playerInfo.health',
+    labelKey: 'health',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'playerInfo', order: 3 },
@@ -104,6 +110,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'playerInfo',
     visibilityPath: 'playerInfo.magicka',
+    labelKey: 'magicka',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'playerInfo', order: 4 },
@@ -113,6 +120,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'playerInfo',
     visibilityPath: 'playerInfo.stamina',
+    labelKey: 'stamina',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'playerInfo', order: 5 },
@@ -122,6 +130,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'resistances',
     visibilityPath: 'resistances.magic',
+    labelKey: 'magic',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'resistances', order: 0 },
@@ -131,6 +140,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'resistances',
     visibilityPath: 'resistances.fire',
+    labelKey: 'fire',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'resistances', order: 1 },
@@ -140,6 +150,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'resistances',
     visibilityPath: 'resistances.frost',
+    labelKey: 'frost',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'resistances', order: 2 },
@@ -149,6 +160,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'resistances',
     visibilityPath: 'resistances.shock',
+    labelKey: 'shock',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'resistances', order: 3 },
@@ -158,6 +170,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'resistances',
     visibilityPath: 'resistances.poison',
+    labelKey: 'poison',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'resistances', order: 4 },
@@ -167,6 +180,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'resistances',
     visibilityPath: 'resistances.disease',
+    labelKey: 'disease',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'resistances', order: 5 },
@@ -176,6 +190,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'defense',
     visibilityPath: 'defense.armorRating',
+    labelKey: 'armorRating',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'defense', order: 0 },
@@ -185,6 +200,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'defense',
     visibilityPath: 'defense.damageReduction',
+    labelKey: 'damageReduction',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'defense', order: 1 },
@@ -194,6 +210,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'offense',
     visibilityPath: 'offense.rightHandDamage',
+    labelKey: 'rightHandDamage',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'offense', order: 0 },
@@ -203,6 +220,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'offense',
     visibilityPath: 'offense.leftHandDamage',
+    labelKey: 'leftHandDamage',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'offense', order: 1 },
@@ -212,6 +230,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'offense',
     visibilityPath: 'offense.critChance',
+    labelKey: 'critChance',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'offense', order: 2 },
@@ -221,6 +240,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'equipped',
     visibilityPath: 'equipped.rightHand',
+    labelKey: 'rightHandEquipped',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'equipped', order: 0 },
@@ -230,6 +250,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'equipped',
     visibilityPath: 'equipped.leftHand',
+    labelKey: 'leftHandEquipped',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'equipped', order: 1 },
@@ -239,6 +260,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'time',
     visibilityPath: 'time.gameDateTime',
+    labelKey: 'gameDateTime',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'time', order: 0 },
@@ -248,6 +270,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'time',
     visibilityPath: 'time.realDateTime',
+    labelKey: 'realDateTime',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'time', order: 1 },
@@ -257,6 +280,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'stat',
     legacyGroupId: 'movement',
     visibilityPath: 'movement.speedMult',
+    labelKey: 'speed',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'movement', order: 0 },
@@ -266,6 +290,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'timed-effects-list',
     legacyGroupId: 'timedEffects',
     visibilityPath: 'timedEffects.enabled',
+    labelKey: 'timedEffects',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'timedEffects', order: 0 },
@@ -292,6 +317,11 @@ export function getWidgetItemRegistryEntry(itemId: string): WidgetItemRegistryEn
 
 export function getWidgetItemIdByVisibilityPath(path: string): string | null {
   return WIDGET_ITEM_ID_BY_VISIBILITY_PATH[path] ?? null;
+}
+
+export function getWidgetItemDefaultZIndex(itemId: string): number {
+  const index = WIDGET_ITEM_IDS.indexOf(itemId);
+  return index >= 0 ? index : 0;
 }
 
 export function getLegacyEffectiveScale(size: WidgetSize, groupScale = 1): number {
@@ -384,6 +414,8 @@ export function buildItemLayoutsFromLegacySettings(
             source.general.size,
             source.groupScales[entry.legacyGroupId] ?? 1,
           ),
+          locked: false,
+          zIndex: getWidgetItemDefaultZIndex(itemId),
         },
       ];
     }),
@@ -404,6 +436,10 @@ export function sanitizeWidgetItemLayouts(incoming: unknown): Record<string, Wid
     }
 
     const { visible, x, y, scale } = rawLayout;
+    const locked = typeof rawLayout.locked === 'boolean' ? rawLayout.locked : false;
+    const zIndex = typeof rawLayout.zIndex === 'number' && Number.isFinite(rawLayout.zIndex)
+      ? Math.trunc(rawLayout.zIndex)
+      : getWidgetItemDefaultZIndex(itemId);
     if (
       typeof visible !== 'boolean'
       || typeof x !== 'number'
@@ -418,7 +454,7 @@ export function sanitizeWidgetItemLayouts(incoming: unknown): Record<string, Wid
       continue;
     }
 
-    out[itemId] = { visible, x, y, scale };
+    out[itemId] = { visible, x, y, scale, locked, zIndex };
   }
 
   return out;

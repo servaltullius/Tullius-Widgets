@@ -12,6 +12,8 @@ export interface WidgetItemLayout {
   x: number;
   y: number;
   scale: number;
+  locked: boolean;
+  zIndex: number;
 }
 
 export interface WidgetSettings {

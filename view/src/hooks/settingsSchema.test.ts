@@ -47,15 +47,15 @@ describe('settingsSchema', () => {
       schemaVersion: 2,
       itemLayouts: {
         'player.level': { visible: true, x: 120, y: 240, scale: 1.4 },
-        'time.real': { visible: false, x: 640, y: 40, scale: 0.9 },
+        'time.real': { visible: false, x: 640, y: 40, scale: 0.9, locked: true, zIndex: 21 },
         brokenScale: { visible: true, x: 0, y: 0, scale: 0 },
         brokenShape: 10,
       },
     });
 
     expect(merged.itemLayouts).toEqual({
-      'player.level': { visible: true, x: 120, y: 240, scale: 1.4 },
-      'time.real': { visible: false, x: 640, y: 40, scale: 0.9 },
+      'player.level': { visible: true, x: 120, y: 240, scale: 1.4, locked: false, zIndex: 1 },
+      'time.real': { visible: false, x: 640, y: 40, scale: 0.9, locked: true, zIndex: 21 },
     });
   });
 

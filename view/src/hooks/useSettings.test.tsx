@@ -353,11 +353,16 @@ describe('useSettings', () => {
       x: 42,
       y: 84,
       scale: 1.5,
+      locked: false,
+      zIndex: 1,
     });
   });
 
   it('rewrites legacy visibility toggles to canonical itemLayouts entries', async () => {
+    const onSettingsChanged = vi.fn();
     let updateSetting: UpdateSettingFn | null = null;
+    vi.useFakeTimers();
+    window.onSettingsChanged = onSettingsChanged;
 
     await act(async () => {
       root = createRoot(container);
@@ -369,15 +374,59 @@ describe('useSettings', () => {
       );
     });
 
+    await act(async () => {
+      window.importSettingsFromNative?.(JSON.stringify({
+        itemLayouts: {
+          'player.level': {
+            visible: true,
+            x: 64,
+            y: 96,
+            scale: 1.1,
+            locked: true,
+            zIndex: 11,
+          },
+        },
+      }));
+      await Promise.resolve();
+    });
+
     expect(latest?.playerInfo.level).toBe(true);
-    expect(latest?.itemLayouts['player.level']).toBeUndefined();
+    expect(latest?.itemLayouts['player.level']).toEqual({
+      visible: true,
+      x: 64,
+      y: 96,
+      scale: 1.1,
+      locked: true,
+      zIndex: 11,
+    });
 
     await act(async () => {
       updateSetting?.('playerInfo.level', false);
     });
 
-    expect(latest?.itemLayouts['player.level']?.visible).toBe(false);
+    expect(latest?.itemLayouts['player.level']).toEqual({
+      visible: false,
+      x: 64,
+      y: 96,
+      scale: 1.1,
+      locked: true,
+      zIndex: 11,
+    });
     expect(latest?.playerInfo.level).toBe(true);
+
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+
+    expect(JSON.parse(onSettingsChanged.mock.calls.at(-1)?.[0] as string).itemLayouts['player.level']).toEqual({
+      visible: false,
+      x: 64,
+      y: 96,
+      scale: 1.1,
+      locked: true,
+      zIndex: 11,
+    });
+    vi.useRealTimers();
   });
 
   it('imports canonical itemLayouts payloads without requiring legacy layout fields', async () => {
@@ -389,8 +438,8 @@ describe('useSettings', () => {
     await act(async () => {
       window.importSettingsFromNative?.(JSON.stringify({
         itemLayouts: {
-          'time.game': { visible: false, x: 320, y: 120, scale: 1.2 },
-          'player.level': { visible: true, x: 64, y: 96, scale: 1.1 },
+          'time.game': { visible: false, x: 320, y: 120, scale: 1.2, locked: false, zIndex: 20 },
+          'player.level': { visible: true, x: 64, y: 96, scale: 1.1, locked: true, zIndex: 1 },
         },
       }));
     });
@@ -400,12 +449,16 @@ describe('useSettings', () => {
       x: 320,
       y: 120,
       scale: 1.2,
+      locked: false,
+      zIndex: 20,
     });
     expect(latest?.itemLayouts['player.level']).toEqual({
       visible: true,
       x: 64,
       y: 96,
       scale: 1.1,
+      locked: true,
+      zIndex: 1,
     });
   });
 });

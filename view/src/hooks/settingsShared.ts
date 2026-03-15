@@ -1,4 +1,5 @@
 import type { WidgetItemLayout, WidgetSettings } from '../types/settings';
+import { getWidgetItemDefaultZIndex } from '../data/widgetItemRegistry';
 import { isPlainObject } from '../utils/normalize';
 
 export const SETTINGS_SCHEMA_VERSION = 2;
@@ -8,7 +9,16 @@ const DEFAULT_ITEM_LAYOUT: WidgetItemLayout = {
   x: 0,
   y: 0,
   scale: 1,
+  locked: false,
+  zIndex: 0,
 };
+
+function getDefaultItemLayout(itemId: string): WidgetItemLayout {
+  return {
+    ...DEFAULT_ITEM_LAYOUT,
+    zIndex: getWidgetItemDefaultZIndex(itemId),
+  };
+}
 
 export function readRevision(value: unknown): number | null {
   if (typeof value !== 'number' || !Number.isFinite(value)) return null;
@@ -31,8 +41,15 @@ export function updateValueByPath(current: WidgetSettings, path: string, value: 
     if (keys.length >= 3) {
       const itemId = keys.slice(1, -1).join('.');
       const leafKey = keys[keys.length - 1] as keyof WidgetItemLayout;
-      if (leafKey === 'visible' || leafKey === 'x' || leafKey === 'y' || leafKey === 'scale') {
-        const currentItem = current.itemLayouts[itemId] ?? DEFAULT_ITEM_LAYOUT;
+      if (
+        leafKey === 'visible'
+        || leafKey === 'x'
+        || leafKey === 'y'
+        || leafKey === 'scale'
+        || leafKey === 'locked'
+        || leafKey === 'zIndex'
+      ) {
+        const currentItem = current.itemLayouts[itemId] ?? getDefaultItemLayout(itemId);
         if (Object.is(currentItem[leafKey], value)) {
           return current;
         }
