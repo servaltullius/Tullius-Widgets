@@ -69,6 +69,7 @@ describe('EditableWidgetItem', () => {
     expect(widget).not.toBeNull();
     expect(resizeHandle).not.toBeNull();
     expect(widget?.style.border).toContain('2px solid');
+    expect(widget?.style.zIndex).toBe('504');
 
     await act(async () => {
       widget?.dispatchEvent(new MouseEvent('mousedown', {
