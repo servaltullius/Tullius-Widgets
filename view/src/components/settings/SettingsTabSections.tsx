@@ -404,6 +404,9 @@ export function PresetsTabSections({
         <p style={{ color: '#888', fontSize: '18px', margin: '10px 0 0 0', textAlign: 'center' }}>
           {t(lang, 'dragHint')}
         </p>
+        <p style={{ color: '#88a4c4', fontSize: '18px', margin: '6px 0 0 0', textAlign: 'center' }}>
+          {t(lang, 'editVisibilityHint')}
+        </p>
       </AccordionSection>
     </>
   );

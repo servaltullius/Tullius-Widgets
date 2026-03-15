@@ -100,6 +100,7 @@ function InteractionHarness({
     handleGroupMove,
     handleGroupMoveEnd,
     clearPreviewPositions,
+    activeGuides,
   } = useWidgetPositions({
     defaults: {
       primary: { x: 0, y: 0 },
@@ -141,6 +142,14 @@ function InteractionHarness({
       clearPreviewPositions();
     }
   }, [clearPreviewPositions, clearSelection, settingsOpen]);
+
+  useEffect(() => {
+    if (interactionResetToken === 0) {
+      return;
+    }
+
+    clearPreviewPositions();
+  }, [clearPreviewPositions, interactionResetToken]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -192,6 +201,7 @@ function InteractionHarness({
         {`${resolvePosition('primary').x},${resolvePosition('primary').y}`}
       </output>
       <output data-testid="primary-group-scale">{String(resolveGroupScale('primary'))}</output>
+      <output data-testid="guide-count">{String(activeGuides.length)}</output>
     </>
   );
 }
@@ -238,6 +248,10 @@ describe('useWidgetPositions', () => {
     });
 
     expect(latestApi?.resolvePosition('primary')).toEqual({ x: 100, y: 10 });
+    expect(latestApi?.activeGuides).toEqual([
+      { orientation: 'vertical', position: 100 },
+      { orientation: 'horizontal', position: 10 },
+    ]);
   });
 
   it('persists snapped position on drag end', async () => {
@@ -255,6 +269,7 @@ describe('useWidgetPositions', () => {
     });
 
     expect(updateSetting).toHaveBeenCalledWith('positions.primary', { x: 100, y: 10 });
+    expect(latestApi?.activeGuides).toEqual([]);
   });
 
   it('changes the selected group when a group is clicked', async () => {
@@ -356,6 +371,50 @@ describe('useWidgetPositions', () => {
     });
 
     expect(closeCount?.textContent).toBe('1');
+  });
+
+  it('clears drag preview state and guides when escape cancels an active drag', async () => {
+    const updateSetting = vi.fn<UpdateSettingFn>();
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<InteractionHarness updateSetting={updateSetting} />);
+    });
+
+    const primary = container.querySelector('[data-group-id="primary"]');
+    const selectedGroup = container.querySelector('[data-testid="selected-group"]');
+    const primaryPosition = container.querySelector('[data-testid="primary-position"]');
+    const guideCount = container.querySelector('[data-testid="guide-count"]');
+
+    expect(primary).not.toBeNull();
+    expect(primaryPosition?.textContent).toBe('0,0');
+    expect(guideCount?.textContent).toBe('0');
+
+    await act(async () => {
+      dispatchMouse(primary!, 'mousedown', { clientX: 20, clientY: 20 });
+    });
+
+    await act(async () => {
+      dispatchMouse(window, 'mousemove', { clientX: 63, clientY: 67 });
+    });
+
+    expect(selectedGroup?.textContent).toBe('primary');
+    expect(primaryPosition?.textContent).not.toBe('0,0');
+    expect(guideCount?.textContent).toBe('2');
+
+    await act(async () => {
+      dispatchEscape();
+    });
+
+    expect(selectedGroup?.textContent).toBe('');
+    expect(primaryPosition?.textContent).toBe('0,0');
+    expect(guideCount?.textContent).toBe('0');
+
+    await act(async () => {
+      dispatchMouse(window, 'mouseup', { clientX: 63, clientY: 67 });
+    });
+
+    expect(updateSetting.mock.calls.some(([path]) => path === 'positions.primary')).toBe(false);
   });
 
   it('cancels drag preview and persistence when edit mode closes mid-drag', async () => {

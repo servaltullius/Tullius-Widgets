@@ -103,6 +103,27 @@ describe('hudPresentation', () => {
     }).shouldShow).toBe(false);
   });
 
+  it('keeps editable groups visible while settings are open even if global gates would hide them', () => {
+    const settings = cloneSettings();
+    const stats = cloneStats();
+
+    settings.general.visible = false;
+    settings.general.combatOnly = true;
+    settings.general.showOnChangeOnly = true;
+    settings.general.changeDisplaySeconds = 1;
+    stats.isInCombat = false;
+
+    expect(resolveHudVisibility({
+      visible: false,
+      hasLiveStats: true,
+      settings,
+      stats,
+      settingsOpen: true,
+      nowMs: 6000,
+      lastChangeAtMs: 4000,
+    }).shouldShow).toBe(true);
+  });
+
   it('maps runtime and settings sync warnings to translated text', () => {
     expect(getRuntimeWarningText('ko', {
       runtimeVersion: '1.5.97.0',

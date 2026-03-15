@@ -186,14 +186,20 @@ export function resolveHudVisibility({
     !settings.general.showOnChangeOnly
     || settingsOpen
     || (nowMs - lastChangeAtMs) <= settings.general.changeDisplaySeconds * 1000;
+  const editModeVisible = settingsOpen && hasLiveStats;
 
   return {
     changeWindowActive,
     shouldShow:
-      visible
-      && hasLiveStats
-      && (!settings.general.combatOnly || stats.isInCombat)
-      && changeWindowActive,
+      hasLiveStats
+      && (
+        editModeVisible
+        || (
+          visible
+          && (!settings.general.combatOnly || stats.isInCombat)
+          && changeWindowActive
+        )
+      ),
   };
 }
 

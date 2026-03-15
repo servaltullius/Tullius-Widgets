@@ -3,6 +3,7 @@ import { HudWidgetGroups } from './components/HudWidgetGroups';
 import { OnboardingPanel, RuntimeWarningBanner, SettingsSyncWarningBanner } from './components/HudOverlays';
 import { SettingsPanel } from './components/SettingsPanel';
 import { ScreenEffects } from './components/ScreenEffects';
+import { WidgetEditGuides } from './components/WidgetEditGuides';
 import { useGameStatsState } from './hooks/useGameStats';
 import { useSettings } from './hooks/useSettings';
 import { useLocalization } from './i18n/useLocalization';
@@ -58,6 +59,7 @@ export function App() {
     handleGroupMove,
     handleGroupMoveEnd,
     clearPreviewPositions,
+    activeGuides,
   } = useWidgetPositions({
     defaults,
     settingsPositions: settings.positions,
@@ -89,6 +91,14 @@ export function App() {
       clearPreviewPositions();
     }
   }, [clearPreviewPositions, clearSelection, settingsOpen]);
+
+  useEffect(() => {
+    if (interactionResetToken === 0) {
+      return;
+    }
+
+    clearPreviewPositions();
+  }, [clearPreviewPositions, interactionResetToken]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -229,6 +239,8 @@ export function App() {
         interactionResetToken={interactionResetToken}
         getGroupProps={groupProps}
       />
+
+      <WidgetEditGuides visible={settingsOpen} guides={activeGuides} />
 
       {hasLiveStats && <ScreenEffects alertData={stats.alertData} settings={settings} />}
 
