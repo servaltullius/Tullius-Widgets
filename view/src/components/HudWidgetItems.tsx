@@ -1,8 +1,11 @@
 import { useMemo, type ReactNode } from 'react';
+import { EditableWidgetItem } from './EditableWidgetItem';
 import { ExperienceWidget } from './ExperienceWidget';
 import { StatWidget } from './StatWidget';
 import { TimedEffectList } from './TimedEffectList';
 import { t } from '../i18n/translations';
+import { getWidgetItemRegistryEntry } from '../data/widgetItemRegistry';
+import type { WidgetInteractionMode } from '../hooks/useWidgetEditSelection';
 import type { Language, WidgetItemLayout, WidgetSettings } from '../types/settings';
 import type { CombatStats } from '../types/stats';
 import {
@@ -37,14 +40,16 @@ interface HudWidgetItemsProps {
   lang: Language;
   itemLayouts: Record<string, WidgetItemLayout>;
   accentColor: string;
-}
-
-function hexToRgba(hex: string, alpha: number): string {
-  const h = hex.replace('#', '');
-  const r = parseInt(h.substring(0, 2), 16) || 0;
-  const g = parseInt(h.substring(2, 4), 16) || 0;
-  const b = parseInt(h.substring(4, 6), 16) || 0;
-  return `rgba(${r},${g},${b},${alpha})`;
+  editable?: boolean;
+  selectedItemId?: string | null;
+  onSelectItem?: (itemId: string) => void;
+  onInteractionStart?: (itemId: string, mode: WidgetInteractionMode) => void;
+  onInteractionEnd?: () => void;
+  onMoveItem?: (itemId: string, x: number, y: number) => void;
+  onMoveItemEnd?: (itemId: string, x: number, y: number) => void;
+  onResizeItem?: (itemId: string, scale: number) => void;
+  onResizeItemEnd?: (itemId: string, scale: number) => void;
+  onItemElementRef?: (itemId: string, element: HTMLDivElement | null) => void;
 }
 
 function renderItemShell(
@@ -54,35 +59,61 @@ function renderItemShell(
   accentColor: string,
   transparentBg: boolean,
   child: ReactNode,
+  options?: {
+    editable: boolean;
+    selected: boolean;
+    minScale: number;
+    maxScale: number;
+    onSelect: (itemId: string) => void;
+    onInteractionStart: (itemId: string, mode: WidgetInteractionMode) => void;
+    onInteractionEnd: () => void;
+    onMove: (itemId: string, x: number, y: number) => void;
+    onDragEnd: (itemId: string, x: number, y: number) => void;
+    onResize: (itemId: string, scale: number) => void;
+    onResizeEnd: (itemId: string, scale: number) => void;
+    onElementRef?: (itemId: string, element: HTMLDivElement | null) => void;
+  },
 ) {
-  const showBg = !transparentBg;
+  const resolvedOptions = options ?? {
+    editable: false,
+    selected: false,
+    minScale: layout.scale,
+    maxScale: layout.scale,
+    onSelect: () => {},
+    onInteractionStart: () => {},
+    onInteractionEnd: () => {},
+    onMove: () => {},
+    onDragEnd: () => {},
+    onResize: () => {},
+    onResizeEnd: () => {},
+    onElementRef: undefined,
+  };
 
   return (
-    <div
+    <EditableWidgetItem
       key={itemId}
-      data-widget-item-id={itemId}
-      style={{
-        position: 'fixed',
-        left: `${layout.x}px`,
-        top: `${layout.y}px`,
-        opacity: opacity / 100,
-        transform: `scale(${layout.scale})`,
-        transformOrigin: 'top left',
-        background: showBg
-          ? `linear-gradient(135deg, ${hexToRgba(accentColor, 0.12)} 0%, rgba(0,0,0,0.45) 60%)`
-          : 'transparent',
-        borderRadius: '8px',
-        padding: showBg ? '8px 12px' : '0',
-        border: showBg ? `1px solid ${hexToRgba(accentColor, 0.25)}` : 'none',
-        boxShadow: showBg ? `inset 0 0 20px ${hexToRgba(accentColor, 0.06)}, 0 0 8px ${hexToRgba(accentColor, 0.1)}` : 'none',
-        overflow: 'visible',
-        userSelect: 'none',
-        pointerEvents: 'none',
-        zIndex: 1,
-      }}
+      itemId={itemId}
+      x={layout.x}
+      y={layout.y}
+      scale={layout.scale}
+      minScale={resolvedOptions.minScale}
+      maxScale={resolvedOptions.maxScale}
+      opacity={opacity}
+      accentColor={accentColor}
+      transparentBg={transparentBg}
+      editable={resolvedOptions.editable}
+      selected={resolvedOptions.selected}
+      onSelect={resolvedOptions.onSelect}
+      onInteractionStart={resolvedOptions.onInteractionStart}
+      onInteractionEnd={resolvedOptions.onInteractionEnd}
+      onMove={resolvedOptions.onMove}
+      onDragEnd={resolvedOptions.onDragEnd}
+      onResize={resolvedOptions.onResize}
+      onResizeEnd={resolvedOptions.onResizeEnd}
+      onElementRef={resolvedOptions.onElementRef}
     >
       {child}
-    </div>
+    </EditableWidgetItem>
   );
 }
 
@@ -94,6 +125,16 @@ export function HudWidgetItems({
   lang,
   itemLayouts,
   accentColor,
+  editable = false,
+  selectedItemId = null,
+  onSelectItem = () => {},
+  onInteractionStart = () => {},
+  onInteractionEnd = () => {},
+  onMoveItem = () => {},
+  onMoveItemEnd = () => {},
+  onResizeItem = () => {},
+  onResizeItemEnd = () => {},
+  onItemElementRef,
 }: HudWidgetItemsProps) {
   const hasVisibleTimeItem = shouldShow
     && (
@@ -146,15 +187,33 @@ export function HudWidgetItems({
         if (!layout) {
           return null;
         }
+        const registryEntry = getWidgetItemRegistryEntry(itemId);
+        const renderEditableItem = (child: ReactNode) => renderItemShell(
+          itemId,
+          layout,
+          settings.general.opacity,
+          accentColor,
+          settings.general.transparentBg,
+          child,
+          {
+            editable,
+            selected: selectedItemId === itemId,
+            minScale: registryEntry.minScale,
+            maxScale: registryEntry.maxScale,
+            onSelect: onSelectItem,
+            onInteractionStart,
+            onInteractionEnd,
+            onMove: onMoveItem,
+            onDragEnd: onMoveItemEnd,
+            onResize: onResizeItem,
+            onResizeEnd: onResizeItemEnd,
+            onElementRef: onItemElementRef,
+          },
+        );
 
         switch (itemId) {
           case 'experience.progress':
-            return renderItemShell(
-              itemId,
-              layout,
-              settings.general.opacity,
-              accentColor,
-              settings.general.transparentBg,
+            return renderEditableItem(
               (
                 <ExperienceWidget
                   currentXp={currentXp}
@@ -166,15 +225,15 @@ export function HudWidgetItems({
               ),
             );
           case 'player.level':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget icon="level" iconColor="#ffd700" value={stats.playerInfo.level} visible prominence="secondary" />
             ));
           case 'player.gold':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget icon="gold" iconColor="#f0c040" value={stats.playerInfo.gold} visible format={formatGold} prominence="secondary" />
             ));
           case 'player.carryWeight':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget
                 icon="weight"
                 iconColor="#cc9966"
@@ -191,7 +250,7 @@ export function HudWidgetItems({
               />
             ));
           case 'player.health':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget
                 icon="health"
                 iconColor="#e84040"
@@ -205,7 +264,7 @@ export function HudWidgetItems({
               />
             ));
           case 'player.magicka':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget
                 icon="magicka"
                 iconColor="#4090e8"
@@ -219,7 +278,7 @@ export function HudWidgetItems({
               />
             ));
           case 'player.stamina':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget
                 icon="stamina"
                 iconColor="#40c840"
@@ -233,7 +292,7 @@ export function HudWidgetItems({
               />
             ));
           case 'resistance.magic':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget
                 icon="magic"
                 iconColor="#b366ff"
@@ -247,7 +306,7 @@ export function HudWidgetItems({
               />
             ));
           case 'resistance.fire':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget
                 icon="fire"
                 iconColor="#ff6633"
@@ -261,7 +320,7 @@ export function HudWidgetItems({
               />
             ));
           case 'resistance.frost':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget
                 icon="frost"
                 iconColor="#66ccff"
@@ -275,7 +334,7 @@ export function HudWidgetItems({
               />
             ));
           case 'resistance.shock':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget
                 icon="shock"
                 iconColor="#ffdd33"
@@ -289,7 +348,7 @@ export function HudWidgetItems({
               />
             ));
           case 'resistance.poison':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget
                 icon="poison"
                 iconColor="#66ff66"
@@ -304,7 +363,7 @@ export function HudWidgetItems({
               />
             ));
           case 'resistance.disease':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget
                 icon="disease"
                 iconColor="#99cc66"
@@ -320,7 +379,7 @@ export function HudWidgetItems({
               />
             ));
           case 'defense.armorRating':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget
                 icon="armor"
                 iconColor="#aabbcc"
@@ -332,7 +391,7 @@ export function HudWidgetItems({
               />
             ));
           case 'defense.damageReduction':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget
                 icon="damageReduce"
                 iconColor="#44aaaa"
@@ -345,15 +404,15 @@ export function HudWidgetItems({
               />
             ));
           case 'offense.rightHandDamage':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget icon="rightHand" iconColor="#e85050" value={stats.offense.rightHandDamage} visible min={WEAPON_DAMAGE_MIN} cap={WEAPON_DAMAGE_CAP} />
             ));
           case 'offense.leftHandDamage':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget icon="leftHand" iconColor="#e88080" value={stats.offense.leftHandDamage} visible min={WEAPON_DAMAGE_MIN} cap={WEAPON_DAMAGE_CAP} />
             ));
           case 'offense.critChance':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget
                 icon="crit"
                 iconColor="#ff8800"
@@ -368,7 +427,7 @@ export function HudWidgetItems({
               />
             ));
           case 'equipped.rightHand':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget
                 icon="rightHand"
                 iconColor="#e85050"
@@ -378,7 +437,7 @@ export function HudWidgetItems({
               />
             ));
           case 'equipped.leftHand':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget
                 icon="leftHand"
                 iconColor="#4090e8"
@@ -388,7 +447,7 @@ export function HudWidgetItems({
               />
             ));
           case 'time.game':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget
                 icon="gameTime"
                 iconColor="#d8b96b"
@@ -399,7 +458,7 @@ export function HudWidgetItems({
               />
             ));
           case 'time.real':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget
                 icon="realTime"
                 iconColor="#77d8ff"
@@ -410,11 +469,11 @@ export function HudWidgetItems({
               />
             ));
           case 'movement.speedMult':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <StatWidget icon="speed" iconColor="#44ddff" value={stats.movement.speedMult} unit="%" visible prominence="secondary" />
             ));
           case 'timedEffects.list':
-            return renderItemShell(itemId, layout, settings.general.opacity, accentColor, settings.general.transparentBg, (
+            return renderEditableItem((
               <TimedEffectList
                 effects={stats.timedEffects}
                 maxVisible={settings.timedEffects.maxVisible}

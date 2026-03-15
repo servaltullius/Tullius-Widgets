@@ -1,4 +1,4 @@
-import type { AlignmentGuide } from '../hooks/useWidgetPositions';
+import type { AlignmentGuide } from '../utils/widgetSnap';
 
 interface WidgetEditGuidesProps {
   visible: boolean;
@@ -28,8 +28,8 @@ export function WidgetEditGuides({ visible, guides }: WidgetEditGuidesProps) {
               data-guide-line
               style={{
                 position: 'absolute',
-                top: 0,
-                bottom: 0,
+                top: `${guide.start ?? 0}px`,
+                height: `${Math.max(1, (guide.end ?? window.innerHeight) - (guide.start ?? 0))}px`,
                 left: `${guide.position}px`,
                 width: '1px',
                 background: 'linear-gradient(180deg, rgba(255,215,0,0) 0%, rgba(255,215,0,0.72) 50%, rgba(255,215,0,0) 100%)',
@@ -45,8 +45,8 @@ export function WidgetEditGuides({ visible, guides }: WidgetEditGuidesProps) {
             data-guide-line
             style={{
               position: 'absolute',
-              left: 0,
-              right: 0,
+              left: `${guide.start ?? 0}px`,
+              width: `${Math.max(1, (guide.end ?? window.innerWidth) - (guide.start ?? 0))}px`,
               top: `${guide.position}px`,
               height: '1px',
               background: 'linear-gradient(90deg, rgba(255,215,0,0) 0%, rgba(255,215,0,0.72) 50%, rgba(255,215,0,0) 100%)',

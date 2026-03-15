@@ -7,8 +7,10 @@ import { WidgetEditGuides } from './WidgetEditGuides';
 describe('WidgetEditGuides', () => {
   let container: HTMLDivElement;
   let root: Root | null = null;
+  const reactActEnvironment = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
 
   beforeEach(() => {
+    reactActEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
     container = document.createElement('div');
     document.body.appendChild(container);
   });
@@ -19,6 +21,7 @@ describe('WidgetEditGuides', () => {
     });
     root = null;
     container.remove();
+    delete reactActEnvironment.IS_REACT_ACT_ENVIRONMENT;
   });
 
   it('renders alignment guides only when visible', async () => {
