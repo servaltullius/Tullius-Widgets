@@ -33,6 +33,7 @@ interface HudWidgetGroupsProps {
   settings: WidgetSettings;
   settingsOpen: boolean;
   lang: Language;
+  interactionResetToken: number;
   getGroupProps: (groupId: string) => GroupProps;
 }
 
@@ -42,6 +43,7 @@ export function HudWidgetGroups({
   settings,
   settingsOpen,
   lang,
+  interactionResetToken,
   getGroupProps,
 }: HudWidgetGroupsProps) {
   if (!shouldShow) {
@@ -89,7 +91,7 @@ export function HudWidgetGroups({
   return (
     <>
       {hasVisiblePlayerInfo && (
-        <DraggableWidgetGroup {...getGroupProps('playerInfo')}>
+        <DraggableWidgetGroup key={`playerInfo-${settingsOpen ? 'edit' : 'view'}-${interactionResetToken}`} {...getGroupProps('playerInfo')}>
           <StatWidget icon="level" iconColor="#ffd700" value={stats.playerInfo.level} visible={settings.playerInfo.level} prominence="secondary" />
           <StatWidget icon="gold" iconColor="#f0c040" value={stats.playerInfo.gold} visible={settings.playerInfo.gold} format={formatGold} prominence="secondary" />
           <StatWidget
@@ -143,7 +145,7 @@ export function HudWidgetGroups({
       )}
 
       {hasVisibleExperience && (
-        <DraggableWidgetGroup {...getGroupProps('experience')}>
+        <DraggableWidgetGroup key={`experience-${settingsOpen ? 'edit' : 'view'}-${interactionResetToken}`} {...getGroupProps('experience')}>
           <ExperienceWidget
             key={`xp-${totalXpForNextLevel}`}
             currentXp={currentXp}
@@ -156,7 +158,7 @@ export function HudWidgetGroups({
       )}
 
       {hasVisibleResistance && (
-        <DraggableWidgetGroup {...getGroupProps('resistances')}>
+        <DraggableWidgetGroup key={`resistances-${settingsOpen ? 'edit' : 'view'}-${interactionResetToken}`} {...getGroupProps('resistances')}>
           <StatWidget
             icon="magic"
             iconColor="#b366ff"
@@ -230,7 +232,7 @@ export function HudWidgetGroups({
       )}
 
       {hasVisibleDefense && (
-        <DraggableWidgetGroup {...getGroupProps('defense')}>
+        <DraggableWidgetGroup key={`defense-${settingsOpen ? 'edit' : 'view'}-${interactionResetToken}`} {...getGroupProps('defense')}>
           <StatWidget
             icon="armor"
             iconColor="#aabbcc"
@@ -254,7 +256,7 @@ export function HudWidgetGroups({
       )}
 
       {hasVisibleOffense && (
-        <DraggableWidgetGroup {...getGroupProps('offense')}>
+        <DraggableWidgetGroup key={`offense-${settingsOpen ? 'edit' : 'view'}-${interactionResetToken}`} {...getGroupProps('offense')}>
           <StatWidget icon="rightHand" iconColor="#e85050" value={stats.offense.rightHandDamage} visible={settings.offense.rightHandDamage} min={WEAPON_DAMAGE_MIN} cap={WEAPON_DAMAGE_CAP} />
           <StatWidget icon="leftHand" iconColor="#e88080" value={stats.offense.leftHandDamage} visible={settings.offense.leftHandDamage} min={WEAPON_DAMAGE_MIN} cap={WEAPON_DAMAGE_CAP} />
           <StatWidget
@@ -273,7 +275,7 @@ export function HudWidgetGroups({
       )}
 
       {hasVisibleEquipped && (
-        <DraggableWidgetGroup {...getGroupProps('equipped')}>
+        <DraggableWidgetGroup key={`equipped-${settingsOpen ? 'edit' : 'view'}-${interactionResetToken}`} {...getGroupProps('equipped')}>
           <StatWidget
             key={`r-${stats.equipped.rightHand}`}
             icon="rightHand"
@@ -294,7 +296,7 @@ export function HudWidgetGroups({
       )}
 
       {hasVisibleTimedEffects && (
-        <DraggableWidgetGroup {...getGroupProps('timedEffects')}>
+        <DraggableWidgetGroup key={`timedEffects-${settingsOpen ? 'edit' : 'view'}-${interactionResetToken}`} {...getGroupProps('timedEffects')}>
           <TimedEffectList
             effects={stats.timedEffects}
             maxVisible={settings.timedEffects.maxVisible}
@@ -304,7 +306,7 @@ export function HudWidgetGroups({
       )}
 
       {hasVisibleTime && (
-        <DraggableWidgetGroup {...getGroupProps('time')}>
+        <DraggableWidgetGroup key={`time-${settingsOpen ? 'edit' : 'view'}-${interactionResetToken}`} {...getGroupProps('time')}>
           <TimeWidgetList
             gameTime={stats.time}
             showGameDateTime={settings.time.gameDateTime}
@@ -315,7 +317,7 @@ export function HudWidgetGroups({
       )}
 
       {hasVisibleMovement && (
-        <DraggableWidgetGroup {...getGroupProps('movement')}>
+        <DraggableWidgetGroup key={`movement-${settingsOpen ? 'edit' : 'view'}-${interactionResetToken}`} {...getGroupProps('movement')}>
           <StatWidget icon="speed" iconColor="#44ddff" value={stats.movement.speedMult} unit="%" visible={settings.movement.speedMult} prominence="secondary" />
         </DraggableWidgetGroup>
       )}

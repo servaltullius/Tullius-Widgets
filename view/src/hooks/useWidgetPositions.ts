@@ -24,6 +24,13 @@ interface ComputeSnappedPositionParams {
   rawY: number;
 }
 
+export interface UseWidgetPositionsResult {
+  resolvePosition: (groupId: string) => GroupPosition;
+  handleGroupMove: (groupId: string, rawX: number, rawY: number) => void;
+  handleGroupMoveEnd: (groupId: string, rawX: number, rawY: number) => void;
+  clearPreviewPositions: () => void;
+}
+
 function resolvePositionById(
   positions: Record<string, GroupPosition>,
   settingsPositions: Record<string, GroupPosition>,
@@ -93,7 +100,7 @@ export function useWidgetPositions({
   snapThreshold,
   grid,
   fallbackPos,
-}: UseWidgetPositionsParams) {
+}: UseWidgetPositionsParams): UseWidgetPositionsResult {
   const [dragPositions, setDragPositions] = useState<Record<string, GroupPosition>>({});
 
   const resolvePosition = useCallback((groupId: string): GroupPosition => {
@@ -139,9 +146,16 @@ export function useWidgetPositions({
     });
   }, [defaults, fallbackPos, grid, groupIds, settingsPositions, snapThreshold, updateSetting]);
 
+  const clearPreviewPositions = useCallback(() => {
+    setDragPositions(previous => {
+      return Object.keys(previous).length === 0 ? previous : {};
+    });
+  }, []);
+
   return {
     resolvePosition,
     handleGroupMove,
     handleGroupMoveEnd,
+    clearPreviewPositions,
   };
 }

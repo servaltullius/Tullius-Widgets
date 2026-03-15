@@ -6,6 +6,7 @@ import { ScreenEffects } from './components/ScreenEffects';
 import { useGameStatsState } from './hooks/useGameStats';
 import { useSettings } from './hooks/useSettings';
 import { useLocalization } from './i18n/useLocalization';
+import { getPresetGroupScale, useGroupEditor } from './hooks/useGroupEditor';
 import { useWidgetPositions } from './hooks/useWidgetPositions';
 import { getDefaultPositions } from './data/defaultSettings';
 import { WIDGET_GROUP_IDS } from './data/widgetRegistry';
@@ -52,7 +53,12 @@ export function App() {
     [settings.general.size, settings.layouts, viewport.height, viewport.width],
   );
   const { activeLanguage: lang, availableLanguages } = useLocalization(settings.general.language);
-  const { resolvePosition, handleGroupMove, handleGroupMoveEnd } = useWidgetPositions({
+  const {
+    resolvePosition,
+    handleGroupMove,
+    handleGroupMoveEnd,
+    clearPreviewPositions,
+  } = useWidgetPositions({
     defaults,
     settingsPositions: settings.positions,
     updateSetting,
@@ -61,6 +67,28 @@ export function App() {
     grid: GRID,
     fallbackPos: FALLBACK_POS,
   });
+  const {
+    selectedGroupId,
+    interactionResetToken,
+    selectGroup,
+    clearSelection,
+    startInteraction,
+    endInteraction,
+    resolveGroupScale,
+    updateGroupScale,
+    commitGroupScale,
+  } = useGroupEditor({
+    settingsOpen,
+    groupScales: settings.groupScales,
+    updateSetting,
+  });
+
+  useEffect(() => {
+    if (!settingsOpen) {
+      clearSelection();
+      clearPreviewPositions();
+    }
+  }, [clearPreviewPositions, clearSelection, settingsOpen]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -111,20 +139,45 @@ export function App() {
 
   const groupProps = useCallback((groupId: string) => {
     const pos = resolvePosition(groupId);
+    const groupScale = resolveGroupScale(groupId);
     return {
       groupId,
       x: pos.x,
       y: pos.y,
       opacity: settings.general.opacity,
-      size: settings.general.size,
+      effectiveScale: getPresetGroupScale(settings.general.size) * groupScale,
+      groupScale,
       layout: settings.layouts[groupId] ?? 'vertical',
       accentColor,
       transparentBg: settings.general.transparentBg,
       draggable: settingsOpen,
+      selected: selectedGroupId === groupId,
+      onSelect: selectGroup,
+      onInteractionStart: startInteraction,
+      onInteractionEnd: endInteraction,
       onMove: handleGroupMove,
       onDragEnd: handleGroupMoveEnd,
+      onResize: updateGroupScale,
+      onResizeEnd: commitGroupScale,
     };
-  }, [resolvePosition, settings.general.opacity, settings.general.size, settings.layouts, accentColor, settings.general.transparentBg, settingsOpen, handleGroupMove, handleGroupMoveEnd]);
+  }, [
+    resolvePosition,
+    resolveGroupScale,
+    settings.general.opacity,
+    settings.general.size,
+    settings.layouts,
+    accentColor,
+    settings.general.transparentBg,
+    settingsOpen,
+    selectedGroupId,
+    selectGroup,
+    startInteraction,
+    endInteraction,
+    handleGroupMove,
+    handleGroupMoveEnd,
+    updateGroupScale,
+    commitGroupScale,
+  ]);
 
   const runtimeWarningText = getRuntimeWarningText(lang, runtimeDiagnostics);
   const settingsSyncWarningText = getSettingsSyncWarningText(lang, settingsSyncState, lastSettingsSyncOk);
@@ -136,6 +189,11 @@ export function App() {
   const handleOnboardingOpenSettings = () => {
     setSettingsOpen(true);
   };
+
+  const handleCloseSettings = useCallback(() => {
+    clearSelection();
+    closeSettings();
+  }, [clearSelection, closeSettings]);
 
   return (
     <>
@@ -168,6 +226,7 @@ export function App() {
         settings={settings}
         settingsOpen={settingsOpen}
         lang={lang}
+        interactionResetToken={interactionResetToken}
         getGroupProps={groupProps}
       />
 
@@ -178,7 +237,7 @@ export function App() {
         lang={lang}
         effectiveVisible={visible}
         open={settingsOpen}
-        onClose={closeSettings}
+        onClose={handleCloseSettings}
         onUpdate={updateSetting}
         accentColor={accentColor}
         availableLanguages={availableLanguages}
