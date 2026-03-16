@@ -125,11 +125,11 @@ Add tests that render the combat/effects sections expanded and verify:
 
 - carry weight exposes a display selector
 - resistances expose one shared display selector
-- game time and real time each expose their own display selector
+- game time and real time each expose their own display selector only while the corresponding widget toggle is enabled
 - timed effects expose a vertical/horizontal selector
 - changing each selector calls `onUpdate` with the exact expected path
 
-Use direct interaction on the rendered DOM. Do not rely on vague text-only assertions where a select control can be targeted more precisely.
+Use direct interaction on the rendered DOM. Do not rely on vague text-only assertions where a select control can be targeted more precisely. If needed, add stable selector hooks such as an `aria-label` or `data-testid` on `CustomSelect` instances used by this screen.
 
 - [ ] **Step 2: Run the targeted settings-panel tests and confirm failure**
 
@@ -161,6 +161,7 @@ Requirements:
 - keep the current accordion structure unchanged
 - use `CustomSelect` for the new option controls
 - place controls directly under the related toggles/section headers
+- only show the game/real time display selectors while the matching widget toggle is enabled
 - avoid creating a generic presentation framework in this file
 
 - [ ] **Step 5: Re-run the targeted settings-panel tests**
@@ -197,6 +198,7 @@ Add coverage for:
 
 - carry weight `combined`, `valueOnly`, and `meterOnly`
 - resistance `effectiveOnly`, `rawOnly`, and `both`
+- resistance `both` suppressing helper text when raw and effective are the same
 - game time `dateTime` vs `timeOnly`
 - real time `dateTime` vs `timeOnly`
 
@@ -206,6 +208,7 @@ Prefer DOM assertions that match what the player sees:
 - correct primary numeric text
 - correct date-containing vs time-only text
 - meter bar present vs absent
+- time-only text continuing to follow the shared clock when `Date.now()` advances
 
 - [ ] **Step 2: Run the targeted HUD renderer tests and confirm failure**
 
@@ -241,9 +244,9 @@ Implementation rules:
 - time widgets: select the correct formatter per widget
 - preserve existing tones, caps, ordering, and item-shell behavior
 
-- [ ] **Step 5: Add the minimal `StatWidget` support needed for clean meter-only carry weight**
+- [ ] **Step 5: Add the minimal `StatWidget` support required for clean meter-only carry weight**
 
-If meter-only cannot be rendered cleanly with current props, add one small optional prop to suppress value text without affecting other widgets. Do not redesign `StatWidget`.
+Add one small optional prop to suppress value text so `meterOnly` can render without a blank value row. Do not redesign `StatWidget`.
 
 - [ ] **Step 6: Re-run the targeted HUD renderer tests**
 
@@ -275,9 +278,10 @@ git commit -m "feat: add stage 1 hud display modes"
 Cover:
 
 - `vertical` keeps column direction
-- `horizontal` switches to row direction
+- `horizontal` switches to row direction with wrapping enabled
 - `maxVisible` still limits visible cards
 - hidden-count rendering still appears when entries overflow
+- hidden-count remains the last flow item after the visible cards in horizontal mode
 - empty-state rendering still works
 
 - [ ] **Step 2: Run the targeted timed-effect tests and confirm failure**
