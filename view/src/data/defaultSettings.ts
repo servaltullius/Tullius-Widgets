@@ -54,7 +54,7 @@ export const defaultSettings: WidgetSettings = {
     enabled: true,
   },
   playerInfo: {
-    level: true,
+    level: false,
     gold: true,
     carryWeight: true,
     carryWeightDisplay: 'combined',

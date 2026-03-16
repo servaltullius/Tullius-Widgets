@@ -38,6 +38,11 @@ const TIMED_EFFECT_LIST_LAYOUTS = ['vertical', 'horizontal'] as const;
 const CARRY_WEIGHT_DISPLAY_MODES = ['combined', 'valueOnly', 'meterOnly'] as const;
 const RESISTANCE_DISPLAY_MODES = ['effectiveOnly', 'rawOnly', 'both'] as const;
 const TIME_DISPLAY_MODES = ['dateTime', 'timeOnly'] as const;
+const STAGE2_STANDALONE_LEVEL_SCHEMA_VERSION = 4;
+
+interface MergeSettingsOptions {
+  allowLegacyStandaloneLevelFallback?: boolean;
+}
 
 function mergeBooleanSection<T extends Record<string, boolean>>(defaults: T, incoming: unknown): T {
   if (!isPlainObject(incoming)) return defaults;
@@ -202,6 +207,55 @@ function mergePlayerInfoSettings(target: WidgetSettings['playerInfo'], incoming:
   target.stamina = readBoolean(incoming.stamina, target.stamina);
 }
 
+function readExplicitStandaloneLevelVisibility(incoming: unknown): boolean | null {
+  if (!isPlainObject(incoming) || typeof incoming.level !== 'boolean') {
+    return null;
+  }
+
+  return incoming.level;
+}
+
+function readExplicitItemVisibility(itemLayoutsIncoming: unknown, itemId: string): boolean | null {
+  if (!isPlainObject(itemLayoutsIncoming)) {
+    return null;
+  }
+
+  const rawLayout = itemLayoutsIncoming[itemId];
+  if (!isPlainObject(rawLayout) || typeof rawLayout.visible !== 'boolean') {
+    return null;
+  }
+
+  return rawLayout.visible;
+}
+
+function reconcileStandaloneLevelVisibility(
+  target: WidgetSettings['playerInfo'],
+  playerInfoIncoming: unknown,
+  itemLayoutsIncoming: unknown,
+  savedSchemaVersion: number | null,
+  options: MergeSettingsOptions,
+): void {
+  const explicitItemVisibility = readExplicitItemVisibility(itemLayoutsIncoming, 'player.level');
+  if (explicitItemVisibility !== null) {
+    target.level = explicitItemVisibility;
+    return;
+  }
+
+  const explicitLegacyVisibility = readExplicitStandaloneLevelVisibility(playerInfoIncoming);
+  if (explicitLegacyVisibility !== null) {
+    target.level = explicitLegacyVisibility;
+    return;
+  }
+
+  const shouldPreserveLegacyDefault = savedSchemaVersion === null
+    ? options.allowLegacyStandaloneLevelFallback === true
+    : savedSchemaVersion < STAGE2_STANDALONE_LEVEL_SCHEMA_VERSION;
+
+  if (shouldPreserveLegacyDefault) {
+    target.level = true;
+  }
+}
+
 function mergeVisualAlertsSettings(target: WidgetSettings['visualAlerts'], incoming: unknown): void {
   if (!isPlainObject(incoming)) {
     return;
@@ -217,8 +271,12 @@ function mergeVisualAlertsSettings(target: WidgetSettings['visualAlerts'], incom
   target.overencumbered = readBoolean(incoming.overencumbered, target.overencumbered);
 }
 
-export function mergeWithDefaults(saved: Record<string, unknown>): WidgetSettings {
+export function mergeWithDefaults(
+  saved: Record<string, unknown>,
+  options: MergeSettingsOptions = {},
+): WidgetSettings {
   const merged = cloneDefaultSettings();
+  const savedSchemaVersion = readRevision(saved.schemaVersion);
 
   mergeGeneralSettings(merged.general, saved.general);
   mergeResistancesSettings(merged.resistances, saved.resistances);
@@ -237,6 +295,13 @@ export function mergeWithDefaults(saved: Record<string, unknown>): WidgetSetting
   merged.layouts = sanitizeLayouts(saved.layouts);
   merged.groupScales = sanitizeGroupScales(saved.groupScales);
   merged.itemLayouts = sanitizeWidgetItemLayouts(saved.itemLayouts);
+  reconcileStandaloneLevelVisibility(
+    merged.playerInfo,
+    saved.playerInfo,
+    saved.itemLayouts,
+    savedSchemaVersion,
+    options,
+  );
   return merged;
 }
 

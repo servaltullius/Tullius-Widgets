@@ -7,6 +7,83 @@ import {
 } from './settingsSchema';
 
 describe('settingsSchema', () => {
+  it('defaults the standalone level widget off for fresh stage 2 installs', () => {
+    const merged = mergeWithDefaults({
+      schemaVersion: 4,
+    });
+
+    expect(defaultSettings.playerInfo.level).toBe(false);
+    expect(merged.playerInfo.level).toBe(false);
+  });
+
+  it('preserves standalone level visibility for legacy payloads without explicit level flags', () => {
+    const merged = mergeWithDefaults({
+      schemaVersion: 3,
+      playerInfo: {
+        gold: false,
+      },
+    }, {
+      allowLegacyStandaloneLevelFallback: true,
+    });
+
+    expect(merged.playerInfo.level).toBe(true);
+  });
+
+  it('keeps standalone level off for schema-less partial payloads by default', () => {
+    const merged = mergeWithDefaults({
+      playerInfo: {
+        gold: false,
+      },
+    });
+
+    expect(merged.playerInfo.level).toBe(false);
+  });
+
+  it('keeps standalone level hidden for legacy payloads that explicitly disable it', () => {
+    const merged = mergeWithDefaults({
+      schemaVersion: 3,
+      playerInfo: {
+        level: false,
+      },
+    }, {
+      allowLegacyStandaloneLevelFallback: true,
+    });
+
+    expect(merged.playerInfo.level).toBe(false);
+  });
+
+  it('preserves standalone level visibility for invalid-schema legacy imports when fallback is allowed', () => {
+    const merged = mergeWithDefaults({
+      schemaVersion: 'invalid',
+      playerInfo: {
+        gold: false,
+      },
+    }, {
+      allowLegacyStandaloneLevelFallback: true,
+    });
+
+    expect(merged.playerInfo.level).toBe(true);
+  });
+
+  it('prefers canonical item visibility when legacy player level flags conflict', () => {
+    const merged = mergeWithDefaults({
+      schemaVersion: 3,
+      playerInfo: {
+        level: true,
+      },
+      itemLayouts: {
+        'player.level': { visible: false, x: 120, y: 240, scale: 1.1 },
+      },
+    }, {
+      allowLegacyStandaloneLevelFallback: true,
+    });
+
+    expect(merged.playerInfo.level).toBe(false);
+    expect(merged.itemLayouts['player.level']).toMatchObject({
+      visible: false,
+    });
+  });
+
   it('preserves valid display-mode enum values', () => {
     const merged = mergeWithDefaults({
       timedEffects: {

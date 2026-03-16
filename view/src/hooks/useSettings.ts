@@ -63,7 +63,9 @@ export function useSettings() {
         return true;
       }
 
-      const merged = mergeWithDefaults(parsed);
+      const merged = mergeWithDefaults(parsed, {
+        allowLegacyStandaloneLevelFallback: persist,
+      });
       setSettings(merged);
       dispatchVisibleOverride({ type: 'reset' });
 

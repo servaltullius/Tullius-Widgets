@@ -100,6 +100,16 @@ describe('useSettings', () => {
     expect(latest!.general.size).toBe('xsmall');
   });
 
+  it('starts with the standalone level widget hidden in fresh stage 2 defaults', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onSettings={settings => { latest = settings; }} />);
+    });
+
+    expect(latest).not.toBeNull();
+    expect(latest!.playerInfo.level).toBe(false);
+  });
+
   it('accepts updateSettings from namespaced bridge handler', async () => {
     await act(async () => {
       root = createRoot(container);
@@ -462,6 +472,102 @@ describe('useSettings', () => {
     });
   });
 
+  it('preserves standalone level visibility for legacy imports without explicit level fields', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onSettings={settings => { latest = settings; }} />);
+    });
+
+    await act(async () => {
+      window.importSettingsFromNative?.(JSON.stringify({
+        schemaVersion: 3,
+        playerInfo: {
+          gold: 777,
+        },
+      }));
+    });
+
+    expect(latest?.playerInfo.level).toBe(true);
+  });
+
+  it('preserves standalone level visibility for schema-less legacy imports on the import path', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onSettings={settings => { latest = settings; }} />);
+    });
+
+    await act(async () => {
+      window.importSettingsFromNative?.(JSON.stringify({
+        playerInfo: {
+          gold: false,
+        },
+      }));
+    });
+
+    expect(latest?.playerInfo.level).toBe(true);
+  });
+
+  it('does not re-enable standalone level for schema-less partial runtime updates', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onSettings={settings => { latest = settings; }} />);
+    });
+
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({
+        playerInfo: {
+          gold: 777,
+        },
+      }));
+    });
+
+    expect(latest?.playerInfo.level).toBe(false);
+    expect(latest?.playerInfo.gold).toBe(true);
+  });
+
+  it('keeps standalone level hidden for legacy imports that explicitly disable it', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onSettings={settings => { latest = settings; }} />);
+    });
+
+    await act(async () => {
+      window.importSettingsFromNative?.(JSON.stringify({
+        schemaVersion: 3,
+        playerInfo: {
+          level: false,
+          gold: 777,
+        },
+      }));
+    });
+
+    expect(latest?.playerInfo.level).toBe(false);
+  });
+
+  it('prefers canonical itemLayouts visibility when legacy player level import fields conflict', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onSettings={settings => { latest = settings; }} />);
+    });
+
+    await act(async () => {
+      window.importSettingsFromNative?.(JSON.stringify({
+        schemaVersion: 3,
+        playerInfo: {
+          level: true,
+        },
+        itemLayouts: {
+          'player.level': { visible: false, x: 64, y: 96, scale: 1.1 },
+        },
+      }));
+    });
+
+    expect(latest?.playerInfo.level).toBe(false);
+    expect(latest?.itemLayouts['player.level']).toMatchObject({
+      visible: false,
+    });
+  });
+
   it('persists new display-mode settings with the current schema version', async () => {
     const onSettingsChanged = vi.fn();
     let updateSetting: UpdateSettingFn | null = null;
@@ -499,7 +605,7 @@ describe('useSettings', () => {
     expect(onSettingsChanged).toHaveBeenCalledTimes(1);
     const payload = JSON.parse(onSettingsChanged.mock.calls[0]?.[0] as string) as WidgetSettings & { schemaVersion?: number };
 
-    expect(payload.schemaVersion).toBe(3);
+    expect(payload.schemaVersion).toBe(4);
     expect(payload.playerInfo.carryWeightDisplay).toBe('meterOnly');
     expect(payload.resistances.displayMode).toBe('rawOnly');
     expect(payload.time.gameDisplay).toBe('timeOnly');
