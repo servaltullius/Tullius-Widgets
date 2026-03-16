@@ -14,6 +14,14 @@ function getByTestId(container: HTMLElement, testId: string): HTMLElement | null
   return container.querySelector(`[data-testid="${testId}"]`);
 }
 
+function getToggleInputByLabel(container: HTMLElement, label: string): HTMLInputElement | null {
+  const textNode = Array.from(container.querySelectorAll('span')).find(
+    element => element.textContent === label,
+  );
+  const wrapper = textNode?.closest('label');
+  return wrapper?.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
+}
+
 describe('SettingsTabSections', () => {
   let container: HTMLDivElement;
   let root: Root | null = null;
@@ -107,6 +115,43 @@ describe('SettingsTabSections', () => {
     expect(onUpdate).toHaveBeenCalledWith('layouts', {}, { persist: false });
     expect(onUpdate).toHaveBeenCalledWith('groupScales', {}, { persist: false });
     expect(onUpdate).toHaveBeenCalledWith('itemLayouts', {});
+  });
+
+  it('uses stage 2 progression wording while keeping canonical experience and level toggle paths', async () => {
+    const settings = cloneSettings();
+    const onUpdate = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <CombatTabSections
+          lang="ko"
+          settings={settings}
+          onUpdate={onUpdate}
+          isSectionExpanded={() => true}
+          toggleSection={() => {}}
+        />,
+      );
+    });
+
+    expect(container.textContent).toContain('성장 진행도');
+    expect(container.textContent).toContain('통합 진행 위젯');
+    expect(container.textContent).toContain('별도 레벨 표시');
+    expect(container.textContent).not.toContain('경험치 진행도');
+
+    const progressionToggle = getToggleInputByLabel(container, '통합 진행 위젯');
+    const standaloneLevelToggle = getToggleInputByLabel(container, '별도 레벨 표시');
+
+    expect(progressionToggle).toBeTruthy();
+    expect(standaloneLevelToggle).toBeTruthy();
+
+    await act(async () => {
+      progressionToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      standaloneLevelToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(onUpdate).toHaveBeenCalledWith('itemLayouts.experience.progress.visible', false);
+    expect(onUpdate).toHaveBeenCalledWith('itemLayouts.player.level.visible', true);
   });
 
   it('renders stage 1 display selectors and updates the correct settings paths', async () => {

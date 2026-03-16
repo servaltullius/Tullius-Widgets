@@ -176,13 +176,13 @@ export function CombatTabSections({
     <>
       <AccordionSection
         id="experience"
-        title={t(lang, 'experienceWidget')}
+        title={t(lang, 'progressionWidgetPanel')}
         expanded={isSectionExpanded('experience')}
         onToggle={toggleSection}
         panelScale={panelScale}
       >
         <Toggle
-          label={t(lang, 'experienceProgress')}
+          label={t(lang, 'integratedProgressionWidget')}
           checked={readItemVisibility(settings, 'experience.progress', settings.experience.enabled)}
           onChange={value => updateItemVisibility(onUpdate, 'experience.progress', value)}
           panelScale={panelScale}
@@ -196,7 +196,7 @@ export function CombatTabSections({
         onToggle={toggleSection}
         panelScale={panelScale}
       >
-        <Toggle label={t(lang, 'level')} checked={readItemVisibility(settings, 'player.level', settings.playerInfo.level)} onChange={value => updateItemVisibility(onUpdate, 'player.level', value)} panelScale={panelScale} />
+        <Toggle label={t(lang, 'standaloneLevel')} checked={readItemVisibility(settings, 'player.level', settings.playerInfo.level)} onChange={value => updateItemVisibility(onUpdate, 'player.level', value)} panelScale={panelScale} />
         <Toggle label={t(lang, 'gold')} checked={readItemVisibility(settings, 'player.gold', settings.playerInfo.gold)} onChange={value => updateItemVisibility(onUpdate, 'player.gold', value)} panelScale={panelScale} />
         <Toggle label={t(lang, 'carryWeight')} checked={readItemVisibility(settings, 'player.carryWeight', settings.playerInfo.carryWeight)} onChange={value => updateItemVisibility(onUpdate, 'player.carryWeight', value)} panelScale={panelScale} />
         <SelectRow
