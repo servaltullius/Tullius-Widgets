@@ -1,6 +1,10 @@
 import type {
+  CarryWeightDisplayMode,
   GroupPosition,
   Language,
+  ResistanceDisplayMode,
+  TimeDisplayMode,
+  TimedEffectListLayout,
   WidgetLayout,
   WidgetSettings,
   WidgetSize,
@@ -29,6 +33,11 @@ function readAccentColor(value: unknown, fallback: string): string {
   if (value === '') return '';
   return /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback;
 }
+
+const TIMED_EFFECT_LIST_LAYOUTS = ['vertical', 'horizontal'] as const;
+const CARRY_WEIGHT_DISPLAY_MODES = ['combined', 'valueOnly', 'meterOnly'] as const;
+const RESISTANCE_DISPLAY_MODES = ['effectiveOnly', 'rawOnly', 'both'] as const;
+const TIME_DISPLAY_MODES = ['dateTime', 'timeOnly'] as const;
 
 function mergeBooleanSection<T extends Record<string, boolean>>(defaults: T, incoming: unknown): T {
   if (!isPlainObject(incoming)) return defaults;
@@ -131,6 +140,66 @@ function mergeTimedEffectsSettings(target: WidgetSettings['timedEffects'], incom
 
   target.enabled = readBoolean(incoming.enabled, target.enabled);
   target.maxVisible = readNumber(incoming.maxVisible, target.maxVisible, 1, 12);
+  target.listLayout = readEnum<TimedEffectListLayout>(
+    incoming.listLayout,
+    target.listLayout,
+    TIMED_EFFECT_LIST_LAYOUTS,
+  );
+}
+
+function mergeResistancesSettings(target: WidgetSettings['resistances'], incoming: unknown): void {
+  if (!isPlainObject(incoming)) {
+    return;
+  }
+
+  target.magic = readBoolean(incoming.magic, target.magic);
+  target.fire = readBoolean(incoming.fire, target.fire);
+  target.frost = readBoolean(incoming.frost, target.frost);
+  target.shock = readBoolean(incoming.shock, target.shock);
+  target.poison = readBoolean(incoming.poison, target.poison);
+  target.disease = readBoolean(incoming.disease, target.disease);
+  target.displayMode = readEnum<ResistanceDisplayMode>(
+    incoming.displayMode,
+    target.displayMode,
+    RESISTANCE_DISPLAY_MODES,
+  );
+}
+
+function mergeTimeSettings(target: WidgetSettings['time'], incoming: unknown): void {
+  if (!isPlainObject(incoming)) {
+    return;
+  }
+
+  target.gameDateTime = readBoolean(incoming.gameDateTime, target.gameDateTime);
+  target.gameDisplay = readEnum<TimeDisplayMode>(
+    incoming.gameDisplay,
+    target.gameDisplay,
+    TIME_DISPLAY_MODES,
+  );
+  target.realDateTime = readBoolean(incoming.realDateTime, target.realDateTime);
+  target.realDisplay = readEnum<TimeDisplayMode>(
+    incoming.realDisplay,
+    target.realDisplay,
+    TIME_DISPLAY_MODES,
+  );
+}
+
+function mergePlayerInfoSettings(target: WidgetSettings['playerInfo'], incoming: unknown): void {
+  if (!isPlainObject(incoming)) {
+    return;
+  }
+
+  target.level = readBoolean(incoming.level, target.level);
+  target.gold = readBoolean(incoming.gold, target.gold);
+  target.carryWeight = readBoolean(incoming.carryWeight, target.carryWeight);
+  target.carryWeightDisplay = readEnum<CarryWeightDisplayMode>(
+    incoming.carryWeightDisplay,
+    target.carryWeightDisplay,
+    CARRY_WEIGHT_DISPLAY_MODES,
+  );
+  target.health = readBoolean(incoming.health, target.health);
+  target.magicka = readBoolean(incoming.magicka, target.magicka);
+  target.stamina = readBoolean(incoming.stamina, target.stamina);
 }
 
 function mergeVisualAlertsSettings(target: WidgetSettings['visualAlerts'], incoming: unknown): void {
@@ -152,14 +221,14 @@ export function mergeWithDefaults(saved: Record<string, unknown>): WidgetSetting
   const merged = cloneDefaultSettings();
 
   mergeGeneralSettings(merged.general, saved.general);
-  merged.resistances = mergeBooleanSection(merged.resistances, saved.resistances);
+  mergeResistancesSettings(merged.resistances, saved.resistances);
   merged.defense = mergeBooleanSection(merged.defense, saved.defense);
   merged.offense = mergeBooleanSection(merged.offense, saved.offense);
   merged.equipped = mergeBooleanSection(merged.equipped, saved.equipped);
   merged.movement = mergeBooleanSection(merged.movement, saved.movement);
-  merged.time = mergeBooleanSection(merged.time, saved.time);
+  mergeTimeSettings(merged.time, saved.time);
   merged.experience = mergeBooleanSection(merged.experience, saved.experience);
-  merged.playerInfo = mergeBooleanSection(merged.playerInfo, saved.playerInfo);
+  mergePlayerInfoSettings(merged.playerInfo, saved.playerInfo);
 
   migrateLegacyExperienceToggle(merged.experience, saved.experience, saved.playerInfo);
   mergeTimedEffectsSettings(merged.timedEffects, saved.timedEffects);

@@ -1,5 +1,9 @@
 export type WidgetSize = 'xsmall' | 'small' | 'medium' | 'large';
 export type WidgetLayout = 'vertical' | 'horizontal';
+export type TimedEffectListLayout = 'vertical' | 'horizontal';
+export type CarryWeightDisplayMode = 'combined' | 'valueOnly' | 'meterOnly';
+export type ResistanceDisplayMode = 'effectiveOnly' | 'rawOnly' | 'both';
+export type TimeDisplayMode = 'dateTime' | 'timeOnly';
 export type Language = string;
 
 export interface GroupPosition {
@@ -36,6 +40,7 @@ export interface WidgetSettings {
     shock: boolean;
     poison: boolean;
     disease: boolean;
+    displayMode: ResistanceDisplayMode;
   };
   defense: {
     armorRating: boolean;
@@ -53,13 +58,16 @@ export interface WidgetSettings {
   timedEffects: {
     enabled: boolean;
     maxVisible: number;
+    listLayout: TimedEffectListLayout;
   };
   movement: {
     speedMult: boolean;
   };
   time: {
     gameDateTime: boolean;
+    gameDisplay: TimeDisplayMode;
     realDateTime: boolean;
+    realDisplay: TimeDisplayMode;
   };
   experience: {
     enabled: boolean;
@@ -68,6 +76,7 @@ export interface WidgetSettings {
     level: boolean;
     gold: boolean;
     carryWeight: boolean;
+    carryWeightDisplay: CarryWeightDisplayMode;
     health: boolean;
     magicka: boolean;
     stamina: boolean;

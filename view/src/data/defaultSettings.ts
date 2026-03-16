@@ -21,6 +21,7 @@ export const defaultSettings: WidgetSettings = {
     shock: true,
     poison: true,
     disease: false,
+    displayMode: 'both',
   },
   defense: {
     armorRating: true,
@@ -38,13 +39,16 @@ export const defaultSettings: WidgetSettings = {
   timedEffects: {
     enabled: true,
     maxVisible: 6,
+    listLayout: 'vertical',
   },
   movement: {
     speedMult: true,
   },
   time: {
     gameDateTime: true,
+    gameDisplay: 'dateTime',
     realDateTime: true,
+    realDisplay: 'dateTime',
   },
   experience: {
     enabled: true,
@@ -53,6 +57,7 @@ export const defaultSettings: WidgetSettings = {
     level: true,
     gold: true,
     carryWeight: true,
+    carryWeightDisplay: 'combined',
     health: false,
     magicka: false,
     stamina: false,

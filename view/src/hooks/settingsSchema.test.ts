@@ -7,6 +7,107 @@ import {
 } from './settingsSchema';
 
 describe('settingsSchema', () => {
+  it('preserves valid display-mode enum values', () => {
+    const merged = mergeWithDefaults({
+      timedEffects: {
+        listLayout: 'horizontal',
+      },
+      playerInfo: {
+        carryWeightDisplay: 'meterOnly',
+      },
+      resistances: {
+        displayMode: 'rawOnly',
+      },
+      time: {
+        gameDisplay: 'timeOnly',
+        realDisplay: 'timeOnly',
+      },
+    });
+
+    expect(merged.timedEffects).toMatchObject({
+      listLayout: 'horizontal',
+    });
+    expect(merged.playerInfo).toMatchObject({
+      carryWeightDisplay: 'meterOnly',
+    });
+    expect(merged.resistances).toMatchObject({
+      displayMode: 'rawOnly',
+    });
+    expect(merged.time).toMatchObject({
+      gameDisplay: 'timeOnly',
+      realDisplay: 'timeOnly',
+    });
+  });
+
+  it('falls back to defaults for invalid display-mode enum values', () => {
+    const merged = mergeWithDefaults({
+      timedEffects: {
+        listLayout: 'grid',
+      },
+      playerInfo: {
+        carryWeightDisplay: 'percentOnly',
+      },
+      resistances: {
+        displayMode: 'effectiveAndRaw',
+      },
+      time: {
+        gameDisplay: 'clockOnly',
+        realDisplay: 123,
+      },
+    });
+
+    expect(merged.timedEffects).toMatchObject({
+      listLayout: 'vertical',
+    });
+    expect(merged.playerInfo).toMatchObject({
+      carryWeightDisplay: 'combined',
+    });
+    expect(merged.resistances).toMatchObject({
+      displayMode: 'both',
+    });
+    expect(merged.time).toMatchObject({
+      gameDisplay: 'dateTime',
+      realDisplay: 'dateTime',
+    });
+  });
+
+  it('merges older payloads safely when display-mode fields are missing', () => {
+    const merged = mergeWithDefaults({
+      timedEffects: {
+        enabled: false,
+      },
+      playerInfo: {
+        carryWeight: false,
+      },
+      resistances: {
+        fire: false,
+      },
+      time: {
+        gameDateTime: false,
+        realDateTime: false,
+      },
+    });
+
+    expect(merged.timedEffects).toMatchObject({
+      enabled: false,
+      listLayout: 'vertical',
+    });
+    expect(merged.playerInfo).toMatchObject({
+      carryWeight: false,
+      carryWeightDisplay: 'combined',
+    });
+    expect(merged.resistances).toMatchObject({
+      fire: false,
+      displayMode: 'both',
+    });
+    expect(merged.time).toMatchObject({
+      gameDateTime: false,
+      gameDisplay: 'dateTime',
+      realDateTime: false,
+      realDisplay: 'dateTime',
+    });
+  });
+
   it('drops invalid positions while preserving valid widget coordinates', () => {
     const merged = mergeWithDefaults({
       positions: {
