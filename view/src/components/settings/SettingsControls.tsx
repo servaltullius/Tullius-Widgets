@@ -1,22 +1,28 @@
 import { useState, useRef, useEffect, type ReactNode } from 'react';
 import type { Language, UpdateSettingFn, WidgetLayout } from '../../types/settings';
 import { t } from '../../i18n/translations';
+import { scalePanelPixels } from './panelScale';
 
 export interface ToggleProps {
   label: string;
   checked: boolean;
   onChange: (value: boolean) => void;
+  panelScale?: number;
 }
 
-export function Toggle({ label, checked, onChange }: ToggleProps) {
+export function Toggle({ label, checked, onChange, panelScale = 1 }: ToggleProps) {
   return (
-    <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', cursor: 'pointer' }}>
-      <span style={{ color: '#ddd', fontSize: '24px' }}>{label}</span>
+    <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${scalePanelPixels(8, panelScale)} 0`, cursor: 'pointer' }}>
+      <span style={{ color: '#ddd', fontSize: scalePanelPixels(24, panelScale) }}>{label}</span>
       <input
         type="checkbox"
         checked={checked}
         onChange={event => onChange(event.target.checked)}
-        style={{ width: '26px', height: '26px', cursor: 'pointer' }}
+        style={{
+          width: scalePanelPixels(26, panelScale),
+          height: scalePanelPixels(26, panelScale),
+          cursor: 'pointer',
+        }}
       />
     </label>
   );
@@ -26,9 +32,10 @@ interface CustomSelectProps {
   value: string;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
+  panelScale?: number;
 }
 
-export function CustomSelect({ value, options, onChange }: CustomSelectProps) {
+export function CustomSelect({ value, options, onChange, panelScale = 1 }: CustomSelectProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const selected = options.find(option => option.value === value);
@@ -48,22 +55,25 @@ export function CustomSelect({ value, options, onChange }: CustomSelectProps) {
     <div ref={containerRef} style={{ position: 'relative' }}>
       <div onClick={() => setOpen(!open)} style={{
         background: '#333', color: '#fff', border: '1px solid #555',
-        borderRadius: '6px', padding: '8px 16px', fontSize: '24px',
-        cursor: 'pointer', userSelect: 'none', minWidth: '120px', textAlign: 'center',
+        borderRadius: scalePanelPixels(6, panelScale),
+        padding: `${scalePanelPixels(8, panelScale)} ${scalePanelPixels(16, panelScale)}`,
+        fontSize: scalePanelPixels(24, panelScale),
+        cursor: 'pointer', userSelect: 'none', minWidth: scalePanelPixels(120, panelScale), textAlign: 'center',
       }}>
         {selected?.label ?? value} ▾
       </div>
       {open && (
         <div style={{
           position: 'absolute', top: '100%', right: 0, zIndex: 10,
-          background: '#2a2a3a', border: '1px solid #555', borderRadius: '6px',
-          marginTop: '4px', minWidth: '100%', overflow: 'hidden',
+          background: '#2a2a3a', border: '1px solid #555', borderRadius: scalePanelPixels(6, panelScale),
+          marginTop: scalePanelPixels(4, panelScale), minWidth: '100%', overflow: 'hidden',
         }}>
           {options.map(option => (
             <div key={option.value}
               onClick={() => { onChange(option.value); setOpen(false); }}
               style={{
-                padding: '12px 20px', fontSize: '24px', color: '#fff',
+                padding: `${scalePanelPixels(12, panelScale)} ${scalePanelPixels(20, panelScale)}`,
+                fontSize: scalePanelPixels(24, panelScale), color: '#fff',
                 cursor: 'pointer',
                 background: option.value === value ? '#4a4a5a' : 'transparent',
               }}
@@ -84,18 +94,20 @@ interface LayoutSelectProps {
   groupId: string;
   value: WidgetLayout;
   onUpdate: UpdateSettingFn;
+  panelScale?: number;
 }
 
-export function LayoutSelect({ lang, groupId, value, onUpdate }: LayoutSelectProps) {
+export function LayoutSelect({ lang, groupId, value, onUpdate, panelScale = 1 }: LayoutSelectProps) {
   return (
-    <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
-      <span style={{ color: '#aaa', fontSize: '24px' }}>{t(lang, 'layout')}</span>
+    <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${scalePanelPixels(8, panelScale)} 0` }}>
+      <span style={{ color: '#aaa', fontSize: scalePanelPixels(24, panelScale) }}>{t(lang, 'layout')}</span>
       <CustomSelect value={value}
         options={[
           { value: 'vertical', label: t(lang, 'layoutVertical') },
           { value: 'horizontal', label: t(lang, 'layoutHorizontal') },
         ]}
         onChange={nextValue => onUpdate(`layouts.${groupId}`, nextValue)}
+        panelScale={panelScale}
       />
     </label>
   );
@@ -107,6 +119,7 @@ interface AccordionSectionProps {
   expanded: boolean;
   onToggle: (id: string) => void;
   children: ReactNode;
+  panelScale?: number;
 }
 
 export function AccordionSection({
@@ -115,12 +128,13 @@ export function AccordionSection({
   expanded,
   onToggle,
   children,
+  panelScale = 1,
 }: AccordionSectionProps) {
   return (
     <div style={{
-      marginBottom: '16px',
+      marginBottom: scalePanelPixels(16, panelScale),
       border: '1px solid rgba(255, 215, 0, 0.2)',
-      borderRadius: '10px',
+      borderRadius: scalePanelPixels(10, panelScale),
       overflow: 'hidden',
       background: 'rgba(255, 255, 255, 0.03)',
     }}>
@@ -134,8 +148,8 @@ export function AccordionSection({
           background: 'rgba(255, 215, 0, 0.08)',
           border: 'none',
           color: '#ffd700',
-          fontSize: '26px',
-          padding: '12px 16px',
+          fontSize: scalePanelPixels(26, panelScale),
+          padding: `${scalePanelPixels(12, panelScale)} ${scalePanelPixels(16, panelScale)}`,
           cursor: 'pointer',
           textAlign: 'left',
         }}
@@ -144,7 +158,7 @@ export function AccordionSection({
         <span>{expanded ? '▾' : '▸'}</span>
       </button>
       {expanded && (
-        <div style={{ padding: '10px 16px 14px 16px' }}>
+        <div style={{ padding: `${scalePanelPixels(10, panelScale)} ${scalePanelPixels(16, panelScale)} ${scalePanelPixels(14, panelScale)} ${scalePanelPixels(16, panelScale)}` }}>
           {children}
         </div>
       )}

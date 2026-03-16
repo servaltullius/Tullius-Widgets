@@ -15,6 +15,10 @@ describe('SettingsPanel', () => {
   let container: HTMLDivElement;
   let root: Root | null = null;
   const reactActEnvironment = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
+  const originalViewport = {
+    innerWidth: window.innerWidth,
+    innerHeight: window.innerHeight,
+  };
 
   beforeEach(() => {
     reactActEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
@@ -30,7 +34,45 @@ describe('SettingsPanel', () => {
     root = null;
     container.remove();
     window.sessionStorage.clear();
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalViewport.innerWidth });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalViewport.innerHeight });
     delete reactActEnvironment.IS_REACT_ACT_ENVIRONMENT;
+  });
+
+  it('scales the panel shell proportionally on a 4K viewport', async () => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 3840 });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 2160 });
+
+    const settings = cloneSettings();
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <SettingsPanel
+          settings={settings}
+          lang="ko"
+          effectiveVisible
+          open
+          onClose={() => {}}
+          onUpdate={() => {}}
+          accentColor="#4fd1c5"
+          availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json', locale: 'ko-KR' }]}
+          selectedItemId={null}
+        />,
+      );
+    });
+
+    const panel = container.firstElementChild as HTMLDivElement | null;
+    const title = container.querySelector('h2') as HTMLHeadingElement | null;
+
+    expect(panel).not.toBeNull();
+    expect(title).not.toBeNull();
+    if (!panel || !title) {
+      throw new Error('expected settings panel shell and title to render');
+    }
+
+    expect(parseFloat(panel.style.minWidth)).toBeGreaterThan(680);
+    expect(parseFloat(title.style.fontSize)).toBeGreaterThan(36);
   });
 
   it('hides the quick-edit card when no widget is selected', async () => {

@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import type { Language, WidgetItemLayout } from '../../types/settings';
 import { t } from '../../i18n/translations';
+import { scalePanelPixels } from './panelScale';
 
 interface SelectedWidgetQuickEditCardProps {
   lang: Language;
@@ -16,6 +17,7 @@ interface SelectedWidgetQuickEditCardProps {
   onToggleLocked?: (nextLocked: boolean) => void;
   onBringForward?: () => void;
   onSendBackward?: () => void;
+  panelScale?: number;
 }
 
 export function SelectedWidgetQuickEditCard({
@@ -32,36 +34,39 @@ export function SelectedWidgetQuickEditCard({
   onToggleLocked = () => {},
   onBringForward = () => {},
   onSendBackward = () => {},
+  panelScale = 1,
 }: SelectedWidgetQuickEditCardProps) {
   const reorderDisabled = layout.locked || !layout.visible;
   const scaleDisabled = layout.locked;
+  const buttonStyle = createButtonStyle(panelScale);
+  const valueStyle = createValueStyle(panelScale);
 
   return (
     <section
       data-selected-widget-quick-edit-card
       style={{
-        marginBottom: '16px',
+        marginBottom: scalePanelPixels(16, panelScale),
         border: '1px solid rgba(255, 215, 0, 0.24)',
-        borderRadius: '12px',
-        padding: '14px 16px',
+        borderRadius: scalePanelPixels(12, panelScale),
+        padding: `${scalePanelPixels(14, panelScale)} ${scalePanelPixels(16, panelScale)}`,
         background: 'linear-gradient(180deg, rgba(255, 215, 0, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%)',
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: scalePanelPixels(12, panelScale), marginBottom: scalePanelPixels(12, panelScale) }}>
         <h3
           data-selected-widget-title
-          style={{ margin: 0, color: '#ffe6a8', fontSize: '24px', lineHeight: 1.2 }}
+          style={{ margin: 0, color: '#ffe6a8', fontSize: scalePanelPixels(24, panelScale), lineHeight: 1.2 }}
         >
           {title}
         </h3>
-        <span style={{ color: '#a8bbd8', fontSize: '14px' }}>
+        <span style={{ color: '#a8bbd8', fontSize: scalePanelPixels(14, panelScale) }}>
           z {layout.zIndex}
         </span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px 16px', alignItems: 'center' }}>
-        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-          <span style={{ color: '#ddd', fontSize: '16px' }}>{t(lang, 'showWidgets')}</span>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: `${scalePanelPixels(10, panelScale)} ${scalePanelPixels(16, panelScale)}`, alignItems: 'center' }}>
+        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: scalePanelPixels(8, panelScale) }}>
+          <span style={{ color: '#ddd', fontSize: scalePanelPixels(16, panelScale) }}>{t(lang, 'showWidgets')}</span>
           <input
             type="checkbox"
             checked={layout.visible}
@@ -70,8 +75,8 @@ export function SelectedWidgetQuickEditCard({
           />
         </label>
 
-        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-          <span style={{ color: '#ddd', fontSize: '16px' }}>{t(lang, 'lock')}</span>
+        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: scalePanelPixels(8, panelScale) }}>
+          <span style={{ color: '#ddd', fontSize: scalePanelPixels(16, panelScale) }}>{t(lang, 'lock')}</span>
           <input
             type="checkbox"
             checked={layout.locked}
@@ -80,8 +85,8 @@ export function SelectedWidgetQuickEditCard({
           />
         </label>
 
-        <label style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ color: '#ddd', fontSize: '16px', minWidth: '54px' }}>
+        <label style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: scalePanelPixels(12, panelScale) }}>
+          <span style={{ color: '#ddd', fontSize: scalePanelPixels(16, panelScale), minWidth: scalePanelPixels(54, panelScale) }}>
             {t(lang, 'size')}
           </span>
           <input
@@ -95,27 +100,27 @@ export function SelectedWidgetQuickEditCard({
             onInput={event => onScaleChange(Number((event.target as HTMLInputElement).value))}
             style={{ flex: 1 }}
           />
-          <span style={{ color: '#a8bbd8', fontSize: '14px', minWidth: '38px', textAlign: 'right' }}>
+          <span style={{ color: '#a8bbd8', fontSize: scalePanelPixels(14, panelScale), minWidth: scalePanelPixels(38, panelScale), textAlign: 'right' }}>
             {layout.scale.toFixed(2)}
           </span>
         </label>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ color: '#ddd', fontSize: '16px', minWidth: '44px' }}>{t(lang, 'positionX')}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: scalePanelPixels(8, panelScale) }}>
+          <span style={{ color: '#ddd', fontSize: scalePanelPixels(16, panelScale), minWidth: scalePanelPixels(44, panelScale) }}>{t(lang, 'positionX')}</span>
           <button type="button" data-quick-edit-nudge-x="-1" onClick={() => onNudgeX(-1)} style={buttonStyle}>-1</button>
           <span style={valueStyle}>{layout.x}</span>
           <button type="button" data-quick-edit-nudge-x="+1" onClick={() => onNudgeX(1)} style={buttonStyle}>+1</button>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ color: '#ddd', fontSize: '16px', minWidth: '44px' }}>{t(lang, 'positionY')}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: scalePanelPixels(8, panelScale) }}>
+          <span style={{ color: '#ddd', fontSize: scalePanelPixels(16, panelScale), minWidth: scalePanelPixels(44, panelScale) }}>{t(lang, 'positionY')}</span>
           <button type="button" data-quick-edit-nudge-y="-1" onClick={() => onNudgeY(-1)} style={buttonStyle}>-1</button>
           <span style={valueStyle}>{layout.y}</span>
           <button type="button" data-quick-edit-nudge-y="+1" onClick={() => onNudgeY(1)} style={buttonStyle}>+1</button>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: scalePanelPixels(8, panelScale), marginTop: scalePanelPixels(12, panelScale) }}>
         <button type="button" data-quick-edit-reset="true" onClick={onReset} style={buttonStyle}>
           {t(lang, 'resetPosition')}
         </button>
@@ -142,19 +147,23 @@ export function SelectedWidgetQuickEditCard({
   );
 }
 
-const buttonStyle: CSSProperties = {
-  background: 'var(--tw-color-button-bg)',
-  border: '1px solid var(--tw-color-button-border)',
-  color: 'var(--tw-color-button-text)',
-  borderRadius: 'var(--tw-radius-sm)',
-  fontSize: '14px',
-  padding: '6px 10px',
-  cursor: 'pointer',
-};
+function createButtonStyle(panelScale: number): CSSProperties {
+  return {
+    background: 'var(--tw-color-button-bg)',
+    border: '1px solid var(--tw-color-button-border)',
+    color: 'var(--tw-color-button-text)',
+    borderRadius: 'var(--tw-radius-sm)',
+    fontSize: scalePanelPixels(14, panelScale),
+    padding: `${scalePanelPixels(6, panelScale)} ${scalePanelPixels(10, panelScale)}`,
+    cursor: 'pointer',
+  };
+}
 
-const valueStyle: CSSProperties = {
-  minWidth: '42px',
-  textAlign: 'center',
-  color: '#a8bbd8',
-  fontSize: '14px',
-};
+function createValueStyle(panelScale: number): CSSProperties {
+  return {
+    minWidth: scalePanelPixels(42, panelScale),
+    textAlign: 'center',
+    color: '#a8bbd8',
+    fontSize: scalePanelPixels(14, panelScale),
+  };
+}

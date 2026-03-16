@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { BRIDGE_CALLBACKS } from '../../constants/bridge';
 import type { Language, WidgetSettings } from '../../types/settings';
 import { t } from '../../i18n/translations';
+import { scalePanelPixels } from './panelScale';
 
 interface PresetSectionProps {
   lang: Language;
   settings: WidgetSettings;
+  panelScale?: number;
 }
 
 function buildPresetExportPayload(settings: WidgetSettings): string {
@@ -16,7 +18,7 @@ function buildPresetExportPayload(settings: WidgetSettings): string {
   return JSON.stringify(presetSettings);
 }
 
-export function PresetSection({ lang, settings }: PresetSectionProps) {
+export function PresetSection({ lang, settings, panelScale = 1 }: PresetSectionProps) {
   const [message, setMessage] = useState<string | null>(null);
   const messageTimerRef = useRef<number | null>(null);
 
@@ -55,17 +57,17 @@ export function PresetSection({ lang, settings }: PresetSectionProps) {
     background: 'var(--tw-color-button-strong-bg)',
     border: '1px solid var(--tw-color-button-strong-border)',
     color: 'var(--tw-color-button-strong-text)',
-    fontSize: '20px',
+    fontSize: scalePanelPixels(20, panelScale),
     cursor: 'pointer',
     borderRadius: 'var(--tw-radius-sm)',
-    padding: '12px 20px',
+    padding: `${scalePanelPixels(12, panelScale)} ${scalePanelPixels(20, panelScale)}`,
     flex: 1,
     fontFamily: 'var(--tw-font-ui)',
   } as const;
 
   return (
     <>
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
+      <div style={{ display: 'flex', gap: scalePanelPixels(12, panelScale), marginBottom: scalePanelPixels(8, panelScale) }}>
         <button style={buttonStyle} onClick={() => window[BRIDGE_CALLBACKS.onExportSettings]?.(buildPresetExportPayload(settings))}>
           {t(lang, 'exportPreset')}
         </button>
@@ -74,9 +76,9 @@ export function PresetSection({ lang, settings }: PresetSectionProps) {
         </button>
       </div>
       {message && (
-        <p style={{ color: 'var(--tw-color-success-text)', fontSize: '18px', margin: '4px 0', textAlign: 'center' }}>{message}</p>
+        <p style={{ color: 'var(--tw-color-success-text)', fontSize: scalePanelPixels(18, panelScale), margin: `${scalePanelPixels(4, panelScale)} 0`, textAlign: 'center' }}>{message}</p>
       )}
-      <p style={{ color: 'var(--tw-color-hint-text)', fontSize: '16px', margin: '4px 0 0 0', textAlign: 'center', wordBreak: 'break-all' }}>
+      <p style={{ color: 'var(--tw-color-hint-text)', fontSize: scalePanelPixels(16, panelScale), margin: `${scalePanelPixels(4, panelScale)} 0 0 0`, textAlign: 'center', wordBreak: 'break-all' }}>
         {t(lang, 'presetHint')}
       </p>
     </>

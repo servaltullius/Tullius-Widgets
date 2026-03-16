@@ -18,6 +18,7 @@ import {
   PresetsTabSections,
 } from './settings/SettingsTabSections';
 import { SelectedWidgetQuickEditCard } from './settings/SelectedWidgetQuickEditCard';
+import { resolvePanelScale, scalePanelPixels } from './settings/panelScale';
 import {
   getWidgetItemDefaultZIndex,
   getWidgetItemRegistryEntry,
@@ -94,6 +95,7 @@ export function SettingsPanel({
   const currentSectionIds = TAB_SECTION_IDS[activeTab] ?? [];
   const hasSelectedItemActions = Boolean(selectedItemId && selectedItemLayoutActions);
   const selectedRegistryEntry = selectedItemId ? getWidgetItemRegistryEntry(selectedItemId) : null;
+  const panelScale = resolvePanelScale(window.innerWidth, window.innerHeight);
   const resolvedSelectedItemLayout: WidgetItemLayout | null = selectedItemId
     ? selectedItemLayout ?? settings.itemLayouts[selectedItemId] ?? {
       visible: true,
@@ -137,9 +139,9 @@ export function SettingsPanel({
       transform: 'translate(-50%, -50%)',
       background: 'var(--tw-color-panel-bg)',
       borderRadius: 'var(--tw-radius-xl)',
-      padding: '28px 30px',
+      padding: `${scalePanelPixels(28, panelScale)} ${scalePanelPixels(30, panelScale)}`,
       border: '1px solid var(--tw-color-panel-border)',
-      minWidth: '680px',
+      minWidth: scalePanelPixels(680, panelScale),
       maxHeight: '85vh',
       overflowY: 'auto',
       zIndex: 1000,
@@ -149,18 +151,18 @@ export function SettingsPanel({
       data-selected-item-id={selectedItemId ?? undefined}
       data-has-selected-item-actions={hasSelectedItemActions ? 'true' : 'false'}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h2 style={{ color: 'var(--tw-color-panel-title)', margin: 0, fontSize: '36px' }}>{t(lang, 'title')}</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: scalePanelPixels(16, panelScale) }}>
+        <h2 style={{ color: 'var(--tw-color-panel-title)', margin: 0, fontSize: scalePanelPixels(36, panelScale) }}>{t(lang, 'title')}</h2>
         <button
           onClick={onClose}
           style={{
             background: 'var(--tw-color-button-bg)',
             border: '1px solid var(--tw-color-button-border)',
             color: 'var(--tw-color-panel-text)',
-            fontSize: '22px',
+            fontSize: scalePanelPixels(22, panelScale),
             cursor: 'pointer',
             borderRadius: 'var(--tw-radius-sm)',
-            padding: '8px 20px',
+            padding: `${scalePanelPixels(8, panelScale)} ${scalePanelPixels(20, panelScale)}`,
           }}
         >
           {t(lang, 'close')} (ESC)
@@ -182,10 +184,11 @@ export function SettingsPanel({
           onToggleLocked={selectedItemLayoutActions?.setSelectedItemLocked}
           onBringForward={selectedItemLayoutActions?.bringSelectedItemForward}
           onSendBackward={selectedItemLayoutActions?.sendSelectedItemBackward}
+          panelScale={panelScale}
         />
       )}
 
-      <div data-settings-panel-tabs style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+      <div data-settings-panel-tabs style={{ display: 'flex', flexWrap: 'wrap', gap: scalePanelPixels(8, panelScale), marginBottom: scalePanelPixels(12, panelScale) }}>
         {TAB_ORDER.map(tab => (
           <button
             key={tab}
@@ -201,8 +204,8 @@ export function SettingsPanel({
                 ? 'var(--tw-color-tab-active-text)'
                 : 'var(--tw-color-tab-idle-text)',
               borderRadius: 'var(--tw-radius-sm)',
-              fontSize: '20px',
-              padding: '8px 14px',
+              fontSize: scalePanelPixels(20, panelScale),
+              padding: `${scalePanelPixels(8, panelScale)} ${scalePanelPixels(14, panelScale)}`,
               cursor: 'pointer',
             }}
           >
@@ -211,7 +214,7 @@ export function SettingsPanel({
         ))}
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginBottom: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: scalePanelPixels(8, panelScale), marginBottom: scalePanelPixels(12, panelScale) }}>
         <button
           onClick={() => setCurrentSectionsExpanded(true)}
           style={{
@@ -219,8 +222,8 @@ export function SettingsPanel({
             border: '1px solid var(--tw-color-button-border)',
             color: 'var(--tw-color-button-text)',
             borderRadius: 'var(--tw-radius-sm)',
-            fontSize: '16px',
-            padding: '6px 10px',
+            fontSize: scalePanelPixels(16, panelScale),
+            padding: `${scalePanelPixels(6, panelScale)} ${scalePanelPixels(10, panelScale)}`,
             cursor: 'pointer',
           }}
         >
@@ -233,8 +236,8 @@ export function SettingsPanel({
             border: '1px solid var(--tw-color-button-border)',
             color: 'var(--tw-color-button-text)',
             borderRadius: 'var(--tw-radius-sm)',
-            fontSize: '16px',
-            padding: '6px 10px',
+            fontSize: scalePanelPixels(16, panelScale),
+            padding: `${scalePanelPixels(6, panelScale)} ${scalePanelPixels(10, panelScale)}`,
             cursor: 'pointer',
           }}
         >
@@ -253,6 +256,7 @@ export function SettingsPanel({
           availableLanguages={availableLanguages}
           isSectionExpanded={isSectionExpanded}
           toggleSection={toggleSection}
+          panelScale={panelScale}
         />
       )}
 
@@ -263,6 +267,7 @@ export function SettingsPanel({
           onUpdate={onUpdate}
           isSectionExpanded={isSectionExpanded}
           toggleSection={toggleSection}
+          panelScale={panelScale}
         />
       )}
 
@@ -273,6 +278,7 @@ export function SettingsPanel({
           onUpdate={onUpdate}
           isSectionExpanded={isSectionExpanded}
           toggleSection={toggleSection}
+          panelScale={panelScale}
         />
       )}
 
@@ -283,6 +289,7 @@ export function SettingsPanel({
           onUpdate={onUpdate}
           isSectionExpanded={isSectionExpanded}
           toggleSection={toggleSection}
+          panelScale={panelScale}
         />
       )}
 
@@ -293,6 +300,7 @@ export function SettingsPanel({
           onUpdate={onUpdate}
           isSectionExpanded={isSectionExpanded}
           toggleSection={toggleSection}
+          panelScale={panelScale}
         />
       )}
     </div>
