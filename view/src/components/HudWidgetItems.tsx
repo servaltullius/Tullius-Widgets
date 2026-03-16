@@ -601,6 +601,7 @@ export function HudWidgetItems({
                 effects={stats.timedEffects}
                 maxVisible={settings.timedEffects.maxVisible}
                 emptyLabel={t(lang, 'timedEffectsEmpty')}
+                layout={settings.timedEffects.listLayout}
               />
             ));
           default:

@@ -5,6 +5,7 @@ interface TimedEffectListProps {
   effects: TimedEffect[];
   maxVisible: number;
   emptyLabel: string;
+  layout?: 'vertical' | 'horizontal';
 }
 
 function formatRemainingSec(value: number): string {
@@ -50,7 +51,12 @@ function isUrgentEffect(effect: TimedEffect, displayedRemainingSec: number): boo
   return displayedRemainingSec / effect.totalSec <= 0.15;
 }
 
-export function TimedEffectList({ effects, maxVisible, emptyLabel }: TimedEffectListProps) {
+export function TimedEffectList({
+  effects,
+  maxVisible,
+  emptyLabel,
+  layout = 'vertical',
+}: TimedEffectListProps) {
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
@@ -112,9 +118,10 @@ export function TimedEffectList({ effects, maxVisible, emptyLabel }: TimedEffect
   return (
     <div style={{
       display: 'flex',
-      flexDirection: 'column',
+      flexDirection: layout === 'horizontal' ? 'row' : 'column',
+      flexWrap: layout === 'horizontal' ? 'wrap' : 'nowrap',
       gap: '6px',
-      minWidth: '240px',
+      minWidth: layout === 'horizontal' ? '0' : '240px',
     }}>
       {visible.map(({ effect, displayedRemainingSec, progressPct, urgent }) => (
         <div
@@ -212,7 +219,7 @@ export function TimedEffectList({ effects, maxVisible, emptyLabel }: TimedEffect
           fontFamily: 'sans-serif',
           fontSize: '14px',
           fontWeight: 500,
-          textAlign: 'right',
+          textAlign: layout === 'horizontal' ? 'left' : 'right',
           textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
         }}>
           +{hiddenCount}
