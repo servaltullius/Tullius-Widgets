@@ -33,9 +33,10 @@ interface CustomSelectProps {
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
   panelScale?: number;
+  testId?: string;
 }
 
-export function CustomSelect({ value, options, onChange, panelScale = 1 }: CustomSelectProps) {
+export function CustomSelect({ value, options, onChange, panelScale = 1, testId }: CustomSelectProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const selected = options.find(option => option.value === value);
@@ -53,7 +54,7 @@ export function CustomSelect({ value, options, onChange, panelScale = 1 }: Custo
 
   return (
     <div ref={containerRef} style={{ position: 'relative' }}>
-      <div onClick={() => setOpen(!open)} style={{
+      <div data-testid={testId} onClick={() => setOpen(!open)} style={{
         background: '#333', color: '#fff', border: '1px solid #555',
         borderRadius: scalePanelPixels(6, panelScale),
         padding: `${scalePanelPixels(8, panelScale)} ${scalePanelPixels(16, panelScale)}`,
@@ -70,6 +71,7 @@ export function CustomSelect({ value, options, onChange, panelScale = 1 }: Custo
         }}>
           {options.map(option => (
             <div key={option.value}
+              data-testid={testId ? `${testId}-option-${option.value}` : undefined}
               onClick={() => { onChange(option.value); setOpen(false); }}
               style={{
                 padding: `${scalePanelPixels(12, panelScale)} ${scalePanelPixels(20, panelScale)}`,

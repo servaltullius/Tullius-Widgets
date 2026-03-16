@@ -15,6 +15,37 @@ interface SectionControlProps {
   panelScale?: number;
 }
 
+interface SelectRowProps {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+  panelScale?: number;
+  testId?: string;
+}
+
+function SelectRow({
+  label,
+  value,
+  options,
+  onChange,
+  panelScale = 1,
+  testId,
+}: SelectRowProps) {
+  return (
+    <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${scalePanelPixels(8, panelScale)} 0` }}>
+      <span style={{ color: '#aaa', fontSize: scalePanelPixels(20, panelScale) }}>{label}</span>
+      <CustomSelect
+        value={value}
+        options={options}
+        onChange={onChange}
+        panelScale={panelScale}
+        testId={testId}
+      />
+    </label>
+  );
+}
+
 function readItemVisibility(settings: WidgetSettings, itemId: string, fallback: boolean): boolean {
   return settings.itemLayouts[itemId]?.visible ?? fallback;
 }
@@ -168,6 +199,18 @@ export function CombatTabSections({
         <Toggle label={t(lang, 'level')} checked={readItemVisibility(settings, 'player.level', settings.playerInfo.level)} onChange={value => updateItemVisibility(onUpdate, 'player.level', value)} panelScale={panelScale} />
         <Toggle label={t(lang, 'gold')} checked={readItemVisibility(settings, 'player.gold', settings.playerInfo.gold)} onChange={value => updateItemVisibility(onUpdate, 'player.gold', value)} panelScale={panelScale} />
         <Toggle label={t(lang, 'carryWeight')} checked={readItemVisibility(settings, 'player.carryWeight', settings.playerInfo.carryWeight)} onChange={value => updateItemVisibility(onUpdate, 'player.carryWeight', value)} panelScale={panelScale} />
+        <SelectRow
+          label={t(lang, 'carryWeightDisplay')}
+          value={settings.playerInfo.carryWeightDisplay}
+          options={[
+            { value: 'combined', label: t(lang, 'numberAndMeter') },
+            { value: 'valueOnly', label: t(lang, 'numberOnly') },
+            { value: 'meterOnly', label: t(lang, 'meterOnly') },
+          ]}
+          onChange={nextValue => onUpdate('playerInfo.carryWeightDisplay', nextValue)}
+          panelScale={panelScale}
+          testId="carry-weight-display-select"
+        />
         <Toggle label={t(lang, 'health')} checked={readItemVisibility(settings, 'player.health', settings.playerInfo.health)} onChange={value => updateItemVisibility(onUpdate, 'player.health', value)} panelScale={panelScale} />
         <Toggle label={t(lang, 'magicka')} checked={readItemVisibility(settings, 'player.magicka', settings.playerInfo.magicka)} onChange={value => updateItemVisibility(onUpdate, 'player.magicka', value)} panelScale={panelScale} />
         <Toggle label={t(lang, 'stamina')} checked={readItemVisibility(settings, 'player.stamina', settings.playerInfo.stamina)} onChange={value => updateItemVisibility(onUpdate, 'player.stamina', value)} panelScale={panelScale} />
@@ -180,6 +223,18 @@ export function CombatTabSections({
         onToggle={toggleSection}
         panelScale={panelScale}
       >
+        <SelectRow
+          label={t(lang, 'resistanceDisplay')}
+          value={settings.resistances.displayMode}
+          options={[
+            { value: 'effectiveOnly', label: t(lang, 'effectiveOnly') },
+            { value: 'rawOnly', label: t(lang, 'rawOnly') },
+            { value: 'both', label: t(lang, 'both') },
+          ]}
+          onChange={nextValue => onUpdate('resistances.displayMode', nextValue)}
+          panelScale={panelScale}
+          testId="resistance-display-select"
+        />
         <Toggle label={t(lang, 'magic')} checked={readItemVisibility(settings, 'resistance.magic', settings.resistances.magic)} onChange={value => updateItemVisibility(onUpdate, 'resistance.magic', value)} panelScale={panelScale} />
         <Toggle label={t(lang, 'fire')} checked={readItemVisibility(settings, 'resistance.fire', settings.resistances.fire)} onChange={value => updateItemVisibility(onUpdate, 'resistance.fire', value)} panelScale={panelScale} />
         <Toggle label={t(lang, 'frost')} checked={readItemVisibility(settings, 'resistance.frost', settings.resistances.frost)} onChange={value => updateItemVisibility(onUpdate, 'resistance.frost', value)} panelScale={panelScale} />
@@ -243,6 +298,9 @@ export function EffectsTabSections({
   toggleSection,
   panelScale = 1,
 }: WidgetTabSectionsProps) {
+  const showGameTime = readItemVisibility(settings, 'time.game', settings.time.gameDateTime);
+  const showRealTime = readItemVisibility(settings, 'time.real', settings.time.realDateTime);
+
   return (
     <>
       <AccordionSection
@@ -252,8 +310,34 @@ export function EffectsTabSections({
         onToggle={toggleSection}
         panelScale={panelScale}
       >
-        <Toggle label={t(lang, 'gameDateTime')} checked={readItemVisibility(settings, 'time.game', settings.time.gameDateTime)} onChange={value => updateItemVisibility(onUpdate, 'time.game', value)} panelScale={panelScale} />
-        <Toggle label={t(lang, 'realDateTime')} checked={readItemVisibility(settings, 'time.real', settings.time.realDateTime)} onChange={value => updateItemVisibility(onUpdate, 'time.real', value)} panelScale={panelScale} />
+        <Toggle label={t(lang, 'gameDateTime')} checked={showGameTime} onChange={value => updateItemVisibility(onUpdate, 'time.game', value)} panelScale={panelScale} />
+        {showGameTime && (
+          <SelectRow
+            label={t(lang, 'timeDisplay')}
+            value={settings.time.gameDisplay}
+            options={[
+              { value: 'dateTime', label: t(lang, 'dateAndTime') },
+              { value: 'timeOnly', label: t(lang, 'timeOnly') },
+            ]}
+            onChange={nextValue => onUpdate('time.gameDisplay', nextValue)}
+            panelScale={panelScale}
+            testId="time-game-display-select"
+          />
+        )}
+        <Toggle label={t(lang, 'realDateTime')} checked={showRealTime} onChange={value => updateItemVisibility(onUpdate, 'time.real', value)} panelScale={panelScale} />
+        {showRealTime && (
+          <SelectRow
+            label={t(lang, 'timeDisplay')}
+            value={settings.time.realDisplay}
+            options={[
+              { value: 'dateTime', label: t(lang, 'dateAndTime') },
+              { value: 'timeOnly', label: t(lang, 'timeOnly') },
+            ]}
+            onChange={nextValue => onUpdate('time.realDisplay', nextValue)}
+            panelScale={panelScale}
+            testId="time-real-display-select"
+          />
+        )}
       </AccordionSection>
 
       <AccordionSection
@@ -268,6 +352,17 @@ export function EffectsTabSections({
           checked={readItemVisibility(settings, 'timedEffects.list', settings.timedEffects.enabled)}
           onChange={value => updateItemVisibility(onUpdate, 'timedEffects.list', value)}
           panelScale={panelScale}
+        />
+        <SelectRow
+          label={t(lang, 'timedEffectsLayout')}
+          value={settings.timedEffects.listLayout}
+          options={[
+            { value: 'vertical', label: t(lang, 'layoutVertical') },
+            { value: 'horizontal', label: t(lang, 'layoutHorizontal') },
+          ]}
+          onChange={nextValue => onUpdate('timedEffects.listLayout', nextValue)}
+          panelScale={panelScale}
+          testId="timed-effects-layout-select"
         />
         <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${scalePanelPixels(8, panelScale)} 0` }}>
           <span style={{ color: '#aaa', fontSize: scalePanelPixels(20, panelScale) }}>
