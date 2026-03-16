@@ -133,7 +133,7 @@ Defaults preserve current behavior:
 
 - Missing fields from older saved settings are filled from defaults.
 - Invalid enum values are discarded and replaced with defaults.
-- Existing visibility booleans remain authoritative for widget inclusion.
+- Stage 1 does not change the current visibility authority. Runtime widget inclusion continues to follow the resolved `itemLayouts.<itemId>.visible` flow already used by the HUD, while the older section booleans remain compatibility/default inputs where that behavior already exists today.
 - No plugin-side schema or payload changes are required in Stage 1.
 
 ## Settings Panel UX
@@ -186,9 +186,9 @@ Stage 1 reuses the current widget components and branches their props instead of
 
 [view/src/components/HudWidgetItems.tsx](/home/kdw73/Tullius Widgets/view/src/components/HudWidgetItems.tsx) should continue rendering carry weight through `StatWidget`, but vary its props:
 
-- `combined`: show current/max text plus meter percentage
-- `valueOnly`: show current/max text, omit meter
-- `meterOnly`: show only the bar-style progress treatment without the duplicated numeric fraction
+- `combined`: preserve the current presentation exactly: current/max as the primary value, percent helper text, and the meter
+- `valueOnly`: show only current/max as the primary value, with no percent helper and no meter
+- `meterOnly`: show only the bar-style progress treatment, with no current/max text and no percent helper
 
 The base tone logic and overencumbered styling stay unchanged.
 
@@ -220,18 +220,16 @@ If effective and raw are identical, `both` should collapse to the same presentat
 [view/src/components/TimedEffectList.tsx](/home/kdw73/Tullius Widgets/view/src/components/TimedEffectList.tsx) should accept a layout prop and switch container direction:
 
 - `vertical`: preserve current stacked list behavior
-- `horizontal`: render the same effect cards in a left-to-right stack
+- `horizontal`: render the same effect cards in a left-to-right flow with wrapping enabled when width is insufficient
 
 Horizontal mode is not a new compact chip design. It remains the same card-based widget, only arranged side by side so Stage 1 stays small and low-risk.
 
-`maxVisible`, sorting, urgency treatment, and hidden-count behavior stay unchanged.
+`maxVisible`, sorting, urgency treatment, and hidden-count behavior stay unchanged. In horizontal mode, the hidden-count badge remains the last flow item after the visible cards rather than becoming an overlay or separate header.
 
 ## Error Handling And Edge Cases
 
 - Invalid saved enum values fall back to defaults during tolerant merge.
-- Carry-weight meter-only mode must still render meaningful content when max weight is zero or missing.
 - Carry-weight meter-only mode must not leave an empty text row above the meter.
-- Resistance raw-only mode must handle entries where raw data is absent by falling back to the effective value instead of producing blank or misleading output.
 - Time-only formatting must still update live with the shared clock.
 - Timed effects horizontal mode must not break empty-state rendering or hidden-count display.
 
