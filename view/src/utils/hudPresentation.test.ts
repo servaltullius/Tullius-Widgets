@@ -43,6 +43,27 @@ describe('hudPresentation', () => {
     expect(signature).toContain('effects:id:101:82:120:0');
   });
 
+  it('tracks raw resistance changes when the visible widget presentation includes raw values', () => {
+    const settings = cloneSettings();
+    const stats = cloneStats();
+    const itemLayouts = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+
+    for (const itemId of Object.keys(itemLayouts)) {
+      itemLayouts[itemId] = { ...itemLayouts[itemId], visible: false };
+    }
+    itemLayouts['resistance.fire'] = { ...itemLayouts['resistance.fire'], visible: true };
+
+    const before = buildTrackedChangeSignature(stats, itemLayouts, 12345);
+    stats.calcMeta.rawResistances.fire = 130;
+    const after = buildTrackedChangeSignature(stats, itemLayouts, 12345);
+
+    expect(before).not.toBe(after);
+  });
+
   it('treats time.game and time.real as independently visible widget items', () => {
     const settings = cloneSettings();
     const stats = cloneStats();

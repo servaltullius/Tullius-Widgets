@@ -461,4 +461,50 @@ describe('useSettings', () => {
       zIndex: 1,
     });
   });
+
+  it('persists new display-mode settings with the current schema version', async () => {
+    const onSettingsChanged = vi.fn();
+    let updateSetting: UpdateSettingFn | null = null;
+    vi.useFakeTimers();
+    window.onSettingsChanged = onSettingsChanged;
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <SettingsAndUpdateHarness
+          onSettings={settings => { latest = settings; }}
+          onReady={value => { updateSetting = value; }}
+        />,
+      );
+    });
+
+    await act(async () => {
+      updateSetting?.('playerInfo.carryWeightDisplay', 'meterOnly');
+      updateSetting?.('resistances.displayMode', 'rawOnly');
+      updateSetting?.('time.gameDisplay', 'timeOnly');
+      updateSetting?.('time.realDisplay', 'timeOnly');
+      updateSetting?.('timedEffects.listLayout', 'horizontal');
+    });
+
+    expect(latest?.playerInfo.carryWeightDisplay).toBe('meterOnly');
+    expect(latest?.resistances.displayMode).toBe('rawOnly');
+    expect(latest?.time.gameDisplay).toBe('timeOnly');
+    expect(latest?.time.realDisplay).toBe('timeOnly');
+    expect(latest?.timedEffects.listLayout).toBe('horizontal');
+
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+
+    expect(onSettingsChanged).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(onSettingsChanged.mock.calls[0]?.[0] as string) as WidgetSettings & { schemaVersion?: number };
+
+    expect(payload.schemaVersion).toBe(3);
+    expect(payload.playerInfo.carryWeightDisplay).toBe('meterOnly');
+    expect(payload.resistances.displayMode).toBe('rawOnly');
+    expect(payload.time.gameDisplay).toBe('timeOnly');
+    expect(payload.time.realDisplay).toBe('timeOnly');
+    expect(payload.timedEffects.listLayout).toBe('horizontal');
+    vi.useRealTimers();
+  });
 });

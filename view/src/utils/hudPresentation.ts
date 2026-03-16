@@ -107,11 +107,17 @@ export function buildTrackedChangeSignature(
   const visibleItemIds = new Set(getVisibleHudItemIds(itemLayouts, stats, false));
 
   if (visibleItemIds.has('resistance.magic')) parts.push(`res.magic:${stats.resistances.magic}`);
+  if (visibleItemIds.has('resistance.magic')) parts.push(`res.magic.raw:${stats.calcMeta.rawResistances.magic}`);
   if (visibleItemIds.has('resistance.fire')) parts.push(`res.fire:${stats.resistances.fire}`);
+  if (visibleItemIds.has('resistance.fire')) parts.push(`res.fire.raw:${stats.calcMeta.rawResistances.fire}`);
   if (visibleItemIds.has('resistance.frost')) parts.push(`res.frost:${stats.resistances.frost}`);
+  if (visibleItemIds.has('resistance.frost')) parts.push(`res.frost.raw:${stats.calcMeta.rawResistances.frost}`);
   if (visibleItemIds.has('resistance.shock')) parts.push(`res.shock:${stats.resistances.shock}`);
+  if (visibleItemIds.has('resistance.shock')) parts.push(`res.shock.raw:${stats.calcMeta.rawResistances.shock}`);
   if (visibleItemIds.has('resistance.poison')) parts.push(`res.poison:${stats.resistances.poison}`);
+  if (visibleItemIds.has('resistance.poison')) parts.push(`res.poison.raw:${stats.calcMeta.rawResistances.poison}`);
   if (visibleItemIds.has('resistance.disease')) parts.push(`res.disease:${stats.resistances.disease}`);
+  if (visibleItemIds.has('resistance.disease')) parts.push(`res.disease.raw:${stats.calcMeta.rawResistances.disease}`);
   if (visibleItemIds.has('defense.armorRating')) parts.push(`def.armor:${stats.defense.armorRating}`);
   if (visibleItemIds.has('defense.damageReduction')) parts.push(`def.reduction:${stats.defense.damageReduction}`);
   if (visibleItemIds.has('offense.rightHandDamage')) parts.push(`off.right:${stats.offense.rightHandDamage}`);
