@@ -46,6 +46,8 @@ vi.mock('./hooks/useSelectedItemLayoutActions', async importOriginal => {
 });
 
 import { App } from './App';
+import { defaultSettings } from './data/defaultSettings';
+import { resolveWidgetItemLayouts } from './hooks/useWidgetItemLayouts';
 
 type TestWindow = Window & {
   toggleSettings?: () => void;
@@ -63,6 +65,14 @@ async function waitForFrame() {
   await new Promise<void>(resolve => {
     window.requestAnimationFrame(() => resolve());
   });
+}
+
+function getDefaultPlayerLevelLayout() {
+  return resolveWidgetItemLayouts({
+    settings: structuredClone(defaultSettings),
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
+  })['player.level'];
 }
 
 describe('App quick-edit integration', () => {
@@ -123,6 +133,19 @@ describe('App quick-edit integration', () => {
     await act(async () => {
       root = createRoot(container);
       root.render(<App />);
+    });
+
+    const playerLevelLayout = getDefaultPlayerLevelLayout();
+
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({
+        itemLayouts: {
+          'player.level': {
+            ...playerLevelLayout,
+            visible: true,
+          },
+        },
+      }));
     });
 
     await act(async () => {
@@ -189,6 +212,19 @@ describe('App quick-edit integration', () => {
     await act(async () => {
       root = createRoot(container);
       root.render(<App />);
+    });
+
+    const playerLevelLayout = getDefaultPlayerLevelLayout();
+
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({
+        itemLayouts: {
+          'player.level': {
+            ...playerLevelLayout,
+            visible: true,
+          },
+        },
+      }));
     });
 
     await act(async () => {

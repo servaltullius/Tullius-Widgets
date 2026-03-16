@@ -64,6 +64,33 @@ describe('hudPresentation', () => {
     expect(before).not.toBe(after);
   });
 
+  it('tracks level changes whenever the progression widget is visible', () => {
+    const settings = cloneSettings();
+    const stats = cloneStats();
+    const itemLayouts = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+
+    for (const itemId of Object.keys(itemLayouts)) {
+      itemLayouts[itemId] = { ...itemLayouts[itemId], visible: false };
+    }
+
+    itemLayouts['experience.progress'] = { ...itemLayouts['experience.progress'], visible: true };
+    itemLayouts['player.level'] = { ...itemLayouts['player.level'], visible: false };
+
+    const before = buildTrackedChangeSignature(stats, itemLayouts, 12345);
+    stats.playerInfo.level = 43;
+    const after = buildTrackedChangeSignature(stats, itemLayouts, 12345);
+
+    expect(before).toContain('pi.level:42');
+    expect(before).toContain(`xp.current:${mockStats.playerInfo.experience}`);
+    expect(before).toContain(`xp.total:${mockStats.playerInfo.nextLevelTotalXp}`);
+    expect(after).toContain('pi.level:43');
+    expect(before).not.toBe(after);
+  });
+
   it('treats time.game and time.real as independently visible widget items', () => {
     const settings = cloneSettings();
     const stats = cloneStats();

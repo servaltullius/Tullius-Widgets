@@ -63,7 +63,7 @@ describe('useWidgetItemLayouts', () => {
     });
 
     expect(resolved['player.level']).toMatchObject({
-      visible: true,
+      visible: false,
       x: 100,
       y: 200,
       scale: 1.625,
@@ -101,7 +101,7 @@ describe('useWidgetItemLayouts', () => {
     expect(Object.keys(first)).toEqual(WIDGET_ITEM_IDS);
     expect(second).toEqual(first);
     expect(first['player.level']).toMatchObject({
-      visible: true,
+      visible: false,
       x: defaultGroupPositions.playerInfo.x,
       y: defaultGroupPositions.playerInfo.y,
       scale: 1.3,

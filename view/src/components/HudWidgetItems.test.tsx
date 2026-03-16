@@ -212,6 +212,62 @@ describe('HudWidgetItems', () => {
     expect(container.querySelector('[data-widget-item-id="time.game"]')).toBeTruthy();
   });
 
+  it('keeps progression and standalone level widgets independently renderable', async () => {
+    const settings = cloneSettings();
+    const stats = cloneStats();
+    const itemLayouts = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+
+    hideAllItems(itemLayouts);
+    itemLayouts['experience.progress'] = { ...itemLayouts['experience.progress'], visible: true };
+    itemLayouts['player.level'] = { ...itemLayouts['player.level'], visible: true };
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <HudWidgetItems
+          shouldShow
+          stats={stats}
+          settings={settings}
+          settingsOpen={false}
+          lang="ko"
+          itemLayouts={itemLayouts}
+          accentColor="#4fd1c5"
+        />,
+      );
+    });
+
+    const progressionWidget = getWidget(container, 'experience.progress');
+    expect(progressionWidget.querySelector('[role="progressbar"]')).toBeTruthy();
+    expect(progressionWidget.textContent).toContain('72,450 / 76,000');
+    expect(container.querySelector('[data-widget-item-id="player.level"]')).toBeTruthy();
+
+    const nextItemLayouts = {
+      ...itemLayouts,
+      'player.level': { ...itemLayouts['player.level'], visible: false },
+    };
+
+    await act(async () => {
+      root?.render(
+        <HudWidgetItems
+          shouldShow
+          stats={stats}
+          settings={settings}
+          settingsOpen={false}
+          lang="ko"
+          itemLayouts={nextItemLayouts}
+          accentColor="#4fd1c5"
+        />,
+      );
+    });
+
+    expect(container.querySelector('[data-widget-item-id="player.level"]')).toBeNull();
+    expect(container.querySelector('[data-widget-item-id="experience.progress"]')).toBeTruthy();
+  });
+
   it('switches carry weight between combined, value-only, and meter-only displays', async () => {
     const settings = cloneSettings();
     const stats = cloneStats();

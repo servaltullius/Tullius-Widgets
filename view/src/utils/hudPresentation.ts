@@ -137,6 +137,7 @@ export function buildTrackedChangeSignature(
   if (visibleItemIds.has('player.stamina')) parts.push(`pi.stamina:${stats.playerInfo.stamina}`);
 
   if (visibleItemIds.has('experience.progress')) {
+    parts.push(`pi.level:${stats.playerInfo.level}`);
     parts.push(`xp.current:${stats.playerInfo.experience}`);
     parts.push(`xp.toNext:${stats.playerInfo.expToNextLevel}`);
     parts.push(`xp.total:${stats.playerInfo.nextLevelTotalXp}`);

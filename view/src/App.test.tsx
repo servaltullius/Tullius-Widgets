@@ -17,6 +17,10 @@ describe('App item layout actions', () => {
       viewportWidth: 1920,
       viewportHeight: 1080,
     });
+    itemLayouts['player.level'] = {
+      ...itemLayouts['player.level'],
+      visible: true,
+    };
     const updateSetting = vi.fn();
 
     const actions = createSelectedItemLayoutActions({

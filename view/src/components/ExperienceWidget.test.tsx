@@ -24,7 +24,7 @@ describe('ExperienceWidget', () => {
     delete reactActEnvironment.IS_REACT_ACT_ENVIRONMENT;
   });
 
-  it('shows full XP progress in tooltip and level/progress helper text', async () => {
+  it('renders integrated progression details with a stable progressbar hook', async () => {
     await act(async () => {
       root = createRoot(container);
       root.render(
@@ -38,11 +38,33 @@ describe('ExperienceWidget', () => {
       );
     });
 
-    const value = container.querySelector('span');
-    expect(value?.textContent).toBe('123,456 / 987,654');
-    expect(value?.getAttribute('style')).toContain('max-width: 320px');
-    expect(container.textContent).toContain('레벨 57');
+    expect(container.textContent).toContain('57');
+    expect(container.textContent).toContain('123,456 / 987,654');
     expect(container.textContent).toContain('12%');
-    expect(container.firstElementChild?.getAttribute('title')).toContain('경험치 진행도: 123,456 / 987,654 XP');
+    const progressbar = container.querySelector('[role="progressbar"]');
+    expect(progressbar).toBeTruthy();
+    expect(progressbar?.getAttribute('aria-valuenow')).toBe('12');
+    expect(progressbar?.getAttribute('title')).toContain('경험치 진행도: 123,456 / 987,654 XP');
+  });
+
+  it('clamps visible progress safely for bad inputs', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <ExperienceWidget
+          currentXp={1300}
+          totalXp={1000}
+          level={1}
+          visible
+          lang="ko"
+        />,
+      );
+    });
+
+    const progressbar = container.querySelector('[role="progressbar"]');
+    expect(progressbar).toBeTruthy();
+    expect(progressbar?.getAttribute('aria-valuenow')).toBe('100');
+    expect(container.textContent).toContain('1,300 / 1,000');
+    expect(progressbar?.getAttribute('title')).toContain('경험치 진행도: 1,300 / 1,000 XP');
   });
 });
