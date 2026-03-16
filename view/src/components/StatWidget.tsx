@@ -49,6 +49,7 @@ interface StatWidgetProps {
   tooltip?: string;
   valueMaxWidth?: number;
   helperMaxWidth?: number;
+  hideValue?: boolean;
 }
 
 const prominenceStyles = {
@@ -110,6 +111,7 @@ export const StatWidget = memo(function StatWidget({
   tooltip,
   valueMaxWidth,
   helperMaxWidth,
+  hideValue = false,
 }: StatWidgetProps) {
   if (!visible) return null;
 
@@ -128,7 +130,8 @@ export const StatWidget = memo(function StatWidget({
     ? (format ? format(displayNumber) : Math.round(displayNumber).toString())
     : value;
   const textAlign = isNumeric ? 'right' : 'left';
-  const minWidth = isNumeric ? styles.minWidth : 'auto';
+  const showValue = !hideValue;
+  const minWidth = showValue && isNumeric ? styles.minWidth : 'auto';
   const helperColor = helperTone === 'warning' ? '#ffcf7a' : '#aeb8c6';
   const normalizedMeterPct = typeof meterPct === 'number' && Number.isFinite(meterPct)
     ? clampPercent(meterPct)
@@ -193,22 +196,24 @@ export const StatWidget = memo(function StatWidget({
         )}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: isNumeric ? 'flex-end' : 'flex-start', flexShrink: 0, minWidth }}>
-        <span style={{
-          display: 'inline-block',
-          color: valueColor,
-          fontFamily: 'sans-serif',
-          fontSize: styles.fontSize,
-          fontWeight: prominence === 'primary' ? 700 : 600,
-          textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-          textAlign,
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          maxWidth: resolvedValueMaxWidth,
-          lineHeight: 1.1,
-        }}>
-          {displayValue}{unit}
-        </span>
+        {showValue && (
+          <span style={{
+            display: 'inline-block',
+            color: valueColor,
+            fontFamily: 'sans-serif',
+            fontSize: styles.fontSize,
+            fontWeight: prominence === 'primary' ? 700 : 600,
+            textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+            textAlign,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            maxWidth: resolvedValueMaxWidth,
+            lineHeight: 1.1,
+          }}>
+            {displayValue}{unit}
+          </span>
+        )}
         {helperText && (
           <span style={{
             color: helperColor,
@@ -221,7 +226,7 @@ export const StatWidget = memo(function StatWidget({
             textOverflow: 'ellipsis',
             maxWidth: resolvedHelperMaxWidth,
             opacity: 0.95,
-            marginTop: '1px',
+            marginTop: showValue ? '1px' : '0',
           }}>
             {helperText}
           </span>
@@ -231,7 +236,7 @@ export const StatWidget = memo(function StatWidget({
             width: styles.maxWidth,
             maxWidth: '112px',
             height: '4px',
-            marginTop: helperText ? '4px' : '6px',
+            marginTop: helperText ? '4px' : showValue ? '6px' : '0',
             background: 'rgba(255,255,255,0.12)',
             borderRadius: '999px',
             overflow: 'hidden',

@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, type ComponentProps, type ReactNode } from 'react';
 import { EditableWidgetItem } from './EditableWidgetItem';
 import { ExperienceWidget } from './ExperienceWidget';
 import { StatWidget } from './StatWidget';
@@ -20,7 +20,9 @@ import {
 } from '../utils/hudPresentation';
 import {
   formatGameDateTime,
+  formatGameTimeOnly,
   formatRealDateTime,
+  formatRealTimeOnly,
   TIME_WIDGET_VALUE_MAX_WIDTH,
   useSharedTimeWidgetClock,
 } from '../utils/timeWidgetShared';
@@ -32,6 +34,63 @@ const WEAPON_DAMAGE_CAP = 9999;
 const WEAPON_DAMAGE_MIN = 0;
 const CRIT_CHANCE_CAP = 100;
 const CRIT_CHANCE_MIN = 0;
+
+function resolveCarryWeightDisplay(
+  displayMode: WidgetSettings['playerInfo']['carryWeightDisplay'],
+  carryPct: number,
+): Pick<ComponentProps<typeof StatWidget>, 'helperText' | 'meterPct' | 'hideValue'> {
+  switch (displayMode) {
+    case 'valueOnly':
+      return {
+        helperText: undefined,
+        meterPct: undefined,
+        hideValue: false,
+      };
+    case 'meterOnly':
+      return {
+        helperText: undefined,
+        meterPct: carryPct,
+        hideValue: true,
+      };
+    case 'combined':
+    default:
+      return {
+        helperText: formatPercent(carryPct),
+        meterPct: carryPct,
+        hideValue: false,
+      };
+  }
+}
+
+function resolveResistanceDisplay(
+  displayMode: WidgetSettings['resistances']['displayMode'],
+  raw: number,
+  effective: number,
+  rawLabel: string,
+  cap: number,
+): Pick<ComponentProps<typeof StatWidget>, 'value' | 'helperText' | 'cap'> {
+  switch (displayMode) {
+    case 'rawOnly':
+      return {
+        value: raw,
+        helperText: undefined,
+        cap: undefined,
+      };
+    case 'effectiveOnly':
+      return {
+        value: effective,
+        helperText: undefined,
+        cap,
+      };
+    case 'both':
+    default:
+      return {
+        value: effective,
+        helperText: hasMeaningfulDifference(raw, effective) ? `${rawLabel} ${Math.round(raw)}%` : undefined,
+        cap,
+      };
+  }
+}
 
 interface HudWidgetItemsProps {
   shouldShow: boolean;
@@ -168,8 +227,6 @@ export function HudWidgetItems({
   const damageReductionCap = stats.calcMeta.caps.damageReduction;
   const armorCapForMaxReduction = stats.calcMeta.armorCapForMaxReduction;
 
-  const resistanceHelper = (raw: number, effective: number) =>
-    hasMeaningfulDifference(raw, effective) ? `${rawLabel} ${Math.round(raw)}%` : undefined;
   const critHelper = hasMeaningfulDifference(stats.calcMeta.rawCritChance, stats.offense.critChance)
     ? `${rawLabel} ${Math.round(stats.calcMeta.rawCritChance)}%`
     : undefined;
@@ -183,8 +240,13 @@ export function HudWidgetItems({
   const magickaTone = getLowResourceTone(stats.alertData.magickaPct, settings.visualAlerts.lowMagickaThreshold);
   const staminaTone = getLowResourceTone(stats.alertData.staminaPct, settings.visualAlerts.lowStaminaThreshold);
   const carryTone = getCarryTone(stats.alertData.carryPct);
-  const gameDateTime = formatGameDateTime(stats.time, nowMs, lang);
-  const realDateTime = formatRealDateTime(nowMs, lang);
+  const carryWeightDisplay = resolveCarryWeightDisplay(settings.playerInfo.carryWeightDisplay, stats.alertData.carryPct);
+  const gameTimeValue = settings.time.gameDisplay === 'timeOnly'
+    ? formatGameTimeOnly(stats.time, nowMs)
+    : formatGameDateTime(stats.time, nowMs, lang);
+  const realTimeValue = settings.time.realDisplay === 'timeOnly'
+    ? formatRealTimeOnly(nowMs, lang)
+    : formatRealDateTime(nowMs, lang);
 
   return (
     <>
@@ -248,11 +310,12 @@ export function HudWidgetItems({
                 visible
                 format={formatWeight}
                 prominence="secondary"
-                helperText={formatPercent(stats.alertData.carryPct)}
+                helperText={carryWeightDisplay.helperText}
                 helperTone={carryTone === 'default' ? 'neutral' : 'warning'}
                 valueTone={carryTone}
-                meterPct={stats.alertData.carryPct}
+                meterPct={carryWeightDisplay.meterPct}
                 meterColor={carryTone === 'danger' ? '#ff8d8d' : carryTone === 'warning' ? '#ffd36a' : '#d7a26b'}
+                hideValue={carryWeightDisplay.hideValue}
               />
             ));
           case 'player.health':
@@ -298,92 +361,146 @@ export function HudWidgetItems({
               />
             ));
           case 'resistance.magic':
+            {
+              const presentation = resolveResistanceDisplay(
+                settings.resistances.displayMode,
+                stats.calcMeta.rawResistances.magic,
+                stats.resistances.magic,
+                rawLabel,
+                elementalCap,
+              );
             return renderEditableItem((
               <StatWidget
                 icon="magic"
                 iconColor="#b366ff"
-                value={stats.resistances.magic}
+                value={presentation.value}
                 unit="%"
                 visible
-                cap={elementalCap}
-                helperText={resistanceHelper(stats.calcMeta.rawResistances.magic, stats.resistances.magic)}
+                cap={presentation.cap}
+                helperText={presentation.helperText}
                 helperTone={stats.calcMeta.rawResistances.magic > elementalCap + 0.05 ? 'warning' : 'neutral'}
                 tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.magic)}% | ${capLabel} <= ${elementalCap}%`}
               />
             ));
+            }
           case 'resistance.fire':
+            {
+              const presentation = resolveResistanceDisplay(
+                settings.resistances.displayMode,
+                stats.calcMeta.rawResistances.fire,
+                stats.resistances.fire,
+                rawLabel,
+                elementalCap,
+              );
             return renderEditableItem((
               <StatWidget
                 icon="fire"
                 iconColor="#ff6633"
-                value={stats.resistances.fire}
+                value={presentation.value}
                 unit="%"
                 visible
-                cap={elementalCap}
-                helperText={resistanceHelper(stats.calcMeta.rawResistances.fire, stats.resistances.fire)}
+                cap={presentation.cap}
+                helperText={presentation.helperText}
                 helperTone={stats.calcMeta.rawResistances.fire > elementalCap + 0.05 ? 'warning' : 'neutral'}
                 tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.fire)}% | ${capLabel} <= ${elementalCap}%`}
               />
             ));
+            }
           case 'resistance.frost':
+            {
+              const presentation = resolveResistanceDisplay(
+                settings.resistances.displayMode,
+                stats.calcMeta.rawResistances.frost,
+                stats.resistances.frost,
+                rawLabel,
+                elementalCap,
+              );
             return renderEditableItem((
               <StatWidget
                 icon="frost"
                 iconColor="#66ccff"
-                value={stats.resistances.frost}
+                value={presentation.value}
                 unit="%"
                 visible
-                cap={elementalCap}
-                helperText={resistanceHelper(stats.calcMeta.rawResistances.frost, stats.resistances.frost)}
+                cap={presentation.cap}
+                helperText={presentation.helperText}
                 helperTone={stats.calcMeta.rawResistances.frost > elementalCap + 0.05 ? 'warning' : 'neutral'}
                 tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.frost)}% | ${capLabel} <= ${elementalCap}%`}
               />
             ));
+            }
           case 'resistance.shock':
+            {
+              const presentation = resolveResistanceDisplay(
+                settings.resistances.displayMode,
+                stats.calcMeta.rawResistances.shock,
+                stats.resistances.shock,
+                rawLabel,
+                elementalCap,
+              );
             return renderEditableItem((
               <StatWidget
                 icon="shock"
                 iconColor="#ffdd33"
-                value={stats.resistances.shock}
+                value={presentation.value}
                 unit="%"
                 visible
-                cap={elementalCap}
-                helperText={resistanceHelper(stats.calcMeta.rawResistances.shock, stats.resistances.shock)}
+                cap={presentation.cap}
+                helperText={presentation.helperText}
                 helperTone={stats.calcMeta.rawResistances.shock > elementalCap + 0.05 ? 'warning' : 'neutral'}
                 tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.shock)}% | ${capLabel} <= ${elementalCap}%`}
               />
             ));
+            }
           case 'resistance.poison':
+            {
+              const presentation = resolveResistanceDisplay(
+                settings.resistances.displayMode,
+                stats.calcMeta.rawResistances.poison,
+                stats.resistances.poison,
+                rawLabel,
+                elementalCap,
+              );
             return renderEditableItem((
               <StatWidget
                 icon="poison"
                 iconColor="#66ff66"
-                value={stats.resistances.poison}
+                value={presentation.value}
                 unit="%"
                 visible
-                cap={elementalCap}
-                helperText={resistanceHelper(stats.calcMeta.rawResistances.poison, stats.resistances.poison)}
+                cap={presentation.cap}
+                helperText={presentation.helperText}
                 helperTone={stats.calcMeta.rawResistances.poison > elementalCap + 0.05 ? 'warning' : 'neutral'}
                 tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.poison)}% | ${capLabel} <= ${elementalCap}%`}
                 prominence="secondary"
               />
             ));
+            }
           case 'resistance.disease':
+            {
+              const presentation = resolveResistanceDisplay(
+                settings.resistances.displayMode,
+                stats.calcMeta.rawResistances.disease,
+                stats.resistances.disease,
+                rawLabel,
+                diseaseCap,
+              );
             return renderEditableItem((
               <StatWidget
                 icon="disease"
                 iconColor="#99cc66"
-                value={stats.resistances.disease}
+                value={presentation.value}
                 unit="%"
                 visible
                 min={DISEASE_RESIST_MIN}
-                cap={diseaseCap}
-                helperText={resistanceHelper(stats.calcMeta.rawResistances.disease, stats.resistances.disease)}
+                cap={presentation.cap}
+                helperText={presentation.helperText}
                 helperTone={stats.calcMeta.rawResistances.disease > diseaseCap + 0.05 ? 'warning' : 'neutral'}
                 tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.disease)}% | ${capLabel} <= ${diseaseCap}%`}
                 prominence="secondary"
               />
             ));
+            }
           case 'defense.armorRating':
             return renderEditableItem((
               <StatWidget
@@ -457,7 +574,7 @@ export function HudWidgetItems({
               <StatWidget
                 icon="gameTime"
                 iconColor="#d8b96b"
-                value={gameDateTime}
+                value={gameTimeValue}
                 visible
                 prominence="secondary"
                 valueMaxWidth={TIME_WIDGET_VALUE_MAX_WIDTH}
@@ -468,7 +585,7 @@ export function HudWidgetItems({
               <StatWidget
                 icon="realTime"
                 iconColor="#77d8ff"
-                value={realDateTime}
+                value={realTimeValue}
                 visible
                 prominence="secondary"
                 valueMaxWidth={TIME_WIDGET_VALUE_MAX_WIDTH}

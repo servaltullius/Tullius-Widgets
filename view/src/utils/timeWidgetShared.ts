@@ -82,7 +82,8 @@ function advanceGameTime(gameTime: GameTimeInfo, nowMs: number): NormalizedGameT
   return addGameMinutes(base, elapsedGameMinutes);
 }
 
-const cachedFormatters: Record<string, Intl.DateTimeFormat> = {};
+const cachedDateTimeFormatters: Record<string, Intl.DateTimeFormat> = {};
+const cachedTimeOnlyFormatters: Record<string, Intl.DateTimeFormat> = {};
 
 function createDateTimeFormatter(locale: string): Intl.DateTimeFormat {
   return new Intl.DateTimeFormat(locale, {
@@ -96,19 +97,43 @@ function createDateTimeFormatter(locale: string): Intl.DateTimeFormat {
   });
 }
 
-function getCachedFormatter(lang: Language): Intl.DateTimeFormat {
+function createTimeOnlyFormatter(locale: string): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat(locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+}
+
+function getCachedDateTimeFormatter(lang: Language): Intl.DateTimeFormat {
   const locale = getLanguageLocale(lang);
-  if (cachedFormatters[locale]) {
-    return cachedFormatters[locale];
+  if (cachedDateTimeFormatters[locale]) {
+    return cachedDateTimeFormatters[locale];
   }
 
   try {
-    cachedFormatters[locale] = createDateTimeFormatter(locale);
+    cachedDateTimeFormatters[locale] = createDateTimeFormatter(locale);
   } catch {
-    cachedFormatters[locale] = createDateTimeFormatter('en-US');
+    cachedDateTimeFormatters[locale] = createDateTimeFormatter('en-US');
   }
 
-  return cachedFormatters[locale];
+  return cachedDateTimeFormatters[locale];
+}
+
+function getCachedTimeOnlyFormatter(lang: Language): Intl.DateTimeFormat {
+  const locale = getLanguageLocale(lang);
+  if (cachedTimeOnlyFormatters[locale]) {
+    return cachedTimeOnlyFormatters[locale];
+  }
+
+  try {
+    cachedTimeOnlyFormatters[locale] = createTimeOnlyFormatter(locale);
+  } catch {
+    cachedTimeOnlyFormatters[locale] = createTimeOnlyFormatter('en-US');
+  }
+
+  return cachedTimeOnlyFormatters[locale];
 }
 
 export function useSharedTimeWidgetClock(snapshotAtMs: number, enabled = true): number {
@@ -143,6 +168,15 @@ export function formatGameDateTime(gameTime: GameTimeInfo, nowMs: number, lang: 
   });
 }
 
+export function formatGameTimeOnly(gameTime: GameTimeInfo, nowMs: number): string {
+  const current = advanceGameTime(gameTime, nowMs);
+  return `${pad2(current.hour)}:${pad2(current.minute)}`;
+}
+
 export function formatRealDateTime(nowMs: number, lang: Language): string {
-  return getCachedFormatter(lang).format(new Date(nowMs));
+  return getCachedDateTimeFormatter(lang).format(new Date(nowMs));
+}
+
+export function formatRealTimeOnly(nowMs: number, lang: Language): string {
+  return getCachedTimeOnlyFormatter(lang).format(new Date(nowMs));
 }
