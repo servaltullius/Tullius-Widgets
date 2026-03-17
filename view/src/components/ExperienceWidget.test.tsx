@@ -42,11 +42,17 @@ describe('ExperienceWidget', () => {
     expect(container.textContent).not.toContain('12%');
     const iconImage = container.querySelector('img[src*="experience"]');
     expect(iconImage).toBeTruthy();
+    expect((iconImage as HTMLImageElement | null)?.style.objectFit).toBe('cover');
+    expect((iconImage as HTMLImageElement | null)?.style.objectPosition).toBe('center 42%');
+    expect((iconImage as HTMLImageElement | null)?.style.transform).toBe('scale(1.72)');
     const progressbar = container.querySelector('[role="progressbar"]');
     expect(progressbar).toBeTruthy();
     expect(progressbar?.textContent).toBe('');
     expect(progressbar?.getAttribute('aria-valuenow')).toBe('12');
     expect(progressbar?.getAttribute('title')).toContain('경험치 진행도: 123,456 / 987,654 XP');
+    expect((progressbar as HTMLDivElement | null)?.style.padding).toBe('10px');
+    expect((progressbar as HTMLDivElement | null)?.style.background).toContain('rgb(127, 230, 255)');
+    expect((progressbar as HTMLDivElement | null)?.style.background).toContain('rgba(14, 20, 34, 0.92)');
   });
 
   it('clamps visible progress safely for bad inputs', async () => {

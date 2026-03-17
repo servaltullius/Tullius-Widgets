@@ -39,6 +39,8 @@ export const ExperienceWidget = memo(function ExperienceWidget({
   const ringAngle = `${clampedProgressPct * 3.6}deg`;
   const experienceIconSrc = iconMap.experience;
   const bottomLine = `${t(lang, 'level')} ${safeLevel} · ${displayValue}`;
+  const ringFillColor = '#7fe6ff';
+  const ringTrackColor = 'rgba(14, 20, 34, 0.92)';
 
   return (
     <div
@@ -62,9 +64,9 @@ export const ExperienceWidget = memo(function ExperienceWidget({
           width: '94px',
           height: '94px',
           borderRadius: '50%',
-          background: `conic-gradient(#f6f9ff ${ringAngle}, rgba(255,255,255,0.14) ${ringAngle})`,
-          padding: '6px',
-          boxShadow: '0 0 16px rgba(94, 200, 255, 0.18)',
+          background: `conic-gradient(from -90deg, ${ringFillColor} ${ringAngle}, ${ringTrackColor} ${ringAngle})`,
+          padding: '10px',
+          boxShadow: '0 0 18px rgba(127, 230, 255, 0.2)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -88,10 +90,14 @@ export const ExperienceWidget = memo(function ExperienceWidget({
               src={experienceIconSrc}
               alt=""
               aria-hidden="true"
-              width={68}
-              height={68}
+              width={74}
+              height={74}
               style={{
-                objectFit: 'contain',
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                objectPosition: 'center 42%',
+                transform: 'scale(1.72)',
                 filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
               }}
             />
