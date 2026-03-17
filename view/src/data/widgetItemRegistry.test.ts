@@ -51,7 +51,7 @@ describe('widgetItemRegistry', () => {
     }
 
     expect(WIDGET_ITEM_REGISTRY['timedEffects.list']?.rendererKind).toBe('timed-effects-list');
-    expect(WIDGET_ITEM_REGISTRY['experience.progress']?.labelKey).toBe('experienceProgress');
+    expect(WIDGET_ITEM_REGISTRY['experience.progress']?.labelKey).toBe('integratedProgressionWidget');
     expect(WIDGET_ITEM_REGISTRY['equipped.rightHand']?.labelKey).toBe('rightHandEquipped');
     expect(WIDGET_ITEM_REGISTRY['movement.speedMult']?.labelKey).toBe('speed');
   });

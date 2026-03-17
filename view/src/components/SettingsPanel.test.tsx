@@ -100,7 +100,7 @@ describe('SettingsPanel', () => {
 
   it('shows the quick-edit card above the tabs using the registry label and keeps it mounted across tab switches', async () => {
     const settings = cloneSettings();
-    settings.itemLayouts['player.level'] = {
+    settings.itemLayouts['experience.progress'] = {
       visible: true,
       x: 120,
       y: 240,
@@ -121,7 +121,7 @@ describe('SettingsPanel', () => {
           onUpdate={() => {}}
           accentColor="#4fd1c5"
           availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json', locale: 'ko-KR' }]}
-          selectedItemId="player.level"
+          selectedItemId="experience.progress"
           selectedItemLayout={{
             visible: true,
             x: 120,
@@ -142,7 +142,8 @@ describe('SettingsPanel', () => {
     if (!quickEditCard || !tabs) {
       throw new Error('expected quick-edit card and tabs to render');
     }
-    expect(quickEditCard?.textContent).toContain('레벨');
+    expect(quickEditCard?.textContent).toContain('통합 진행 위젯');
+    expect(quickEditCard?.textContent).not.toContain('경험치 진행도');
     expect(Boolean(quickEditCard.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
 
     const initialCardNode = quickEditCard;
@@ -156,7 +157,7 @@ describe('SettingsPanel', () => {
 
     const afterTabSwitchCard = container.querySelector('[data-selected-widget-quick-edit-card]') as HTMLDivElement | null;
     expect(afterTabSwitchCard).toBe(initialCardNode);
-    expect(afterTabSwitchCard?.textContent).toContain('레벨');
+    expect(afterTabSwitchCard?.textContent).toContain('통합 진행 위젯');
   });
 
   it('keeps the quick-edit card mounted while hiding the selected widget and allows showing it again', async () => {

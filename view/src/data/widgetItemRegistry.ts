@@ -61,7 +61,7 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     rendererKind: 'experience',
     legacyGroupId: 'experience',
     visibilityPath: 'experience.enabled',
-    labelKey: 'experienceProgress',
+    labelKey: 'integratedProgressionWidget',
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'experience', order: 0 },
