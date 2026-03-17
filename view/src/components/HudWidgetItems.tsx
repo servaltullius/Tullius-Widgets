@@ -1,6 +1,7 @@
 import { useMemo, type ComponentProps, type ReactNode } from 'react';
 import { EditableWidgetItem } from './EditableWidgetItem';
 import { ExperienceWidget } from './ExperienceWidget';
+import { ResistanceWidget } from './ResistanceWidget';
 import { StatWidget } from './StatWidget';
 import { TimedEffectList } from './TimedEffectList';
 import { t } from '../i18n/translations';
@@ -66,27 +67,28 @@ function resolveResistanceDisplay(
   displayMode: WidgetSettings['resistances']['displayMode'],
   raw: number,
   effective: number,
-  rawLabel: string,
   cap: number,
-): Pick<ComponentProps<typeof StatWidget>, 'value' | 'helperText' | 'cap'> {
+): {
+  value: number;
+  secondaryValue?: number;
+  cap?: number;
+} {
   switch (displayMode) {
     case 'rawOnly':
       return {
         value: raw,
-        helperText: undefined,
         cap: undefined,
       };
     case 'effectiveOnly':
       return {
         value: effective,
-        helperText: undefined,
         cap,
       };
     case 'both':
     default:
       return {
         value: effective,
-        helperText: hasMeaningfulDifference(raw, effective) ? `${rawLabel} ${Math.round(raw)}%` : undefined,
+        secondaryValue: raw,
         cap,
       };
   }
@@ -217,9 +219,9 @@ export function HudWidgetItems({
   }
 
   const { currentXp, totalXpForNextLevel } = resolveExperienceProgress(stats.playerInfo);
-  const rawLabel = t(lang, 'capRawLabel');
   const capLabel = t(lang, 'capLimitLabel');
   const armorLimitLabel = t(lang, 'capArmorLimitLabel');
+  const rawLabel = t(lang, 'capRawLabel');
 
   const elementalCap = stats.calcMeta.caps.elementalResist || ELEMENTAL_RESIST_CAP;
   const diseaseCap = stats.calcMeta.caps.diseaseResist || 100;
@@ -366,19 +368,19 @@ export function HudWidgetItems({
                 settings.resistances.displayMode,
                 stats.calcMeta.rawResistances.magic,
                 stats.resistances.magic,
-                rawLabel,
                 elementalCap,
               );
             return renderEditableItem((
-              <StatWidget
+              <ResistanceWidget
                 icon="magic"
                 iconColor="#b366ff"
                 value={presentation.value}
                 unit="%"
                 visible
                 cap={presentation.cap}
-                helperText={presentation.helperText}
-                helperTone={stats.calcMeta.rawResistances.magic > elementalCap + 0.05 ? 'warning' : 'neutral'}
+                secondaryValue={presentation.secondaryValue}
+                secondaryUnit="%"
+                secondaryTone={stats.calcMeta.rawResistances.magic > elementalCap + 0.05 ? 'warning' : 'neutral'}
                 tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.magic)}% | ${capLabel} <= ${elementalCap}%`}
               />
             ));
@@ -389,19 +391,19 @@ export function HudWidgetItems({
                 settings.resistances.displayMode,
                 stats.calcMeta.rawResistances.fire,
                 stats.resistances.fire,
-                rawLabel,
                 elementalCap,
               );
             return renderEditableItem((
-              <StatWidget
+              <ResistanceWidget
                 icon="fire"
                 iconColor="#ff6633"
                 value={presentation.value}
                 unit="%"
                 visible
                 cap={presentation.cap}
-                helperText={presentation.helperText}
-                helperTone={stats.calcMeta.rawResistances.fire > elementalCap + 0.05 ? 'warning' : 'neutral'}
+                secondaryValue={presentation.secondaryValue}
+                secondaryUnit="%"
+                secondaryTone={stats.calcMeta.rawResistances.fire > elementalCap + 0.05 ? 'warning' : 'neutral'}
                 tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.fire)}% | ${capLabel} <= ${elementalCap}%`}
               />
             ));
@@ -412,19 +414,19 @@ export function HudWidgetItems({
                 settings.resistances.displayMode,
                 stats.calcMeta.rawResistances.frost,
                 stats.resistances.frost,
-                rawLabel,
                 elementalCap,
               );
             return renderEditableItem((
-              <StatWidget
+              <ResistanceWidget
                 icon="frost"
                 iconColor="#66ccff"
                 value={presentation.value}
                 unit="%"
                 visible
                 cap={presentation.cap}
-                helperText={presentation.helperText}
-                helperTone={stats.calcMeta.rawResistances.frost > elementalCap + 0.05 ? 'warning' : 'neutral'}
+                secondaryValue={presentation.secondaryValue}
+                secondaryUnit="%"
+                secondaryTone={stats.calcMeta.rawResistances.frost > elementalCap + 0.05 ? 'warning' : 'neutral'}
                 tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.frost)}% | ${capLabel} <= ${elementalCap}%`}
               />
             ));
@@ -435,19 +437,19 @@ export function HudWidgetItems({
                 settings.resistances.displayMode,
                 stats.calcMeta.rawResistances.shock,
                 stats.resistances.shock,
-                rawLabel,
                 elementalCap,
               );
             return renderEditableItem((
-              <StatWidget
+              <ResistanceWidget
                 icon="shock"
                 iconColor="#ffdd33"
                 value={presentation.value}
                 unit="%"
                 visible
                 cap={presentation.cap}
-                helperText={presentation.helperText}
-                helperTone={stats.calcMeta.rawResistances.shock > elementalCap + 0.05 ? 'warning' : 'neutral'}
+                secondaryValue={presentation.secondaryValue}
+                secondaryUnit="%"
+                secondaryTone={stats.calcMeta.rawResistances.shock > elementalCap + 0.05 ? 'warning' : 'neutral'}
                 tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.shock)}% | ${capLabel} <= ${elementalCap}%`}
               />
             ));
@@ -458,21 +460,20 @@ export function HudWidgetItems({
                 settings.resistances.displayMode,
                 stats.calcMeta.rawResistances.poison,
                 stats.resistances.poison,
-                rawLabel,
                 elementalCap,
               );
             return renderEditableItem((
-              <StatWidget
+              <ResistanceWidget
                 icon="poison"
                 iconColor="#66ff66"
                 value={presentation.value}
                 unit="%"
                 visible
                 cap={presentation.cap}
-                helperText={presentation.helperText}
-                helperTone={stats.calcMeta.rawResistances.poison > elementalCap + 0.05 ? 'warning' : 'neutral'}
+                secondaryValue={presentation.secondaryValue}
+                secondaryUnit="%"
+                secondaryTone={stats.calcMeta.rawResistances.poison > elementalCap + 0.05 ? 'warning' : 'neutral'}
                 tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.poison)}% | ${capLabel} <= ${elementalCap}%`}
-                prominence="secondary"
               />
             ));
             }
@@ -482,11 +483,10 @@ export function HudWidgetItems({
                 settings.resistances.displayMode,
                 stats.calcMeta.rawResistances.disease,
                 stats.resistances.disease,
-                rawLabel,
                 diseaseCap,
               );
             return renderEditableItem((
-              <StatWidget
+              <ResistanceWidget
                 icon="disease"
                 iconColor="#99cc66"
                 value={presentation.value}
@@ -494,10 +494,10 @@ export function HudWidgetItems({
                 visible
                 min={DISEASE_RESIST_MIN}
                 cap={presentation.cap}
-                helperText={presentation.helperText}
-                helperTone={stats.calcMeta.rawResistances.disease > diseaseCap + 0.05 ? 'warning' : 'neutral'}
+                secondaryValue={presentation.secondaryValue}
+                secondaryUnit="%"
+                secondaryTone={stats.calcMeta.rawResistances.disease > diseaseCap + 0.05 ? 'warning' : 'neutral'}
                 tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.disease)}% | ${capLabel} <= ${diseaseCap}%`}
-                prominence="secondary"
               />
             ));
             }

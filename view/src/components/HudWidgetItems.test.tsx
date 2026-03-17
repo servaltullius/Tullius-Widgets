@@ -370,9 +370,10 @@ describe('HudWidgetItems', () => {
     const fireWidget = getWidget(container, 'resistance.fire');
     const magicWidget = getWidget(container, 'resistance.magic');
 
+    expect(fireWidget.querySelector('[data-resistance-widget="true"]')).toBeTruthy();
     expect(fireWidget.textContent).toContain('45%');
-    expect(fireWidget.textContent).toContain('원본 120%');
-    expect(magicWidget.textContent).not.toContain('원본 50%');
+    expect(fireWidget.textContent).toContain('120%');
+    expect(magicWidget.textContent).toContain('50%');
 
     settings.resistances.displayMode = 'effectiveOnly';
     await act(async () => {
@@ -390,7 +391,7 @@ describe('HudWidgetItems', () => {
     });
 
     expect(fireWidget.textContent).toContain('45%');
-    expect(fireWidget.textContent).not.toContain('원본 120%');
+    expect(fireWidget.textContent).not.toContain('120%');
 
     settings.resistances.displayMode = 'rawOnly';
     await act(async () => {
@@ -408,7 +409,7 @@ describe('HudWidgetItems', () => {
     });
 
     expect(fireWidget.textContent).toContain('120%');
-    expect(fireWidget.textContent).not.toContain('원본 120%');
+    expect(fireWidget.textContent).not.toContain('45%');
   });
 
   it('switches game time between date-time and time-only display', async () => {
