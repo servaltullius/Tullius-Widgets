@@ -74,14 +74,14 @@ describe('widgetItemRegistry', () => {
     });
   });
 
-  it('rescales canonical item positions against their saved viewport', () => {
+  it('rescales canonical item positions and scale against their saved viewport', () => {
     const settings = structuredClone(defaultSettings);
     settings.itemLayouts = {
       'player.level': {
         visible: true,
         x: 160,
         y: 90,
-        scale: 1.3,
+        scale: 1.1,
         locked: false,
         zIndex: 1,
         viewportWidth: 1920,
@@ -98,6 +98,7 @@ describe('widgetItemRegistry', () => {
     expect(itemLayouts['player.level']).toMatchObject({
       x: 320,
       y: 180,
+      scale: 2.2,
       viewportWidth: 3840,
       viewportHeight: 2160,
     });

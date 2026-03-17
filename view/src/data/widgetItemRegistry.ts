@@ -481,6 +481,7 @@ export function sanitizeWidgetItemLayouts(incoming: unknown): Record<string, Wid
 }
 
 function resolveCanonicalLayoutForViewport(
+  itemId: string,
   layout: WidgetItemLayout,
   viewportWidth: number,
   viewportHeight: number,
@@ -494,10 +495,21 @@ function resolveCanonicalLayoutForViewport(
     return layout;
   }
 
+  const registryEntry = getWidgetItemRegistryEntry(itemId);
+  const viewportScale = Math.min(
+    viewportWidth / layout.viewportWidth,
+    viewportHeight / layout.viewportHeight,
+  );
+  const scaledScale = Number((layout.scale * viewportScale).toFixed(3));
+  const nextScale = registryEntry
+    ? Number(Math.min(registryEntry.maxScale, Math.max(registryEntry.minScale, scaledScale)).toFixed(3))
+    : scaledScale;
+
   return {
     ...layout,
     x: Number(((layout.x * viewportWidth) / layout.viewportWidth).toFixed(3)),
     y: Number(((layout.y * viewportHeight) / layout.viewportHeight).toFixed(3)),
+    scale: nextScale,
     viewportWidth,
     viewportHeight,
   };
@@ -519,7 +531,7 @@ export function resolveWidgetItemLayouts(params: {
   const resolvedCanonicalLayouts = Object.fromEntries(
     Object.entries(canonicalLayouts).map(([itemId, layout]) => [
       itemId,
-      resolveCanonicalLayoutForViewport(layout, viewportWidth, viewportHeight),
+      resolveCanonicalLayoutForViewport(itemId, layout, viewportWidth, viewportHeight),
     ]),
   ) as Record<string, WidgetItemLayout>;
 
