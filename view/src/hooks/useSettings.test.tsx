@@ -130,6 +130,40 @@ describe('useSettings', () => {
     expect(latest!.general.opacity).toBe(55);
   });
 
+  it('stamps imported canonical item layouts with the current viewport metadata when missing', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onSettings={settings => { latest = settings; }} />);
+    });
+
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({
+        schemaVersion: 5,
+        itemLayouts: {
+          'resistance.fire': {
+            visible: true,
+            x: 2880,
+            y: 240,
+            scale: 1.3,
+            locked: false,
+            zIndex: 8,
+          },
+        },
+      }));
+    });
+
+    expect(latest?.itemLayouts['resistance.fire']).toEqual({
+      visible: true,
+      x: 2880,
+      y: 240,
+      scale: 1.3,
+      locked: false,
+      zIndex: 8,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+    });
+  });
+
   it('preserves imported group scales from native import when serializing later settings updates', async () => {
     const onSettingsChanged = vi.fn();
     const onImportResult = vi.fn();
@@ -481,6 +515,8 @@ describe('useSettings', () => {
       scale: 1.1,
       locked: true,
       zIndex: 11,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
     });
 
     await act(async () => {
@@ -538,6 +574,8 @@ describe('useSettings', () => {
       scale: 1.2,
       locked: false,
       zIndex: 20,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
     });
     expect(latest?.itemLayouts['player.level']).toEqual({
       visible: true,
@@ -546,6 +584,8 @@ describe('useSettings', () => {
       scale: 1.1,
       locked: true,
       zIndex: 1,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
     });
   });
 

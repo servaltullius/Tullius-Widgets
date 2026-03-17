@@ -18,6 +18,36 @@ import {
 import { useSettingsBridge } from './useSettingsBridge';
 import { useSettingsSync } from './useSettingsSync';
 
+function stampMissingItemLayoutViewportMetadata(settings: WidgetSettings): WidgetSettings {
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  let changed = false;
+  const nextItemLayouts: WidgetSettings['itemLayouts'] = {};
+
+  for (const [itemId, layout] of Object.entries(settings.itemLayouts)) {
+    if (layout.viewportWidth !== undefined && layout.viewportHeight !== undefined) {
+      nextItemLayouts[itemId] = layout;
+      continue;
+    }
+
+    changed = true;
+    nextItemLayouts[itemId] = {
+      ...layout,
+      viewportWidth,
+      viewportHeight,
+    };
+  }
+
+  if (!changed) {
+    return settings;
+  }
+
+  return {
+    ...settings,
+    itemLayouts: nextItemLayouts,
+  };
+}
+
 function prepareCanonicalItemLayoutForCurrentViewport(settings: WidgetSettings, path: string): WidgetSettings {
   if (!path.startsWith('itemLayouts.')) {
     return settings;
@@ -116,9 +146,9 @@ export function useSettings() {
         return true;
       }
 
-      const merged = mergeWithDefaults(parsed, {
+      const merged = stampMissingItemLayoutViewportMetadata(mergeWithDefaults(parsed, {
         allowLegacyStandaloneLevelFallback: persist,
-      });
+      }));
       setSettings(merged);
       dispatchVisibleOverride({ type: 'reset' });
 
