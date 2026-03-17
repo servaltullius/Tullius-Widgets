@@ -6,7 +6,11 @@ import type {
   WidgetSettings,
 } from '../types/settings';
 import { defaultSettings } from '../data/defaultSettings';
-import { getWidgetItemIdByVisibilityPath, resolveWidgetItemLayouts } from '../data/widgetItemRegistry';
+import {
+  buildItemLayoutsFromLegacySettings,
+  getWidgetItemIdByVisibilityPath,
+  resolveWidgetItemLayouts,
+} from '../data/widgetItemRegistry';
 import type { RuntimeDiagnostics } from '../types/runtime';
 import { isPlainObject } from '../utils/normalize';
 import { updateValueByPath } from './settingsShared';
@@ -35,6 +39,79 @@ function stampMissingItemLayoutViewportMetadata(settings: WidgetSettings): Widge
       ...layout,
       viewportWidth,
       viewportHeight,
+    };
+  }
+
+  if (!changed) {
+    return settings;
+  }
+
+  return {
+    ...settings,
+    itemLayouts: nextItemLayouts,
+  };
+}
+
+function resolveCanonicalViewportBaseline(settings: WidgetSettings): { width: number; height: number } {
+  const counts = new Map<string, { width: number; height: number; count: number }>();
+
+  for (const layout of Object.values(settings.itemLayouts)) {
+    if (
+      layout.viewportWidth === undefined
+      || layout.viewportHeight === undefined
+      || layout.viewportWidth <= 0
+      || layout.viewportHeight <= 0
+    ) {
+      continue;
+    }
+
+    const key = `${layout.viewportWidth}x${layout.viewportHeight}`;
+    const current = counts.get(key);
+    if (current) {
+      current.count += 1;
+      continue;
+    }
+
+    counts.set(key, {
+      width: layout.viewportWidth,
+      height: layout.viewportHeight,
+      count: 1,
+    });
+  }
+
+  let best: { width: number; height: number; count: number } | null = null;
+  for (const candidate of counts.values()) {
+    if (!best || candidate.count > best.count) {
+      best = candidate;
+    }
+  }
+
+  if (best) {
+    return { width: best.width, height: best.height };
+  }
+
+  return {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  };
+}
+
+function seedVisibleLegacyItemLayouts(settings: WidgetSettings): WidgetSettings {
+  const baseline = resolveCanonicalViewportBaseline(settings);
+  const fallbackLayouts = buildItemLayoutsFromLegacySettings(settings, baseline.width, baseline.height);
+  let changed = false;
+  const nextItemLayouts: WidgetSettings['itemLayouts'] = { ...settings.itemLayouts };
+
+  for (const [itemId, layout] of Object.entries(fallbackLayouts)) {
+    if (settings.itemLayouts[itemId] || !layout.visible) {
+      continue;
+    }
+
+    changed = true;
+    nextItemLayouts[itemId] = {
+      ...layout,
+      viewportWidth: baseline.width,
+      viewportHeight: baseline.height,
     };
   }
 
@@ -149,7 +226,8 @@ export function useSettings() {
       const mergedWithDefaults = mergeWithDefaults(parsed, {
         allowLegacyStandaloneLevelFallback: persist,
       });
-      const merged = stampMissingItemLayoutViewportMetadata(mergedWithDefaults);
+      const seededLegacyLayouts = seedVisibleLegacyItemLayouts(mergedWithDefaults);
+      const merged = stampMissingItemLayoutViewportMetadata(seededLegacyLayouts);
       const shouldPersistStampedLayouts = !persist && merged !== mergedWithDefaults;
       setSettings(merged);
       dispatchVisibleOverride({ type: 'reset' });

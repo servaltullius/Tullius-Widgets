@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { act } from 'react-dom/test-utils';
 import { createRoot, type Root } from 'react-dom/client';
 import { defaultSettings } from '../data/defaultSettings';
-import { resolveWidgetItemLayouts } from '../data/widgetItemRegistry';
+import { buildItemLayoutsFromLegacySettings, resolveWidgetItemLayouts } from '../data/widgetItemRegistry';
 import { useSettings } from './useSettings';
 import type { UpdateSettingFn, WidgetSettings } from '../types/settings';
 
@@ -208,6 +208,66 @@ describe('useSettings', () => {
       },
       rev: 118,
     });
+
+    vi.useRealTimers();
+  });
+
+  it('migrates visible legacy fallback widgets into canonical itemLayouts using the established viewport baseline', async () => {
+    vi.useFakeTimers();
+    const onSettingsChanged = vi.fn();
+    window.onSettingsChanged = onSettingsChanged;
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onSettings={settings => { latest = settings; }} />);
+    });
+
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({
+        schemaVersion: 5,
+        rev: 118,
+        general: {
+          size: 'medium',
+        },
+        playerInfo: {
+          carryWeight: true,
+        },
+        positions: {
+          playerInfo: {
+            x: 60,
+            y: 1780,
+          },
+        },
+        itemLayouts: {
+          'experience.progress': {
+            visible: true,
+            x: 51.1875,
+            y: 1295.3275146484375,
+            scale: 1.68,
+            locked: false,
+            zIndex: 0,
+            viewportWidth: 3840,
+            viewportHeight: 2160,
+          },
+        },
+      }));
+      vi.advanceTimersByTime(250);
+    });
+
+    expect(onSettingsChanged).toHaveBeenCalledTimes(1);
+    const persistedPayload = JSON.parse(onSettingsChanged.mock.calls[0]?.[0] as string) as WidgetSettings & { rev: number };
+    const expectedLegacyLayout = buildItemLayoutsFromLegacySettings(
+      persistedPayload,
+      3840,
+      2160,
+    )['player.carryWeight'];
+
+    expect(persistedPayload.itemLayouts['player.carryWeight']).toEqual({
+      ...expectedLegacyLayout,
+      viewportWidth: 3840,
+      viewportHeight: 2160,
+    });
+    expect(persistedPayload.rev).toBe(119);
 
     vi.useRealTimers();
   });
