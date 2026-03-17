@@ -50,9 +50,13 @@ describe('ExperienceWidget', () => {
     expect(progressbar?.textContent).toBe('');
     expect(progressbar?.getAttribute('aria-valuenow')).toBe('12');
     expect(progressbar?.getAttribute('title')).toContain('경험치 진행도: 123,456 / 987,654 XP');
-    expect((progressbar as HTMLDivElement | null)?.style.padding).toBe('10px');
-    expect((progressbar as HTMLDivElement | null)?.style.background).toContain('rgb(127, 230, 255)');
-    expect((progressbar as HTMLDivElement | null)?.style.background).toContain('rgba(14, 20, 34, 0.92)');
+    const ringFill = container.querySelector('[data-testid="experience-ring-fill"]');
+    expect(ringFill).toBeTruthy();
+    const dashArray = Number.parseFloat(ringFill?.getAttribute('stroke-dasharray')?.split(' ')[0] ?? '0');
+    const dashOffset = Number.parseFloat(ringFill?.getAttribute('stroke-dashoffset') ?? '0');
+    expect(dashArray).toBeGreaterThan(0);
+    expect(dashOffset).toBeGreaterThan(0);
+    expect(dashOffset).toBeLessThan(dashArray);
   });
 
   it('clamps visible progress safely for bad inputs', async () => {
@@ -75,5 +79,9 @@ describe('ExperienceWidget', () => {
     expect(container.textContent).toContain('레벨 1 · 1,300 / 1,000');
     expect(container.textContent).not.toContain('100%');
     expect(progressbar?.getAttribute('title')).toContain('경험치 진행도: 1,300 / 1,000 XP');
+    const ringFill = container.querySelector('[data-testid="experience-ring-fill"]');
+    expect(ringFill).toBeTruthy();
+    const dashOffset = Number.parseFloat(ringFill?.getAttribute('stroke-dashoffset') ?? '1');
+    expect(dashOffset).toBeCloseTo(0, 3);
   });
 });

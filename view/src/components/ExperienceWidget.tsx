@@ -36,11 +36,16 @@ export const ExperienceWidget = memo(function ExperienceWidget({
   const displayValue = `${formatInteger(safeCurrentXp)} / ${formatInteger(safeTotalXp)}`;
   const safeLevel = Math.max(1, Math.round(level));
   const tooltip = `${t(lang, 'experienceProgress')}: ${displayValue} XP`;
-  const ringAngle = `${clampedProgressPct * 3.6}deg`;
   const experienceIconSrc = iconMap.experience;
   const bottomLine = `${t(lang, 'level')} ${safeLevel} · ${displayValue}`;
   const ringFillColor = '#7fe6ff';
   const ringTrackColor = 'rgba(14, 20, 34, 0.92)';
+  const medallionSize = 94;
+  const ringThickness = 10;
+  const ringRadius = (medallionSize - ringThickness) / 2;
+  const ringCircumference = 2 * Math.PI * ringRadius;
+  const ringDashOffset = ringCircumference * (1 - clampedProgressPct / 100);
+  const innerMedallionSize = medallionSize - (ringThickness * 2);
 
   return (
     <div
@@ -61,21 +66,55 @@ export const ExperienceWidget = memo(function ExperienceWidget({
         aria-valuenow={roundedProgressPct}
         title={tooltip}
         style={{
-          width: '94px',
-          height: '94px',
+          width: `${medallionSize}px`,
+          height: `${medallionSize}px`,
           borderRadius: '50%',
-          background: `conic-gradient(from -90deg, ${ringFillColor} ${ringAngle}, ${ringTrackColor} ${ringAngle})`,
-          padding: '10px',
-          boxShadow: '0 0 18px rgba(127, 230, 255, 0.2)',
+          position: 'relative',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
+        <svg
+          aria-hidden="true"
+          width={medallionSize}
+          height={medallionSize}
+          viewBox={`0 0 ${medallionSize} ${medallionSize}`}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            overflow: 'visible',
+          }}
+        >
+          <circle
+            cx={medallionSize / 2}
+            cy={medallionSize / 2}
+            r={ringRadius}
+            fill="none"
+            stroke={ringTrackColor}
+            strokeWidth={ringThickness}
+          />
+          <circle
+            data-testid="experience-ring-fill"
+            cx={medallionSize / 2}
+            cy={medallionSize / 2}
+            r={ringRadius}
+            fill="none"
+            stroke={ringFillColor}
+            strokeWidth={ringThickness}
+            strokeLinecap="round"
+            strokeDasharray={`${ringCircumference} ${ringCircumference}`}
+            strokeDashoffset={ringDashOffset}
+            transform={`rotate(-90 ${medallionSize / 2} ${medallionSize / 2})`}
+            style={{
+              filter: 'drop-shadow(0 0 4px rgba(127, 230, 255, 0.38))',
+            }}
+          />
+        </svg>
         <div
           style={{
-            width: '100%',
-            height: '100%',
+            width: `${innerMedallionSize}px`,
+            height: `${innerMedallionSize}px`,
             borderRadius: '50%',
             background: 'radial-gradient(circle at 35% 30%, rgba(54, 58, 74, 0.98), rgba(12, 13, 19, 0.99))',
             border: '1px solid rgba(255, 255, 255, 0.24)',
