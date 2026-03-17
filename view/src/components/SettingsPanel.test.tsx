@@ -73,6 +73,8 @@ describe('SettingsPanel', () => {
 
     expect(parseFloat(panel.style.minWidth)).toBeGreaterThan(680);
     expect(parseFloat(title.style.fontSize)).toBeGreaterThan(36);
+    expect(panel.style.scrollbarGutter).toBe('stable');
+    expect(parseFloat(panel.style.paddingRight)).toBeGreaterThan(parseFloat(panel.style.paddingLeft));
   });
 
   it('hides the quick-edit card when no widget is selected', async () => {
