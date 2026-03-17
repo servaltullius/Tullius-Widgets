@@ -316,4 +316,66 @@ describe('App quick-edit integration', () => {
     expect(parsePx(restoredWidget!.style.left)).toBe(originalX);
     expect(parsePx(restoredWidget!.style.top)).toBe(originalY);
   });
+
+  it('applies resistance display mode and disease visibility changes from the settings panel to the live HUD', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<App />);
+    });
+
+    await act(async () => {
+      (window as TestWindow).toggleSettings?.();
+    });
+
+    const combatTab = Array.from(container.querySelectorAll('button')).find(
+      button => button.textContent?.includes('전투 수치'),
+    );
+    expect(combatTab).toBeTruthy();
+
+    await act(async () => {
+      combatTab?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    const resistancesAccordion = Array.from(container.querySelectorAll('button')).find(
+      button => button.textContent?.includes('저항력'),
+    );
+    expect(resistancesAccordion).toBeTruthy();
+
+    await act(async () => {
+      resistancesAccordion?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    const displaySelect = container.querySelector('[data-testid="resistance-display-select"]') as HTMLDivElement | null;
+    expect(displaySelect).toBeTruthy();
+
+    await act(async () => {
+      displaySelect?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    const rawOnlyOption = container.querySelector('[data-testid="resistance-display-select-option-rawOnly"]') as HTMLDivElement | null;
+    expect(rawOnlyOption).toBeTruthy();
+
+    await act(async () => {
+      rawOnlyOption?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    const fireWidget = getWidget(container, 'resistance.fire');
+    expect(fireWidget).not.toBeNull();
+    expect(fireWidget?.textContent).toContain('120%');
+    expect(fireWidget?.textContent).not.toContain('원본 120%');
+
+    const diseaseToggleLabel = Array.from(container.querySelectorAll('span')).find(
+      element => element.textContent === '질병',
+    )?.closest('label');
+    const diseaseToggle = diseaseToggleLabel?.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
+    expect(diseaseToggle).toBeTruthy();
+    expect(diseaseToggle?.checked).toBe(false);
+
+    await act(async () => {
+      diseaseToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect((diseaseToggleLabel?.querySelector('input[type="checkbox"]') as HTMLInputElement | null)?.checked).toBe(true);
+    expect(getWidget(container, 'resistance.disease')).not.toBeNull();
+  });
 });

@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useEffect } from 'react';
 import { act } from 'react-dom/test-utils';
 import { createRoot, type Root } from 'react-dom/client';
+import { defaultSettings } from '../data/defaultSettings';
+import { resolveWidgetItemLayouts } from '../data/widgetItemRegistry';
 import { useSettings } from './useSettings';
 import type { UpdateSettingFn, WidgetSettings } from '../types/settings';
 
@@ -298,6 +300,43 @@ describe('useSettings', () => {
     vi.useRealTimers();
   });
 
+  it('allows retrying the same canonical item visibility value again after repeated native sync failures', async () => {
+    vi.useFakeTimers();
+    const onSettingsChanged = vi.fn();
+    let updateSetting: UpdateSettingFn | null = null;
+    window.onSettingsChanged = onSettingsChanged;
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<UpdateSettingHarness onReady={value => { updateSetting = value; }} />);
+    });
+
+    await act(async () => {
+      updateSetting?.('general.opacity', 77);
+      vi.advanceTimersByTime(200);
+    });
+
+    const firstRevision = (JSON.parse(onSettingsChanged.mock.calls[0]?.[0] as string) as { rev?: number }).rev;
+
+    await act(async () => {
+      window.onSettingsSyncResult?.(false, firstRevision);
+      vi.advanceTimersByTime(200);
+    });
+
+    await act(async () => {
+      window.onSettingsSyncResult?.(false, firstRevision);
+      updateSetting?.('itemLayouts.resistance.disease.visible', false);
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(onSettingsChanged).toHaveBeenCalledTimes(3);
+    const retriedPayload = JSON.parse(onSettingsChanged.mock.calls[2]?.[0] as string) as WidgetSettings & { rev?: number };
+    expect(retriedPayload.general.opacity).toBe(77);
+    expect(retriedPayload.itemLayouts['resistance.disease']).toBeUndefined();
+    expect(retriedPayload.rev).toBeGreaterThan(firstRevision ?? 0);
+    vi.useRealTimers();
+  });
+
   it('returns import failure for invalid non-object payload', async () => {
     const onImportResult = vi.fn();
     window.onImportResult = onImportResult;
@@ -365,6 +404,36 @@ describe('useSettings', () => {
       scale: 1.5,
       locked: false,
       zIndex: 1,
+    });
+  });
+
+  it('updates canonical resistance itemLayouts entries addressed by dotted item ids', async () => {
+    let updateSetting: UpdateSettingFn | null = null;
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <SettingsAndUpdateHarness
+          onSettings={settings => { latest = settings; }}
+          onReady={value => { updateSetting = value; }}
+        />,
+      );
+    });
+
+    await act(async () => {
+      updateSetting?.('itemLayouts.resistance.disease.visible', true);
+    });
+
+    const fallbackLayout = resolveWidgetItemLayouts({
+      settings: structuredClone(defaultSettings),
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+    })['resistance.disease'];
+
+    expect(fallbackLayout).toBeTruthy();
+    expect(latest?.itemLayouts['resistance.disease']).toEqual({
+      ...fallbackLayout,
+      visible: true,
     });
   });
 

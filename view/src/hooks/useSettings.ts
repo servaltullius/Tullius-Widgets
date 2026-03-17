@@ -6,7 +6,7 @@ import type {
   WidgetSettings,
 } from '../types/settings';
 import { defaultSettings } from '../data/defaultSettings';
-import { getWidgetItemIdByVisibilityPath } from '../data/widgetItemRegistry';
+import { getWidgetItemIdByVisibilityPath, resolveWidgetItemLayouts } from '../data/widgetItemRegistry';
 import type { RuntimeDiagnostics } from '../types/runtime';
 import { isPlainObject } from '../utils/normalize';
 import { updateValueByPath } from './settingsShared';
@@ -17,6 +17,40 @@ import {
 } from './settingsSchema';
 import { useSettingsBridge } from './useSettingsBridge';
 import { useSettingsSync } from './useSettingsSync';
+
+function seedCanonicalItemLayoutIfNeeded(settings: WidgetSettings, path: string): WidgetSettings {
+  if (!path.startsWith('itemLayouts.')) {
+    return settings;
+  }
+
+  const keys = path.split('.');
+  if (keys.length < 3) {
+    return settings;
+  }
+
+  const itemId = keys.slice(1, -1).join('.');
+  if (settings.itemLayouts[itemId]) {
+    return settings;
+  }
+
+  const fallbackLayout = resolveWidgetItemLayouts({
+    settings,
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
+  })[itemId];
+
+  if (!fallbackLayout) {
+    return settings;
+  }
+
+  return {
+    ...settings,
+    itemLayouts: {
+      ...settings.itemLayouts,
+      [itemId]: fallbackLayout,
+    },
+  };
+}
 
 export function useSettings() {
   const [settings, setSettings] = useState<WidgetSettings>(defaultSettings);
@@ -133,14 +167,16 @@ export function useSettings() {
 
     if (options?.persist !== false) {
       const currentSettings = settingsRef.current;
-      if (updateValueByPath(currentSettings, effectivePath, value) === currentSettings && retryPersistedSettings(currentSettings)) {
+      const seededCurrentSettings = seedCanonicalItemLayoutIfNeeded(currentSettings, effectivePath);
+      if (updateValueByPath(seededCurrentSettings, effectivePath, value) === seededCurrentSettings && retryPersistedSettings(currentSettings)) {
         return;
       }
     }
 
     setSettings(prev => {
-      const next = updateValueByPath(prev, effectivePath, value);
-      if (next === prev) {
+      const seededPrev = seedCanonicalItemLayoutIfNeeded(prev, effectivePath);
+      const next = updateValueByPath(seededPrev, effectivePath, value);
+      if (next === seededPrev) {
         return prev;
       }
 
