@@ -62,11 +62,11 @@ export const ExperienceWidget = memo(function ExperienceWidget({
         aria-valuenow={roundedProgressPct}
         title={tooltip}
         style={{
-          width: '60px',
-          height: '60px',
+          width: '68px',
+          height: '68px',
           borderRadius: '50%',
           background: `conic-gradient(#5ec8ff ${ringAngle}, rgba(255,255,255,0.12) ${ringAngle})`,
-          padding: '4px',
+          padding: '5px',
           boxShadow: '0 0 12px rgba(94, 200, 255, 0.25)',
           display: 'flex',
           alignItems: 'center',
@@ -91,8 +91,8 @@ export const ExperienceWidget = memo(function ExperienceWidget({
               src={experienceIconSrc}
               alt=""
               aria-hidden="true"
-              width={42}
-              height={42}
+              width={48}
+              height={48}
               style={{
                 objectFit: 'contain',
                 filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.45))',

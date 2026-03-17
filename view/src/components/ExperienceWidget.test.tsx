@@ -43,10 +43,12 @@ describe('ExperienceWidget', () => {
     expect(container.textContent).toContain('12%');
     const iconImage = container.querySelector('img[src*="experience"]');
     expect(iconImage).toBeTruthy();
-    expect(iconImage?.getAttribute('width')).toBe('42');
-    expect(iconImage?.getAttribute('height')).toBe('42');
+    expect(iconImage?.getAttribute('width')).toBe('48');
+    expect(iconImage?.getAttribute('height')).toBe('48');
     const progressbar = container.querySelector('[role="progressbar"]');
     expect(progressbar).toBeTruthy();
+    expect((progressbar as HTMLDivElement | null)?.style.width).toBe('68px');
+    expect((progressbar as HTMLDivElement | null)?.style.height).toBe('68px');
     expect(progressbar?.getAttribute('aria-valuenow')).toBe('12');
     expect(progressbar?.getAttribute('title')).toContain('경험치 진행도: 123,456 / 987,654 XP');
   });
