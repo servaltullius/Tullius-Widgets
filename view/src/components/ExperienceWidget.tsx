@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { iconMap } from '../assets/icons';
 import { t } from '../i18n/translations';
 import type { Language } from '../types/settings';
 
@@ -41,6 +42,7 @@ export const ExperienceWidget = memo(function ExperienceWidget({
   const helperText = formatPercent(progressPct);
   const tooltip = `${t(lang, 'experienceProgress')}: ${displayValue} XP`;
   const ringAngle = `${clampedProgressPct * 3.6}deg`;
+  const experienceIconSrc = iconMap.experience;
 
   return (
     <div
@@ -78,17 +80,50 @@ export const ExperienceWidget = memo(function ExperienceWidget({
             borderRadius: '50%',
             background: 'radial-gradient(circle at 35% 30%, rgba(50, 56, 72, 0.96), rgba(15, 17, 24, 0.98))',
             border: '1px solid rgba(94, 200, 255, 0.3)',
+            position: 'relative',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#f4fbff',
-            fontFamily: 'sans-serif',
-            fontSize: '20px',
-            fontWeight: 700,
-            textShadow: '0 1px 2px rgba(0,0,0,0.75)',
           }}
         >
-          {safeLevel}
+          {experienceIconSrc ? (
+            <img
+              src={experienceIconSrc}
+              alt=""
+              aria-hidden="true"
+              width={28}
+              height={28}
+              style={{
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.55))',
+              }}
+            />
+          ) : null}
+          <span
+            style={{
+              position: 'absolute',
+              right: '-2px',
+              bottom: '-2px',
+              minWidth: '22px',
+              height: '22px',
+              padding: '0 6px',
+              borderRadius: '999px',
+              background: 'rgba(7, 10, 18, 0.94)',
+              border: '1px solid rgba(94, 200, 255, 0.42)',
+              boxShadow: '0 0 10px rgba(94, 200, 255, 0.18)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#f4fbff',
+              fontFamily: 'sans-serif',
+              fontSize: '12px',
+              fontWeight: 700,
+              lineHeight: 1,
+              textShadow: '0 1px 2px rgba(0,0,0,0.75)',
+            }}
+          >
+            {safeLevel}
+          </span>
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>

@@ -41,6 +41,8 @@ describe('ExperienceWidget', () => {
     expect(container.textContent).toContain('57');
     expect(container.textContent).toContain('123,456 / 987,654');
     expect(container.textContent).toContain('12%');
+    const iconImage = container.querySelector('img[src*="experience"]');
+    expect(iconImage).toBeTruthy();
     const progressbar = container.querySelector('[role="progressbar"]');
     expect(progressbar).toBeTruthy();
     expect(progressbar?.getAttribute('aria-valuenow')).toBe('12');
