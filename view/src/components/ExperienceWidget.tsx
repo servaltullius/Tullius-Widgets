@@ -15,10 +15,6 @@ function clampPercent(value: number): number {
   return Math.min(100, Math.max(0, value));
 }
 
-function formatPercent(value: number): string {
-  return `${Math.round(clampPercent(value))}%`;
-}
-
 function formatInteger(value: number): string {
   return Math.round(value).toLocaleString();
 }
@@ -39,18 +35,19 @@ export const ExperienceWidget = memo(function ExperienceWidget({
   const roundedProgressPct = Math.round(clampedProgressPct);
   const displayValue = `${formatInteger(safeCurrentXp)} / ${formatInteger(safeTotalXp)}`;
   const safeLevel = Math.max(1, Math.round(level));
-  const helperText = formatPercent(progressPct);
   const tooltip = `${t(lang, 'experienceProgress')}: ${displayValue} XP`;
   const ringAngle = `${clampedProgressPct * 3.6}deg`;
   const experienceIconSrc = iconMap.experience;
+  const bottomLine = `${t(lang, 'level')} ${safeLevel} · ${displayValue}`;
 
   return (
     <div
       title={tooltip}
       style={{
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
-        gap: '12px',
+        gap: '8px',
         padding: '2px 0',
       }}
     >
@@ -62,12 +59,12 @@ export const ExperienceWidget = memo(function ExperienceWidget({
         aria-valuenow={roundedProgressPct}
         title={tooltip}
         style={{
-          width: '68px',
-          height: '68px',
+          width: '94px',
+          height: '94px',
           borderRadius: '50%',
-          background: `conic-gradient(#5ec8ff ${ringAngle}, rgba(255,255,255,0.12) ${ringAngle})`,
-          padding: '5px',
-          boxShadow: '0 0 12px rgba(94, 200, 255, 0.25)',
+          background: `conic-gradient(#f6f9ff ${ringAngle}, rgba(255,255,255,0.14) ${ringAngle})`,
+          padding: '6px',
+          boxShadow: '0 0 16px rgba(94, 200, 255, 0.18)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -78,12 +75,12 @@ export const ExperienceWidget = memo(function ExperienceWidget({
             width: '100%',
             height: '100%',
             borderRadius: '50%',
-            background: 'radial-gradient(circle at 35% 30%, rgba(50, 56, 72, 0.96), rgba(15, 17, 24, 0.98))',
-            border: '1px solid rgba(94, 200, 255, 0.3)',
-            position: 'relative',
+            background: 'radial-gradient(circle at 35% 30%, rgba(54, 58, 74, 0.98), rgba(12, 13, 19, 0.99))',
+            border: '1px solid rgba(255, 255, 255, 0.24)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            overflow: 'hidden',
           }}
         >
           {experienceIconSrc ? (
@@ -91,69 +88,30 @@ export const ExperienceWidget = memo(function ExperienceWidget({
               src={experienceIconSrc}
               alt=""
               aria-hidden="true"
-              width={48}
-              height={48}
+              width={68}
+              height={68}
               style={{
                 objectFit: 'contain',
-                filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.45))',
+                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
               }}
             />
           ) : null}
-          <span
-            style={{
-              position: 'absolute',
-              right: '-1px',
-              bottom: '-1px',
-              minWidth: '18px',
-              height: '18px',
-              padding: '0 5px',
-              borderRadius: '999px',
-              background: 'rgba(7, 10, 18, 0.94)',
-              border: '1px solid rgba(94, 200, 255, 0.42)',
-              boxShadow: '0 0 8px rgba(94, 200, 255, 0.16)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#f4fbff',
-              fontFamily: 'sans-serif',
-              fontSize: '10px',
-              fontWeight: 700,
-              lineHeight: 1,
-              textShadow: '0 1px 2px rgba(0,0,0,0.75)',
-            }}
-          >
-            {safeLevel}
-          </span>
         </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
-        <span
-          style={{
-            color: '#ffffff',
-            fontFamily: 'sans-serif',
-            fontSize: '18px',
-            fontWeight: 700,
-            textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-            lineHeight: 1.1,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {displayValue}
-        </span>
-        <span
-          style={{
-            color: '#9fc2d8',
-            fontFamily: 'sans-serif',
-            fontSize: '11px',
-            fontWeight: 600,
-            textShadow: '1px 1px 2px rgba(0,0,0,0.75)',
-            opacity: 0.95,
-            marginTop: '3px',
-          }}
-        >
-          {helperText}
-        </span>
-      </div>
+      <span
+        style={{
+          color: '#ffffff',
+          fontFamily: 'sans-serif',
+          fontSize: '14px',
+          fontWeight: 700,
+          textShadow: '1px 1px 2px rgba(0,0,0,0.82)',
+          lineHeight: 1.15,
+          whiteSpace: 'nowrap',
+          textAlign: 'center',
+        }}
+      >
+        {bottomLine}
+      </span>
     </div>
   );
 });
