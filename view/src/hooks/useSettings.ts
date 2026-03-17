@@ -146,13 +146,15 @@ export function useSettings() {
         return true;
       }
 
-      const merged = stampMissingItemLayoutViewportMetadata(mergeWithDefaults(parsed, {
+      const mergedWithDefaults = mergeWithDefaults(parsed, {
         allowLegacyStandaloneLevelFallback: persist,
-      }));
+      });
+      const merged = stampMissingItemLayoutViewportMetadata(mergedWithDefaults);
+      const shouldPersistStampedLayouts = !persist && merged !== mergedWithDefaults;
       setSettings(merged);
       dispatchVisibleOverride({ type: 'reset' });
 
-      if (persist) {
+      if (persist || shouldPersistStampedLayouts) {
         notifySettingsChanged(merged);
       } else {
         rememberQueuedSettings(merged, settingsRevisionRef.current);

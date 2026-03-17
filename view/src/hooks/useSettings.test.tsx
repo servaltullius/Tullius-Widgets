@@ -164,6 +164,54 @@ describe('useSettings', () => {
     });
   });
 
+  it('persists viewport metadata when updateSettings loads canonical item layouts without it', async () => {
+    vi.useFakeTimers();
+    const onSettingsChanged = vi.fn();
+    window.onSettingsChanged = onSettingsChanged;
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onSettings={settings => { latest = settings; }} />);
+    });
+
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({
+        schemaVersion: 5,
+        rev: 117,
+        itemLayouts: {
+          'experience.progress': {
+            visible: true,
+            x: 51.1875,
+            y: 1295.3275146484375,
+            scale: 1.68,
+            locked: false,
+            zIndex: 0,
+          },
+        },
+      }));
+      vi.advanceTimersByTime(250);
+    });
+
+    expect(onSettingsChanged).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(onSettingsChanged.mock.calls[0]?.[0] as string)).toMatchObject({
+      itemLayouts: {
+        'experience.progress': {
+          visible: true,
+          x: 51.1875,
+          y: 1295.3275146484375,
+          scale: 1.68,
+          locked: false,
+          zIndex: 0,
+          viewportWidth: window.innerWidth,
+          viewportHeight: window.innerHeight,
+        },
+      },
+      rev: 118,
+    });
+
+    vi.useRealTimers();
+  });
+
   it('preserves imported group scales from native import when serializing later settings updates', async () => {
     const onSettingsChanged = vi.fn();
     const onImportResult = vi.fn();
