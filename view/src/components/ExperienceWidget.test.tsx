@@ -38,17 +38,13 @@ describe('ExperienceWidget', () => {
       );
     });
 
-    expect(container.textContent).toContain('57');
-    expect(container.textContent).toContain('123,456 / 987,654');
-    expect(container.textContent).toContain('12%');
+    expect(container.textContent).toContain('레벨 57 · 123,456 / 987,654');
+    expect(container.textContent).not.toContain('12%');
     const iconImage = container.querySelector('img[src*="experience"]');
     expect(iconImage).toBeTruthy();
-    expect(iconImage?.getAttribute('width')).toBe('48');
-    expect(iconImage?.getAttribute('height')).toBe('48');
     const progressbar = container.querySelector('[role="progressbar"]');
     expect(progressbar).toBeTruthy();
-    expect((progressbar as HTMLDivElement | null)?.style.width).toBe('68px');
-    expect((progressbar as HTMLDivElement | null)?.style.height).toBe('68px');
+    expect(progressbar?.textContent).toBe('');
     expect(progressbar?.getAttribute('aria-valuenow')).toBe('12');
     expect(progressbar?.getAttribute('title')).toContain('경험치 진행도: 123,456 / 987,654 XP');
   });
@@ -70,7 +66,8 @@ describe('ExperienceWidget', () => {
     const progressbar = container.querySelector('[role="progressbar"]');
     expect(progressbar).toBeTruthy();
     expect(progressbar?.getAttribute('aria-valuenow')).toBe('100');
-    expect(container.textContent).toContain('1,300 / 1,000');
+    expect(container.textContent).toContain('레벨 1 · 1,300 / 1,000');
+    expect(container.textContent).not.toContain('100%');
     expect(progressbar?.getAttribute('title')).toContain('경험치 진행도: 1,300 / 1,000 XP');
   });
 });

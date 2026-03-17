@@ -242,7 +242,8 @@ describe('HudWidgetItems', () => {
 
     const progressionWidget = getWidget(container, 'experience.progress');
     expect(progressionWidget.querySelector('[role="progressbar"]')).toBeTruthy();
-    expect(progressionWidget.textContent).toContain('72,450 / 76,000');
+    expect(progressionWidget.textContent).toContain('레벨 42 · 72,450 / 76,000');
+    expect(progressionWidget.textContent).not.toContain('95%');
     expect(container.querySelector('[data-widget-item-id="player.level"]')).toBeTruthy();
 
     const nextItemLayouts = {
