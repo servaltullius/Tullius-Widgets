@@ -91,32 +91,32 @@ export const ExperienceWidget = memo(function ExperienceWidget({
               src={experienceIconSrc}
               alt=""
               aria-hidden="true"
-              width={28}
-              height={28}
+              width={42}
+              height={42}
               style={{
                 objectFit: 'contain',
-                filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.55))',
+                filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.45))',
               }}
             />
           ) : null}
           <span
             style={{
               position: 'absolute',
-              right: '-2px',
-              bottom: '-2px',
-              minWidth: '22px',
-              height: '22px',
-              padding: '0 6px',
+              right: '-1px',
+              bottom: '-1px',
+              minWidth: '18px',
+              height: '18px',
+              padding: '0 5px',
               borderRadius: '999px',
               background: 'rgba(7, 10, 18, 0.94)',
               border: '1px solid rgba(94, 200, 255, 0.42)',
-              boxShadow: '0 0 10px rgba(94, 200, 255, 0.18)',
+              boxShadow: '0 0 8px rgba(94, 200, 255, 0.16)',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#f4fbff',
               fontFamily: 'sans-serif',
-              fontSize: '12px',
+              fontSize: '10px',
               fontWeight: 700,
               lineHeight: 1,
               textShadow: '0 1px 2px rgba(0,0,0,0.75)',

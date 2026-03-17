@@ -43,6 +43,8 @@ describe('ExperienceWidget', () => {
     expect(container.textContent).toContain('12%');
     const iconImage = container.querySelector('img[src*="experience"]');
     expect(iconImage).toBeTruthy();
+    expect(iconImage?.getAttribute('width')).toBe('42');
+    expect(iconImage?.getAttribute('height')).toBe('42');
     const progressbar = container.querySelector('[role="progressbar"]');
     expect(progressbar).toBeTruthy();
     expect(progressbar?.getAttribute('aria-valuenow')).toBe('12');
