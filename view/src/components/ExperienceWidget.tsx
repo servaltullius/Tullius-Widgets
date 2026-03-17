@@ -136,7 +136,6 @@ export const ExperienceWidget = memo(function ExperienceWidget({
                 height: '100%',
                 objectFit: 'cover',
                 objectPosition: 'center 42%',
-                transform: 'scale(1.72)',
                 filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
               }}
             />

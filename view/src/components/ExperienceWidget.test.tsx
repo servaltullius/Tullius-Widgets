@@ -44,7 +44,7 @@ describe('ExperienceWidget', () => {
     expect(iconImage).toBeTruthy();
     expect((iconImage as HTMLImageElement | null)?.style.objectFit).toBe('cover');
     expect((iconImage as HTMLImageElement | null)?.style.objectPosition).toBe('center 42%');
-    expect((iconImage as HTMLImageElement | null)?.style.transform).toBe('scale(1.72)');
+    expect((iconImage as HTMLImageElement | null)?.style.transform).toBe('');
     const progressbar = container.querySelector('[role="progressbar"]');
     expect(progressbar).toBeTruthy();
     expect(progressbar?.textContent).toBe('');
