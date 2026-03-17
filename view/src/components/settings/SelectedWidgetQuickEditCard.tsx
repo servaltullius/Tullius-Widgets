@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import type { Language, WidgetItemLayout } from '../../types/settings';
 import { t } from '../../i18n/translations';
 import { scalePanelPixels } from './panelScale';
+import { createPanelCheckboxStyle } from './checkboxStyles';
 
 interface SelectedWidgetQuickEditCardProps {
   lang: Language;
@@ -65,23 +66,25 @@ export function SelectedWidgetQuickEditCard({
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: `${scalePanelPixels(10, panelScale)} ${scalePanelPixels(16, panelScale)}`, alignItems: 'center' }}>
-        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: scalePanelPixels(8, panelScale) }}>
+        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: scalePanelPixels(10, panelScale), minHeight: scalePanelPixels(28, panelScale) }}>
           <span style={{ color: '#ddd', fontSize: scalePanelPixels(16, panelScale) }}>{t(lang, 'showWidgets')}</span>
           <input
             type="checkbox"
             checked={layout.visible}
             data-quick-edit-visibility-toggle="true"
             onChange={event => onToggleVisible(event.target.checked)}
+            style={createPanelCheckboxStyle(panelScale, layout.visible, 18)}
           />
         </label>
 
-        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: scalePanelPixels(8, panelScale) }}>
+        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: scalePanelPixels(10, panelScale), minHeight: scalePanelPixels(28, panelScale) }}>
           <span style={{ color: '#ddd', fontSize: scalePanelPixels(16, panelScale) }}>{t(lang, 'lock')}</span>
           <input
             type="checkbox"
             checked={layout.locked}
             data-quick-edit-lock-toggle="true"
             onChange={event => onToggleLocked(event.target.checked)}
+            style={createPanelCheckboxStyle(panelScale, layout.locked, 18)}
           />
         </label>
 

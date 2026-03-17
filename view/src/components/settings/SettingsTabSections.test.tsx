@@ -144,6 +144,9 @@ describe('SettingsTabSections', () => {
 
     expect(progressionToggle).toBeTruthy();
     expect(standaloneLevelToggle).toBeTruthy();
+    expect(progressionToggle?.style.width).toBe('30px');
+    expect(progressionToggle?.style.height).toBe('30px');
+    expect(progressionToggle?.style.appearance).toBe('none');
 
     await act(async () => {
       progressionToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }));

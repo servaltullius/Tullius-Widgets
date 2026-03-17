@@ -76,6 +76,13 @@ describe('SelectedWidgetQuickEditCard', () => {
     const bringForwardButton = container.querySelector('button[data-quick-edit-bring-forward="true"]') as HTMLButtonElement | null;
     const sendBackwardButton = container.querySelector('button[data-quick-edit-send-backward="true"]') as HTMLButtonElement | null;
 
+    expect(visibilityToggle?.style.width).toBe('18px');
+    expect(visibilityToggle?.style.height).toBe('18px');
+    expect(visibilityToggle?.style.appearance).toBe('none');
+    expect(lockToggle?.style.width).toBe('18px');
+    expect(lockToggle?.style.height).toBe('18px');
+    expect(lockToggle?.style.appearance).toBe('none');
+
     await act(async () => {
       visibilityToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       sizeSlider!.value = '1.55';

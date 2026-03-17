@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, type ReactNode } from 'react';
 import type { Language, UpdateSettingFn, WidgetLayout } from '../../types/settings';
 import { t } from '../../i18n/translations';
 import { scalePanelPixels } from './panelScale';
+import { createPanelCheckboxStyle } from './checkboxStyles';
 
 export interface ToggleProps {
   label: string;
@@ -12,17 +13,21 @@ export interface ToggleProps {
 
 export function Toggle({ label, checked, onChange, panelScale = 1 }: ToggleProps) {
   return (
-    <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${scalePanelPixels(8, panelScale)} 0`, cursor: 'pointer' }}>
+    <label style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: scalePanelPixels(16, panelScale),
+      minHeight: scalePanelPixels(40, panelScale),
+      padding: `${scalePanelPixels(8, panelScale)} 0`,
+      cursor: 'pointer',
+    }}>
       <span style={{ color: '#ddd', fontSize: scalePanelPixels(24, panelScale) }}>{label}</span>
       <input
         type="checkbox"
         checked={checked}
         onChange={event => onChange(event.target.checked)}
-        style={{
-          width: scalePanelPixels(26, panelScale),
-          height: scalePanelPixels(26, panelScale),
-          cursor: 'pointer',
-        }}
+        style={createPanelCheckboxStyle(panelScale, checked)}
       />
     </label>
   );
