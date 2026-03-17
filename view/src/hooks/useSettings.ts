@@ -18,7 +18,7 @@ import {
 import { useSettingsBridge } from './useSettingsBridge';
 import { useSettingsSync } from './useSettingsSync';
 
-function seedCanonicalItemLayoutIfNeeded(settings: WidgetSettings, path: string): WidgetSettings {
+function prepareCanonicalItemLayoutForCurrentViewport(settings: WidgetSettings, path: string): WidgetSettings {
   if (!path.startsWith('itemLayouts.')) {
     return settings;
   }
@@ -28,18 +28,37 @@ function seedCanonicalItemLayoutIfNeeded(settings: WidgetSettings, path: string)
     return settings;
   }
 
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
   const itemId = keys.slice(1, -1).join('.');
-  if (settings.itemLayouts[itemId]) {
+  const resolvedLayout = resolveWidgetItemLayouts({
+    settings,
+    viewportWidth,
+    viewportHeight,
+  })[itemId];
+
+  if (!resolvedLayout) {
     return settings;
   }
 
-  const fallbackLayout = resolveWidgetItemLayouts({
-    settings,
-    viewportWidth: window.innerWidth,
-    viewportHeight: window.innerHeight,
-  })[itemId];
+  const preparedLayout = {
+    ...resolvedLayout,
+    viewportWidth,
+    viewportHeight,
+  };
 
-  if (!fallbackLayout) {
+  const currentLayout = settings.itemLayouts[itemId];
+  if (
+    currentLayout
+    && currentLayout.visible === preparedLayout.visible
+    && currentLayout.x === preparedLayout.x
+    && currentLayout.y === preparedLayout.y
+    && currentLayout.scale === preparedLayout.scale
+    && currentLayout.locked === preparedLayout.locked
+    && currentLayout.zIndex === preparedLayout.zIndex
+    && currentLayout.viewportWidth === preparedLayout.viewportWidth
+    && currentLayout.viewportHeight === preparedLayout.viewportHeight
+  ) {
     return settings;
   }
 
@@ -47,7 +66,7 @@ function seedCanonicalItemLayoutIfNeeded(settings: WidgetSettings, path: string)
     ...settings,
     itemLayouts: {
       ...settings.itemLayouts,
-      [itemId]: fallbackLayout,
+      [itemId]: preparedLayout,
     },
   };
 }
@@ -167,14 +186,14 @@ export function useSettings() {
 
     if (options?.persist !== false) {
       const currentSettings = settingsRef.current;
-      const seededCurrentSettings = seedCanonicalItemLayoutIfNeeded(currentSettings, effectivePath);
+      const seededCurrentSettings = prepareCanonicalItemLayoutForCurrentViewport(currentSettings, effectivePath);
       if (updateValueByPath(seededCurrentSettings, effectivePath, value) === seededCurrentSettings && retryPersistedSettings(currentSettings)) {
         return;
       }
     }
 
     setSettings(prev => {
-      const seededPrev = seedCanonicalItemLayoutIfNeeded(prev, effectivePath);
+      const seededPrev = prepareCanonicalItemLayoutForCurrentViewport(prev, effectivePath);
       const next = updateValueByPath(seededPrev, effectivePath, value);
       if (next === seededPrev) {
         return prev;

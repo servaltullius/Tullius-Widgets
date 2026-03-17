@@ -441,6 +441,16 @@ export function sanitizeWidgetItemLayouts(incoming: unknown): Record<string, Wid
     const zIndex = typeof rawLayout.zIndex === 'number' && Number.isFinite(rawLayout.zIndex)
       ? Math.trunc(rawLayout.zIndex)
       : getWidgetItemDefaultZIndex(itemId);
+    const viewportWidth = typeof rawLayout.viewportWidth === 'number'
+      && Number.isFinite(rawLayout.viewportWidth)
+      && rawLayout.viewportWidth > 0
+      ? Math.trunc(rawLayout.viewportWidth)
+      : undefined;
+    const viewportHeight = typeof rawLayout.viewportHeight === 'number'
+      && Number.isFinite(rawLayout.viewportHeight)
+      && rawLayout.viewportHeight > 0
+      ? Math.trunc(rawLayout.viewportHeight)
+      : undefined;
     if (
       typeof visible !== 'boolean'
       || typeof x !== 'number'
@@ -455,10 +465,42 @@ export function sanitizeWidgetItemLayouts(incoming: unknown): Record<string, Wid
       continue;
     }
 
-    out[itemId] = { visible, x, y, scale, locked, zIndex };
+    out[itemId] = {
+      visible,
+      x,
+      y,
+      scale,
+      locked,
+      zIndex,
+      ...(viewportWidth !== undefined ? { viewportWidth } : {}),
+      ...(viewportHeight !== undefined ? { viewportHeight } : {}),
+    };
   }
 
   return out;
+}
+
+function resolveCanonicalLayoutForViewport(
+  layout: WidgetItemLayout,
+  viewportWidth: number,
+  viewportHeight: number,
+): WidgetItemLayout {
+  if (
+    layout.viewportWidth === undefined
+    || layout.viewportHeight === undefined
+    || layout.viewportWidth <= 0
+    || layout.viewportHeight <= 0
+  ) {
+    return layout;
+  }
+
+  return {
+    ...layout,
+    x: Number(((layout.x * viewportWidth) / layout.viewportWidth).toFixed(3)),
+    y: Number(((layout.y * viewportHeight) / layout.viewportHeight).toFixed(3)),
+    viewportWidth,
+    viewportHeight,
+  };
 }
 
 export function resolveWidgetItemLayouts(params: {
@@ -474,8 +516,15 @@ export function resolveWidgetItemLayouts(params: {
     return fallbackLayouts;
   }
 
+  const resolvedCanonicalLayouts = Object.fromEntries(
+    Object.entries(canonicalLayouts).map(([itemId, layout]) => [
+      itemId,
+      resolveCanonicalLayoutForViewport(layout, viewportWidth, viewportHeight),
+    ]),
+  ) as Record<string, WidgetItemLayout>;
+
   return {
     ...fallbackLayouts,
-    ...canonicalLayouts,
+    ...resolvedCanonicalLayouts,
   };
 }

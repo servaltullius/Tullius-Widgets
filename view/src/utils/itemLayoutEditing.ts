@@ -5,6 +5,18 @@ import {
 } from '../data/widgetItemRegistry';
 import type { WidgetItemLayout, WidgetSettings } from '../types/settings';
 
+function stampLayoutViewport(
+  layout: WidgetItemLayout,
+  viewportWidth: number,
+  viewportHeight: number,
+): WidgetItemLayout {
+  return {
+    ...layout,
+    viewportWidth,
+    viewportHeight,
+  };
+}
+
 function getStableItemOrder(itemId: string): number {
   return WIDGET_ITEM_IDS.indexOf(itemId);
 }
@@ -162,7 +174,7 @@ export function resetItemToDefaultPlacement(params: {
   return {
     ...itemLayouts,
     [itemId]: {
-      ...currentLayout,
+      ...stampLayoutViewport(currentLayout, viewportWidth, viewportHeight),
       x: defaultLayout.x,
       y: defaultLayout.y,
     },
@@ -174,6 +186,8 @@ export function nudgeItemLayout(
   itemId: string,
   deltaX: number,
   deltaY: number,
+  viewportWidth: number,
+  viewportHeight: number,
 ): Record<string, WidgetItemLayout> {
   const currentLayout = itemLayouts[itemId];
   if (!currentLayout || (deltaX === 0 && deltaY === 0)) {
@@ -183,7 +197,7 @@ export function nudgeItemLayout(
   return {
     ...itemLayouts,
     [itemId]: {
-      ...currentLayout,
+      ...stampLayoutViewport(currentLayout, viewportWidth, viewportHeight),
       x: currentLayout.x + deltaX,
       y: currentLayout.y + deltaY,
     },

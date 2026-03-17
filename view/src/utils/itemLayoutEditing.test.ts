@@ -90,6 +90,8 @@ describe('itemLayoutEditing', () => {
       ...modified['time.real'],
       x: original.x,
       y: original.y,
+      viewportWidth: 1366,
+      viewportHeight: 768,
     });
   });
 
@@ -102,12 +104,14 @@ describe('itemLayoutEditing', () => {
     });
     const original = itemLayouts['player.level'];
 
-    const nudged = nudgeItemLayout(itemLayouts, 'player.level', 3, -2);
+    const nudged = nudgeItemLayout(itemLayouts, 'player.level', 3, -2, 1920, 1080);
 
     expect(nudged['player.level']).toEqual({
       ...original,
       x: original.x + 3,
       y: original.y - 2,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
     });
   });
 });

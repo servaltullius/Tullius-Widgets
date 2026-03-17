@@ -5,6 +5,7 @@ import {
   WIDGET_ITEM_REGISTRY,
   buildItemLayoutsFromLegacySettings,
   getWidgetItemRegistryEntry,
+  resolveWidgetItemLayouts,
 } from './widgetItemRegistry';
 
 describe('widgetItemRegistry', () => {
@@ -70,6 +71,35 @@ describe('widgetItemRegistry', () => {
     expect(itemLayouts['timedEffects.list']).toMatchObject({
       locked: false,
       zIndex: 23,
+    });
+  });
+
+  it('rescales canonical item positions against their saved viewport', () => {
+    const settings = structuredClone(defaultSettings);
+    settings.itemLayouts = {
+      'player.level': {
+        visible: true,
+        x: 160,
+        y: 90,
+        scale: 1.3,
+        locked: false,
+        zIndex: 1,
+        viewportWidth: 1920,
+        viewportHeight: 1080,
+      },
+    };
+
+    const itemLayouts = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 3840,
+      viewportHeight: 2160,
+    });
+
+    expect(itemLayouts['player.level']).toMatchObject({
+      x: 320,
+      y: 180,
+      viewportWidth: 3840,
+      viewportHeight: 2160,
     });
   });
 });

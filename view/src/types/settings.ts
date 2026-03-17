@@ -18,6 +18,8 @@ export interface WidgetItemLayout {
   scale: number;
   locked: boolean;
   zIndex: number;
+  viewportWidth?: number;
+  viewportHeight?: number;
 }
 
 export interface WidgetSettings {

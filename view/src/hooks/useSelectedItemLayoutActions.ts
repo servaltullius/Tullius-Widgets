@@ -99,7 +99,7 @@ export function createSelectedItemLayoutActions({
       return commitCanonicalItemLayouts(
         updateSetting,
         itemLayouts,
-        nudgeItemLayout(itemLayouts, selectedItemId, deltaX, deltaY),
+        nudgeItemLayout(itemLayouts, selectedItemId, deltaX, deltaY, viewportWidth, viewportHeight),
       );
     },
     bringSelectedItemForward(): boolean {

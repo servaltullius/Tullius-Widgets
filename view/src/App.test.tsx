@@ -79,6 +79,8 @@ describe('App item layout actions', () => {
         ...currentLayouts['time.real'],
         x: original.x,
         y: original.y,
+        viewportWidth: 1440,
+        viewportHeight: 900,
       },
     });
   });
@@ -178,6 +180,8 @@ describe('App item layout actions', () => {
         ...original,
         x: original.x + 1,
         y: original.y - 1,
+        viewportWidth: 1920,
+        viewportHeight: 1080,
       },
     });
   });

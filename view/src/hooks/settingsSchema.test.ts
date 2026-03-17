@@ -237,6 +237,51 @@ describe('settingsSchema', () => {
     });
   });
 
+  it('preserves valid viewport metadata on canonical item layouts', () => {
+    const merged = mergeWithDefaults({
+      schemaVersion: 5,
+      itemLayouts: {
+        'player.level': {
+          visible: true,
+          x: 120,
+          y: 240,
+          scale: 1.4,
+          viewportWidth: 1920,
+          viewportHeight: 1080,
+        },
+        'time.real': {
+          visible: false,
+          x: 640,
+          y: 40,
+          scale: 0.9,
+          locked: true,
+          zIndex: 21,
+          viewportWidth: Number.NaN,
+          viewportHeight: 0,
+        },
+      },
+    });
+
+    expect(merged.itemLayouts['player.level']).toEqual({
+      visible: true,
+      x: 120,
+      y: 240,
+      scale: 1.4,
+      locked: false,
+      zIndex: 1,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+    expect(merged.itemLayouts['time.real']).toEqual({
+      visible: false,
+      x: 640,
+      y: 40,
+      scale: 0.9,
+      locked: true,
+      zIndex: 21,
+    });
+  });
+
   it('keeps legacy layout fields readable when schema v1 payload has no item layouts', () => {
     const merged = mergeWithDefaults({
       schemaVersion: 1,

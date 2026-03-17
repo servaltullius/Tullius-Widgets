@@ -404,6 +404,8 @@ describe('useSettings', () => {
       scale: 1.5,
       locked: false,
       zIndex: 1,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
     });
   });
 
@@ -434,6 +436,8 @@ describe('useSettings', () => {
     expect(latest?.itemLayouts['resistance.disease']).toEqual({
       ...fallbackLayout,
       visible: true,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
     });
   });
 
@@ -490,6 +494,8 @@ describe('useSettings', () => {
       scale: 1.1,
       locked: true,
       zIndex: 11,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
     });
     expect(latest?.playerInfo.level).toBe(true);
 
@@ -504,6 +510,8 @@ describe('useSettings', () => {
       scale: 1.1,
       locked: true,
       zIndex: 11,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
     });
     vi.useRealTimers();
   });
@@ -674,7 +682,7 @@ describe('useSettings', () => {
     expect(onSettingsChanged).toHaveBeenCalledTimes(1);
     const payload = JSON.parse(onSettingsChanged.mock.calls[0]?.[0] as string) as WidgetSettings & { schemaVersion?: number };
 
-    expect(payload.schemaVersion).toBe(4);
+    expect(payload.schemaVersion).toBe(5);
     expect(payload.playerInfo.carryWeightDisplay).toBe('meterOnly');
     expect(payload.resistances.displayMode).toBe('rawOnly');
     expect(payload.time.gameDisplay).toBe('timeOnly');
