@@ -7,7 +7,6 @@ import {
   getVisibleHudItemIds,
   getRuntimeWarningText,
   getSettingsSyncWarningText,
-  getVisibleWidgetGroups,
   resolveExperienceProgress,
   resolveHudVisibility,
 } from './hudPresentation';
@@ -135,17 +134,6 @@ describe('hudPresentation', () => {
       currentXp: 0,
       totalXpForNextLevel: 1300,
     });
-  });
-
-  it('reports visible groups from settings and timed-effect state', () => {
-    const settings = cloneSettings();
-    const stats = cloneStats();
-
-    stats.timedEffects = [];
-
-    expect(getVisibleWidgetGroups(settings, stats, false).hasVisibleTimedEffects).toBe(false);
-    expect(getVisibleWidgetGroups(settings, stats, true).hasVisibleTimedEffects).toBe(true);
-    expect(getVisibleWidgetGroups(settings, stats, false).hasVisibleResistance).toBe(true);
   });
 
   it('resolves overall HUD visibility from combat and change-window rules', () => {

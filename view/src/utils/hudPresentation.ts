@@ -11,18 +11,6 @@ const XP_STALE_TOLERANCE = 1;
 export type HudValueTone = 'default' | 'warning' | 'danger';
 export type HudSettingsSyncState = 'idle' | 'retrying' | 'failed' | 'saved';
 
-export interface VisibleWidgetGroups {
-  hasVisibleResistance: boolean;
-  hasVisibleDefense: boolean;
-  hasVisibleOffense: boolean;
-  hasVisibleEquipped: boolean;
-  hasVisibleTime: boolean;
-  hasVisibleTimedEffects: boolean;
-  hasVisibleMovement: boolean;
-  hasVisibleExperience: boolean;
-  hasVisiblePlayerInfo: boolean;
-}
-
 export interface ExperienceProgress {
   currentXp: number;
   totalXpForNextLevel: number;
@@ -181,24 +169,6 @@ export function getVisibleHudItemIds(
 
     return true;
   });
-}
-
-export function getVisibleWidgetGroups(
-  settings: WidgetSettings,
-  stats: CombatStats,
-  settingsOpen: boolean,
-): VisibleWidgetGroups {
-  return {
-    hasVisibleResistance: Object.values(settings.resistances).some(Boolean),
-    hasVisibleDefense: Object.values(settings.defense).some(Boolean),
-    hasVisibleOffense: Object.values(settings.offense).some(Boolean),
-    hasVisibleEquipped: Object.values(settings.equipped).some(Boolean),
-    hasVisibleTime: Object.values(settings.time).some(Boolean),
-    hasVisibleTimedEffects: settings.timedEffects.enabled && (settingsOpen || stats.timedEffects.length > 0),
-    hasVisibleMovement: settings.movement.speedMult,
-    hasVisibleExperience: settings.experience.enabled,
-    hasVisiblePlayerInfo: Object.values(settings.playerInfo).some(Boolean),
-  };
 }
 
 export function resolveHudVisibility({

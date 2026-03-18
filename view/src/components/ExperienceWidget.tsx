@@ -2,6 +2,10 @@ import { memo } from 'react';
 import { iconMap } from '../assets/icons';
 import { t } from '../i18n/translations';
 import type { Language } from '../types/settings';
+import {
+  EXPERIENCE_AVATAR_PRESENTATION,
+  getExperienceRingStroke,
+} from './experiencePresentation';
 
 interface ExperienceWidgetProps {
   currentXp: number;
@@ -9,10 +13,6 @@ interface ExperienceWidgetProps {
   level: number;
   visible: boolean;
   lang: Language;
-}
-
-function clampPercent(value: number): number {
-  return Math.min(100, Math.max(0, value));
 }
 
 function formatInteger(value: number): string {
@@ -28,24 +28,31 @@ export const ExperienceWidget = memo(function ExperienceWidget({
 }: ExperienceWidgetProps) {
   if (!visible) return null;
 
-  const safeCurrentXp = Math.max(0, Math.round(currentXp));
-  const safeTotalXp = Math.max(0, Math.round(totalXp));
-  const progressPct = safeTotalXp > 0 ? (safeCurrentXp / safeTotalXp) * 100 : safeCurrentXp > 0 ? 100 : 0;
-  const clampedProgressPct = clampPercent(progressPct);
-  const roundedProgressPct = Math.round(clampedProgressPct);
+  const {
+    safeCurrentXp,
+    safeTotalXp,
+    percent,
+    radius,
+    circumference,
+    dashOffset,
+    innerMedallionSize,
+  } = getExperienceRingStroke(currentXp, totalXp);
   const displayValue = `${formatInteger(safeCurrentXp)} / ${formatInteger(safeTotalXp)}`;
   const safeLevel = Math.max(1, Math.round(level));
   const tooltip = `${t(lang, 'experienceProgress')}: ${displayValue} XP`;
   const experienceIconSrc = iconMap.experience;
   const bottomLine = `${t(lang, 'level')} ${safeLevel} · ${displayValue}`;
-  const ringFillColor = '#ffffff';
-  const ringTrackColor = 'rgba(255, 255, 255, 0.22)';
-  const medallionSize = 94;
-  const ringThickness = 6;
-  const ringRadius = (medallionSize - ringThickness) / 2;
-  const ringCircumference = 2 * Math.PI * ringRadius;
-  const ringDashOffset = ringCircumference * (1 - clampedProgressPct / 100);
-  const innerMedallionSize = medallionSize - (ringThickness * 2);
+  const {
+    medallionSize,
+    ringThickness,
+    ringFillColor,
+    ringTrackColor,
+    innerBackground,
+    innerBorder,
+    iconObjectFit,
+    iconObjectPosition,
+    iconTranslateX,
+  } = EXPERIENCE_AVATAR_PRESENTATION;
 
   return (
     <div
@@ -63,7 +70,7 @@ export const ExperienceWidget = memo(function ExperienceWidget({
         aria-label={t(lang, 'experienceProgress')}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-valuenow={roundedProgressPct}
+        aria-valuenow={percent}
         title={tooltip}
         style={{
           width: `${medallionSize}px`,
@@ -90,7 +97,7 @@ export const ExperienceWidget = memo(function ExperienceWidget({
             data-testid="experience-ring-track"
             cx={medallionSize / 2}
             cy={medallionSize / 2}
-            r={ringRadius}
+            r={radius}
             fill="none"
             stroke={ringTrackColor}
             strokeWidth={ringThickness}
@@ -99,13 +106,13 @@ export const ExperienceWidget = memo(function ExperienceWidget({
             data-testid="experience-ring-fill"
             cx={medallionSize / 2}
             cy={medallionSize / 2}
-            r={ringRadius}
+            r={radius}
             fill="none"
             stroke={ringFillColor}
             strokeWidth={ringThickness}
             strokeLinecap="round"
-            strokeDasharray={`${ringCircumference} ${ringCircumference}`}
-            strokeDashoffset={ringDashOffset}
+            strokeDasharray={`${circumference} ${circumference}`}
+            strokeDashoffset={dashOffset}
             transform={`rotate(-90 ${medallionSize / 2} ${medallionSize / 2})`}
             style={{
               filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.28))',
@@ -117,8 +124,8 @@ export const ExperienceWidget = memo(function ExperienceWidget({
             width: `${innerMedallionSize}px`,
             height: `${innerMedallionSize}px`,
             borderRadius: '50%',
-            background: 'radial-gradient(circle at 35% 30%, rgba(36, 40, 52, 0.9), rgba(10, 12, 18, 0.95))',
-            border: '1px solid rgba(255, 255, 255, 0.18)',
+            background: innerBackground,
+            border: innerBorder,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -135,9 +142,9 @@ export const ExperienceWidget = memo(function ExperienceWidget({
               style={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'contain',
-                objectPosition: 'center center',
-                transform: 'translateX(4px)',
+                objectFit: iconObjectFit,
+                objectPosition: iconObjectPosition,
+                transform: `translateX(${iconTranslateX}px)`,
               }}
             />
           ) : null}
