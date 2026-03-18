@@ -47,7 +47,7 @@ describe('ExperienceWidget', () => {
     expect((iconImage as HTMLImageElement | null)?.style.width).toBe('100%');
     expect((iconImage as HTMLImageElement | null)?.style.height).toBe('100%');
     expect((iconImage as HTMLImageElement | null)?.style.filter).toBe('');
-    expect((iconImage as HTMLImageElement | null)?.style.transform).toBe('');
+    expect((iconImage as HTMLImageElement | null)?.style.transform).toBe('translateX(2px)');
     const progressbar = container.querySelector('[role="progressbar"]');
     expect(progressbar).toBeTruthy();
     expect(progressbar?.textContent).toBe('');

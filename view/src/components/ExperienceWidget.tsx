@@ -137,6 +137,7 @@ export const ExperienceWidget = memo(function ExperienceWidget({
                 height: '100%',
                 objectFit: 'contain',
                 objectPosition: 'center center',
+                transform: 'translateX(2px)',
               }}
             />
           ) : null}
