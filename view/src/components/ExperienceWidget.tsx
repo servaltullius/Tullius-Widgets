@@ -38,10 +38,10 @@ export const ExperienceWidget = memo(function ExperienceWidget({
   const tooltip = `${t(lang, 'experienceProgress')}: ${displayValue} XP`;
   const experienceIconSrc = iconMap.experience;
   const bottomLine = `${t(lang, 'level')} ${safeLevel} · ${displayValue}`;
-  const ringFillColor = '#7fe6ff';
-  const ringTrackColor = 'rgba(14, 20, 34, 0.92)';
+  const ringFillColor = '#ffffff';
+  const ringTrackColor = 'rgba(255, 255, 255, 0.22)';
   const medallionSize = 94;
-  const ringThickness = 10;
+  const ringThickness = 6;
   const ringRadius = (medallionSize - ringThickness) / 2;
   const ringCircumference = 2 * Math.PI * ringRadius;
   const ringDashOffset = ringCircumference * (1 - clampedProgressPct / 100);
@@ -87,6 +87,7 @@ export const ExperienceWidget = memo(function ExperienceWidget({
           }}
         >
           <circle
+            data-testid="experience-ring-track"
             cx={medallionSize / 2}
             cy={medallionSize / 2}
             r={ringRadius}
@@ -107,7 +108,7 @@ export const ExperienceWidget = memo(function ExperienceWidget({
             strokeDashoffset={ringDashOffset}
             transform={`rotate(-90 ${medallionSize / 2} ${medallionSize / 2})`}
             style={{
-              filter: 'drop-shadow(0 0 4px rgba(127, 230, 255, 0.38))',
+              filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.28))',
             }}
           />
         </svg>
@@ -116,8 +117,8 @@ export const ExperienceWidget = memo(function ExperienceWidget({
             width: `${innerMedallionSize}px`,
             height: `${innerMedallionSize}px`,
             borderRadius: '50%',
-            background: 'radial-gradient(circle at 35% 30%, rgba(54, 58, 74, 0.98), rgba(12, 13, 19, 0.99))',
-            border: '1px solid rgba(255, 255, 255, 0.24)',
+            background: 'radial-gradient(circle at 35% 30%, rgba(36, 40, 52, 0.9), rgba(10, 12, 18, 0.95))',
+            border: '1px solid rgba(255, 255, 255, 0.18)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -132,11 +133,11 @@ export const ExperienceWidget = memo(function ExperienceWidget({
               width={74}
               height={74}
               style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                objectPosition: 'center 42%',
-                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
+                width: '92%',
+                height: '92%',
+                objectFit: 'contain',
+                objectPosition: 'center center',
+                filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.18))',
               }}
             />
           ) : null}

@@ -42,8 +42,8 @@ describe('ExperienceWidget', () => {
     expect(container.textContent).not.toContain('12%');
     const iconImage = container.querySelector('img[src*="experience"]');
     expect(iconImage).toBeTruthy();
-    expect((iconImage as HTMLImageElement | null)?.style.objectFit).toBe('cover');
-    expect((iconImage as HTMLImageElement | null)?.style.objectPosition).toBe('center 42%');
+    expect((iconImage as HTMLImageElement | null)?.style.objectFit).toBe('contain');
+    expect((iconImage as HTMLImageElement | null)?.style.objectPosition).toBe('center center');
     expect((iconImage as HTMLImageElement | null)?.style.transform).toBe('');
     const progressbar = container.querySelector('[role="progressbar"]');
     expect(progressbar).toBeTruthy();
@@ -52,11 +52,16 @@ describe('ExperienceWidget', () => {
     expect(progressbar?.getAttribute('title')).toContain('경험치 진행도: 123,456 / 987,654 XP');
     const ringFill = container.querySelector('[data-testid="experience-ring-fill"]');
     expect(ringFill).toBeTruthy();
+    expect(ringFill?.getAttribute('stroke')).toBe('#ffffff');
+    expect(ringFill?.getAttribute('stroke-width')).toBe('6');
     const dashArray = Number.parseFloat(ringFill?.getAttribute('stroke-dasharray')?.split(' ')[0] ?? '0');
     const dashOffset = Number.parseFloat(ringFill?.getAttribute('stroke-dashoffset') ?? '0');
     expect(dashArray).toBeGreaterThan(0);
     expect(dashOffset).toBeGreaterThan(0);
     expect(dashOffset).toBeLessThan(dashArray);
+    const ringTrack = container.querySelector('[data-testid="experience-ring-track"]');
+    expect(ringTrack).toBeTruthy();
+    expect(ringTrack?.getAttribute('stroke')).toBe('rgba(255, 255, 255, 0.22)');
   });
 
   it('clamps visible progress safely for bad inputs', async () => {
