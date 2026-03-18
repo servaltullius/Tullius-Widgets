@@ -133,11 +133,10 @@ export const ExperienceWidget = memo(function ExperienceWidget({
               width={74}
               height={74}
               style={{
-                width: '92%',
-                height: '92%',
+                width: '100%',
+                height: '100%',
                 objectFit: 'contain',
                 objectPosition: 'center center',
-                filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.18))',
               }}
             />
           ) : null}
