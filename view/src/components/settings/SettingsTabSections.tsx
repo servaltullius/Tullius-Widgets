@@ -54,6 +54,65 @@ function updateItemVisibility(onUpdate: UpdateSettingFn, itemId: string, value: 
   onUpdate(`itemLayouts.${itemId}.visible`, value);
 }
 
+interface ItemVisibilityToggleConfig {
+  itemId: string;
+  fallback: boolean;
+  label: string;
+}
+
+interface ItemVisibilityToggleProps {
+  settings: WidgetSettings;
+  onUpdate: UpdateSettingFn;
+  config: ItemVisibilityToggleConfig;
+  panelScale?: number;
+}
+
+function ItemVisibilityToggle({
+  settings,
+  onUpdate,
+  config,
+  panelScale = 1,
+}: ItemVisibilityToggleProps) {
+  return (
+    <Toggle
+      label={config.label}
+      checked={readItemVisibility(settings, config.itemId, config.fallback)}
+      onChange={value => updateItemVisibility(onUpdate, config.itemId, value)}
+      panelScale={panelScale}
+    />
+  );
+}
+
+function buildCarryWeightDisplayOptions(lang: Language) {
+  return [
+    { value: 'combined', label: t(lang, 'numberAndMeter') },
+    { value: 'valueOnly', label: t(lang, 'numberOnly') },
+    { value: 'meterOnly', label: t(lang, 'meterOnly') },
+  ];
+}
+
+function buildResistanceDisplayOptions(lang: Language) {
+  return [
+    { value: 'effectiveOnly', label: t(lang, 'effectiveOnly') },
+    { value: 'rawOnly', label: t(lang, 'rawOnly') },
+    { value: 'both', label: t(lang, 'both') },
+  ];
+}
+
+function buildTimeDisplayOptions(lang: Language) {
+  return [
+    { value: 'dateTime', label: t(lang, 'dateAndTime') },
+    { value: 'timeOnly', label: t(lang, 'timeOnly') },
+  ];
+}
+
+function buildTimedEffectsLayoutOptions(lang: Language) {
+  return [
+    { value: 'vertical', label: t(lang, 'layoutVertical') },
+    { value: 'horizontal', label: t(lang, 'layoutHorizontal') },
+  ];
+}
+
 interface GeneralTabSectionsProps extends SectionControlProps {
   settings: WidgetSettings;
   selectedLanguage: Language;
@@ -172,6 +231,100 @@ export function CombatTabSections({
   toggleSection,
   panelScale = 1,
 }: WidgetTabSectionsProps) {
+  const carryWeightDisplayOptions = buildCarryWeightDisplayOptions(lang);
+  const resistanceDisplayOptions = buildResistanceDisplayOptions(lang);
+  const experienceToggles: ItemVisibilityToggleConfig[] = [
+    {
+      itemId: 'experience.progress',
+      fallback: settings.experience.enabled,
+      label: t(lang, 'integratedProgressionWidget'),
+    },
+  ];
+  const playerInfoToggles: ItemVisibilityToggleConfig[] = [
+    {
+      itemId: 'player.level',
+      fallback: settings.playerInfo.level,
+      label: t(lang, 'standaloneLevel'),
+    },
+    { itemId: 'player.gold', fallback: settings.playerInfo.gold, label: t(lang, 'gold') },
+    {
+      itemId: 'player.carryWeight',
+      fallback: settings.playerInfo.carryWeight,
+      label: t(lang, 'carryWeight'),
+    },
+    { itemId: 'player.health', fallback: settings.playerInfo.health, label: t(lang, 'health') },
+    {
+      itemId: 'player.magicka',
+      fallback: settings.playerInfo.magicka,
+      label: t(lang, 'magicka'),
+    },
+    {
+      itemId: 'player.stamina',
+      fallback: settings.playerInfo.stamina,
+      label: t(lang, 'stamina'),
+    },
+  ];
+  const resistanceToggles: ItemVisibilityToggleConfig[] = [
+    { itemId: 'resistance.magic', fallback: settings.resistances.magic, label: t(lang, 'magic') },
+    { itemId: 'resistance.fire', fallback: settings.resistances.fire, label: t(lang, 'fire') },
+    { itemId: 'resistance.frost', fallback: settings.resistances.frost, label: t(lang, 'frost') },
+    { itemId: 'resistance.shock', fallback: settings.resistances.shock, label: t(lang, 'shock') },
+    { itemId: 'resistance.poison', fallback: settings.resistances.poison, label: t(lang, 'poison') },
+    {
+      itemId: 'resistance.disease',
+      fallback: settings.resistances.disease,
+      label: t(lang, 'disease'),
+    },
+  ];
+  const defenseToggles: ItemVisibilityToggleConfig[] = [
+    {
+      itemId: 'defense.armorRating',
+      fallback: settings.defense.armorRating,
+      label: t(lang, 'armorRating'),
+    },
+    {
+      itemId: 'defense.damageReduction',
+      fallback: settings.defense.damageReduction,
+      label: t(lang, 'damageReduction'),
+    },
+  ];
+  const offenseToggles: ItemVisibilityToggleConfig[] = [
+    {
+      itemId: 'offense.rightHandDamage',
+      fallback: settings.offense.rightHandDamage,
+      label: t(lang, 'rightHandDamage'),
+    },
+    {
+      itemId: 'offense.leftHandDamage',
+      fallback: settings.offense.leftHandDamage,
+      label: t(lang, 'leftHandDamage'),
+    },
+    {
+      itemId: 'offense.critChance',
+      fallback: settings.offense.critChance,
+      label: t(lang, 'critChance'),
+    },
+  ];
+  const equippedToggles: ItemVisibilityToggleConfig[] = [
+    {
+      itemId: 'equipped.rightHand',
+      fallback: settings.equipped.rightHand,
+      label: t(lang, 'rightHandEquipped'),
+    },
+    {
+      itemId: 'equipped.leftHand',
+      fallback: settings.equipped.leftHand,
+      label: t(lang, 'leftHandEquipped'),
+    },
+  ];
+  const movementToggles: ItemVisibilityToggleConfig[] = [
+    {
+      itemId: 'movement.speedMult',
+      fallback: settings.movement.speedMult,
+      label: t(lang, 'speed'),
+    },
+  ];
+
   return (
     <>
       <AccordionSection
@@ -181,12 +334,15 @@ export function CombatTabSections({
         onToggle={toggleSection}
         panelScale={panelScale}
       >
-        <Toggle
-          label={t(lang, 'integratedProgressionWidget')}
-          checked={readItemVisibility(settings, 'experience.progress', settings.experience.enabled)}
-          onChange={value => updateItemVisibility(onUpdate, 'experience.progress', value)}
-          panelScale={panelScale}
-        />
+        {experienceToggles.map(config => (
+          <ItemVisibilityToggle
+            key={config.itemId}
+            settings={settings}
+            onUpdate={onUpdate}
+            config={config}
+            panelScale={panelScale}
+          />
+        ))}
       </AccordionSection>
 
       <AccordionSection
@@ -196,24 +352,32 @@ export function CombatTabSections({
         onToggle={toggleSection}
         panelScale={panelScale}
       >
-        <Toggle label={t(lang, 'standaloneLevel')} checked={readItemVisibility(settings, 'player.level', settings.playerInfo.level)} onChange={value => updateItemVisibility(onUpdate, 'player.level', value)} panelScale={panelScale} />
-        <Toggle label={t(lang, 'gold')} checked={readItemVisibility(settings, 'player.gold', settings.playerInfo.gold)} onChange={value => updateItemVisibility(onUpdate, 'player.gold', value)} panelScale={panelScale} />
-        <Toggle label={t(lang, 'carryWeight')} checked={readItemVisibility(settings, 'player.carryWeight', settings.playerInfo.carryWeight)} onChange={value => updateItemVisibility(onUpdate, 'player.carryWeight', value)} panelScale={panelScale} />
+        {playerInfoToggles.slice(0, 3).map(config => (
+          <ItemVisibilityToggle
+            key={config.itemId}
+            settings={settings}
+            onUpdate={onUpdate}
+            config={config}
+            panelScale={panelScale}
+          />
+        ))}
         <SelectRow
           label={t(lang, 'carryWeightDisplay')}
           value={settings.playerInfo.carryWeightDisplay}
-          options={[
-            { value: 'combined', label: t(lang, 'numberAndMeter') },
-            { value: 'valueOnly', label: t(lang, 'numberOnly') },
-            { value: 'meterOnly', label: t(lang, 'meterOnly') },
-          ]}
+          options={carryWeightDisplayOptions}
           onChange={nextValue => onUpdate('playerInfo.carryWeightDisplay', nextValue)}
           panelScale={panelScale}
           testId="carry-weight-display-select"
         />
-        <Toggle label={t(lang, 'health')} checked={readItemVisibility(settings, 'player.health', settings.playerInfo.health)} onChange={value => updateItemVisibility(onUpdate, 'player.health', value)} panelScale={panelScale} />
-        <Toggle label={t(lang, 'magicka')} checked={readItemVisibility(settings, 'player.magicka', settings.playerInfo.magicka)} onChange={value => updateItemVisibility(onUpdate, 'player.magicka', value)} panelScale={panelScale} />
-        <Toggle label={t(lang, 'stamina')} checked={readItemVisibility(settings, 'player.stamina', settings.playerInfo.stamina)} onChange={value => updateItemVisibility(onUpdate, 'player.stamina', value)} panelScale={panelScale} />
+        {playerInfoToggles.slice(3).map(config => (
+          <ItemVisibilityToggle
+            key={config.itemId}
+            settings={settings}
+            onUpdate={onUpdate}
+            config={config}
+            panelScale={panelScale}
+          />
+        ))}
       </AccordionSection>
 
       <AccordionSection
@@ -226,21 +390,20 @@ export function CombatTabSections({
         <SelectRow
           label={t(lang, 'resistanceDisplay')}
           value={settings.resistances.displayMode}
-          options={[
-            { value: 'effectiveOnly', label: t(lang, 'effectiveOnly') },
-            { value: 'rawOnly', label: t(lang, 'rawOnly') },
-            { value: 'both', label: t(lang, 'both') },
-          ]}
+          options={resistanceDisplayOptions}
           onChange={nextValue => onUpdate('resistances.displayMode', nextValue)}
           panelScale={panelScale}
           testId="resistance-display-select"
         />
-        <Toggle label={t(lang, 'magic')} checked={readItemVisibility(settings, 'resistance.magic', settings.resistances.magic)} onChange={value => updateItemVisibility(onUpdate, 'resistance.magic', value)} panelScale={panelScale} />
-        <Toggle label={t(lang, 'fire')} checked={readItemVisibility(settings, 'resistance.fire', settings.resistances.fire)} onChange={value => updateItemVisibility(onUpdate, 'resistance.fire', value)} panelScale={panelScale} />
-        <Toggle label={t(lang, 'frost')} checked={readItemVisibility(settings, 'resistance.frost', settings.resistances.frost)} onChange={value => updateItemVisibility(onUpdate, 'resistance.frost', value)} panelScale={panelScale} />
-        <Toggle label={t(lang, 'shock')} checked={readItemVisibility(settings, 'resistance.shock', settings.resistances.shock)} onChange={value => updateItemVisibility(onUpdate, 'resistance.shock', value)} panelScale={panelScale} />
-        <Toggle label={t(lang, 'poison')} checked={readItemVisibility(settings, 'resistance.poison', settings.resistances.poison)} onChange={value => updateItemVisibility(onUpdate, 'resistance.poison', value)} panelScale={panelScale} />
-        <Toggle label={t(lang, 'disease')} checked={readItemVisibility(settings, 'resistance.disease', settings.resistances.disease)} onChange={value => updateItemVisibility(onUpdate, 'resistance.disease', value)} panelScale={panelScale} />
+        {resistanceToggles.map(config => (
+          <ItemVisibilityToggle
+            key={config.itemId}
+            settings={settings}
+            onUpdate={onUpdate}
+            config={config}
+            panelScale={panelScale}
+          />
+        ))}
       </AccordionSection>
 
       <AccordionSection
@@ -250,8 +413,15 @@ export function CombatTabSections({
         onToggle={toggleSection}
         panelScale={panelScale}
       >
-        <Toggle label={t(lang, 'armorRating')} checked={readItemVisibility(settings, 'defense.armorRating', settings.defense.armorRating)} onChange={value => updateItemVisibility(onUpdate, 'defense.armorRating', value)} panelScale={panelScale} />
-        <Toggle label={t(lang, 'damageReduction')} checked={readItemVisibility(settings, 'defense.damageReduction', settings.defense.damageReduction)} onChange={value => updateItemVisibility(onUpdate, 'defense.damageReduction', value)} panelScale={panelScale} />
+        {defenseToggles.map(config => (
+          <ItemVisibilityToggle
+            key={config.itemId}
+            settings={settings}
+            onUpdate={onUpdate}
+            config={config}
+            panelScale={panelScale}
+          />
+        ))}
       </AccordionSection>
 
       <AccordionSection
@@ -261,9 +431,15 @@ export function CombatTabSections({
         onToggle={toggleSection}
         panelScale={panelScale}
       >
-        <Toggle label={t(lang, 'rightHandDamage')} checked={readItemVisibility(settings, 'offense.rightHandDamage', settings.offense.rightHandDamage)} onChange={value => updateItemVisibility(onUpdate, 'offense.rightHandDamage', value)} panelScale={panelScale} />
-        <Toggle label={t(lang, 'leftHandDamage')} checked={readItemVisibility(settings, 'offense.leftHandDamage', settings.offense.leftHandDamage)} onChange={value => updateItemVisibility(onUpdate, 'offense.leftHandDamage', value)} panelScale={panelScale} />
-        <Toggle label={t(lang, 'critChance')} checked={readItemVisibility(settings, 'offense.critChance', settings.offense.critChance)} onChange={value => updateItemVisibility(onUpdate, 'offense.critChance', value)} panelScale={panelScale} />
+        {offenseToggles.map(config => (
+          <ItemVisibilityToggle
+            key={config.itemId}
+            settings={settings}
+            onUpdate={onUpdate}
+            config={config}
+            panelScale={panelScale}
+          />
+        ))}
       </AccordionSection>
 
       <AccordionSection
@@ -273,8 +449,15 @@ export function CombatTabSections({
         onToggle={toggleSection}
         panelScale={panelScale}
       >
-        <Toggle label={t(lang, 'rightHandEquipped')} checked={readItemVisibility(settings, 'equipped.rightHand', settings.equipped.rightHand)} onChange={value => updateItemVisibility(onUpdate, 'equipped.rightHand', value)} panelScale={panelScale} />
-        <Toggle label={t(lang, 'leftHandEquipped')} checked={readItemVisibility(settings, 'equipped.leftHand', settings.equipped.leftHand)} onChange={value => updateItemVisibility(onUpdate, 'equipped.leftHand', value)} panelScale={panelScale} />
+        {equippedToggles.map(config => (
+          <ItemVisibilityToggle
+            key={config.itemId}
+            settings={settings}
+            onUpdate={onUpdate}
+            config={config}
+            panelScale={panelScale}
+          />
+        ))}
       </AccordionSection>
 
       <AccordionSection
@@ -284,7 +467,15 @@ export function CombatTabSections({
         onToggle={toggleSection}
         panelScale={panelScale}
       >
-        <Toggle label={t(lang, 'speed')} checked={readItemVisibility(settings, 'movement.speedMult', settings.movement.speedMult)} onChange={value => updateItemVisibility(onUpdate, 'movement.speedMult', value)} panelScale={panelScale} />
+        {movementToggles.map(config => (
+          <ItemVisibilityToggle
+            key={config.itemId}
+            settings={settings}
+            onUpdate={onUpdate}
+            config={config}
+            panelScale={panelScale}
+          />
+        ))}
       </AccordionSection>
     </>
   );
@@ -300,6 +491,19 @@ export function EffectsTabSections({
 }: WidgetTabSectionsProps) {
   const showGameTime = readItemVisibility(settings, 'time.game', settings.time.gameDateTime);
   const showRealTime = readItemVisibility(settings, 'time.real', settings.time.realDateTime);
+  const timeDisplayOptions = buildTimeDisplayOptions(lang);
+  const timedEffectsLayoutOptions = buildTimedEffectsLayoutOptions(lang);
+  const timeToggles: ItemVisibilityToggleConfig[] = [
+    { itemId: 'time.game', fallback: settings.time.gameDateTime, label: t(lang, 'gameDateTime') },
+    { itemId: 'time.real', fallback: settings.time.realDateTime, label: t(lang, 'realDateTime') },
+  ];
+  const timedEffectsToggles: ItemVisibilityToggleConfig[] = [
+    {
+      itemId: 'timedEffects.list',
+      fallback: settings.timedEffects.enabled,
+      label: t(lang, 'timedEffectsEnabled'),
+    },
+  ];
 
   return (
     <>
@@ -310,29 +514,33 @@ export function EffectsTabSections({
         onToggle={toggleSection}
         panelScale={panelScale}
       >
-        <Toggle label={t(lang, 'gameDateTime')} checked={showGameTime} onChange={value => updateItemVisibility(onUpdate, 'time.game', value)} panelScale={panelScale} />
+        <ItemVisibilityToggle
+          settings={settings}
+          onUpdate={onUpdate}
+          config={timeToggles[0]}
+          panelScale={panelScale}
+        />
         {showGameTime && (
           <SelectRow
             label={t(lang, 'timeDisplay')}
             value={settings.time.gameDisplay}
-            options={[
-              { value: 'dateTime', label: t(lang, 'dateAndTime') },
-              { value: 'timeOnly', label: t(lang, 'timeOnly') },
-            ]}
+            options={timeDisplayOptions}
             onChange={nextValue => onUpdate('time.gameDisplay', nextValue)}
             panelScale={panelScale}
             testId="time-game-display-select"
           />
         )}
-        <Toggle label={t(lang, 'realDateTime')} checked={showRealTime} onChange={value => updateItemVisibility(onUpdate, 'time.real', value)} panelScale={panelScale} />
+        <ItemVisibilityToggle
+          settings={settings}
+          onUpdate={onUpdate}
+          config={timeToggles[1]}
+          panelScale={panelScale}
+        />
         {showRealTime && (
           <SelectRow
             label={t(lang, 'timeDisplay')}
             value={settings.time.realDisplay}
-            options={[
-              { value: 'dateTime', label: t(lang, 'dateAndTime') },
-              { value: 'timeOnly', label: t(lang, 'timeOnly') },
-            ]}
+            options={timeDisplayOptions}
             onChange={nextValue => onUpdate('time.realDisplay', nextValue)}
             panelScale={panelScale}
             testId="time-real-display-select"
@@ -347,19 +555,19 @@ export function EffectsTabSections({
         onToggle={toggleSection}
         panelScale={panelScale}
       >
-        <Toggle
-          label={t(lang, 'timedEffectsEnabled')}
-          checked={readItemVisibility(settings, 'timedEffects.list', settings.timedEffects.enabled)}
-          onChange={value => updateItemVisibility(onUpdate, 'timedEffects.list', value)}
-          panelScale={panelScale}
-        />
+        {timedEffectsToggles.map(config => (
+          <ItemVisibilityToggle
+            key={config.itemId}
+            settings={settings}
+            onUpdate={onUpdate}
+            config={config}
+            panelScale={panelScale}
+          />
+        ))}
         <SelectRow
           label={t(lang, 'timedEffectsLayout')}
           value={settings.timedEffects.listLayout}
-          options={[
-            { value: 'vertical', label: t(lang, 'layoutVertical') },
-            { value: 'horizontal', label: t(lang, 'layoutHorizontal') },
-          ]}
+          options={timedEffectsLayoutOptions}
           onChange={nextValue => onUpdate('timedEffects.listLayout', nextValue)}
           panelScale={panelScale}
           testId="timed-effects-layout-select"
