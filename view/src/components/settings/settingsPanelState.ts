@@ -1,6 +1,10 @@
 import { SETTINGS_PANEL_STORAGE_KEYS } from '../../constants/bridge';
 
 export type PanelTab = 'general' | 'combat' | 'effects' | 'alerts' | 'presets';
+export interface PanelPosition {
+  left: number;
+  top: number;
+}
 
 function readSessionStorageItem(key: string): string | null {
   try {
@@ -13,6 +17,22 @@ function readSessionStorageItem(key: string): string | null {
 function writeSessionStorageItem(key: string, value: string): void {
   try {
     window.sessionStorage.setItem(key, value);
+  } catch {
+    // Ignore storage failures in constrained overlay environments.
+  }
+}
+
+function readLocalStorageItem(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeLocalStorageItem(key: string, value: string): void {
+  try {
+    window.localStorage.setItem(key, value);
   } catch {
     // Ignore storage failures in constrained overlay environments.
   }
@@ -60,4 +80,44 @@ export function writeStoredExpandedSections(expandedSections: Record<string, boo
     SETTINGS_PANEL_STORAGE_KEYS.expandedSections,
     JSON.stringify(expandedSections),
   );
+}
+
+export function readStoredPanelPosition(): PanelPosition | null {
+  const stored = readLocalStorageItem(SETTINGS_PANEL_STORAGE_KEYS.position);
+  if (!stored) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(stored) as Record<string, unknown>;
+    if (typeof parsed.left !== 'number' || typeof parsed.top !== 'number') {
+      return null;
+    }
+
+    return {
+      left: parsed.left,
+      top: parsed.top,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function writeStoredPanelPosition(position: PanelPosition): void {
+  writeLocalStorageItem(SETTINGS_PANEL_STORAGE_KEYS.position, JSON.stringify(position));
+}
+
+export function clampStoredPanelPosition(
+  position: PanelPosition,
+  panelRect: Pick<DOMRect, 'width' | 'height'>,
+  viewportWidth: number,
+  viewportHeight: number,
+): PanelPosition {
+  const maxLeft = Math.max(0, viewportWidth - Math.max(0, panelRect.width));
+  const maxTop = Math.max(0, viewportHeight - Math.max(0, panelRect.height));
+
+  return {
+    left: Math.min(Math.max(position.left, 0), maxLeft),
+    top: Math.min(Math.max(position.top, 0), maxTop),
+  };
 }

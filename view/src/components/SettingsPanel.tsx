@@ -1,13 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Language, UpdateSettingFn, WidgetSettings } from '../types/settings';
 import type { SelectedItemLayoutActions } from '../hooks/useSelectedItemLayoutActions';
 import { t, type LocalizationLanguageEntry } from '../i18n/translations';
 import { COMBAT_WIDGET_GROUP_IDS, EFFECT_WIDGET_GROUP_IDS } from '../data/widgetRegistry';
 import {
   type PanelTab,
+  clampStoredPanelPosition,
   readStoredExpandedSections,
+  readStoredPanelPosition,
   readStoredPanelTab,
   writeStoredExpandedSections,
+  writeStoredPanelPosition,
   writeStoredPanelTab,
 } from './settings/settingsPanelState';
 import {
@@ -81,6 +84,8 @@ export function SettingsPanel({
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() =>
     readStoredExpandedSections(DEFAULT_EXPANDED_SECTIONS),
   );
+  const [panelPosition, setPanelPosition] = useState(() => readStoredPanelPosition());
+  const panelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     writeStoredPanelTab(activeTab);
@@ -89,6 +94,31 @@ export function SettingsPanel({
   useEffect(() => {
     writeStoredExpandedSections(expandedSections);
   }, [expandedSections]);
+
+  useEffect(() => {
+    if (!open || !panelPosition || !panelRef.current) {
+      return;
+    }
+
+    const clamped = clampStoredPanelPosition(
+      panelPosition,
+      panelRef.current.getBoundingClientRect(),
+      window.innerWidth,
+      window.innerHeight,
+    );
+
+    if (clamped.left !== panelPosition.left || clamped.top !== panelPosition.top) {
+      setPanelPosition(clamped);
+    }
+  }, [open, panelPosition]);
+
+  useEffect(() => {
+    if (!panelPosition) {
+      return;
+    }
+
+    writeStoredPanelPosition(panelPosition);
+  }, [panelPosition]);
 
   if (!open) return null;
 
@@ -131,12 +161,14 @@ export function SettingsPanel({
     });
   };
 
+  const isCentered = panelPosition === null;
+
   return (
-    <div style={{
+    <div ref={panelRef} style={{
       position: 'fixed',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
+      top: isCentered ? '50%' : `${panelPosition.top}px`,
+      left: isCentered ? '50%' : `${panelPosition.left}px`,
+      transform: isCentered ? 'translate(-50%, -50%)' : 'none',
       background: 'var(--tw-color-panel-bg)',
       borderRadius: 'var(--tw-radius-xl)',
       paddingTop: scalePanelPixels(28, panelScale),

@@ -23,4 +23,5 @@ export const BRIDGE_CALLBACKS = {
 export const SETTINGS_PANEL_STORAGE_KEYS = {
   activeTab: 'tulliusWidgets.settingsPanel.activeTab',
   expandedSections: 'tulliusWidgets.settingsPanel.expandedSections',
+  position: 'tulliusWidgets.settingsPanel.position',
 } as const;

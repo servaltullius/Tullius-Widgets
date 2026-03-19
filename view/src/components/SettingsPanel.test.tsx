@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { defaultSettings } from '../data/defaultSettings';
 import type { WidgetSettings } from '../types/settings';
+import { SETTINGS_PANEL_STORAGE_KEYS } from '../constants/bridge';
 import { SettingsPanel } from './SettingsPanel';
 
 function cloneSettings(): WidgetSettings {
@@ -25,6 +26,7 @@ describe('SettingsPanel', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     window.sessionStorage.clear();
+    window.localStorage.clear();
   });
 
   afterEach(async () => {
@@ -34,6 +36,7 @@ describe('SettingsPanel', () => {
     root = null;
     container.remove();
     window.sessionStorage.clear();
+    window.localStorage.clear();
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalViewport.innerWidth });
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalViewport.innerHeight });
     delete reactActEnvironment.IS_REACT_ACT_ENVIRONMENT;
@@ -75,6 +78,92 @@ describe('SettingsPanel', () => {
     expect(parseFloat(title.style.fontSize)).toBeGreaterThan(36);
     expect(panel.style.scrollbarGutter).toBe('stable');
     expect(parseFloat(panel.style.paddingRight)).toBeGreaterThan(parseFloat(panel.style.paddingLeft));
+  });
+
+  it('restores a stored panel position instead of always centering the shell', async () => {
+    window.localStorage.setItem(
+      SETTINGS_PANEL_STORAGE_KEYS.position,
+      JSON.stringify({ left: 120, top: 88 }),
+    );
+
+    const settings = cloneSettings();
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <SettingsPanel
+          settings={settings}
+          lang="ko"
+          effectiveVisible
+          open
+          onClose={() => {}}
+          onUpdate={() => {}}
+          accentColor="#4fd1c5"
+          availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json', locale: 'ko-KR' }]}
+          selectedItemId={null}
+        />,
+      );
+    });
+
+    const panel = container.firstElementChild as HTMLDivElement | null;
+
+    expect(panel).not.toBeNull();
+    if (!panel) {
+      throw new Error('expected settings panel shell to render');
+    }
+
+    expect(panel.style.left).toBe('120px');
+    expect(panel.style.top).toBe('88px');
+    expect(panel.style.transform).toBe('none');
+  });
+
+  it('clamps a stored panel position back into the viewport on open', async () => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 960 });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 640 });
+    window.localStorage.setItem(
+      SETTINGS_PANEL_STORAGE_KEYS.position,
+      JSON.stringify({ left: 4000, top: 3000 }),
+    );
+
+    const originalGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
+    HTMLElement.prototype.getBoundingClientRect = function() {
+      return DOMRect.fromRect({ x: 4000, y: 3000, width: 680, height: 420 });
+    };
+
+    const settings = cloneSettings();
+
+    try {
+      await act(async () => {
+        root = createRoot(container);
+        root.render(
+          <SettingsPanel
+            settings={settings}
+            lang="ko"
+            effectiveVisible
+            open
+            onClose={() => {}}
+            onUpdate={() => {}}
+            accentColor="#4fd1c5"
+            availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json', locale: 'ko-KR' }]}
+            selectedItemId={null}
+          />,
+        );
+      });
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = originalGetBoundingClientRect;
+    }
+
+    const panel = container.firstElementChild as HTMLDivElement | null;
+
+    expect(panel).not.toBeNull();
+    if (!panel) {
+      throw new Error('expected settings panel shell to render');
+    }
+
+    expect(parseFloat(panel.style.left)).toBeLessThanOrEqual(960 - 680);
+    expect(parseFloat(panel.style.top)).toBeLessThanOrEqual(640 - 420);
+    expect(parseFloat(panel.style.left)).toBeGreaterThanOrEqual(0);
+    expect(parseFloat(panel.style.top)).toBeGreaterThanOrEqual(0);
   });
 
   it('hides the quick-edit card when no widget is selected', async () => {
