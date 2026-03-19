@@ -166,6 +166,122 @@ describe('SettingsPanel', () => {
     expect(parseFloat(panel.style.top)).toBeGreaterThanOrEqual(0);
   });
 
+  it('drags the panel from the header handle and stores the resulting px position', async () => {
+    const settings = cloneSettings();
+    const originalGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
+
+    HTMLElement.prototype.getBoundingClientRect = function() {
+      if ((this as HTMLElement).dataset.settingsPanelDragHandle === 'true') {
+        return DOMRect.fromRect({ x: 100, y: 80, width: 680, height: 72 });
+      }
+
+      if ((this as HTMLElement).tagName === 'BUTTON') {
+        return DOMRect.fromRect({ x: 0, y: 0, width: 88, height: 32 });
+      }
+
+      return DOMRect.fromRect({ x: 100, y: 80, width: 680, height: 420 });
+    };
+
+    try {
+      await act(async () => {
+        root = createRoot(container);
+        root.render(
+          <SettingsPanel
+            settings={settings}
+            lang="ko"
+            effectiveVisible
+            open
+            onClose={() => {}}
+            onUpdate={() => {}}
+            accentColor="#4fd1c5"
+            availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json', locale: 'ko-KR' }]}
+            selectedItemId={null}
+          />,
+        );
+      });
+
+      const panel = container.firstElementChild as HTMLDivElement | null;
+      const handle = container.querySelector('[data-settings-panel-drag-handle="true"]') as HTMLDivElement | null;
+
+      expect(panel).not.toBeNull();
+      expect(handle).not.toBeNull();
+      if (!panel || !handle) {
+        throw new Error('expected settings panel shell and drag handle to render');
+      }
+
+      await act(async () => {
+        handle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 150, clientY: 100 }));
+      });
+
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 250, clientY: 210 }));
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 250, clientY: 210 }));
+      });
+
+      expect(panel.style.left).toBe('200px');
+      expect(panel.style.top).toBe('190px');
+      expect(panel.style.transform).toBe('none');
+      expect(window.localStorage.getItem(SETTINGS_PANEL_STORAGE_KEYS.position)).toBe(
+        JSON.stringify({ left: 200, top: 190 }),
+      );
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = originalGetBoundingClientRect;
+    }
+  });
+
+  it('reclamps the stored panel position when the viewport shrinks after open', async () => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1440 });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 960 });
+    window.localStorage.setItem(
+      SETTINGS_PANEL_STORAGE_KEYS.position,
+      JSON.stringify({ left: 900, top: 520 }),
+    );
+
+    const settings = cloneSettings();
+    const originalGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
+
+    HTMLElement.prototype.getBoundingClientRect = function() {
+      return DOMRect.fromRect({ x: 900, y: 520, width: 680, height: 420 });
+    };
+
+    try {
+      await act(async () => {
+        root = createRoot(container);
+        root.render(
+          <SettingsPanel
+            settings={settings}
+            lang="ko"
+            effectiveVisible
+            open
+            onClose={() => {}}
+            onUpdate={() => {}}
+            accentColor="#4fd1c5"
+            availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json', locale: 'ko-KR' }]}
+            selectedItemId={null}
+          />,
+        );
+      });
+
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 900 });
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: 540 });
+
+      await act(async () => {
+        window.dispatchEvent(new Event('resize'));
+      });
+
+      const panel = container.firstElementChild as HTMLDivElement | null;
+      expect(panel).not.toBeNull();
+      if (!panel) {
+        throw new Error('expected settings panel shell to render');
+      }
+
+      expect(parseFloat(panel.style.left)).toBeLessThanOrEqual(220);
+      expect(parseFloat(panel.style.top)).toBeLessThanOrEqual(120);
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = originalGetBoundingClientRect;
+    }
+  });
+
   it('hides the quick-edit card when no widget is selected', async () => {
     const settings = cloneSettings();
 

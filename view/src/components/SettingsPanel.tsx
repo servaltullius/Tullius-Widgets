@@ -5,6 +5,7 @@ import { t, type LocalizationLanguageEntry } from '../i18n/translations';
 import { COMBAT_WIDGET_GROUP_IDS, EFFECT_WIDGET_GROUP_IDS } from '../data/widgetRegistry';
 import {
   type PanelTab,
+  type PanelPosition,
   clampStoredPanelPosition,
   readStoredExpandedSections,
   readStoredPanelPosition,
@@ -86,6 +87,8 @@ export function SettingsPanel({
   );
   const [panelPosition, setPanelPosition] = useState(() => readStoredPanelPosition());
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const panelDragOffsetRef = useRef<{ x: number; y: number } | null>(null);
+  const [isDraggingPanel, setIsDraggingPanel] = useState(false);
 
   useEffect(() => {
     writeStoredPanelTab(activeTab);
@@ -119,6 +122,68 @@ export function SettingsPanel({
 
     writeStoredPanelPosition(panelPosition);
   }, [panelPosition]);
+
+  useEffect(() => {
+    if (!open || !panelPosition) {
+      return undefined;
+    }
+
+    const handleResize = () => {
+      if (!panelRef.current) {
+        return;
+      }
+
+      const clamped = clampStoredPanelPosition(
+        panelPosition,
+        panelRef.current.getBoundingClientRect(),
+        window.innerWidth,
+        window.innerHeight,
+      );
+
+      if (clamped.left !== panelPosition.left || clamped.top !== panelPosition.top) {
+        setPanelPosition(clamped);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [open, panelPosition]);
+
+  useEffect(() => {
+    if (!isDraggingPanel) {
+      return undefined;
+    }
+
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!panelRef.current || !panelDragOffsetRef.current) {
+        return;
+      }
+
+      const nextPosition: PanelPosition = {
+        left: event.clientX - panelDragOffsetRef.current.x,
+        top: event.clientY - panelDragOffsetRef.current.y,
+      };
+      const clamped = clampStoredPanelPosition(
+        nextPosition,
+        panelRef.current.getBoundingClientRect(),
+        window.innerWidth,
+        window.innerHeight,
+      );
+      setPanelPosition(clamped);
+    };
+
+    const handleMouseUp = () => {
+      panelDragOffsetRef.current = null;
+      setIsDraggingPanel(false);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDraggingPanel]);
 
   if (!open) return null;
 
@@ -162,6 +227,26 @@ export function SettingsPanel({
   };
 
   const isCentered = panelPosition === null;
+  const handlePanelHeaderMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest('button')) {
+      return;
+    }
+
+    if (!panelRef.current) {
+      return;
+    }
+
+    const panelRect = panelRef.current.getBoundingClientRect();
+    panelDragOffsetRef.current = {
+      x: event.clientX - panelRect.left,
+      y: event.clientY - panelRect.top,
+    };
+    setPanelPosition(previous => previous ?? {
+      left: panelRect.left,
+      top: panelRect.top,
+    });
+    setIsDraggingPanel(true);
+  };
 
   return (
     <div ref={panelRef} style={{
@@ -187,7 +272,17 @@ export function SettingsPanel({
       data-selected-item-id={selectedItemId ?? undefined}
       data-has-selected-item-actions={hasSelectedItemActions ? 'true' : 'false'}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: scalePanelPixels(16, panelScale) }}>
+      <div
+        data-settings-panel-drag-handle="true"
+        onMouseDown={handlePanelHeaderMouseDown}
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: scalePanelPixels(16, panelScale),
+          cursor: isDraggingPanel ? 'grabbing' : 'grab',
+        }}
+      >
         <h2 style={{ color: 'var(--tw-color-panel-title)', margin: 0, fontSize: scalePanelPixels(36, panelScale) }}>{t(lang, 'title')}</h2>
         <button
           onClick={onClose}
