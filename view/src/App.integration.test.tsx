@@ -352,7 +352,7 @@ describe('App quick-edit integration', () => {
       displaySelect?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    const rawOnlyOption = container.querySelector('[data-testid="resistance-display-select-option-rawOnly"]') as HTMLDivElement | null;
+    const rawOnlyOption = document.querySelector('[data-testid="resistance-display-select-option-rawOnly"]') as HTMLDivElement | null;
     expect(rawOnlyOption).toBeTruthy();
 
     await act(async () => {

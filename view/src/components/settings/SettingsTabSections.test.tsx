@@ -14,6 +14,10 @@ function getByTestId(container: HTMLElement, testId: string): HTMLElement | null
   return container.querySelector(`[data-testid="${testId}"]`);
 }
 
+function getByTestIdFromDocument(testId: string): HTMLElement | null {
+  return document.querySelector(`[data-testid="${testId}"]`);
+}
+
 function getToggleInputByLabel(container: HTMLElement, label: string): HTMLInputElement | null {
   const textNode = Array.from(container.querySelectorAll('span')).find(
     element => element.textContent === label,
@@ -198,7 +202,7 @@ describe('SettingsTabSections', () => {
     await act(async () => {
       carryWeightSelect?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    const meterOnlyOption = getByTestId(container, 'carry-weight-display-select-option-meterOnly');
+    const meterOnlyOption = getByTestIdFromDocument('carry-weight-display-select-option-meterOnly');
     expect(meterOnlyOption).toBeTruthy();
     await act(async () => {
       meterOnlyOption?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -207,7 +211,7 @@ describe('SettingsTabSections', () => {
     await act(async () => {
       resistanceSelect?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    const rawOnlyOption = getByTestId(container, 'resistance-display-select-option-rawOnly');
+    const rawOnlyOption = getByTestIdFromDocument('resistance-display-select-option-rawOnly');
     expect(rawOnlyOption).toBeTruthy();
     await act(async () => {
       rawOnlyOption?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -216,7 +220,7 @@ describe('SettingsTabSections', () => {
     await act(async () => {
       gameTimeSelect?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    const gameTimeOnlyOption = getByTestId(container, 'time-game-display-select-option-timeOnly');
+    const gameTimeOnlyOption = getByTestIdFromDocument('time-game-display-select-option-timeOnly');
     expect(gameTimeOnlyOption).toBeTruthy();
     await act(async () => {
       gameTimeOnlyOption?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -225,7 +229,7 @@ describe('SettingsTabSections', () => {
     await act(async () => {
       realTimeSelect?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    const realTimeOnlyOption = getByTestId(container, 'time-real-display-select-option-timeOnly');
+    const realTimeOnlyOption = getByTestIdFromDocument('time-real-display-select-option-timeOnly');
     expect(realTimeOnlyOption).toBeTruthy();
     await act(async () => {
       realTimeOnlyOption?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -234,8 +238,9 @@ describe('SettingsTabSections', () => {
     await act(async () => {
       timedEffectsSelect?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    const horizontalOption = getByTestId(container, 'timed-effects-layout-select-option-horizontal');
+    const horizontalOption = getByTestIdFromDocument('timed-effects-layout-select-option-horizontal');
     expect(horizontalOption).toBeTruthy();
+    expect(container.contains(horizontalOption!)).toBe(false);
     await act(async () => {
       horizontalOption?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });

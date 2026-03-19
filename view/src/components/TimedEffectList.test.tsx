@@ -108,7 +108,7 @@ describe('TimedEffectList', () => {
     const list = container.firstElementChild as HTMLDivElement | null;
     expect(list).toBeTruthy();
     expect(list?.style.display).toBe('flex');
-    expect(list?.style.flexDirection).toBe('row');
+    expect(list?.style.flexDirection).toBe('row-reverse');
     expect(list?.style.flexWrap).toBe('wrap');
     expect(list?.lastElementChild?.textContent).toBe('+1');
   });

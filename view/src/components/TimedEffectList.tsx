@@ -118,7 +118,7 @@ export function TimedEffectList({
   return (
     <div style={{
       display: 'flex',
-      flexDirection: layout === 'horizontal' ? 'row' : 'column',
+      flexDirection: layout === 'horizontal' ? 'row-reverse' : 'column',
       flexWrap: layout === 'horizontal' ? 'wrap' : 'nowrap',
       gap: '6px',
       minWidth: layout === 'horizontal' ? '0' : '240px',

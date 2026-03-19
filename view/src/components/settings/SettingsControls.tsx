@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { useCallback, useState, useRef, useEffect, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import type { Language, UpdateSettingFn, WidgetLayout } from '../../types/settings';
 import { t } from '../../i18n/translations';
 import { scalePanelPixels } from './panelScale';
@@ -45,17 +46,72 @@ export function CustomSelect({ value, options, onChange, panelScale = 1, testId 
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const selected = options.find(option => option.value === value);
+  const dropdownGap = Number((4 * panelScale).toFixed(3));
+  const estimatedOptionHeight = Number((48 * panelScale).toFixed(3));
+
+  const resolveDropdownPosition = useCallback(() => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) {
+      return {
+        top: dropdownGap,
+        left: dropdownGap,
+        minWidth: Number((120 * panelScale).toFixed(3)),
+      };
+    }
+
+    const estimatedMenuHeight = Math.max(estimatedOptionHeight, options.length * estimatedOptionHeight);
+    const viewportHeight = Number.isFinite(window.innerHeight) && window.innerHeight > 0
+      ? window.innerHeight
+      : rect.bottom + estimatedMenuHeight + dropdownGap;
+    const canOpenUpward =
+      viewportHeight - rect.bottom < estimatedMenuHeight + dropdownGap
+      && rect.top > estimatedMenuHeight + dropdownGap;
+
+    return {
+      top: canOpenUpward
+        ? Math.max(dropdownGap, rect.top - estimatedMenuHeight - dropdownGap)
+        : Math.max(
+          dropdownGap,
+          Math.min(viewportHeight - estimatedMenuHeight - dropdownGap, rect.bottom + dropdownGap),
+        ),
+      left: rect.left,
+      minWidth: rect.width,
+    };
+  }, [dropdownGap, estimatedOptionHeight, options.length, panelScale]);
+
+  const [dropdownPosition, setDropdownPosition] = useState({
+    top: dropdownGap,
+    left: dropdownGap,
+    minWidth: Number((120 * panelScale).toFixed(3)),
+  });
 
   useEffect(() => {
     if (!open) return;
+    const syncDropdownPosition = () => {
+      setDropdownPosition(resolveDropdownPosition());
+    };
+
+    syncDropdownPosition();
+
     const handleMouseDown = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        const target = e.target as HTMLElement | null;
+        if (target?.closest(testId ? `[data-select-menu="${testId}"]` : '[data-select-menu]')) {
+          return;
+        }
         setOpen(false);
       }
     };
+
     document.addEventListener('mousedown', handleMouseDown);
-    return () => document.removeEventListener('mousedown', handleMouseDown);
-  }, [open]);
+    window.addEventListener('resize', syncDropdownPosition);
+    window.addEventListener('scroll', syncDropdownPosition, true);
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('resize', syncDropdownPosition);
+      window.removeEventListener('scroll', syncDropdownPosition, true);
+    };
+  }, [open, resolveDropdownPosition, testId]);
 
   return (
     <div ref={containerRef} style={{ position: 'relative' }}>
@@ -68,12 +124,22 @@ export function CustomSelect({ value, options, onChange, panelScale = 1, testId 
       }}>
         {selected?.label ?? value} ▾
       </div>
-      {open && (
-        <div style={{
-          position: 'absolute', top: '100%', right: 0, zIndex: 10,
-          background: '#2a2a3a', border: '1px solid #555', borderRadius: scalePanelPixels(6, panelScale),
-          marginTop: scalePanelPixels(4, panelScale), minWidth: '100%', overflow: 'hidden',
-        }}>
+      {open && createPortal(
+        <div
+          data-select-menu={testId ?? 'custom-select'}
+          style={{
+            position: 'fixed',
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+            zIndex: 1100,
+            background: '#2a2a3a',
+            border: '1px solid #555',
+            borderRadius: scalePanelPixels(6, panelScale),
+            minWidth: dropdownPosition.minWidth,
+            overflow: 'hidden',
+            boxShadow: '0 12px 24px rgba(0,0,0,0.32)',
+          }}
+        >
           {options.map(option => (
             <div key={option.value}
               data-testid={testId ? `${testId}-option-${option.value}` : undefined}
@@ -90,7 +156,8 @@ export function CustomSelect({ value, options, onChange, panelScale = 1, testId 
               {option.label}
             </div>
           ))}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
@@ -142,7 +209,7 @@ export function AccordionSection({
       marginBottom: scalePanelPixels(16, panelScale),
       border: '1px solid rgba(255, 215, 0, 0.2)',
       borderRadius: scalePanelPixels(10, panelScale),
-      overflow: 'hidden',
+      overflow: 'visible',
       background: 'rgba(255, 255, 255, 0.03)',
     }}>
       <button
