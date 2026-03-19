@@ -80,6 +80,41 @@ describe('SettingsPanel', () => {
     expect(parseFloat(panel.style.paddingRight)).toBeGreaterThan(parseFloat(panel.style.paddingLeft));
   });
 
+  it('gives the close button enough vertical box room to avoid clipped label text', async () => {
+    const settings = cloneSettings();
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <SettingsPanel
+          settings={settings}
+          lang="ko"
+          effectiveVisible
+          open
+          onClose={() => {}}
+          onUpdate={() => {}}
+          accentColor="#4fd1c5"
+          availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json', locale: 'ko-KR' }]}
+          selectedItemId={null}
+        />,
+      );
+    });
+
+    const closeButton = Array.from(container.querySelectorAll('button')).find(button =>
+      button.textContent?.includes('닫기'),
+    ) as HTMLButtonElement | undefined;
+
+    expect(closeButton).toBeDefined();
+    if (!closeButton) {
+      throw new Error('expected close button to render');
+    }
+
+    expect(closeButton.style.display).toBe('inline-flex');
+    expect(closeButton.style.alignItems).toBe('center');
+    expect(parseFloat(closeButton.style.minHeight)).toBeGreaterThan(parseFloat(closeButton.style.fontSize));
+    expect(closeButton.style.lineHeight).toBe('1');
+  });
+
   it('restores a stored panel position instead of always centering the shell', async () => {
     window.localStorage.setItem(
       SETTINGS_PANEL_STORAGE_KEYS.position,

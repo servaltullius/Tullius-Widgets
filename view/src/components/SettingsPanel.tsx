@@ -291,8 +291,13 @@ export function SettingsPanel({
             border: '1px solid var(--tw-color-button-border)',
             color: 'var(--tw-color-panel-text)',
             fontSize: scalePanelPixels(22, panelScale),
+            lineHeight: 1,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             cursor: 'pointer',
             borderRadius: 'var(--tw-radius-sm)',
+            minHeight: scalePanelPixels(44, panelScale),
             padding: `${scalePanelPixels(8, panelScale)} ${scalePanelPixels(20, panelScale)}`,
           }}
         >
