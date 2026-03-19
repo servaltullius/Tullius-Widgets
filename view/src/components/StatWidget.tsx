@@ -49,6 +49,7 @@ interface StatWidgetProps {
   meterTrackColor?: string;
   meterTrackBorderColor?: string;
   meterHeight?: number;
+  meterFillHeight?: number;
   meterEndpoint?: boolean;
   tooltip?: string;
   valueMaxWidth?: number;
@@ -115,6 +116,7 @@ export const StatWidget = memo(function StatWidget({
   meterTrackColor,
   meterTrackBorderColor,
   meterHeight = 4,
+  meterFillHeight,
   meterEndpoint = false,
   tooltip,
   valueMaxWidth,
@@ -146,6 +148,7 @@ export const StatWidget = memo(function StatWidget({
     : null;
   const resolvedValueMaxWidth = valueMaxWidth ?? styles.maxWidth;
   const resolvedHelperMaxWidth = helperMaxWidth ?? styles.maxWidth;
+  const resolvedMeterFillHeight = meterFillHeight ?? meterHeight;
 
   const iconSrc = iconMap[icon];
   const BadgeIcon = badgeIconMap[icon];
@@ -253,12 +256,16 @@ export const StatWidget = memo(function StatWidget({
             boxShadow: 'inset 0 0 4px rgba(0,0,0,0.35)',
           }} data-meter-track="true">
             <div style={{
+              position: meterEndpoint || resolvedMeterFillHeight !== meterHeight ? 'absolute' : 'relative',
+              top: meterEndpoint || resolvedMeterFillHeight !== meterHeight ? '50%' : undefined,
+              left: meterEndpoint || resolvedMeterFillHeight !== meterHeight ? 0 : undefined,
+              transform: meterEndpoint || resolvedMeterFillHeight !== meterHeight ? 'translateY(-50%)' : undefined,
               width: `${normalizedMeterPct}%`,
-              height: '100%',
+              height: `${resolvedMeterFillHeight}px`,
               borderRadius: '999px',
               background: meterColor ?? iconColor,
               boxShadow: `0 0 8px ${(meterColor ?? iconColor)}88`,
-            }} />
+            }} data-meter-fill="true" />
             {meterEndpoint && (
               <div
                 data-meter-endpoint="true"

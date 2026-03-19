@@ -47,6 +47,10 @@ function getMeterEndpoint(widget: HTMLElement): HTMLDivElement | null {
   return widget.querySelector('[data-meter-endpoint="true"]') as HTMLDivElement | null;
 }
 
+function getMeterFill(widget: HTMLElement): HTMLDivElement | null {
+  return widget.querySelector('[data-meter-fill="true"]') as HTMLDivElement | null;
+}
+
 describe('HudWidgetItems', () => {
   let container: HTMLDivElement;
   let root: Root | null = null;
@@ -347,9 +351,10 @@ describe('HudWidgetItems', () => {
     expect(carryWidget.textContent).not.toContain('62%');
     expect(hasMeterWidth(carryWidget, stats.alertData.carryPct)).toBe(true);
     expect(getMeterEndpoint(carryWidget)).toBeTruthy();
-    expect(getMeterTrack(carryWidget)?.style.background).toBe('rgba(9, 13, 18, 0.9)');
+    expect(getMeterTrack(carryWidget)?.style.background).toBe('rgba(86, 96, 112, 0.72)');
     expect(getMeterTrack(carryWidget)?.style.border).toBe('1px solid rgba(255, 255, 255, 0.4)');
     expect(getMeterTrack(carryWidget)?.style.height).toBe('6px');
+    expect(getMeterFill(carryWidget)?.style.height).toBe('4px');
   });
 
   it('switches resistance widgets between effective-only, raw-only, and both displays', async () => {

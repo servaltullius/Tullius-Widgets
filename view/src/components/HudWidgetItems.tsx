@@ -39,7 +39,7 @@ const CRIT_CHANCE_MIN = 0;
 function resolveCarryWeightDisplay(
   displayMode: WidgetSettings['playerInfo']['carryWeightDisplay'],
   carryPct: number,
-): Pick<ComponentProps<typeof StatWidget>, 'helperText' | 'meterPct' | 'hideValue' | 'meterTrackColor' | 'meterTrackBorderColor' | 'meterHeight' | 'meterEndpoint'> {
+): Pick<ComponentProps<typeof StatWidget>, 'helperText' | 'meterPct' | 'hideValue' | 'meterTrackColor' | 'meterTrackBorderColor' | 'meterHeight' | 'meterFillHeight' | 'meterEndpoint'> {
   switch (displayMode) {
     case 'valueOnly':
       return {
@@ -49,6 +49,7 @@ function resolveCarryWeightDisplay(
         meterTrackColor: undefined,
         meterTrackBorderColor: undefined,
         meterHeight: undefined,
+        meterFillHeight: undefined,
         meterEndpoint: false,
       };
     case 'meterOnly':
@@ -56,9 +57,10 @@ function resolveCarryWeightDisplay(
         helperText: undefined,
         meterPct: carryPct,
         hideValue: true,
-        meterTrackColor: 'rgba(9, 13, 18, 0.9)',
+        meterTrackColor: 'rgba(86, 96, 112, 0.72)',
         meterTrackBorderColor: 'rgba(255, 255, 255, 0.4)',
         meterHeight: 6,
+        meterFillHeight: 4,
         meterEndpoint: true,
       };
     case 'combined':
@@ -70,6 +72,7 @@ function resolveCarryWeightDisplay(
         meterTrackColor: undefined,
         meterTrackBorderColor: undefined,
         meterHeight: undefined,
+        meterFillHeight: undefined,
         meterEndpoint: false,
       };
   }
@@ -332,6 +335,7 @@ export function HudWidgetItems({
                 meterTrackColor={carryWeightDisplay.meterTrackColor}
                 meterTrackBorderColor={carryWeightDisplay.meterTrackBorderColor}
                 meterHeight={carryWeightDisplay.meterHeight}
+                meterFillHeight={carryWeightDisplay.meterFillHeight}
                 meterEndpoint={carryWeightDisplay.meterEndpoint}
                 hideValue={carryWeightDisplay.hideValue}
               />
