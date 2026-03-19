@@ -114,4 +114,70 @@ describe('itemLayoutEditing', () => {
       viewportHeight: 1080,
     });
   });
+
+  it('resets an item to the current viewport default placement on both FHD and UHD', () => {
+    const settings = cloneSettings();
+    const itemId = 'player.gold';
+    const fhdBaseLayouts = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+    const uhdBaseLayouts = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 3840,
+      viewportHeight: 2160,
+    });
+
+    const fhdModified = {
+      ...fhdBaseLayouts,
+      [itemId]: {
+        ...fhdBaseLayouts[itemId],
+        x: fhdBaseLayouts[itemId].x + 220,
+        y: fhdBaseLayouts[itemId].y + 140,
+        scale: 1.4,
+        locked: true,
+      },
+    };
+    const uhdModified = {
+      ...uhdBaseLayouts,
+      [itemId]: {
+        ...uhdBaseLayouts[itemId],
+        x: uhdBaseLayouts[itemId].x + 340,
+        y: uhdBaseLayouts[itemId].y + 260,
+        scale: 1.6,
+        locked: true,
+      },
+    };
+
+    const resetOnFhd = resetItemToDefaultPlacement({
+      itemId,
+      itemLayouts: fhdModified,
+      settings,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+    const resetOnUhd = resetItemToDefaultPlacement({
+      itemId,
+      itemLayouts: uhdModified,
+      settings,
+      viewportWidth: 3840,
+      viewportHeight: 2160,
+    });
+
+    expect(resetOnFhd[itemId]).toEqual({
+      ...fhdModified[itemId],
+      x: fhdBaseLayouts[itemId].x,
+      y: fhdBaseLayouts[itemId].y,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+    expect(resetOnUhd[itemId]).toEqual({
+      ...uhdModified[itemId],
+      x: uhdBaseLayouts[itemId].x,
+      y: uhdBaseLayouts[itemId].y,
+      viewportWidth: 3840,
+      viewportHeight: 2160,
+    });
+  });
 });
