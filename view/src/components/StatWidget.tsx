@@ -46,6 +46,8 @@ interface StatWidgetProps {
   prominence?: 'primary' | 'secondary';
   meterPct?: number;
   meterColor?: string;
+  meterTrackColor?: string;
+  meterEndpoint?: boolean;
   tooltip?: string;
   valueMaxWidth?: number;
   helperMaxWidth?: number;
@@ -108,6 +110,8 @@ export const StatWidget = memo(function StatWidget({
   prominence = 'primary',
   meterPct,
   meterColor,
+  meterTrackColor,
+  meterEndpoint = false,
   tooltip,
   valueMaxWidth,
   helperMaxWidth,
@@ -233,15 +237,16 @@ export const StatWidget = memo(function StatWidget({
         )}
         {normalizedMeterPct !== null && (
           <div style={{
+            position: 'relative',
             width: styles.maxWidth,
             maxWidth: '112px',
             height: '4px',
             marginTop: helperText ? '4px' : showValue ? '6px' : '0',
-            background: 'rgba(255,255,255,0.12)',
+            background: meterTrackColor ?? 'rgba(255,255,255,0.12)',
             borderRadius: '999px',
-            overflow: 'hidden',
+            overflow: meterEndpoint ? 'visible' : 'hidden',
             boxShadow: 'inset 0 0 4px rgba(0,0,0,0.35)',
-          }}>
+          }} data-meter-track="true">
             <div style={{
               width: `${normalizedMeterPct}%`,
               height: '100%',
@@ -249,6 +254,23 @@ export const StatWidget = memo(function StatWidget({
               background: meterColor ?? iconColor,
               boxShadow: `0 0 8px ${(meterColor ?? iconColor)}88`,
             }} />
+            {meterEndpoint && (
+              <div
+                data-meter-endpoint="true"
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: `${normalizedMeterPct}%`,
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  background: meterColor ?? iconColor,
+                  border: '1px solid rgba(10, 14, 20, 0.92)',
+                  boxShadow: `0 0 0 1px rgba(255,255,255,0.35), 0 0 8px ${(meterColor ?? iconColor)}aa`,
+                }}
+              />
+            )}
           </div>
         )}
       </div>

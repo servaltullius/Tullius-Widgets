@@ -39,19 +39,23 @@ const CRIT_CHANCE_MIN = 0;
 function resolveCarryWeightDisplay(
   displayMode: WidgetSettings['playerInfo']['carryWeightDisplay'],
   carryPct: number,
-): Pick<ComponentProps<typeof StatWidget>, 'helperText' | 'meterPct' | 'hideValue'> {
+): Pick<ComponentProps<typeof StatWidget>, 'helperText' | 'meterPct' | 'hideValue' | 'meterTrackColor' | 'meterEndpoint'> {
   switch (displayMode) {
     case 'valueOnly':
       return {
         helperText: undefined,
         meterPct: undefined,
         hideValue: false,
+        meterTrackColor: undefined,
+        meterEndpoint: false,
       };
     case 'meterOnly':
       return {
         helperText: undefined,
         meterPct: carryPct,
         hideValue: true,
+        meterTrackColor: 'rgba(10, 14, 20, 0.78)',
+        meterEndpoint: true,
       };
     case 'combined':
     default:
@@ -59,6 +63,8 @@ function resolveCarryWeightDisplay(
         helperText: formatPercent(carryPct),
         meterPct: carryPct,
         hideValue: false,
+        meterTrackColor: undefined,
+        meterEndpoint: false,
       };
   }
 }
@@ -317,6 +323,8 @@ export function HudWidgetItems({
                 valueTone={carryTone}
                 meterPct={carryWeightDisplay.meterPct}
                 meterColor={carryTone === 'danger' ? '#ff8d8d' : carryTone === 'warning' ? '#ffd36a' : '#d7a26b'}
+                meterTrackColor={carryWeightDisplay.meterTrackColor}
+                meterEndpoint={carryWeightDisplay.meterEndpoint}
                 hideValue={carryWeightDisplay.hideValue}
               />
             ));
