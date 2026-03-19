@@ -47,6 +47,8 @@ interface StatWidgetProps {
   meterPct?: number;
   meterColor?: string;
   meterTrackColor?: string;
+  meterTrackBorderColor?: string;
+  meterHeight?: number;
   meterEndpoint?: boolean;
   tooltip?: string;
   valueMaxWidth?: number;
@@ -111,6 +113,8 @@ export const StatWidget = memo(function StatWidget({
   meterPct,
   meterColor,
   meterTrackColor,
+  meterTrackBorderColor,
+  meterHeight = 4,
   meterEndpoint = false,
   tooltip,
   valueMaxWidth,
@@ -240,10 +244,11 @@ export const StatWidget = memo(function StatWidget({
             position: 'relative',
             width: styles.maxWidth,
             maxWidth: '112px',
-            height: '4px',
+            height: `${meterHeight}px`,
             marginTop: helperText ? '4px' : showValue ? '6px' : '0',
             background: meterTrackColor ?? 'rgba(255,255,255,0.12)',
             borderRadius: '999px',
+            border: meterTrackBorderColor ? `1px solid ${meterTrackBorderColor}` : undefined,
             overflow: meterEndpoint ? 'visible' : 'hidden',
             boxShadow: 'inset 0 0 4px rgba(0,0,0,0.35)',
           }} data-meter-track="true">

@@ -39,7 +39,7 @@ const CRIT_CHANCE_MIN = 0;
 function resolveCarryWeightDisplay(
   displayMode: WidgetSettings['playerInfo']['carryWeightDisplay'],
   carryPct: number,
-): Pick<ComponentProps<typeof StatWidget>, 'helperText' | 'meterPct' | 'hideValue' | 'meterTrackColor' | 'meterEndpoint'> {
+): Pick<ComponentProps<typeof StatWidget>, 'helperText' | 'meterPct' | 'hideValue' | 'meterTrackColor' | 'meterTrackBorderColor' | 'meterHeight' | 'meterEndpoint'> {
   switch (displayMode) {
     case 'valueOnly':
       return {
@@ -47,6 +47,8 @@ function resolveCarryWeightDisplay(
         meterPct: undefined,
         hideValue: false,
         meterTrackColor: undefined,
+        meterTrackBorderColor: undefined,
+        meterHeight: undefined,
         meterEndpoint: false,
       };
     case 'meterOnly':
@@ -54,7 +56,9 @@ function resolveCarryWeightDisplay(
         helperText: undefined,
         meterPct: carryPct,
         hideValue: true,
-        meterTrackColor: 'rgba(10, 14, 20, 0.78)',
+        meterTrackColor: 'rgba(9, 13, 18, 0.9)',
+        meterTrackBorderColor: 'rgba(255, 255, 255, 0.4)',
+        meterHeight: 6,
         meterEndpoint: true,
       };
     case 'combined':
@@ -64,6 +68,8 @@ function resolveCarryWeightDisplay(
         meterPct: carryPct,
         hideValue: false,
         meterTrackColor: undefined,
+        meterTrackBorderColor: undefined,
+        meterHeight: undefined,
         meterEndpoint: false,
       };
   }
@@ -324,6 +330,8 @@ export function HudWidgetItems({
                 meterPct={carryWeightDisplay.meterPct}
                 meterColor={carryTone === 'danger' ? '#ff8d8d' : carryTone === 'warning' ? '#ffd36a' : '#d7a26b'}
                 meterTrackColor={carryWeightDisplay.meterTrackColor}
+                meterTrackBorderColor={carryWeightDisplay.meterTrackBorderColor}
+                meterHeight={carryWeightDisplay.meterHeight}
                 meterEndpoint={carryWeightDisplay.meterEndpoint}
                 hideValue={carryWeightDisplay.hideValue}
               />

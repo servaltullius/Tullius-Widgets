@@ -347,7 +347,9 @@ describe('HudWidgetItems', () => {
     expect(carryWidget.textContent).not.toContain('62%');
     expect(hasMeterWidth(carryWidget, stats.alertData.carryPct)).toBe(true);
     expect(getMeterEndpoint(carryWidget)).toBeTruthy();
-    expect(getMeterTrack(carryWidget)?.style.background).toBe('rgba(10, 14, 20, 0.78)');
+    expect(getMeterTrack(carryWidget)?.style.background).toBe('rgba(9, 13, 18, 0.9)');
+    expect(getMeterTrack(carryWidget)?.style.border).toBe('1px solid rgba(255, 255, 255, 0.4)');
+    expect(getMeterTrack(carryWidget)?.style.height).toBe('6px');
   });
 
   it('switches resistance widgets between effective-only, raw-only, and both displays', async () => {
