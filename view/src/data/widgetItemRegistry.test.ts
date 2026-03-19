@@ -103,4 +103,23 @@ describe('widgetItemRegistry', () => {
       viewportHeight: 2160,
     });
   });
+
+  it('keeps fallback default item layouts proportionally aligned across FHD and UHD', () => {
+    const settings = structuredClone(defaultSettings);
+
+    const fhdItemLayouts = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+    const uhdItemLayouts = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 3840,
+      viewportHeight: 2160,
+    });
+
+    expect(fhdItemLayouts['player.gold'].scale).toBeLessThan(uhdItemLayouts['player.gold'].scale);
+    expect(fhdItemLayouts['player.gold'].x / 1920).toBeCloseTo(uhdItemLayouts['player.gold'].x / 3840, 2);
+    expect(fhdItemLayouts['player.gold'].y / 1080).toBeCloseTo(uhdItemLayouts['player.gold'].y / 2160, 2);
+  });
 });

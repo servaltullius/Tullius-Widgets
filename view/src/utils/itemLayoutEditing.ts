@@ -1,6 +1,6 @@
 import {
   WIDGET_ITEM_IDS,
-  buildItemLayoutsFromLegacySettings,
+  resolveWidgetItemLayouts,
   getWidgetItemDefaultZIndex,
 } from '../data/widgetItemRegistry';
 import type { WidgetItemLayout, WidgetSettings } from '../types/settings';
@@ -147,21 +147,16 @@ export function resetItemToDefaultPlacement(params: {
     return itemLayouts;
   }
 
-  const defaultLayouts = buildItemLayoutsFromLegacySettings({
-    general: settings.general,
-    resistances: settings.resistances,
-    defense: settings.defense,
-    offense: settings.offense,
-    equipped: settings.equipped,
-    timedEffects: settings.timedEffects,
-    movement: settings.movement,
-    time: settings.time,
-    experience: settings.experience,
-    playerInfo: settings.playerInfo,
-    positions: {},
-    layouts: settings.layouts,
-    groupScales: {},
-  }, viewportWidth, viewportHeight);
+  const defaultLayouts = resolveWidgetItemLayouts({
+    settings: {
+      ...settings,
+      positions: {},
+      groupScales: {},
+      itemLayouts: {},
+    },
+    viewportWidth,
+    viewportHeight,
+  });
   const defaultLayout = defaultLayouts[itemId];
   if (!defaultLayout) {
     return itemLayouts;

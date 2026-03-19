@@ -7,6 +7,7 @@ import type {
 } from '../types/settings';
 import { defaultSettings } from '../data/defaultSettings';
 import {
+  DEFAULT_ITEM_LAYOUT_BASELINE_VIEWPORT,
   buildItemLayoutsFromLegacySettings,
   getWidgetItemIdByVisibilityPath,
   resolveWidgetItemLayouts,
@@ -91,8 +92,8 @@ function resolveCanonicalViewportBaseline(settings: WidgetSettings): { width: nu
   }
 
   return {
-    width: window.innerWidth,
-    height: window.innerHeight,
+    width: DEFAULT_ITEM_LAYOUT_BASELINE_VIEWPORT.width,
+    height: DEFAULT_ITEM_LAYOUT_BASELINE_VIEWPORT.height,
   };
 }
 

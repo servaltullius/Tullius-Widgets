@@ -272,6 +272,41 @@ describe('useSettings', () => {
     vi.useRealTimers();
   });
 
+  it('uses the fixed design baseline when seeding visible legacy item layouts without canonical metadata', async () => {
+    vi.useFakeTimers();
+    const onSettingsChanged = vi.fn();
+    window.onSettingsChanged = onSettingsChanged;
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1920 });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 1080 });
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onSettings={settings => { latest = settings; }} />);
+    });
+
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({
+        schemaVersion: 5,
+        rev: 121,
+        itemLayouts: {},
+      }));
+      vi.advanceTimersByTime(250);
+    });
+
+    expect(latest?.itemLayouts['player.carryWeight']).toMatchObject({
+      viewportWidth: 3840,
+      viewportHeight: 2160,
+      scale: 1.3,
+    });
+    expect(onSettingsChanged).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(onSettingsChanged.mock.calls[0]?.[0] as string).itemLayouts['player.carryWeight']).toMatchObject({
+      viewportWidth: 3840,
+      viewportHeight: 2160,
+      scale: 1.3,
+    });
+    vi.useRealTimers();
+  });
+
   it('preserves imported group scales from native import when serializing later settings updates', async () => {
     const onSettingsChanged = vi.fn();
     const onImportResult = vi.fn();

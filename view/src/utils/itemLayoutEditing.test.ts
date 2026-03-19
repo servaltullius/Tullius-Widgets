@@ -180,4 +180,51 @@ describe('itemLayoutEditing', () => {
       viewportHeight: 2160,
     });
   });
+
+  it('resets keep the same relative screen anchor across FHD and UHD', () => {
+    const settings = cloneSettings();
+    const itemId = 'player.gold';
+    const fhdBaseLayouts = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+    const uhdBaseLayouts = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 3840,
+      viewportHeight: 2160,
+    });
+
+    const resetOnFhd = resetItemToDefaultPlacement({
+      itemId,
+      itemLayouts: {
+        ...fhdBaseLayouts,
+        [itemId]: {
+          ...fhdBaseLayouts[itemId],
+          x: fhdBaseLayouts[itemId].x + 200,
+          y: fhdBaseLayouts[itemId].y + 100,
+        },
+      },
+      settings,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+    const resetOnUhd = resetItemToDefaultPlacement({
+      itemId,
+      itemLayouts: {
+        ...uhdBaseLayouts,
+        [itemId]: {
+          ...uhdBaseLayouts[itemId],
+          x: uhdBaseLayouts[itemId].x + 400,
+          y: uhdBaseLayouts[itemId].y + 200,
+        },
+      },
+      settings,
+      viewportWidth: 3840,
+      viewportHeight: 2160,
+    });
+
+    expect(resetOnFhd[itemId].x / 1920).toBeCloseTo(resetOnUhd[itemId].x / 3840, 2);
+    expect(resetOnFhd[itemId].y / 1080).toBeCloseTo(resetOnUhd[itemId].y / 2160, 2);
+  });
 });

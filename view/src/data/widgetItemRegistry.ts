@@ -47,6 +47,10 @@ const DEFAULT_MIN_SCALE = 0.7;
 const DEFAULT_MAX_SCALE = 2.4;
 const VERTICAL_ITEM_STEP = 54;
 const HORIZONTAL_ITEM_STEP = 132;
+export const DEFAULT_ITEM_LAYOUT_BASELINE_VIEWPORT = {
+  width: 3840,
+  height: 2160,
+} as const;
 
 const LEGACY_WIDGET_SIZE_SCALE_MAP: Record<WidgetSize, number> = {
   xsmall: 0.85,
@@ -423,6 +427,27 @@ export function buildItemLayoutsFromLegacySettings(
   );
 }
 
+export function buildBaselineItemLayoutsFromLegacySettings(
+  source: LegacyWidgetLayoutSource,
+): Record<string, WidgetItemLayout> {
+  const baselineLayouts = buildItemLayoutsFromLegacySettings(
+    source,
+    DEFAULT_ITEM_LAYOUT_BASELINE_VIEWPORT.width,
+    DEFAULT_ITEM_LAYOUT_BASELINE_VIEWPORT.height,
+  );
+
+  return Object.fromEntries(
+    Object.entries(baselineLayouts).map(([itemId, layout]) => [
+      itemId,
+      {
+        ...layout,
+        viewportWidth: DEFAULT_ITEM_LAYOUT_BASELINE_VIEWPORT.width,
+        viewportHeight: DEFAULT_ITEM_LAYOUT_BASELINE_VIEWPORT.height,
+      },
+    ]),
+  );
+}
+
 export function sanitizeWidgetItemLayouts(incoming: unknown): Record<string, WidgetItemLayout> {
   if (!isPlainObject(incoming)) {
     return {};
@@ -521,7 +546,12 @@ export function resolveWidgetItemLayouts(params: {
   viewportHeight: number;
 }): Record<string, WidgetItemLayout> {
   const { settings, viewportWidth, viewportHeight } = params;
-  const fallbackLayouts = buildItemLayoutsFromLegacySettings(settings, viewportWidth, viewportHeight);
+  const fallbackLayouts = Object.fromEntries(
+    Object.entries(buildBaselineItemLayoutsFromLegacySettings(settings)).map(([itemId, layout]) => [
+      itemId,
+      resolveCanonicalLayoutForViewport(itemId, layout, viewportWidth, viewportHeight),
+    ]),
+  ) as Record<string, WidgetItemLayout>;
   const canonicalLayouts = sanitizeWidgetItemLayouts(settings.itemLayouts);
 
   if (Object.keys(canonicalLayouts).length === 0) {

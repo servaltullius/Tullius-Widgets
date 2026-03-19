@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultSettings, getDefaultPositions } from '../data/defaultSettings';
+import { defaultSettings } from '../data/defaultSettings';
 import { WIDGET_ITEM_IDS } from '../data/widgetItemRegistry';
 import type { WidgetSettings } from '../types/settings';
 import { resolveWidgetItemLayouts } from './useWidgetItemLayouts';
@@ -56,36 +56,33 @@ describe('useWidgetItemLayouts', () => {
     };
     settings.playerInfo.gold = false;
 
-    const resolved = resolveWidgetItemLayouts({
+    const resolvedFhd = resolveWidgetItemLayouts({
       settings,
       viewportWidth: 1920,
       viewportHeight: 1080,
     });
+    const resolvedUhd = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 3840,
+      viewportHeight: 2160,
+    });
 
-    expect(resolved['player.level']).toMatchObject({
-      visible: false,
-      x: 100,
-      y: 200,
-      scale: 1.625,
-    });
-    expect(resolved['player.gold']).toMatchObject({
-      visible: false,
-      x: 100,
-      scale: 1.625,
-    });
-    expect(resolved['player.gold'].y).toBeGreaterThan(resolved['player.level'].y);
-    expect(resolved['offense.rightHandDamage']).toMatchObject({
-      visible: true,
-      x: 500,
-      y: 300,
-      scale: 1.3,
-    });
-    expect(resolved['offense.leftHandDamage'].x).toBeGreaterThan(resolved['offense.rightHandDamage'].x);
+    expect(resolvedFhd['player.level'].visible).toBe(false);
+    expect(resolvedFhd['player.gold'].visible).toBe(false);
+    expect(resolvedFhd['player.gold'].y).toBeGreaterThan(resolvedFhd['player.level'].y);
+    expect(resolvedFhd['offense.rightHandDamage'].visible).toBe(true);
+    expect(resolvedFhd['offense.leftHandDamage'].x).toBeGreaterThan(resolvedFhd['offense.rightHandDamage'].x);
+    expect(resolvedFhd['player.level'].scale).toBeLessThan(resolvedUhd['player.level'].scale);
+    expect(resolvedFhd['player.level'].x / 1920).toBeCloseTo(resolvedUhd['player.level'].x / 3840, 2);
+    expect(resolvedFhd['player.level'].y / 1080).toBeCloseTo(resolvedUhd['player.level'].y / 2160, 2);
+    expect(resolvedFhd['offense.rightHandDamage'].x / 1920).toBeCloseTo(
+      resolvedUhd['offense.rightHandDamage'].x / 3840,
+      2,
+    );
   });
 
   it('rebuilds deterministic defaults when both item and legacy layout data are unusable', () => {
     const settings = cloneSettings();
-    const defaultGroupPositions = getDefaultPositions(1920, 1080, settings.general.size, settings.layouts);
 
     const first = resolveWidgetItemLayouts({
       settings,
@@ -97,16 +94,19 @@ describe('useWidgetItemLayouts', () => {
       viewportWidth: 1920,
       viewportHeight: 1080,
     });
+    const uhd = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 3840,
+      viewportHeight: 2160,
+    });
 
     expect(Object.keys(first)).toEqual(WIDGET_ITEM_IDS);
     expect(second).toEqual(first);
-    expect(first['player.level']).toMatchObject({
-      visible: false,
-      x: defaultGroupPositions.playerInfo.x,
-      y: defaultGroupPositions.playerInfo.y,
-      scale: 1.3,
-    });
-    expect(first['time.game'].x).toBe(defaultGroupPositions.time.x);
+    expect(first['player.level'].visible).toBe(false);
+    expect(first['player.level'].scale).toBeLessThan(uhd['player.level'].scale);
+    expect(first['player.level'].x / 1920).toBeCloseTo(uhd['player.level'].x / 3840, 2);
+    expect(first['player.level'].y / 1080).toBeCloseTo(uhd['player.level'].y / 2160, 2);
+    expect(first['time.game'].x / 1920).toBeCloseTo(uhd['time.game'].x / 3840, 2);
     expect(first['time.real'].y).toBeGreaterThanOrEqual(first['time.game'].y);
   });
 });
