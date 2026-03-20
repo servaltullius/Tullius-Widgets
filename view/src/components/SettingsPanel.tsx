@@ -344,6 +344,9 @@ export function SettingsPanel({
                 : 'var(--tw-color-tab-idle-text)',
               borderRadius: 'var(--tw-radius-sm)',
               fontSize: scalePanelPixels(20, panelScale),
+              fontWeight: activeTab === tab ? 700 : 600,
+              lineHeight: 1,
+              textShadow: '1px 1px 2px rgba(0,0,0,0.7)',
               padding: `${scalePanelPixels(8, panelScale)} ${scalePanelPixels(14, panelScale)}`,
               cursor: 'pointer',
             }}

@@ -164,6 +164,47 @@ describe('SettingsPanel', () => {
     expect(closeButton.style.textShadow).toBe('1px 1px 2px rgba(0,0,0,0.75)');
   });
 
+  it('gives the tab menu labels stronger weight and shadow so they read crisply over the HUD', async () => {
+    const settings = cloneSettings();
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <SettingsPanel
+          settings={settings}
+          lang="ko"
+          effectiveVisible
+          open
+          onClose={() => {}}
+          onUpdate={() => {}}
+          accentColor="#4fd1c5"
+          availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json', locale: 'ko-KR' }]}
+          selectedItemId={null}
+        />,
+      );
+    });
+
+    const generalTab = Array.from(container.querySelectorAll('[data-settings-panel-tabs] button')).find(button =>
+      button.textContent?.includes('일반'),
+    ) as HTMLButtonElement | undefined;
+    const combatTab = Array.from(container.querySelectorAll('[data-settings-panel-tabs] button')).find(button =>
+      button.textContent?.includes('전투 수치'),
+    ) as HTMLButtonElement | undefined;
+
+    expect(generalTab).toBeDefined();
+    expect(combatTab).toBeDefined();
+    if (!generalTab || !combatTab) {
+      throw new Error('expected tab buttons to render');
+    }
+
+    expect(generalTab.style.fontWeight).toBe('700');
+    expect(combatTab.style.fontWeight).toBe('600');
+    expect(generalTab.style.textShadow).toBe('1px 1px 2px rgba(0,0,0,0.7)');
+    expect(combatTab.style.textShadow).toBe('1px 1px 2px rgba(0,0,0,0.7)');
+    expect(generalTab.style.lineHeight).toBe('1');
+    expect(combatTab.style.lineHeight).toBe('1');
+  });
+
   it('restores a stored panel position instead of always centering the shell', async () => {
     window.localStorage.setItem(
       SETTINGS_PANEL_STORAGE_KEYS.position,
