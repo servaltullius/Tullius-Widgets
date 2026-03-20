@@ -3,7 +3,7 @@ import {
   Flame, Snowflake, Zap, Sparkles, Skull, Bug,
   Shield, ShieldCheck, Swords, Sword, Target,
   Wind, Star, Coins, Weight, Heart, Droplets, Battery,
-  CalendarDays, Clock3, Volume2,
+  CalendarDays, Clock3,
   type LucideIcon,
 } from 'lucide-react';
 import { iconMap } from '../assets/icons';
@@ -29,7 +29,6 @@ const badgeIconMap: Record<string, LucideIcon> = {
   stamina: Battery,
   gameTime: CalendarDays,
   realTime: Clock3,
-  voice: Volume2,
 };
 
 interface StatWidgetProps {

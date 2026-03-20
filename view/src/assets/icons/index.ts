@@ -14,6 +14,7 @@ import armor from './armor.png';
 import damageReduce from './damageReduce.png';
 import rightHand from './rightHand.png';
 import leftHand from './leftHand.png';
+import voice from './voice.png';
 import crit from './crit.png';
 import speed from './speed.png';
 import experience from './experience.png';
@@ -21,5 +22,5 @@ import experience from './experience.png';
 export const iconMap: Record<string, string> = {
   level, gold, weight, health, magicka, stamina,
   magic, fire, frost, shock, poison, disease,
-  armor, damageReduce, rightHand, leftHand, crit, speed, experience,
+  armor, damageReduce, rightHand, leftHand, voice, crit, speed, experience,
 };
