@@ -528,4 +528,61 @@ describe('HudWidgetItems', () => {
     expect(realTimeWidget.textContent).not.toBe(initialText);
     expect(realTimeWidget.textContent).not.toContain('2026');
   });
+
+  it('renders the equipped voice widget and remounts it when the selected voice changes', async () => {
+    const settings = cloneSettings();
+    const stats = cloneStats();
+    const itemLayouts = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+
+    hideAllItems(itemLayouts);
+    itemLayouts['equipped.voice'] = { ...(itemLayouts as Record<string, { visible: boolean }>)['equipped.voice'], visible: true };
+    (settings.equipped as Record<string, boolean>).voice = true;
+    (stats.equipped as Record<string, string>).voice = 'Unrelenting Force';
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <HudWidgetItems
+          shouldShow
+          stats={stats}
+          settings={settings}
+          settingsOpen={false}
+          lang="ko"
+          itemLayouts={itemLayouts}
+          accentColor="#4fd1c5"
+        />,
+      );
+    });
+
+    const voiceWidget = getWidget(container, 'equipped.voice');
+    expect(voiceWidget.textContent).toContain('Unrelenting Force');
+
+    const initialValueNode = voiceWidget.querySelector('[data-stat-value="true"]') as HTMLSpanElement | null;
+    expect(initialValueNode).toBeTruthy();
+
+    (stats.equipped as Record<string, string>).voice = 'Dragon Aspect';
+
+    await act(async () => {
+      root?.render(
+        <HudWidgetItems
+          shouldShow
+          stats={stats}
+          settings={settings}
+          settingsOpen={false}
+          lang="ko"
+          itemLayouts={itemLayouts}
+          accentColor="#4fd1c5"
+        />,
+      );
+    });
+
+    const nextValueNode = voiceWidget.querySelector('[data-stat-value="true"]') as HTMLSpanElement | null;
+    expect(nextValueNode).toBeTruthy();
+    expect(nextValueNode).not.toBe(initialValueNode);
+    expect(voiceWidget.textContent).toContain('Dragon Aspect');
+  });
 });

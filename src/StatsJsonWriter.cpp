@@ -205,6 +205,12 @@ void StatsJsonWriter::AppendEquipped(const StatsPayload& payload)
     json_ += ',';
     json_ += "\"leftHand\":";
     AppendEscapedString(payload.equipped.leftHand);
+    json_ += ',';
+    json_ += "\"voice\":";
+    AppendEscapedString(payload.equipped.voice);
+    json_ += ',';
+    json_ += "\"voiceType\":";
+    AppendEscapedString(payload.equipped.voiceType);
     json_ += '}';
 }
 

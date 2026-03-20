@@ -35,6 +35,7 @@ export const defaultSettings: WidgetSettings = {
   equipped: {
     rightHand: true,
     leftHand: true,
+    voice: false,
   },
   timedEffects: {
     enabled: true,

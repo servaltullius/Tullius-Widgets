@@ -185,6 +185,31 @@ describe('settingsSchema', () => {
     });
   });
 
+  it('merges equipped.voice safely and defaults it to false when missing', () => {
+    const merged = mergeWithDefaults({
+      equipped: {
+        rightHand: false,
+        voice: true,
+      },
+    });
+
+    const fallbackMerged = mergeWithDefaults({
+      equipped: {
+        leftHand: false,
+      },
+    });
+
+    expect(merged.equipped).toMatchObject({
+      rightHand: false,
+      leftHand: true,
+      voice: true,
+    });
+    expect(fallbackMerged.equipped).toMatchObject({
+      leftHand: false,
+      voice: false,
+    });
+  });
+
   it('drops invalid positions while preserving valid widget coordinates', () => {
     const merged = mergeWithDefaults({
       positions: {

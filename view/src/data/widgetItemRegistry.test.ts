@@ -31,6 +31,7 @@ describe('widgetItemRegistry', () => {
       'offense.critChance',
       'equipped.rightHand',
       'equipped.leftHand',
+      'equipped.voice',
       'time.game',
       'time.real',
       'movement.speedMult',
@@ -54,6 +55,7 @@ describe('widgetItemRegistry', () => {
     expect(WIDGET_ITEM_REGISTRY['timedEffects.list']?.rendererKind).toBe('timed-effects-list');
     expect(WIDGET_ITEM_REGISTRY['experience.progress']?.labelKey).toBe('integratedProgressionWidget');
     expect(WIDGET_ITEM_REGISTRY['equipped.rightHand']?.labelKey).toBe('rightHandEquipped');
+    expect(WIDGET_ITEM_REGISTRY['equipped.voice']?.labelKey).toBe('voiceEquipped');
     expect(WIDGET_ITEM_REGISTRY['movement.speedMult']?.labelKey).toBe('speed');
   });
 
@@ -66,11 +68,11 @@ describe('widgetItemRegistry', () => {
     });
     expect(itemLayouts['time.real']).toMatchObject({
       locked: false,
-      zIndex: 21,
+      zIndex: 22,
     });
     expect(itemLayouts['timedEffects.list']).toMatchObject({
       locked: false,
-      zIndex: 23,
+      zIndex: 24,
     });
   });
 

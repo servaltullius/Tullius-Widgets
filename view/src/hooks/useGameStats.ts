@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { BRIDGE_HANDLERS } from '../constants/bridge';
-import type { CombatStats, GameTimeInfo, TimedEffect } from '../types/stats';
+import type { CombatStats, EquippedVoiceType, GameTimeInfo, TimedEffect } from '../types/stats';
 import { mockStats } from '../data/mockStats';
 import { isPlainObject, readBoolean, readNumber, readText } from '../utils/normalize';
 import { registerDualBridgeHandler } from '../utils/bridge';
@@ -49,6 +49,13 @@ function readSchemaVersion(value: unknown): number | null {
   const schemaVersion = Math.trunc(value);
   if (schemaVersion < 0) return null;
   return schemaVersion;
+}
+
+function readEquippedVoiceType(value: unknown, fallback: EquippedVoiceType): EquippedVoiceType {
+  if (value === 'empty' || value === 'shout' || value === 'power') {
+    return value;
+  }
+  return fallback;
 }
 
 function warnFutureStatsSchemaVersion(
@@ -313,6 +320,8 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
     equipped: {
       rightHand: readText(rawEquipped?.rightHand, fallback.equipped.rightHand, true),
       leftHand: readText(rawEquipped?.leftHand, fallback.equipped.leftHand, true),
+      voice: readText(rawEquipped?.voice, fallback.equipped.voice, true),
+      voiceType: readEquippedVoiceType(rawEquipped?.voiceType, fallback.equipped.voiceType),
     },
     movement: {
       speedMult: readNumber(rawMovement?.speedMult, fallback.movement.speedMult, 0, 10000),

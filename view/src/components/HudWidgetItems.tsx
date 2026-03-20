@@ -577,6 +577,7 @@ export function HudWidgetItems({
                 value={stats.equipped.rightHand || t(lang, 'equippedEmpty')}
                 visible
                 prominence="secondary"
+                remountValueOnChange
               />
             ));
           case 'equipped.leftHand':
@@ -587,6 +588,18 @@ export function HudWidgetItems({
                 value={stats.equipped.leftHand || t(lang, 'equippedEmpty')}
                 visible
                 prominence="secondary"
+                remountValueOnChange
+              />
+            ));
+          case 'equipped.voice':
+            return renderEditableItem((
+              <StatWidget
+                icon="voice"
+                iconColor={stats.equipped.voiceType === 'power' ? '#82c8ff' : '#d8c17a'}
+                value={stats.equipped.voice || t(lang, 'equippedEmpty')}
+                visible
+                prominence="secondary"
+                remountValueOnChange
               />
             ));
           case 'time.game':

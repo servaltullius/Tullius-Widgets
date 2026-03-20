@@ -316,6 +316,11 @@ export function CombatTabSections({
       fallback: settings.equipped.leftHand,
       label: t(lang, 'leftHandEquipped'),
     },
+    {
+      itemId: 'equipped.voice',
+      fallback: settings.equipped.voice,
+      label: t(lang, 'voiceEquipped'),
+    },
   ];
   const movementToggles: ItemVisibilityToggleConfig[] = [
     {

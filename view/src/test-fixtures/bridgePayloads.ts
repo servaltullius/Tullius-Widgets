@@ -25,6 +25,8 @@ export function createStatsPayload(overrides?: Record<string, unknown>): Record<
     equipped: {
       rightHand: 'Daedric Sword',
       leftHand: 'Chain Lightning',
+      voice: 'Unrelenting Force',
+      voiceType: 'shout',
     },
     movement: {
       speedMult: 100,

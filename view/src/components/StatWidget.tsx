@@ -3,7 +3,7 @@ import {
   Flame, Snowflake, Zap, Sparkles, Skull, Bug,
   Shield, ShieldCheck, Swords, Sword, Target,
   Wind, Star, Coins, Weight, Heart, Droplets, Battery,
-  CalendarDays, Clock3,
+  CalendarDays, Clock3, Volume2,
   type LucideIcon,
 } from 'lucide-react';
 import { iconMap } from '../assets/icons';
@@ -29,6 +29,7 @@ const badgeIconMap: Record<string, LucideIcon> = {
   stamina: Battery,
   gameTime: CalendarDays,
   realTime: Clock3,
+  voice: Volume2,
 };
 
 interface StatWidgetProps {
@@ -55,6 +56,7 @@ interface StatWidgetProps {
   valueMaxWidth?: number;
   helperMaxWidth?: number;
   hideValue?: boolean;
+  remountValueOnChange?: boolean;
 }
 
 const prominenceStyles = {
@@ -122,6 +124,7 @@ export const StatWidget = memo(function StatWidget({
   valueMaxWidth,
   helperMaxWidth,
   hideValue = false,
+  remountValueOnChange = false,
 }: StatWidgetProps) {
   if (!visible) return null;
 
@@ -139,6 +142,7 @@ export const StatWidget = memo(function StatWidget({
   const displayValue = isNumeric
     ? (format ? format(displayNumber) : Math.round(displayNumber).toString())
     : value;
+  const valueKey = remountValueOnChange ? `${icon}:${String(displayValue)}${unit}` : undefined;
   const textAlign = isNumeric ? 'right' : 'left';
   const showValue = !hideValue;
   const minWidth = showValue && isNumeric ? styles.minWidth : 'auto';
@@ -208,20 +212,24 @@ export const StatWidget = memo(function StatWidget({
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: isNumeric ? 'flex-end' : 'flex-start', flexShrink: 0, minWidth }}>
         {showValue && (
-          <span style={{
-            display: 'inline-block',
-            color: valueColor,
-            fontFamily: 'sans-serif',
-            fontSize: styles.fontSize,
-            fontWeight: prominence === 'primary' ? 700 : 600,
-            textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-            textAlign,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            maxWidth: resolvedValueMaxWidth,
-            lineHeight: 1.1,
-          }}>
+          <span
+            key={valueKey}
+            data-stat-value="true"
+            style={{
+              display: 'inline-block',
+              color: valueColor,
+              fontFamily: 'sans-serif',
+              fontSize: styles.fontSize,
+              fontWeight: prominence === 'primary' ? 700 : 600,
+              textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+              textAlign,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: resolvedValueMaxWidth,
+              lineHeight: 1.1,
+            }}
+          >
             {displayValue}{unit}
           </span>
         )}

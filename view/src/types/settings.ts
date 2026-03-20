@@ -56,6 +56,7 @@ export interface WidgetSettings {
   equipped: {
     rightHand: boolean;
     leftHand: boolean;
+    voice: boolean;
   };
   timedEffects: {
     enabled: boolean;

@@ -261,6 +261,16 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     defaultPlacementHint: { groupId: 'equipped', order: 1 },
   },
   {
+    id: 'equipped.voice',
+    rendererKind: 'stat',
+    legacyGroupId: 'equipped',
+    visibilityPath: 'equipped.voice',
+    labelKey: 'voiceEquipped',
+    minScale: DEFAULT_MIN_SCALE,
+    maxScale: DEFAULT_MAX_SCALE,
+    defaultPlacementHint: { groupId: 'equipped', order: 2 },
+  },
+  {
     id: 'time.game',
     rendererKind: 'stat',
     legacyGroupId: 'time',

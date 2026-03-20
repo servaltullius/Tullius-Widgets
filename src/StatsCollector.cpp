@@ -111,6 +111,26 @@ static std::string GetFormName(const RE::TESForm* form)
     return "";
 }
 
+static RE::TESForm* GetSelectedVoiceForm(RE::PlayerCharacter* player)
+{
+    if (!player) return nullptr;
+    return player->selectedPower;
+}
+
+static std::string GetSelectedVoiceType(const RE::TESForm* form)
+{
+    if (!form) return "empty";
+    if (form->As<RE::TESShout>()) {
+        return "shout";
+    }
+    return "power";
+}
+
+static std::string GetSelectedVoiceName(RE::PlayerCharacter* player)
+{
+    return GetFormName(GetSelectedVoiceForm(player));
+}
+
 static std::uint32_t GetFormId(const RE::TESForm* form)
 {
     return form ? static_cast<std::uint32_t>(form->GetFormID()) : 0u;
@@ -342,9 +362,12 @@ static OffenseSnapshot CollectOffenseSnapshot(RE::PlayerCharacter* player)
 
 static EquippedSnapshot CollectEquippedSnapshot(RE::PlayerCharacter* player)
 {
+    auto* selectedVoice = GetSelectedVoiceForm(player);
     return EquippedSnapshot{
         GetEquippedName(player, false),
-        GetEquippedName(player, true)
+        GetEquippedName(player, true),
+        GetSelectedVoiceName(player),
+        GetSelectedVoiceType(selectedVoice)
     };
 }
 

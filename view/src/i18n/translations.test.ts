@@ -183,4 +183,14 @@ describe('translations', () => {
     expect(t('en', 'bringForward')).toBe('Bring Forward');
     expect(t('en', 'sendBackward')).toBe('Send Backward');
   });
+
+  it('includes voice slot labels in bundled languages', () => {
+    expect(t('ko', 'voiceEquipped')).toBe('포효/파워');
+    expect(t('ko', 'voiceShout')).toBe('포효');
+    expect(t('ko', 'voicePower')).toBe('파워');
+
+    expect(t('en', 'voiceEquipped')).toBe('Voice / Power');
+    expect(t('en', 'voiceShout')).toBe('Shout');
+    expect(t('en', 'voicePower')).toBe('Power');
+  });
 });

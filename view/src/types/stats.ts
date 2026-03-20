@@ -18,9 +18,13 @@ export interface Offense {
   critChance: number;
 }
 
+export type EquippedVoiceType = 'empty' | 'shout' | 'power';
+
 export interface Equipped {
   rightHand: string;
   leftHand: string;
+  voice: string;
+  voiceType: EquippedVoiceType;
 }
 
 export interface Movement {

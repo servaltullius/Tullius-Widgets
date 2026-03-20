@@ -252,6 +252,33 @@ describe('SettingsTabSections', () => {
     expect(onUpdate).toHaveBeenCalledWith('timedEffects.listLayout', 'horizontal');
   });
 
+  it('renders the voice equipped toggle and updates the canonical item visibility path', async () => {
+    const settings = cloneSettings();
+    const onUpdate = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <CombatTabSections
+          lang="ko"
+          settings={settings}
+          onUpdate={onUpdate}
+          isSectionExpanded={() => true}
+          toggleSection={() => {}}
+        />,
+      );
+    });
+
+    const voiceToggle = getToggleInputByLabel(container, '포효/파워');
+    expect(voiceToggle).toBeTruthy();
+
+    await act(async () => {
+      voiceToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(onUpdate).toHaveBeenCalledWith('itemLayouts.equipped.voice.visible', true);
+  });
+
   it('shows time display selectors only while the corresponding time widgets are enabled', async () => {
     const settings = cloneSettings();
     settings.time.gameDateTime = false;

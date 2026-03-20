@@ -89,6 +89,30 @@ describe('useGameStats', () => {
     expect(latest!.playerInfo.level).toBe(77);
   });
 
+  it('normalizes equipped voice slot payload fields from the bridge', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onStats={stats => { latest = stats; }} />);
+    });
+
+    await act(async () => {
+      window.updateStats?.(JSON.stringify(createStatsPayload({
+        equipped: {
+          rightHand: 'Daedric Sword',
+          leftHand: 'Chain Lightning',
+          voice: 'Unrelenting Force',
+          voiceType: 'shout',
+        },
+      })));
+    });
+
+    expect(latest).not.toBeNull();
+    expect(latest!.equipped).toMatchObject({
+      voice: 'Unrelenting Force',
+      voiceType: 'shout',
+    });
+  });
+
   it('ignores out-of-order stats payload by sequence number', async () => {
     await act(async () => {
       root = createRoot(container);

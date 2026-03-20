@@ -72,6 +72,8 @@ struct OffenseSnapshot {
 struct EquippedSnapshot {
     std::string rightHand{};
     std::string leftHand{};
+    std::string voice{};
+    std::string voiceType{"empty"};
 };
 
 struct MovementSnapshot {
