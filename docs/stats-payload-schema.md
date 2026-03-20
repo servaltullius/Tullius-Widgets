@@ -29,7 +29,9 @@
   },
   "equipped": {
     "rightHand": "Daedric Sword",
-    "leftHand": "Chain Lightning"
+    "leftHand": "Chain Lightning",
+    "voice": "Unrelenting Force",
+    "voiceType": "shout"
   },
   "movement": {
     "speedMult": 100.0
@@ -118,6 +120,8 @@
 - 장착 표시 계약:
   - `equipped.rightHand`, `equipped.leftHand`는 가능한 경우 인벤토리 표시명(`InventoryEntryData::GetDisplayName`)을 우선 사용합니다.
   - 왼손은 주문/무기 외에 방패 슬롯 보강 판별을 포함합니다.
+  - `equipped.voice`는 현재 선택된 포효/파워 이름입니다.
+  - `equipped.voiceType`은 `empty | shout | power` 중 하나이며, UI가 포효/파워 슬롯을 표시할 때 참고할 수 있습니다.
   - 장착 이벤트 직후 값은 안정성을 위해 한 틱 지연 후 반영될 수 있습니다.
 - 경험치 계약:
   - `playerInfo.experience` = 현재 누적 XP
