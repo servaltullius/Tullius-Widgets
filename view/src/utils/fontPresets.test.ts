@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { FONT_PRESET_OPTIONS, resolveFontPresetStacks } from './fontPresets';
+import {
+  FONT_PRESET_OPTIONS,
+  resolveFontPresetStacks,
+  resolveFontPresetVariables,
+} from './fontPresets';
 
 describe('fontPresets', () => {
   it('exposes ui and hud stacks for every supported preset', () => {
@@ -34,5 +38,12 @@ describe('fontPresets', () => {
     const unknown = resolveFontPresetStacks('something-else');
 
     expect(unknown).toEqual(fallback);
+  });
+
+  it('builds css custom properties for the selected preset', () => {
+    const readable = resolveFontPresetVariables('readable');
+
+    expect(readable['--tw-font-ui']).toContain('Noto Sans KR');
+    expect(readable['--tw-font-hud']).toContain('Noto Sans KR');
   });
 });

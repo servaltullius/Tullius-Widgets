@@ -4,12 +4,24 @@ import { defaultSettings } from './data/defaultSettings';
 import { createSelectedItemLayoutActions } from './hooks/useSelectedItemLayoutActions';
 import { resolveWidgetItemLayouts } from './hooks/useWidgetItemLayouts';
 import type { WidgetSettings } from './types/settings';
+import { resolveFontPresetVariables } from './utils/fontPresets';
 
 function cloneSettings(): WidgetSettings {
   return structuredClone(defaultSettings);
 }
 
 describe('App item layout actions', () => {
+  it('resolves CSS font variables from the selected preset', () => {
+    const defaultVariables = resolveFontPresetVariables('default');
+    const readableVariables = resolveFontPresetVariables('readable');
+
+    expect(defaultVariables['--tw-font-ui']).toContain('Segoe UI');
+    expect(defaultVariables['--tw-font-hud']).toContain('Segoe UI');
+    expect(readableVariables['--tw-font-ui']).toContain('Noto Sans KR');
+    expect(readableVariables['--tw-font-hud']).toContain('Noto Sans KR');
+    expect(readableVariables['--tw-font-ui']).not.toBe(defaultVariables['--tw-font-ui']);
+  });
+
   it('updates selected item visibility, scale, and lock through canonical itemLayouts paths', () => {
     const settings = cloneSettings();
     const itemLayouts = resolveWidgetItemLayouts({

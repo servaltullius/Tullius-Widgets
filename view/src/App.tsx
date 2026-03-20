@@ -19,6 +19,7 @@ import {
 } from './utils/hudPresentation';
 import { measureWidgetBoundsMap } from './utils/widgetBounds';
 import { snapWidgetMove, type AlignmentGuide } from './utils/widgetSnap';
+import { resolveFontPresetVariables } from './utils/fontPresets';
 import './assets/ui-theme.css';
 import './assets/screen-effects.css';
 
@@ -54,6 +55,10 @@ export function App() {
   const [lastChangeAtMs, setLastChangeAtMs] = useState<number>(() => Date.now());
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const { activeLanguage: lang, availableLanguages } = useLocalization(settings.general.language);
+  const fontVariables = useMemo(
+    () => resolveFontPresetVariables(settings.general.fontPreset),
+    [settings.general.fontPreset],
+  );
   const canonicalItemLayouts = useWidgetItemLayouts({
     settings,
     viewportWidth: viewport.width,
@@ -255,7 +260,7 @@ export function App() {
   }, [updateSetting]);
 
   return (
-    <>
+    <div data-testid="app-font-theme" style={fontVariables}>
       {runtimeWarningText && runtimeDiagnostics && (
         <RuntimeWarningBanner
           text={runtimeWarningText}
@@ -316,6 +321,6 @@ export function App() {
         selectedItemLayout={selectedItemId ? itemLayouts[selectedItemId] ?? null : null}
         selectedItemLayoutActions={selectedItemLayoutActions}
       />
-    </>
+    </div>
   );
 }

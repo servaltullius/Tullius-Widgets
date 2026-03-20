@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import type { FontPreset } from '../types/settings';
 
 export interface FontPresetOption {
@@ -48,4 +49,13 @@ export const FONT_PRESET_OPTIONS: readonly FontPresetOption[] = [
 
 export function resolveFontPresetStacks(preset: string): FontPresetStacks {
   return FONT_PRESET_STACKS[preset as FontPreset] ?? FONT_PRESET_STACKS.default;
+}
+
+export function resolveFontPresetVariables(preset: string): CSSProperties {
+  const resolvedStacks = resolveFontPresetStacks(preset);
+
+  return {
+    '--tw-font-ui': resolvedStacks.uiFontStack,
+    '--tw-font-hud': resolvedStacks.hudFontStack,
+  } as CSSProperties;
 }
