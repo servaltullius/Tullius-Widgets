@@ -114,7 +114,10 @@ static std::string GetFormName(const RE::TESForm* form)
 static RE::TESForm* GetSelectedVoiceForm(RE::PlayerCharacter* player)
 {
     if (!player) return nullptr;
-    return player->selectedPower;
+    if (player->GetActorRuntimeData().selectedPower) {
+        return player->GetActorRuntimeData().selectedPower;
+    }
+    return player->GetCurrentShout();
 }
 
 static std::string GetSelectedVoiceType(const RE::TESForm* form)
