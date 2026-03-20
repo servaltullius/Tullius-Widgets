@@ -39,20 +39,20 @@ function formatDisplayValue(
   return `${format ? format(displayValue) : Math.round(displayValue).toString()}${unit}`;
 }
 
-export const ResistanceWidget = memo(function ResistanceWidget({
-  icon,
-  iconColor,
-  value,
-  unit = '',
-  visible,
-  min,
-  cap,
-  format,
-  secondaryValue,
-  secondaryUnit = '',
-  secondaryTone = 'neutral',
-  tooltip,
-}: ResistanceWidgetProps) {
+export const ResistanceWidget = memo(function ResistanceWidget(props: ResistanceWidgetProps) {
+  const {
+    icon,
+    value,
+    unit = '',
+    visible,
+    min,
+    cap,
+    format,
+    secondaryValue,
+    secondaryUnit = '',
+    secondaryTone = 'neutral',
+    tooltip,
+  } = props;
   if (!visible) return null;
 
   const iconSrc = iconMap[icon];
@@ -114,25 +114,28 @@ export const ResistanceWidget = memo(function ResistanceWidget({
       <div
         data-resistance-icon="true"
         style={{
+          position: 'relative',
           width: '34px',
           height: '34px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          filter: `drop-shadow(0 0 4px ${iconColor}66)`,
+          filter: 'none',
         }}
       >
         {iconSrc ? (
           <img
             src={iconSrc}
             alt={icon}
-            width={34}
-            height={34}
             style={{
+              position: 'absolute',
+              left: '-4px',
+              top: '-4px',
+              width: '42px',
+              height: '42px',
+              display: 'block',
               objectFit: 'contain',
               borderRadius: '6px',
-              transform: 'scale(1.14)',
-              transformOrigin: 'center',
             }}
           />
         ) : null}

@@ -62,7 +62,8 @@ const prominenceStyles = {
   primary: {
     gap: '10px',
     iconSize: 40,
-    iconScale: 1.1,
+    imageSize: 46,
+    imageOffset: -3,
     badgeSize: 18,
     badgeIconSize: 11,
     glyphSize: 22,
@@ -74,7 +75,8 @@ const prominenceStyles = {
   secondary: {
     gap: '8px',
     iconSize: 34,
-    iconScale: 1.16,
+    imageSize: 42,
+    imageOffset: -4,
     badgeSize: 16,
     badgeIconSize: 10,
     glyphSize: 20,
@@ -171,19 +173,21 @@ export const StatWidget = memo(function StatWidget({
         position: 'relative',
         width: `${styles.iconSize}px`,
         height: `${styles.iconSize}px`,
-        filter: `drop-shadow(0 0 3px ${iconColor}66)`,
+        filter: iconSrc ? 'none' : `drop-shadow(0 0 3px ${iconColor}66)`,
       }}>
         {iconSrc ? (
           <img
             src={iconSrc}
             alt={icon}
-            width={styles.iconSize}
-            height={styles.iconSize}
             style={{
+              position: 'absolute',
+              left: `${styles.imageOffset}px`,
+              top: `${styles.imageOffset}px`,
+              width: `${styles.imageSize}px`,
+              height: `${styles.imageSize}px`,
+              display: 'block',
               objectFit: 'contain',
               borderRadius: '4px',
-              transform: `scale(${styles.iconScale})`,
-              transformOrigin: 'center',
             }}
           />
         ) : BadgeIcon ? (

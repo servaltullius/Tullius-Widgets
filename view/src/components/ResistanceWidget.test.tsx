@@ -53,7 +53,12 @@ describe('ResistanceWidget', () => {
     expect(primary?.textContent).toBe('45%');
     expect(secondary?.textContent).toBe('120%');
     expect(icon).toBeTruthy();
-    expect(iconImage?.style.transform).toBe('scale(1.14)');
+    expect(iconImage?.style.width).toBe('42px');
+    expect(iconImage?.style.height).toBe('42px');
+    expect(iconImage?.style.position).toBe('absolute');
+    expect(iconImage?.style.left).toBe('-4px');
+    expect(iconImage?.style.top).toBe('-4px');
+    expect(iconImage?.style.transform).toBe('');
 
     const children = Array.from(widget?.children ?? []);
     expect(children[0]).toBe(primary);

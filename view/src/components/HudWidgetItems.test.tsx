@@ -562,7 +562,12 @@ describe('HudWidgetItems', () => {
     expect(voiceWidget.textContent).toContain('Unrelenting Force');
     const voiceIcon = voiceWidget.querySelector('img[alt="voice"]') as HTMLImageElement | null;
     expect(voiceIcon).toBeTruthy();
-    expect(voiceIcon?.style.transform).toBe('scale(1.16)');
+    expect(voiceIcon?.style.width).toBe('42px');
+    expect(voiceIcon?.style.height).toBe('42px');
+    expect(voiceIcon?.style.position).toBe('absolute');
+    expect(voiceIcon?.style.left).toBe('-4px');
+    expect(voiceIcon?.style.top).toBe('-4px');
+    expect(voiceIcon?.style.transform).toBe('');
 
     const initialValueNode = voiceWidget.querySelector('[data-stat-value="true"]') as HTMLSpanElement | null;
     expect(initialValueNode).toBeTruthy();
