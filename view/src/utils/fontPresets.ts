@@ -11,6 +11,11 @@ interface FontPresetStacks {
   hudFontStack: string;
 }
 
+export interface FontPresetVariables extends CSSProperties {
+  '--tw-font-ui': string;
+  '--tw-font-hud': string;
+}
+
 const UNIVERSAL_FALLBACK_STACK = [
   '"Noto Sans KR"',
   '"Malgun Gothic"',
@@ -51,11 +56,11 @@ export function resolveFontPresetStacks(preset: string): FontPresetStacks {
   return FONT_PRESET_STACKS[preset as FontPreset] ?? FONT_PRESET_STACKS.default;
 }
 
-export function resolveFontPresetVariables(preset: string): CSSProperties {
+export function resolveFontPresetVariables(preset: string): FontPresetVariables {
   const resolvedStacks = resolveFontPresetStacks(preset);
 
   return {
     '--tw-font-ui': resolvedStacks.uiFontStack,
     '--tw-font-hud': resolvedStacks.hudFontStack,
-  } as CSSProperties;
+  };
 }
