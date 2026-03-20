@@ -1,5 +1,6 @@
 import type {
   CarryWeightDisplayMode,
+  FontPreset,
   GroupPosition,
   Language,
   ResistanceDisplayMode,
@@ -38,6 +39,7 @@ const TIMED_EFFECT_LIST_LAYOUTS = ['vertical', 'horizontal'] as const;
 const CARRY_WEIGHT_DISPLAY_MODES = ['combined', 'valueOnly', 'meterOnly'] as const;
 const RESISTANCE_DISPLAY_MODES = ['effectiveOnly', 'rawOnly', 'both'] as const;
 const TIME_DISPLAY_MODES = ['dateTime', 'timeOnly'] as const;
+const FONT_PRESETS = ['default', 'readable', 'compact', 'classic'] as const;
 const STAGE2_STANDALONE_LEVEL_SCHEMA_VERSION = 4;
 
 interface MergeSettingsOptions {
@@ -113,6 +115,7 @@ function mergeGeneralSettings(target: WidgetSettings['general'], incoming: unkno
   target.opacity = readNumber(incoming.opacity, target.opacity, 10, 100);
   target.size = readEnum<WidgetSize>(incoming.size, target.size, ['xsmall', 'small', 'medium', 'large']);
   target.language = readLanguageCode(incoming.language, target.language);
+  target.fontPreset = readEnum<FontPreset>(incoming.fontPreset, target.fontPreset, FONT_PRESETS);
   target.accentColor = readAccentColor(incoming.accentColor, target.accentColor);
   target.transparentBg = readBoolean(incoming.transparentBg, target.transparentBg);
 }

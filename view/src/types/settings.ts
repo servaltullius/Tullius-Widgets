@@ -4,6 +4,7 @@ export type TimedEffectListLayout = 'vertical' | 'horizontal';
 export type CarryWeightDisplayMode = 'combined' | 'valueOnly' | 'meterOnly';
 export type ResistanceDisplayMode = 'effectiveOnly' | 'rawOnly' | 'both';
 export type TimeDisplayMode = 'dateTime' | 'timeOnly';
+export type FontPreset = 'default' | 'readable' | 'compact' | 'classic';
 export type Language = string;
 
 export interface GroupPosition {
@@ -32,6 +33,7 @@ export interface WidgetSettings {
     opacity: number;
     size: WidgetSize;
     language: Language;
+    fontPreset: FontPreset;
     accentColor: string;  // '' = auto from HUD, otherwise hex color
     transparentBg: boolean;  // hide widget group background
   };

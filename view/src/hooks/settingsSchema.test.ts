@@ -357,6 +357,24 @@ describe('settingsSchema', () => {
     expect(merged.general.language).toBe('fr');
   });
 
+  it('merges font presets independently from language and falls back invalid values', () => {
+    const validMerged = mergeWithDefaults({
+      general: {
+        language: 'fr',
+        fontPreset: 'readable',
+      },
+    });
+    const invalidMerged = mergeWithDefaults({
+      general: {
+        fontPreset: 'unsupported-preset',
+      },
+    });
+
+    expect(validMerged.general.language).toBe('fr');
+    expect((validMerged.general as Record<string, unknown>).fontPreset).toBe('readable');
+    expect((invalidMerged.general as Record<string, unknown>).fontPreset).toBe('default');
+  });
+
   it('warns only once for future schema version payloads', () => {
     const warnedFutureSettingsSchemaRef = { current: false };
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});

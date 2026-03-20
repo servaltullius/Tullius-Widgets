@@ -11,6 +11,7 @@ export const defaultSettings: WidgetSettings = {
     opacity: 70,
     size: 'medium',
     language: '',
+    fontPreset: 'default',
     accentColor: '',
     transparentBg: true,
   },
