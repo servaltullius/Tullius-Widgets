@@ -264,6 +264,68 @@ describe('SettingsPanel', () => {
     }
   });
 
+  it('rounds dragged panel positions to whole pixels so the header text stays crisp', async () => {
+    const settings = cloneSettings();
+    const originalGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
+
+    HTMLElement.prototype.getBoundingClientRect = function() {
+      if ((this as HTMLElement).dataset.settingsPanelDragHandle === 'true') {
+        return DOMRect.fromRect({ x: 100.5, y: 80.25, width: 680, height: 72 });
+      }
+
+      if ((this as HTMLElement).tagName === 'BUTTON') {
+        return DOMRect.fromRect({ x: 0, y: 0, width: 88, height: 32 });
+      }
+
+      return DOMRect.fromRect({ x: 100.5, y: 80.25, width: 680, height: 420 });
+    };
+
+    try {
+      await act(async () => {
+        root = createRoot(container);
+        root.render(
+          <SettingsPanel
+            settings={settings}
+            lang="ko"
+            effectiveVisible
+            open
+            onClose={() => {}}
+            onUpdate={() => {}}
+            accentColor="#4fd1c5"
+            availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json', locale: 'ko-KR' }]}
+            selectedItemId={null}
+          />,
+        );
+      });
+
+      const panel = container.firstElementChild as HTMLDivElement | null;
+      const handle = container.querySelector('[data-settings-panel-drag-handle="true"]') as HTMLDivElement | null;
+
+      expect(panel).not.toBeNull();
+      expect(handle).not.toBeNull();
+      if (!panel || !handle) {
+        throw new Error('expected settings panel shell and drag handle to render');
+      }
+
+      await act(async () => {
+        handle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 150, clientY: 100 }));
+      });
+
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 250, clientY: 210 }));
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 250, clientY: 210 }));
+      });
+
+      expect(panel.style.left.includes('.')).toBe(false);
+      expect(panel.style.top.includes('.')).toBe(false);
+      expect(window.localStorage.getItem(SETTINGS_PANEL_STORAGE_KEYS.position)).toBe(
+        JSON.stringify({ left: 201, top: 190 }),
+      );
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = originalGetBoundingClientRect;
+    }
+  });
+
   it('reclamps the stored panel position when the viewport shrinks after open', async () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1440 });
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 960 });

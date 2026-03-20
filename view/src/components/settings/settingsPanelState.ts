@@ -6,6 +6,17 @@ export interface PanelPosition {
   top: number;
 }
 
+function snapPanelCoordinate(value: number): number {
+  return Number.isFinite(value) ? Math.round(value) : 0;
+}
+
+function snapPanelPosition(position: PanelPosition): PanelPosition {
+  return {
+    left: snapPanelCoordinate(position.left),
+    top: snapPanelCoordinate(position.top),
+  };
+}
+
 function readSessionStorageItem(key: string): string | null {
   try {
     return window.sessionStorage.getItem(key);
@@ -94,17 +105,20 @@ export function readStoredPanelPosition(): PanelPosition | null {
       return null;
     }
 
-    return {
+    return snapPanelPosition({
       left: parsed.left,
       top: parsed.top,
-    };
+    });
   } catch {
     return null;
   }
 }
 
 export function writeStoredPanelPosition(position: PanelPosition): void {
-  writeLocalStorageItem(SETTINGS_PANEL_STORAGE_KEYS.position, JSON.stringify(position));
+  writeLocalStorageItem(
+    SETTINGS_PANEL_STORAGE_KEYS.position,
+    JSON.stringify(snapPanelPosition(position)),
+  );
 }
 
 export function clampStoredPanelPosition(
@@ -116,8 +130,8 @@ export function clampStoredPanelPosition(
   const maxLeft = Math.max(0, viewportWidth - Math.max(0, panelRect.width));
   const maxTop = Math.max(0, viewportHeight - Math.max(0, panelRect.height));
 
-  return {
+  return snapPanelPosition({
     left: Math.min(Math.max(position.left, 0), maxLeft),
     top: Math.min(Math.max(position.top, 0), maxTop),
-  };
+  });
 }
