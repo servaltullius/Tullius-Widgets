@@ -539,9 +539,9 @@ describe('HudWidgetItems', () => {
     });
 
     hideAllItems(itemLayouts);
-    itemLayouts['equipped.voice'] = { ...(itemLayouts as Record<string, { visible: boolean }>)['equipped.voice'], visible: true };
+    itemLayouts['equipped.voice'] = { ...itemLayouts['equipped.voice'], visible: true };
     (settings.equipped as Record<string, boolean>).voice = true;
-    (stats.equipped as Record<string, string>).voice = 'Unrelenting Force';
+    stats.equipped.voice = 'Unrelenting Force';
 
     await act(async () => {
       root = createRoot(container);
@@ -564,7 +564,7 @@ describe('HudWidgetItems', () => {
     const initialValueNode = voiceWidget.querySelector('[data-stat-value="true"]') as HTMLSpanElement | null;
     expect(initialValueNode).toBeTruthy();
 
-    (stats.equipped as Record<string, string>).voice = 'Dragon Aspect';
+    stats.equipped.voice = 'Dragon Aspect';
 
     await act(async () => {
       root?.render(
