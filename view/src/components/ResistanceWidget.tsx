@@ -128,7 +128,12 @@ export const ResistanceWidget = memo(function ResistanceWidget({
             alt={icon}
             width={34}
             height={34}
-            style={{ objectFit: 'contain', borderRadius: '6px' }}
+            style={{
+              objectFit: 'contain',
+              borderRadius: '6px',
+              transform: 'scale(1.14)',
+              transformOrigin: 'center',
+            }}
           />
         ) : null}
       </div>

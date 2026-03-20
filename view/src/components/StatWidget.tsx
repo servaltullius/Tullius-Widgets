@@ -62,8 +62,10 @@ const prominenceStyles = {
   primary: {
     gap: '10px',
     iconSize: 40,
+    iconScale: 1.1,
     badgeSize: 18,
     badgeIconSize: 11,
+    glyphSize: 22,
     fontSize: '20px',
     helperFontSize: '11px',
     minWidth: '48px',
@@ -72,8 +74,10 @@ const prominenceStyles = {
   secondary: {
     gap: '8px',
     iconSize: 34,
+    iconScale: 1.16,
     badgeSize: 16,
     badgeIconSize: 10,
+    glyphSize: 20,
     fontSize: '16px',
     helperFontSize: '10px',
     minWidth: '36px',
@@ -175,7 +179,12 @@ export const StatWidget = memo(function StatWidget({
             alt={icon}
             width={styles.iconSize}
             height={styles.iconSize}
-            style={{ objectFit: 'contain', borderRadius: '4px' }}
+            style={{
+              objectFit: 'contain',
+              borderRadius: '4px',
+              transform: `scale(${styles.iconScale})`,
+              transformOrigin: 'center',
+            }}
           />
         ) : BadgeIcon ? (
           <div style={{
@@ -188,7 +197,7 @@ export const StatWidget = memo(function StatWidget({
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            <BadgeIcon size={prominence === 'primary' ? 20 : 18} color={iconColor} strokeWidth={2.2} />
+            <BadgeIcon size={styles.glyphSize} color={iconColor} strokeWidth={2.2} />
           </div>
         ) : null}
         {iconSrc && BadgeIcon && (

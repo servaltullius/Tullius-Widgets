@@ -560,7 +560,9 @@ describe('HudWidgetItems', () => {
 
     const voiceWidget = getWidget(container, 'equipped.voice');
     expect(voiceWidget.textContent).toContain('Unrelenting Force');
-    expect(voiceWidget.querySelector('img[alt="voice"]')).toBeTruthy();
+    const voiceIcon = voiceWidget.querySelector('img[alt="voice"]') as HTMLImageElement | null;
+    expect(voiceIcon).toBeTruthy();
+    expect(voiceIcon?.style.transform).toBe('scale(1.16)');
 
     const initialValueNode = voiceWidget.querySelector('[data-stat-value="true"]') as HTMLSpanElement | null;
     expect(initialValueNode).toBeTruthy();

@@ -48,10 +48,12 @@ describe('ResistanceWidget', () => {
     const primary = widget?.querySelector('[data-resistance-primary="true"]') as HTMLSpanElement | null;
     const secondary = widget?.querySelector('[data-resistance-secondary="true"]') as HTMLSpanElement | null;
     const icon = widget?.querySelector('[data-resistance-icon="true"]') as HTMLDivElement | null;
+    const iconImage = icon?.querySelector('img[alt="fire"]') as HTMLImageElement | null;
 
     expect(primary?.textContent).toBe('45%');
     expect(secondary?.textContent).toBe('120%');
     expect(icon).toBeTruthy();
+    expect(iconImage?.style.transform).toBe('scale(1.14)');
 
     const children = Array.from(widget?.children ?? []);
     expect(children[0]).toBe(primary);
