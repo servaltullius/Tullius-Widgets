@@ -205,6 +205,53 @@ describe('SettingsPanel', () => {
     expect(combatTab.style.lineHeight).toBe('1');
   });
 
+  it('styles the expand and collapse controls with the same crisp secondary-button treatment', async () => {
+    const settings = cloneSettings();
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <SettingsPanel
+          settings={settings}
+          lang="ko"
+          effectiveVisible
+          open
+          onClose={() => {}}
+          onUpdate={() => {}}
+          accentColor="#4fd1c5"
+          availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json', locale: 'ko-KR' }]}
+          selectedItemId={null}
+        />,
+      );
+    });
+
+    const expandButton = Array.from(container.querySelectorAll('button')).find(button =>
+      button.textContent?.includes('전체 펼치기'),
+    ) as HTMLButtonElement | undefined;
+    const collapseButton = Array.from(container.querySelectorAll('button')).find(button =>
+      button.textContent?.includes('전체 접기'),
+    ) as HTMLButtonElement | undefined;
+
+    expect(expandButton).toBeDefined();
+    expect(collapseButton).toBeDefined();
+    if (!expandButton || !collapseButton) {
+      throw new Error('expected expand and collapse buttons to render');
+    }
+
+    expect(expandButton.style.display).toBe('inline-flex');
+    expect(collapseButton.style.display).toBe('inline-flex');
+    expect(expandButton.style.alignItems).toBe('center');
+    expect(collapseButton.style.alignItems).toBe('center');
+    expect(expandButton.style.color).toBe('var(--tw-color-button-text)');
+    expect(collapseButton.style.color).toBe('var(--tw-color-button-text)');
+    expect(expandButton.style.fontWeight).toBe('600');
+    expect(collapseButton.style.fontWeight).toBe('600');
+    expect(expandButton.style.textShadow).toBe('1px 1px 2px rgba(0,0,0,0.7)');
+    expect(collapseButton.style.textShadow).toBe('1px 1px 2px rgba(0,0,0,0.7)');
+    expect(expandButton.style.lineHeight).toBe('1');
+    expect(collapseButton.style.lineHeight).toBe('1');
+  });
+
   it('restores a stored panel position instead of always centering the shell', async () => {
     window.localStorage.setItem(
       SETTINGS_PANEL_STORAGE_KEYS.position,
