@@ -89,6 +89,7 @@ export function SettingsPanel({
   const panelRef = useRef<HTMLDivElement | null>(null);
   const panelDragOffsetRef = useRef<{ x: number; y: number } | null>(null);
   const [isDraggingPanel, setIsDraggingPanel] = useState(false);
+  const panelScale = resolvePanelScale(window.innerWidth, window.innerHeight);
 
   useEffect(() => {
     writeStoredPanelTab(activeTab);
@@ -190,7 +191,6 @@ export function SettingsPanel({
   const currentSectionIds = TAB_SECTION_IDS[activeTab] ?? [];
   const hasSelectedItemActions = Boolean(selectedItemId && selectedItemLayoutActions);
   const selectedRegistryEntry = selectedItemId ? getWidgetItemRegistryEntry(selectedItemId) : null;
-  const panelScale = resolvePanelScale(window.innerWidth, window.innerHeight);
   const resolvedSelectedItemLayout: WidgetItemLayout | null = selectedItemId
     ? selectedItemLayout ?? settings.itemLayouts[selectedItemId] ?? {
       visible: true,
@@ -226,7 +226,6 @@ export function SettingsPanel({
     });
   };
 
-  const isCentered = panelPosition === null;
   const handlePanelHeaderMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
     if ((event.target as HTMLElement).closest('button')) {
       return;
@@ -248,27 +247,29 @@ export function SettingsPanel({
     setIsDraggingPanel(true);
   };
 
-  return (
-    <div ref={panelRef} style={{
-      position: 'fixed',
-      top: isCentered ? '50%' : `${panelPosition.top}px`,
-      left: isCentered ? '50%' : `${panelPosition.left}px`,
-      transform: isCentered ? 'translate(-50%, -50%)' : 'none',
-      background: 'var(--tw-color-panel-bg)',
-      borderRadius: 'var(--tw-radius-xl)',
-      paddingTop: scalePanelPixels(28, panelScale),
-      paddingRight: scalePanelPixels(44, panelScale),
-      paddingBottom: scalePanelPixels(28, panelScale),
-      paddingLeft: scalePanelPixels(30, panelScale),
-      border: '1px solid var(--tw-color-panel-border)',
-      minWidth: scalePanelPixels(680, panelScale),
-      maxHeight: '85vh',
-      overflowY: 'auto',
-      scrollbarGutter: 'stable',
-      zIndex: 1000,
-      pointerEvents: 'auto',
-      fontFamily: 'var(--tw-font-ui)',
-    }}
+  const panelShell = (
+    <div
+      ref={panelRef}
+      style={{
+        position: panelPosition ? 'fixed' : 'relative',
+        top: panelPosition ? `${panelPosition.top}px` : undefined,
+        left: panelPosition ? `${panelPosition.left}px` : undefined,
+        transform: 'none',
+        background: 'var(--tw-color-panel-bg)',
+        borderRadius: 'var(--tw-radius-xl)',
+        paddingTop: scalePanelPixels(28, panelScale),
+        paddingRight: scalePanelPixels(44, panelScale),
+        paddingBottom: scalePanelPixels(28, panelScale),
+        paddingLeft: scalePanelPixels(30, panelScale),
+        border: '1px solid var(--tw-color-panel-border)',
+        minWidth: scalePanelPixels(680, panelScale),
+        maxHeight: '85vh',
+        overflowY: 'auto',
+        scrollbarGutter: 'stable',
+        pointerEvents: 'auto',
+        fontFamily: 'var(--tw-font-ui)',
+      }}
+      data-settings-panel-shell="true"
       data-selected-item-id={selectedItemId ?? undefined}
       data-has-selected-item-actions={hasSelectedItemActions ? 'true' : 'false'}
     >
@@ -439,6 +440,23 @@ export function SettingsPanel({
           panelScale={panelScale}
         />
       )}
+    </div>
+  );
+
+  return (
+    <div
+      data-settings-panel-wrapper="true"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        display: panelPosition ? 'block' : 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+        pointerEvents: 'none',
+      }}
+    >
+      {panelShell}
     </div>
   );
 }

@@ -135,3 +135,19 @@ export function clampStoredPanelPosition(
     top: Math.min(Math.max(position.top, 0), maxTop),
   });
 }
+
+export function centerPanelPosition(
+  panelRect: Pick<DOMRect, 'width' | 'height'>,
+  viewportWidth: number,
+  viewportHeight: number,
+): PanelPosition {
+  return clampStoredPanelPosition(
+    {
+      left: (viewportWidth - Math.max(0, panelRect.width)) / 2,
+      top: (viewportHeight - Math.max(0, panelRect.height)) / 2,
+    },
+    panelRect,
+    viewportWidth,
+    viewportHeight,
+  );
+}

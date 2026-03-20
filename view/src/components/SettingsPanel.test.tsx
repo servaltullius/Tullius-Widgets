@@ -65,7 +65,7 @@ describe('SettingsPanel', () => {
       );
     });
 
-    const panel = container.firstElementChild as HTMLDivElement | null;
+    const panel = container.querySelector('[data-settings-panel-shell="true"]') as HTMLDivElement | null;
     const title = container.querySelector('h2') as HTMLHeadingElement | null;
 
     expect(panel).not.toBeNull();
@@ -78,6 +78,52 @@ describe('SettingsPanel', () => {
     expect(parseFloat(title.style.fontSize)).toBeGreaterThan(36);
     expect(panel.style.scrollbarGutter).toBe('stable');
     expect(parseFloat(panel.style.paddingRight)).toBeGreaterThan(parseFloat(panel.style.paddingLeft));
+  });
+
+  it('centers the panel with whole-pixel coordinates instead of transform-based positioning', async () => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1280 });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 720 });
+    const settings = cloneSettings();
+    const originalGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
+
+    HTMLElement.prototype.getBoundingClientRect = function() {
+      return DOMRect.fromRect({ x: 0, y: 0, width: 680, height: 420 });
+    };
+
+    try {
+      await act(async () => {
+        root = createRoot(container);
+        root.render(
+          <SettingsPanel
+            settings={settings}
+            lang="ko"
+            effectiveVisible
+            open
+            onClose={() => {}}
+            onUpdate={() => {}}
+            accentColor="#4fd1c5"
+            availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json', locale: 'ko-KR' }]}
+            selectedItemId={null}
+          />,
+        );
+      });
+
+      const panel = container.querySelector('[data-settings-panel-shell="true"]') as HTMLDivElement | null;
+      const wrapper = container.querySelector('[data-settings-panel-wrapper="true"]') as HTMLDivElement | null;
+
+      expect(panel).not.toBeNull();
+      expect(wrapper).not.toBeNull();
+      if (!panel || !wrapper) {
+        throw new Error('expected settings panel wrapper and shell to render');
+      }
+
+      expect(panel.style.transform).toBe('none');
+      expect(wrapper.style.display).toBe('flex');
+      expect(wrapper.style.justifyContent).toBe('center');
+      expect(wrapper.style.alignItems).toBe('center');
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = originalGetBoundingClientRect;
+    }
   });
 
   it('gives the close button enough vertical box room to avoid clipped label text', async () => {
@@ -140,7 +186,7 @@ describe('SettingsPanel', () => {
       );
     });
 
-    const panel = container.firstElementChild as HTMLDivElement | null;
+    const panel = container.querySelector('[data-settings-panel-shell="true"]') as HTMLDivElement | null;
 
     expect(panel).not.toBeNull();
     if (!panel) {
@@ -188,7 +234,7 @@ describe('SettingsPanel', () => {
       HTMLElement.prototype.getBoundingClientRect = originalGetBoundingClientRect;
     }
 
-    const panel = container.firstElementChild as HTMLDivElement | null;
+    const panel = container.querySelector('[data-settings-panel-shell="true"]') as HTMLDivElement | null;
 
     expect(panel).not.toBeNull();
     if (!panel) {
@@ -235,7 +281,7 @@ describe('SettingsPanel', () => {
         );
       });
 
-      const panel = container.firstElementChild as HTMLDivElement | null;
+      const panel = container.querySelector('[data-settings-panel-shell="true"]') as HTMLDivElement | null;
       const handle = container.querySelector('[data-settings-panel-drag-handle="true"]') as HTMLDivElement | null;
 
       expect(panel).not.toBeNull();
@@ -298,7 +344,7 @@ describe('SettingsPanel', () => {
         );
       });
 
-      const panel = container.firstElementChild as HTMLDivElement | null;
+      const panel = container.querySelector('[data-settings-panel-shell="true"]') as HTMLDivElement | null;
       const handle = container.querySelector('[data-settings-panel-drag-handle="true"]') as HTMLDivElement | null;
 
       expect(panel).not.toBeNull();
@@ -366,7 +412,7 @@ describe('SettingsPanel', () => {
         window.dispatchEvent(new Event('resize'));
       });
 
-      const panel = container.firstElementChild as HTMLDivElement | null;
+      const panel = container.querySelector('[data-settings-panel-shell="true"]') as HTMLDivElement | null;
       expect(panel).not.toBeNull();
       if (!panel) {
         throw new Error('expected settings panel shell to render');
