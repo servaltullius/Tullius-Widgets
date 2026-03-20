@@ -290,9 +290,11 @@ export function SettingsPanel({
           style={{
             background: 'var(--tw-color-button-bg)',
             border: '1px solid var(--tw-color-button-border)',
-            color: 'var(--tw-color-panel-text)',
+            color: 'var(--tw-color-button-text)',
             fontSize: scalePanelPixels(22, panelScale),
+            fontWeight: 600,
             lineHeight: 1,
+            textShadow: '1px 1px 2px rgba(0,0,0,0.75)',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',

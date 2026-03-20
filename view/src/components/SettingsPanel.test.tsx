@@ -159,6 +159,9 @@ describe('SettingsPanel', () => {
     expect(closeButton.style.alignItems).toBe('center');
     expect(parseFloat(closeButton.style.minHeight)).toBeGreaterThan(parseFloat(closeButton.style.fontSize));
     expect(closeButton.style.lineHeight).toBe('1');
+    expect(closeButton.style.color).toBe('var(--tw-color-button-text)');
+    expect(closeButton.style.fontWeight).toBe('600');
+    expect(closeButton.style.textShadow).toBe('1px 1px 2px rgba(0,0,0,0.75)');
   });
 
   it('restores a stored panel position instead of always centering the shell', async () => {
