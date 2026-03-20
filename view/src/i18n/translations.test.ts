@@ -193,4 +193,18 @@ describe('translations', () => {
     expect(t('en', 'voiceShout')).toBe('Shout');
     expect(t('en', 'voicePower')).toBe('Power');
   });
+
+  it('includes font preset labels in bundled languages', () => {
+    expect(t('ko', 'fontPreset')).toBe('글꼴 프리셋');
+    expect(t('ko', 'fontPresetDefault')).toBe('기본');
+    expect(t('ko', 'fontPresetReadable')).toBe('가독성');
+    expect(t('ko', 'fontPresetCompact')).toBe('압축형');
+    expect(t('ko', 'fontPresetClassic')).toBe('고전형');
+
+    expect(t('en', 'fontPreset')).toBe('Font Preset');
+    expect(t('en', 'fontPresetDefault')).toBe('Default');
+    expect(t('en', 'fontPresetReadable')).toBe('Readable');
+    expect(t('en', 'fontPresetCompact')).toBe('Compact');
+    expect(t('en', 'fontPresetClassic')).toBe('Classic');
+  });
 });
