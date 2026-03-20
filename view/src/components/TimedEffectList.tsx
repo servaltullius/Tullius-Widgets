@@ -104,7 +104,7 @@ export function TimedEffectList({
     return (
       <div style={{
         color: '#a0a0a0',
-        fontFamily: 'sans-serif',
+        fontFamily: 'var(--tw-font-hud)',
         fontSize: '15px',
         fontWeight: 500,
         textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
@@ -160,7 +160,7 @@ export function TimedEffectList({
           <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
             <span style={{
               color: effect.isDebuff ? '#ff9a9a' : '#b7ffd0',
-              fontFamily: 'sans-serif',
+              fontFamily: 'var(--tw-font-hud)',
               fontSize: '16px',
               fontWeight: urgent ? 700 : 600,
               textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
@@ -174,7 +174,7 @@ export function TimedEffectList({
             {getSecondaryLabel(effect) && (
               <span style={{
                 color: '#c7d0dc',
-                fontFamily: 'sans-serif',
+                fontFamily: 'var(--tw-font-hud)',
                 fontSize: '12px',
                 fontWeight: 500,
                 textShadow: '1px 1px 2px rgba(0,0,0,0.75)',
@@ -190,7 +190,7 @@ export function TimedEffectList({
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: '52px' }}>
             <span style={{
               color: urgent ? '#ffd36a' : '#ffffff',
-              fontFamily: 'sans-serif',
+              fontFamily: 'var(--tw-font-hud)',
               fontSize: '16px',
               fontWeight: 700,
               textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
@@ -201,7 +201,7 @@ export function TimedEffectList({
             </span>
             <span style={{
               color: '#b8c2d0',
-              fontFamily: 'sans-serif',
+              fontFamily: 'var(--tw-font-hud)',
               fontSize: '11px',
               fontWeight: 600,
               textShadow: '1px 1px 2px rgba(0,0,0,0.75)',
@@ -216,7 +216,7 @@ export function TimedEffectList({
       {hiddenCount > 0 && (
         <div style={{
           color: '#cfcfcf',
-          fontFamily: 'sans-serif',
+          fontFamily: 'var(--tw-font-hud)',
           fontSize: '14px',
           fontWeight: 500,
           textAlign: layout === 'horizontal' ? 'left' : 'right',

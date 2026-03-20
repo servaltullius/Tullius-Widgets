@@ -483,6 +483,39 @@ describe('HudWidgetItems', () => {
     expect(gameTimeWidget.textContent).not.toContain('4E');
   });
 
+  it('applies the shared hud font variable to stat widget values', async () => {
+    const settings = cloneSettings();
+    const stats = cloneStats();
+    const itemLayouts = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+
+    hideAllItems(itemLayouts);
+    itemLayouts['player.gold'] = { ...itemLayouts['player.gold'], visible: true };
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <HudWidgetItems
+          shouldShow
+          stats={stats}
+          settings={settings}
+          settingsOpen={false}
+          lang="ko"
+          itemLayouts={itemLayouts}
+          accentColor="#4fd1c5"
+        />,
+      );
+    });
+
+    const goldWidget = getWidget(container, 'player.gold');
+    const valueNode = goldWidget.querySelector('span') as HTMLSpanElement | null;
+
+    expect(valueNode?.style.fontFamily).toBe('var(--tw-font-hud)');
+  });
+
   it('updates real time-only display with the shared clock', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-03-16T11:00:00Z'));

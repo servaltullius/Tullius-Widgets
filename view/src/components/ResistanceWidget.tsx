@@ -82,7 +82,7 @@ export const ResistanceWidget = memo(function ResistanceWidget(props: Resistance
         data-resistance-primary="true"
         style={{
           color: resolveValueColor(isAtCap, isNegative),
-          fontFamily: 'sans-serif',
+          fontFamily: 'var(--tw-font-hud)',
           fontSize: '18px',
           fontWeight: 700,
           lineHeight: 1,
@@ -98,7 +98,7 @@ export const ResistanceWidget = memo(function ResistanceWidget(props: Resistance
           data-resistance-secondary="true"
           style={{
             color: secondaryColor,
-            fontFamily: 'sans-serif',
+            fontFamily: 'var(--tw-font-hud)',
             fontSize: '10px',
             fontWeight: 600,
             lineHeight: 1,

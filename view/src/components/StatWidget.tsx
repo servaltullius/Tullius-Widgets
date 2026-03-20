@@ -230,7 +230,7 @@ export const StatWidget = memo(function StatWidget({
             style={{
               display: 'inline-block',
               color: valueColor,
-              fontFamily: 'sans-serif',
+              fontFamily: 'var(--tw-font-hud)',
               fontSize: styles.fontSize,
               fontWeight: prominence === 'primary' ? 700 : 600,
               textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
@@ -248,7 +248,7 @@ export const StatWidget = memo(function StatWidget({
         {helperText && (
           <span style={{
             color: helperColor,
-            fontFamily: 'sans-serif',
+            fontFamily: 'var(--tw-font-hud)',
             fontSize: styles.helperFontSize,
             fontWeight: 600,
             textShadow: '1px 1px 2px rgba(0,0,0,0.75)',

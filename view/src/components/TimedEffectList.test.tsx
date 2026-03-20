@@ -127,5 +127,6 @@ describe('TimedEffectList', () => {
     });
 
     expect(container.textContent).toContain('표시할 지속 효과 없음');
+    expect((container.firstElementChild as HTMLDivElement | null)?.style.fontFamily).toBe('var(--tw-font-hud)');
   });
 });

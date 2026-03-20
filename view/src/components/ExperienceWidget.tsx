@@ -153,7 +153,7 @@ export const ExperienceWidget = memo(function ExperienceWidget({
       <span
         style={{
           color: '#ffffff',
-          fontFamily: 'sans-serif',
+          fontFamily: 'var(--tw-font-hud)',
           fontSize: '14px',
           fontWeight: 700,
           textShadow: '1px 1px 2px rgba(0,0,0,0.82)',

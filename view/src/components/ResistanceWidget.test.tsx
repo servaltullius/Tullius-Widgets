@@ -52,6 +52,8 @@ describe('ResistanceWidget', () => {
 
     expect(primary?.textContent).toBe('45%');
     expect(secondary?.textContent).toBe('120%');
+    expect(primary?.style.fontFamily).toBe('var(--tw-font-hud)');
+    expect(secondary?.style.fontFamily).toBe('var(--tw-font-hud)');
     expect(icon).toBeTruthy();
     expect(iconImage?.style.width).toBe('42px');
     expect(iconImage?.style.height).toBe('42px');

@@ -40,6 +40,8 @@ describe('ExperienceWidget', () => {
 
     expect(container.textContent).toContain('레벨 57 · 123,456 / 987,654');
     expect(container.textContent).not.toContain('12%');
+    const bottomLine = Array.from(container.querySelectorAll('span')).find(element => element.textContent?.includes('레벨 57'));
+    expect((bottomLine as HTMLSpanElement | undefined)?.style.fontFamily).toBe('var(--tw-font-hud)');
     const iconImage = container.querySelector('img[src*="experience"]');
     expect(iconImage).toBeTruthy();
     expect((iconImage as HTMLImageElement | null)?.style.objectFit).toBe('contain');
