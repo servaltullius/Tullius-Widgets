@@ -88,6 +88,44 @@ describe('SettingsTabSections', () => {
     expect(container.textContent).not.toContain('크기');
   });
 
+  it('renders the font preset selector and updates the general fontPreset path', async () => {
+    const settings = cloneSettings();
+    const onUpdate = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <GeneralTabSections
+          lang="ko"
+          settings={settings}
+          selectedLanguage="ko"
+          effectiveVisible={settings.general.visible}
+          onUpdate={onUpdate}
+          accentColor="#ffffff"
+          availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json' }]}
+          isSectionExpanded={() => true}
+          toggleSection={() => {}}
+        />,
+      );
+    });
+
+    const fontPresetSelect = getByTestId(container, 'font-preset-select');
+    expect(fontPresetSelect).toBeTruthy();
+
+    await act(async () => {
+      fontPresetSelect?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    const readableOption = getByTestIdFromDocument('font-preset-select-option-readable');
+    expect(readableOption).toBeTruthy();
+
+    await act(async () => {
+      readableOption?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(onUpdate).toHaveBeenCalledWith('general.fontPreset', 'readable');
+  });
+
   it('resets layout tools through canonical itemLayouts instead of legacy positions', async () => {
     const settings = cloneSettings();
     const onUpdate = vi.fn();

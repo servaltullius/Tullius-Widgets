@@ -3,6 +3,7 @@ import { t, type LocalizationLanguageEntry } from '../../i18n/translations';
 import { AccordionSection, CustomSelect, Toggle } from './SettingsControls';
 import { PresetSection } from './PresetSection';
 import { scalePanelPixels } from './panelScale';
+import { FONT_PRESET_OPTIONS } from '../../utils/fontPresets';
 
 const PRESET_COLORS = [
   '', '#6699cc', '#cc6666', '#66cc99', '#cc99cc', '#ccaa66', '#66cccc', '#ffffff',
@@ -113,6 +114,13 @@ function buildTimedEffectsLayoutOptions(lang: Language) {
   ];
 }
 
+function buildFontPresetOptions(lang: Language) {
+  return FONT_PRESET_OPTIONS.map(option => ({
+    value: option.value,
+    label: t(lang, option.labelKey),
+  }));
+}
+
 interface GeneralTabSectionsProps extends SectionControlProps {
   settings: WidgetSettings;
   selectedLanguage: Language;
@@ -134,6 +142,8 @@ export function GeneralTabSections({
   toggleSection,
   panelScale = 1,
 }: GeneralTabSectionsProps) {
+  const fontPresetOptions = buildFontPresetOptions(lang);
+
   return (
     <AccordionSection
       id="generalMain"
@@ -186,6 +196,15 @@ export function GeneralTabSections({
           panelScale={panelScale}
         />
       </label>
+
+      <SelectRow
+        label={t(lang, 'fontPreset')}
+        value={settings.general.fontPreset}
+        options={fontPresetOptions}
+        onChange={nextValue => onUpdate('general.fontPreset', nextValue)}
+        panelScale={panelScale}
+        testId="font-preset-select"
+      />
 
       <div style={{ padding: `${scalePanelPixels(8, panelScale)} 0` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: scalePanelPixels(8, panelScale) }}>
