@@ -61,6 +61,15 @@ function getWidget(container: HTMLDivElement, itemId: string): HTMLDivElement | 
   return container.querySelector(`[data-widget-item-id="${itemId}"]`) as HTMLDivElement | null;
 }
 
+function dispatchArrowKey(key: string, options: { shiftKey?: boolean } = {}) {
+  window.dispatchEvent(new KeyboardEvent('keydown', {
+    key,
+    bubbles: true,
+    cancelable: true,
+    shiftKey: options.shiftKey ?? false,
+  }));
+}
+
 async function waitForFrame() {
   await new Promise<void>(resolve => {
     window.requestAnimationFrame(() => resolve());
@@ -315,6 +324,70 @@ describe('App quick-edit integration', () => {
     expect(restoredWidget).not.toBeNull();
     expect(parsePx(restoredWidget!.style.left)).toBe(originalX);
     expect(parsePx(restoredWidget!.style.top)).toBe(originalY);
+  });
+
+  it('nudges the selected widget with arrow keys and shift-arrow acceleration', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<App />);
+    });
+
+    const playerLevelLayout = getDefaultPlayerLevelLayout();
+
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({
+        itemLayouts: {
+          'player.level': {
+            ...playerLevelLayout,
+            visible: true,
+          },
+        },
+      }));
+    });
+
+    await act(async () => {
+      (window as TestWindow).toggleSettings?.();
+    });
+
+    const selectedWidget = getWidget(container, 'player.level');
+    expect(selectedWidget).not.toBeNull();
+    if (!selectedWidget) {
+      throw new Error('expected player.level widget to render');
+    }
+
+    const originalX = parsePx(selectedWidget.style.left);
+    const originalY = parsePx(selectedWidget.style.top);
+
+    await act(async () => {
+      selectedWidget.dispatchEvent(new MouseEvent('mousedown', {
+        bubbles: true,
+        clientX: originalX + 8,
+        clientY: originalY + 8,
+      }));
+      window.dispatchEvent(new MouseEvent('mouseup', {
+        bubbles: true,
+        clientX: originalX + 8,
+        clientY: originalY + 8,
+      }));
+    });
+
+    await act(async () => {
+      dispatchArrowKey('ArrowRight');
+    });
+
+    const onceNudgedWidget = getWidget(container, 'player.level');
+    expect(onceNudgedWidget).not.toBeNull();
+    expect(parsePx(onceNudgedWidget!.style.left)).toBe(originalX + 1);
+    expect(parsePx(onceNudgedWidget!.style.top)).toBe(originalY);
+
+    await act(async () => {
+      dispatchArrowKey('ArrowDown', { shiftKey: true });
+    });
+
+    const shiftedWidget = getWidget(container, 'player.level');
+    expect(shiftedWidget).not.toBeNull();
+    expect(parsePx(shiftedWidget!.style.left)).toBe(originalX + 1);
+    expect(parsePx(shiftedWidget!.style.top)).toBe(originalY + 10);
   });
 
   it('applies resistance display mode and disease visibility changes from the settings panel to the live HUD', async () => {

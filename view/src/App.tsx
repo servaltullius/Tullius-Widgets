@@ -8,6 +8,7 @@ import { useGameStatsState } from './hooks/useGameStats';
 import { useSettings } from './hooks/useSettings';
 import { useWidgetEditSelection } from './hooks/useWidgetEditSelection';
 import { createSelectedItemLayoutActions } from './hooks/useSelectedItemLayoutActions';
+import { useWidgetKeyboardNudge } from './hooks/useWidgetKeyboardNudge';
 import { useLocalization } from './i18n/useLocalization';
 import { useWidgetItemLayouts } from './hooks/useWidgetItemLayouts';
 import type { WidgetItemLayout } from './types/settings';
@@ -90,6 +91,12 @@ export function App() {
       updateSetting,
     });
   }, [canonicalItemLayouts, selectedItemId, settings, updateSetting, viewport.height, viewport.width]);
+
+  useWidgetKeyboardNudge({
+    enabled: settingsOpen && selectedItemId !== null,
+    selectedItemId,
+    selectedItemLayoutActions,
+  });
 
   const clearPreviewState = useCallback(() => {
     setPreviewLayouts(previous => (Object.keys(previous).length === 0 ? previous : {}));
