@@ -68,6 +68,7 @@ export function App() {
   const [previewLayouts, setPreviewLayouts] = useState<Record<string, WidgetItemLayout>>({});
   const [activeGuides, setActiveGuides] = useState<AlignmentGuide[]>([]);
   const itemElementRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const keyboardGuideTimeoutRef = useRef<number | null>(null);
   const {
     selectedItemId,
     interactionResetToken,
@@ -92,16 +93,18 @@ export function App() {
     });
   }, [canonicalItemLayouts, selectedItemId, settings, updateSetting, viewport.height, viewport.width]);
 
-  useWidgetKeyboardNudge({
-    enabled: settingsOpen && selectedItemId !== null,
-    selectedItemId,
-    selectedItemLayoutActions,
-  });
+  const clearKeyboardGuideTimeout = useCallback(() => {
+    if (keyboardGuideTimeoutRef.current !== null) {
+      window.clearTimeout(keyboardGuideTimeoutRef.current);
+      keyboardGuideTimeoutRef.current = null;
+    }
+  }, []);
 
   const clearPreviewState = useCallback(() => {
+    clearKeyboardGuideTimeout();
     setPreviewLayouts(previous => (Object.keys(previous).length === 0 ? previous : {}));
     setActiveGuides(previous => (previous.length === 0 ? previous : []));
-  }, []);
+  }, [clearKeyboardGuideTimeout]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -218,6 +221,32 @@ export function App() {
     setActiveGuides(snapped.guides);
   }, [canonicalItemLayouts, computeMovePreview]);
 
+  const handleKeyboardNudge = useCallback((deltaX: number, deltaY: number) => {
+    if (!selectedItemId) {
+      return;
+    }
+
+    const baseLayout = canonicalItemLayouts[selectedItemId];
+    if (!baseLayout) {
+      return;
+    }
+
+    const preview = computeMovePreview(selectedItemId, baseLayout.x + deltaX, baseLayout.y + deltaY);
+    clearKeyboardGuideTimeout();
+    setActiveGuides(preview.guides);
+    keyboardGuideTimeoutRef.current = window.setTimeout(() => {
+      keyboardGuideTimeoutRef.current = null;
+      setActiveGuides(previous => (previous.length === 0 ? previous : []));
+    }, 300);
+  }, [canonicalItemLayouts, clearKeyboardGuideTimeout, computeMovePreview, selectedItemId]);
+
+  useWidgetKeyboardNudge({
+    enabled: settingsOpen && selectedItemId !== null,
+    selectedItemId,
+    selectedItemLayoutActions,
+    onKeyboardNudge: handleKeyboardNudge,
+  });
+
   const handleMoveItemEnd = useCallback((itemId: string, rawX: number, rawY: number) => {
     const snapped = computeMovePreview(itemId, rawX, rawY);
     updateSetting(`itemLayouts.${itemId}.x`, snapped.position.x, { persist: false });
@@ -265,6 +294,12 @@ export function App() {
     });
     setActiveGuides([]);
   }, [updateSetting]);
+
+  useEffect(() => {
+    return () => {
+      clearKeyboardGuideTimeout();
+    };
+  }, [clearKeyboardGuideTimeout]);
 
   return (
     <div data-testid="app-font-theme" style={fontVariables}>

@@ -135,6 +135,7 @@ describe('App quick-edit integration', () => {
     window.sessionStorage.clear();
     selectedActionSnapshots.length = 0;
     globalThis.fetch = originalFetch;
+    vi.useRealTimers();
     delete reactActEnvironment.IS_REACT_ACT_ENVIRONMENT;
   });
 
@@ -388,6 +389,78 @@ describe('App quick-edit integration', () => {
     expect(shiftedWidget).not.toBeNull();
     expect(parsePx(shiftedWidget!.style.left)).toBe(originalX + 1);
     expect(parsePx(shiftedWidget!.style.top)).toBe(originalY + 10);
+  });
+
+  it('shows temporary alignment guides for keyboard nudges without snapping the widget position', async () => {
+    vi.useFakeTimers();
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<App />);
+    });
+
+    const playerLevelLayout = getDefaultPlayerLevelLayout();
+
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({
+        itemLayouts: {
+          'player.level': {
+            ...playerLevelLayout,
+            visible: true,
+          },
+        },
+      }));
+    });
+
+    await act(async () => {
+      (window as TestWindow).toggleSettings?.();
+    });
+
+    const selectedWidget = getWidget(container, 'player.level');
+    expect(selectedWidget).not.toBeNull();
+    if (!selectedWidget) {
+      throw new Error('expected player.level widget to render');
+    }
+
+    const originalX = parsePx(selectedWidget.style.left);
+    const originalY = parsePx(selectedWidget.style.top);
+
+    await act(async () => {
+      selectedWidget.dispatchEvent(new MouseEvent('mousedown', {
+        bubbles: true,
+        clientX: originalX + 8,
+        clientY: originalY + 8,
+      }));
+      window.dispatchEvent(new MouseEvent('mouseup', {
+        bubbles: true,
+        clientX: originalX + 8,
+        clientY: originalY + 8,
+      }));
+    });
+
+    expect(container.querySelectorAll('[data-guide-line]').length).toBe(0);
+
+    await act(async () => {
+      dispatchArrowKey('ArrowRight');
+    });
+
+    const nudgedWidget = getWidget(container, 'player.level');
+    expect(nudgedWidget).not.toBeNull();
+    expect(parsePx(nudgedWidget!.style.left)).toBe(originalX + 1);
+    expect(parsePx(nudgedWidget!.style.top)).toBe(originalY);
+    expect(container.querySelectorAll('[data-guide-line]').length).toBeGreaterThan(0);
+
+    await act(async () => {
+      vi.advanceTimersByTime(299);
+    });
+
+    expect(container.querySelectorAll('[data-guide-line]').length).toBeGreaterThan(0);
+
+    await act(async () => {
+      vi.advanceTimersByTime(1);
+    });
+
+    expect(container.querySelectorAll('[data-guide-line]').length).toBe(0);
   });
 
   it('does not nudge the selected widget while the quick-edit size slider is focused', async () => {
