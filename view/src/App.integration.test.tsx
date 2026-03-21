@@ -390,6 +390,65 @@ describe('App quick-edit integration', () => {
     expect(parsePx(shiftedWidget!.style.top)).toBe(originalY + 10);
   });
 
+  it('does not nudge the selected widget while the quick-edit size slider is focused', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<App />);
+    });
+
+    const playerLevelLayout = getDefaultPlayerLevelLayout();
+
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({
+        itemLayouts: {
+          'player.level': {
+            ...playerLevelLayout,
+            visible: true,
+          },
+        },
+      }));
+    });
+
+    await act(async () => {
+      (window as TestWindow).toggleSettings?.();
+    });
+
+    const selectedWidget = getWidget(container, 'player.level');
+    expect(selectedWidget).not.toBeNull();
+    if (!selectedWidget) {
+      throw new Error('expected player.level widget to render');
+    }
+
+    const originalX = parsePx(selectedWidget.style.left);
+    const originalY = parsePx(selectedWidget.style.top);
+
+    await act(async () => {
+      selectedWidget.dispatchEvent(new MouseEvent('mousedown', {
+        bubbles: true,
+        clientX: originalX + 8,
+        clientY: originalY + 8,
+      }));
+      window.dispatchEvent(new MouseEvent('mouseup', {
+        bubbles: true,
+        clientX: originalX + 8,
+        clientY: originalY + 8,
+      }));
+    });
+
+    const sizeSlider = container.querySelector('[data-quick-edit-size-slider="true"]') as HTMLInputElement | null;
+    expect(sizeSlider).not.toBeNull();
+    sizeSlider?.focus();
+
+    await act(async () => {
+      dispatchArrowKey('ArrowRight');
+    });
+
+    const unchangedWidget = getWidget(container, 'player.level');
+    expect(unchangedWidget).not.toBeNull();
+    expect(parsePx(unchangedWidget!.style.left)).toBe(originalX);
+    expect(parsePx(unchangedWidget!.style.top)).toBe(originalY);
+  });
+
   it('applies resistance display mode and disease visibility changes from the settings panel to the live HUD', async () => {
     await act(async () => {
       root = createRoot(container);
