@@ -5,6 +5,7 @@ interface UseWidgetKeyboardNudgeParams {
   enabled: boolean;
   selectedItemId: string | null;
   selectedItemLayoutActions?: SelectedItemLayoutActions | null;
+  onKeyboardNudge?: (deltaX: number, deltaY: number) => void;
 }
 
 function isFormControlElement(element: Element | null): boolean {
@@ -20,6 +21,7 @@ export function useWidgetKeyboardNudge({
   enabled,
   selectedItemId,
   selectedItemLayoutActions,
+  onKeyboardNudge,
 }: UseWidgetKeyboardNudgeParams): void {
   useEffect(() => {
     if (!enabled) {
@@ -55,9 +57,10 @@ export function useWidgetKeyboardNudge({
       }
 
       selectedItemLayoutActions.nudgeSelectedItem(delta[0], delta[1]);
+      onKeyboardNudge?.(delta[0], delta[1]);
     };
 
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [enabled, selectedItemId, selectedItemLayoutActions]);
+  }, [enabled, onKeyboardNudge, selectedItemId, selectedItemLayoutActions]);
 }

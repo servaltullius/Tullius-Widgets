@@ -18,15 +18,18 @@ function Harness({
   enabled = true,
   selectedItemId = 'player.level',
   actions,
+  onKeyboardNudge,
 }: {
   enabled?: boolean;
   selectedItemId?: string | null;
   actions: SelectedItemLayoutActions;
+  onKeyboardNudge?: (deltaX: number, deltaY: number) => void;
 }) {
   useWidgetKeyboardNudge({
     enabled,
     selectedItemId,
     selectedItemLayoutActions: actions,
+    onKeyboardNudge,
   });
 
   useEffect(() => {}, []);
@@ -65,10 +68,11 @@ describe('useWidgetKeyboardNudge', () => {
       bringSelectedItemForward: vi.fn(() => false),
       sendSelectedItemBackward: vi.fn(() => false),
     };
+    const onKeyboardNudge = vi.fn();
 
     await act(async () => {
       root = createRoot(container);
-      root.render(<Harness actions={actions} />);
+      root.render(<Harness actions={actions} onKeyboardNudge={onKeyboardNudge} />);
     });
 
     await act(async () => {
@@ -76,6 +80,7 @@ describe('useWidgetKeyboardNudge', () => {
     });
 
     expect(actions.nudgeSelectedItem).toHaveBeenCalledWith(1, 0);
+    expect(onKeyboardNudge).toHaveBeenCalledWith(1, 0);
   });
 
   it('nudges by 10px when shift is held', async () => {
@@ -88,10 +93,11 @@ describe('useWidgetKeyboardNudge', () => {
       bringSelectedItemForward: vi.fn(() => false),
       sendSelectedItemBackward: vi.fn(() => false),
     };
+    const onKeyboardNudge = vi.fn();
 
     await act(async () => {
       root = createRoot(container);
-      root.render(<Harness actions={actions} />);
+      root.render(<Harness actions={actions} onKeyboardNudge={onKeyboardNudge} />);
     });
 
     await act(async () => {
@@ -99,6 +105,7 @@ describe('useWidgetKeyboardNudge', () => {
     });
 
     expect(actions.nudgeSelectedItem).toHaveBeenCalledWith(0, 10);
+    expect(onKeyboardNudge).toHaveBeenCalledWith(0, 10);
   });
 
   it('does nothing when no widget is selected', async () => {
@@ -134,13 +141,14 @@ describe('useWidgetKeyboardNudge', () => {
       bringSelectedItemForward: vi.fn(() => false),
       sendSelectedItemBackward: vi.fn(() => false),
     };
+    const onKeyboardNudge = vi.fn();
 
     const input = document.createElement('input');
     document.body.appendChild(input);
 
     await act(async () => {
       root = createRoot(container);
-      root.render(<Harness actions={actions} />);
+      root.render(<Harness actions={actions} onKeyboardNudge={onKeyboardNudge} />);
     });
 
     input.focus();
@@ -149,5 +157,6 @@ describe('useWidgetKeyboardNudge', () => {
     });
 
     expect(actions.nudgeSelectedItem).not.toHaveBeenCalled();
+    expect(onKeyboardNudge).not.toHaveBeenCalled();
   });
 });
