@@ -17,6 +17,22 @@ Describe "release-local helpers" {
     $result | Should Be $null
   }
 
+  It "resolves repo-local publish paths to absolute WSL paths" {
+    $wslContext = @{
+      Distro = "Ubuntu"
+      LinuxPath = "/home/sample/workspace/Tullius Widgets"
+    }
+
+    (Resolve-WslRepoPath -WslContext $wslContext -Path "docs/release-notes/1.2.1-rc.3.ko.md") |
+      Should Be "/home/sample/workspace/Tullius Widgets/docs/release-notes/1.2.1-rc.3.ko.md"
+    (Resolve-WslRepoPath -WslContext $wslContext -Path ".\\TulliusWidgets-v1.2.1-rc.3.zip") |
+      Should Be "/home/sample/workspace/Tullius Widgets/TulliusWidgets-v1.2.1-rc.3.zip"
+    (Resolve-WslRepoPath -WslContext $wslContext -Path "/tmp/already-linux-path.zip") |
+      Should Be "/tmp/already-linux-path.zip"
+    (Resolve-WslRepoPath -Path "TulliusWidgets-v1.2.1-rc.3.zip") |
+      Should Be "TulliusWidgets-v1.2.1-rc.3.zip"
+  }
+
   It "parses version from xmake.lua style content" {
     $root = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
     $xmakePath = Join-Path $root "xmake.lua"

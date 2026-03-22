@@ -45,6 +45,8 @@ function Invoke-ReleaseLocal {
     $title = "Tullius Widgets v$version"
     $notePath = "docs/release-notes/$version.ko.md"
     $zipName = "TulliusWidgets-v$version.zip"
+    $publishNotePath = Resolve-WslRepoPath -WslContext $wslContext -Path $notePath
+    $publishZipPath = Resolve-WslRepoPath -WslContext $wslContext -Path $zipName
 
     Assert-ReleaseNote -Path $notePath
 
@@ -174,7 +176,7 @@ function Invoke-ReleaseLocal {
     $releaseExists = ($releaseViewResult.ExitCode -eq 0)
 
     if (-not $releaseExists) {
-      $createArgs = @("release", "create", $tag, $zipName, "--repo", $Repo, "--title", $title, "--notes-file", $notePath)
+      $createArgs = @("release", "create", $tag, $publishZipPath, "--repo", $Repo, "--title", $title, "--notes-file", $publishNotePath)
       if ($Channel -eq "pre") {
         $createArgs += "--prerelease"
       } elseif ($Channel -eq "draft") {
@@ -184,8 +186,8 @@ function Invoke-ReleaseLocal {
       }
       Invoke-GhCommand -Arguments $createArgs -WslContext $wslContext
     } else {
-      Invoke-GhCommand -Arguments @("release", "upload", $tag, $zipName, "--repo", $Repo, "--clobber") -WslContext $wslContext
-      $editArgs = @("release", "edit", $tag, "--repo", $Repo, "--title", $title, "--notes-file", $notePath)
+      Invoke-GhCommand -Arguments @("release", "upload", $tag, $publishZipPath, "--repo", $Repo, "--clobber") -WslContext $wslContext
+      $editArgs = @("release", "edit", $tag, "--repo", $Repo, "--title", $title, "--notes-file", $publishNotePath)
       if ($Channel -eq "pre") {
         $editArgs += "--prerelease"
       } elseif ($Channel -eq "draft") {

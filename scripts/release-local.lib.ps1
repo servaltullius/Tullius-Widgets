@@ -525,6 +525,26 @@ function Get-WslContext {
   }
 }
 
+function Resolve-WslRepoPath {
+  param(
+    [hashtable]$WslContext,
+    [string]$Path
+  )
+
+  if (-not $WslContext -or [string]::IsNullOrWhiteSpace($Path)) {
+    return $Path
+  }
+
+  $normalizedPath = $Path -replace '\\', '/'
+  if ($normalizedPath.StartsWith("/")) {
+    return $normalizedPath
+  }
+
+  $normalizedPath = $normalizedPath -replace '^\.(/)+', ''
+
+  return ($WslContext.LinuxPath.TrimEnd('/') + "/" + $normalizedPath)
+}
+
 function Invoke-GitInRepo {
   param(
     [string]$RepoRoot = (Get-Location).Path,
