@@ -123,7 +123,7 @@ exit /b 1
     $binDir = Join-Path $root "bin"
     $originalPath = $env:PATH
     New-Item -ItemType Directory -Path $binDir -Force | Out-Null
-    Set-Content -Path (Join-Path $binDir "gh.cmd") -Value "@echo off`r`nexit /b 1`r`n" -Encoding ASCII
+    Set-Content -Path (Join-Path $binDir "gh.cmd") -Value "@echo off`r`necho gh-local-failed 1>&2`r`nexit /b 1`r`n" -Encoding ASCII
     $env:PATH = "$binDir;$originalPath"
 
     try {
@@ -134,6 +134,7 @@ exit /b 1
       catch {
         $threw = $true
         $_.Exception.Message | Should Match "gh command failed"
+        $_.Exception.Message | Should Match "gh-local-failed"
       }
 
       $threw | Should Be $true
@@ -189,6 +190,60 @@ exit /b 1
       if (Test-Path $root) {
         Remove-Item -LiteralPath $root -Recurse -Force
       }
+    }
+  }
+
+  It "returns WSL gh output and exit code when WslContext is provided" {
+    $originalGetResolvedCommand = (Get-Item function:Get-ResolvedCommand).ScriptBlock
+    $originalInvokeProcessWithOutput = (Get-Item function:Invoke-ProcessWithOutput).ScriptBlock
+    $script:releaseLocalTestCaptured = $null
+
+    try {
+      Set-Item -Path function:Get-ResolvedCommand -Value {
+        param([string]$Name)
+        if ($Name -eq "wsl") {
+          return "wsl.exe"
+        }
+        & $originalGetResolvedCommand $Name
+      }
+
+      Set-Item -Path function:Invoke-ProcessWithOutput -Value {
+        param(
+          [string]$FilePath,
+          [string[]]$ArgumentList,
+          [string]$WorkingDirectory
+        )
+
+        $script:releaseLocalTestCaptured = @{
+          FilePath = $FilePath
+          ArgumentList = $ArgumentList
+          WorkingDirectory = $WorkingDirectory
+        }
+
+        return @{
+          Output = "gh-wsl-ok"
+          ExitCode = 0
+        }
+      }
+
+      $result = Invoke-GhCommand `
+        -Arguments @("release", "view", "v1.2.1-rc.3") `
+        -WslContext @{
+          Distro = "Ubuntu"
+          LinuxPath = "/home/sample/workspace/Tullius Widgets"
+        }
+
+      $result.ExitCode | Should Be 0
+      $result.Output.Trim() | Should Be "gh-wsl-ok"
+      $script:releaseLocalTestCaptured.FilePath | Should Be "wsl.exe"
+      $script:releaseLocalTestCaptured.WorkingDirectory | Should Match "Windows"
+      ($script:releaseLocalTestCaptured.ArgumentList -join " ") | Should Match "-d Ubuntu bash -lc"
+      ($script:releaseLocalTestCaptured.ArgumentList -join " ") | Should Match "gh 'release' 'view' 'v1.2.1-rc.3'"
+    }
+    finally {
+      $script:releaseLocalTestCaptured = $null
+      Set-Item -Path function:Get-ResolvedCommand -Value $originalGetResolvedCommand
+      Set-Item -Path function:Invoke-ProcessWithOutput -Value $originalInvokeProcessWithOutput
     }
   }
 

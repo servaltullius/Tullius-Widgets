@@ -221,11 +221,23 @@ function Invoke-WslBashCommand {
     [string]$BashCommand
   )
 
-  return Invoke-CmdBatchScriptWithOutput -WorkingDirectory $env:SystemRoot -ScriptLines @(
-    "@echo off",
-    "wsl.exe -d `"$Distro`" bash -lc `"$BashCommand`"",
-    "exit /b %errorlevel%"
-  )
+  $wslCommand = Get-ResolvedCommand "wsl"
+  if (-not $wslCommand) {
+    throw "Required command not found: wsl"
+  }
+
+  $bootstrapLocation = if ($env:SystemRoot -and (Test-Path $env:SystemRoot)) {
+    $env:SystemRoot
+  } elseif ($env:SystemDrive) {
+    "$($env:SystemDrive)\"
+  } else {
+    "C:\"
+  }
+
+  return Invoke-ProcessWithOutput `
+    -FilePath $wslCommand `
+    -ArgumentList @("-d", $Distro, "bash", "-lc", $BashCommand) `
+    -WorkingDirectory $bootstrapLocation
 }
 
 function Invoke-GhCommand {
@@ -234,6 +246,17 @@ function Invoke-GhCommand {
     [hashtable]$WslContext,
     [switch]$AllowFailure
   )
+
+  $formatFailureMessage = {
+    param($Result)
+
+    $message = "gh command failed with exit code $($Result.ExitCode): gh $($Arguments -join ' ')"
+    if ($Result.Output -and -not [string]::IsNullOrWhiteSpace($Result.Output)) {
+      return "$message`n$($Result.Output.TrimEnd())"
+    }
+
+    return $message
+  }
 
   if ($WslContext) {
     $repoLinuxPath = Escape-BashSingleQuoted ($WslContext.LinuxPath.TrimEnd('/'))
@@ -244,7 +267,7 @@ function Invoke-GhCommand {
     $result = Invoke-WslBashCommand -Distro $WslContext.Distro -BashCommand $bashCommand
 
     if (-not $AllowFailure -and $result.ExitCode -ne 0) {
-      throw "gh command failed with exit code $($result.ExitCode): gh $($Arguments -join ' ')"
+      throw (& $formatFailureMessage $result)
     }
     return $result
   }
@@ -256,7 +279,7 @@ function Invoke-GhCommand {
       -ArgumentList $Arguments `
       -WorkingDirectory ((Get-Location).Path)
     if (-not $AllowFailure -and $result.ExitCode -ne 0) {
-      throw "gh command failed with exit code $($result.ExitCode): gh $($Arguments -join ' ')"
+      throw (& $formatFailureMessage $result)
     }
     return $result
   }
