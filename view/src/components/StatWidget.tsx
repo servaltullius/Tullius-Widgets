@@ -87,8 +87,48 @@ const prominenceStyles = {
   },
 } as const;
 
+function hexToRgba(hex: string, alpha: number): string {
+  const normalized = hex.replace('#', '');
+  const r = Number.parseInt(normalized.slice(0, 2), 16) || 0;
+  const g = Number.parseInt(normalized.slice(2, 4), 16) || 0;
+  const b = Number.parseInt(normalized.slice(4, 6), 16) || 0;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 function clampPercent(value: number): number {
   return Math.min(100, Math.max(0, value));
+}
+
+function buildBadgePlateStyle(size: number, iconColor: string) {
+  return {
+    width: `${size}px`,
+    height: `${size}px`,
+    borderRadius: '50%',
+    background: 'linear-gradient(180deg, rgba(24, 30, 42, 0.98) 0%, rgba(7, 9, 16, 0.98) 100%)',
+    border: '1px solid rgba(255, 255, 255, 0.72)',
+    boxShadow: `0 0 0 1px ${hexToRgba(iconColor, 0.5)}, 0 3px 8px rgba(0, 0, 0, 0.58)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  };
+}
+
+function buildBadgeAccentStyle(iconColor: string) {
+  return {
+    position: 'absolute' as const,
+    inset: '2px',
+    borderRadius: '50%',
+    background: `radial-gradient(circle at 35% 30%, ${hexToRgba(iconColor, 0.55)} 0%, ${hexToRgba(iconColor, 0.18)} 58%, rgba(0, 0, 0, 0) 100%)`,
+    opacity: 0.95,
+  };
+}
+
+function buildBadgeGlyphStyle(iconColor: string) {
+  return {
+    position: 'relative' as const,
+    filter: `drop-shadow(0 0 2px ${hexToRgba(iconColor, 0.72)}) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.95))`,
+  };
 }
 
 function resolveValueColor(
@@ -161,6 +201,10 @@ export const StatWidget = memo(function StatWidget({
 
   const iconSrc = iconMap[icon];
   const BadgeIcon = badgeIconMap[icon];
+  const fallbackBadgeStyle = buildBadgePlateStyle(styles.iconSize, iconColor);
+  const overlayBadgeStyle = buildBadgePlateStyle(styles.badgeSize, iconColor);
+  const badgeAccentStyle = buildBadgeAccentStyle(iconColor);
+  const badgeGlyphStyle = buildBadgeGlyphStyle(iconColor);
 
   return (
     <div style={{
@@ -174,7 +218,7 @@ export const StatWidget = memo(function StatWidget({
         width: `${styles.iconSize}px`,
         height: `${styles.iconSize}px`,
         filter: iconSrc ? 'none' : `drop-shadow(0 0 3px ${iconColor}66)`,
-      }}>
+      }} data-stat-icon="true">
         {iconSrc ? (
           <img
             src={iconSrc}
@@ -191,17 +235,9 @@ export const StatWidget = memo(function StatWidget({
             }}
           />
         ) : BadgeIcon ? (
-          <div style={{
-            width: `${styles.iconSize}px`,
-            height: `${styles.iconSize}px`,
-            borderRadius: '50%',
-            background: 'rgba(0, 0, 0, 0.65)',
-            border: `1px solid ${iconColor}aa`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <BadgeIcon size={styles.glyphSize} color={iconColor} strokeWidth={2.2} />
+          <div style={{ position: 'relative', ...fallbackBadgeStyle }} data-stat-icon-fallback="true">
+            <div aria-hidden="true" style={badgeAccentStyle} />
+            <BadgeIcon size={styles.glyphSize} color="#ffffff" strokeWidth={2.2} style={badgeGlyphStyle} />
           </div>
         ) : null}
         {iconSrc && BadgeIcon && (
@@ -209,16 +245,10 @@ export const StatWidget = memo(function StatWidget({
             position: 'absolute',
             right: '-3px',
             bottom: '-3px',
-            width: `${styles.badgeSize}px`,
-            height: `${styles.badgeSize}px`,
-            borderRadius: '50%',
-            background: 'rgba(0, 0, 0, 0.75)',
-            border: `1px solid ${iconColor}aa`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <BadgeIcon size={styles.badgeIconSize} color={iconColor} strokeWidth={2.5} />
+            ...overlayBadgeStyle,
+          }} data-stat-icon-badge="true">
+            <div aria-hidden="true" style={badgeAccentStyle} data-stat-icon-badge-accent="true" />
+            <BadgeIcon size={styles.badgeIconSize} color="#ffffff" strokeWidth={2.5} style={badgeGlyphStyle} />
           </div>
         )}
       </div>
