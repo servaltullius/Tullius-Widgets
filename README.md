@@ -1,6 +1,6 @@
 # Tullius Widgets
 
-Skyrim SE용 전투 스탯 HUD 위젯 모드. [Prisma UI](https://www.nexusmods.com/skyrimspecialedition/mods/117592) 프레임워크 기반.
+Skyrim SE용 전투 스탯 HUD 위젯 모드. [Prisma UI](https://www.nexusmods.com/skyrimspecialedition/mods/148718) 프레임워크 기반.
 
 ![Widgets](docs/screenshot-widgets.png)
 
@@ -40,7 +40,7 @@ Skyrim SE용 전투 스탯 HUD 위젯 모드. [Prisma UI](https://www.nexusmods.
 
 - Skyrim SE (1.5.97 / 1.6.x)
 - [SKSE64](https://skse.silverlock.org/)
-- [Prisma UI](https://www.nexusmods.com/skyrimspecialedition/mods/117592)
+- [Prisma UI](https://www.nexusmods.com/skyrimspecialedition/mods/148718)
 - [Address Library for SKSE Plugins](https://www.nexusmods.com/skyrimspecialedition/mods/32444)
 
 ## Installation
@@ -206,7 +206,7 @@ python3 scripts/install_hooks.py --force
 
 - **C++ SKSE Plugin** — C++23, [CommonLib-NG](https://github.com/CharmedBaryon/CommonLibSSE-NG), XMake
 - **Frontend** — React 19, TypeScript, Vite, [lucide-react](https://lucide.dev/)
-- **UI Framework** — [Prisma UI](https://www.nexusmods.com/skyrimspecialedition/mods/117592) (WebKit-based DX11 overlay)
+- **UI Framework** — [Prisma UI](https://www.nexusmods.com/skyrimspecialedition/mods/148718) (WebKit-based DX11 overlay)
 
 ## License
 
