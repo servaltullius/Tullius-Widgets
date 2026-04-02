@@ -78,6 +78,7 @@ test('settings sync bridge result includes optional revision-aware ack support',
 test('menu visibility heuristics cover transient photo or capture menus', () => {
   assert.match(widgetEventsText, /#include "WidgetVisibilityState\.h"/);
   assert.match(widgetRuntimeText, /#include "WidgetVisibilityState\.h"/);
+  assert.match(widgetVisibilityStateText, /RE::DialogueMenu::MENU_NAME/);
   assert.match(widgetVisibilityStateText, /"photo"/);
   assert.match(widgetVisibilityStateText, /"screenshot"/);
   assert.match(widgetVisibilityStateText, /IsInFreeCameraMode\(\)/);

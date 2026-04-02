@@ -14,7 +14,7 @@ namespace {
 
 std::atomic<std::uint32_t> g_transientHideMenuCount{ 0 };
 
-static constexpr std::array<std::string_view, 19> kKnownHiddenMenus = {
+static constexpr std::array<std::string_view, 20> kKnownHiddenMenus = {
     RE::InventoryMenu::MENU_NAME,
     RE::MagicMenu::MENU_NAME,
     RE::MapMenu::MENU_NAME,
@@ -24,6 +24,7 @@ static constexpr std::array<std::string_view, 19> kKnownHiddenMenus = {
     RE::ContainerMenu::MENU_NAME,
     RE::BarterMenu::MENU_NAME,
     RE::GiftMenu::MENU_NAME,
+    RE::DialogueMenu::MENU_NAME,
     RE::LockpickingMenu::MENU_NAME,
     RE::BookMenu::MENU_NAME,
     RE::FavoritesMenu::MENU_NAME,
