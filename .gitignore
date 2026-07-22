@@ -35,9 +35,3 @@ __pycache__/
 # Worktrees
 .worktrees/
 .superpowers/
-
-# vibe-kit
-.vibe/db/
-.vibe/reports/
-.vibe/locks/
-.vibe/context/LATEST_CONTEXT.md

@@ -42,7 +42,6 @@ pwsh -File .\scripts\release-local.ps1 -NoPublish
 ### Pre-commit hook
 - The repo-managed hook entrypoint is `scripts/precommit.py`.
 - Install or refresh it with `python3 scripts/install_hooks.py --force`.
-- Do not restore the old `.vibe/brain/precommit.py` hook path in this repo. `.vibe/` is not a required runtime dependency here.
 - The current pre-commit checks are intentionally lightweight:
   - staged `view/` changes: `npm run lint`
   - staged Python files: `py_compile`
