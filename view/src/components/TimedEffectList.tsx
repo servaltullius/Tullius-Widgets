@@ -101,129 +101,36 @@ export function TimedEffectList({
   const hiddenCount = Math.max(0, sorted.length - visible.length);
 
   if (visible.length === 0) {
-    return (
-      <div style={{
-        color: '#a0a0a0',
-        fontFamily: 'var(--tw-font-hud)',
-        fontSize: '15px',
-        fontWeight: 500,
-        textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-        whiteSpace: 'nowrap',
-      }}>
-        {emptyLabel}
-      </div>
-    );
+    return <div className="tw-effect-empty">{emptyLabel}</div>;
   }
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: layout === 'horizontal' ? 'row-reverse' : 'column',
-      flexWrap: layout === 'horizontal' ? 'wrap' : 'nowrap',
-      gap: '6px',
-      minWidth: layout === 'horizontal' ? '0' : '240px',
-    }}>
+    <div className="tw-effect-list" data-layout={layout}>
       {visible.map(({ effect, displayedRemainingSec, progressPct, urgent }) => (
         <div
+          className="tw-effect-row"
+          data-debuff={effect.isDebuff ? 'true' : 'false'}
+          data-urgent={urgent ? 'true' : 'false'}
           key={effect.stableKey}
-          style={{
-            position: 'relative',
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: '12px',
-            padding: '7px 10px 9px',
-            borderRadius: '10px',
-            background: effect.isDebuff
-              ? 'linear-gradient(135deg, rgba(120, 28, 28, 0.34) 0%, rgba(32, 12, 12, 0.7) 100%)'
-              : 'linear-gradient(135deg, rgba(22, 92, 54, 0.26) 0%, rgba(10, 20, 16, 0.68) 100%)',
-            border: effect.isDebuff
-              ? '1px solid rgba(255, 123, 123, 0.26)'
-              : '1px solid rgba(140, 255, 176, 0.22)',
-            overflow: 'hidden',
-          }}
         >
-          <div style={{
-            position: 'absolute',
-            left: 0,
-            bottom: 0,
-            height: '3px',
-            width: `${progressPct}%`,
-            background: urgent
-              ? '#ffd36a'
-              : effect.isDebuff ? '#ff8d8d' : '#8cffb0',
-            boxShadow: urgent
-              ? '0 0 10px rgba(255, 211, 106, 0.65)'
-              : effect.isDebuff
-                ? '0 0 10px rgba(255, 141, 141, 0.55)'
-                : '0 0 10px rgba(140, 255, 176, 0.45)',
-          }} />
-          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            <span style={{
-              color: effect.isDebuff ? '#ff9a9a' : '#b7ffd0',
-              fontFamily: 'var(--tw-font-hud)',
-              fontSize: '16px',
-              fontWeight: urgent ? 700 : 600,
-              textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              maxWidth: '210px',
-            }}>
-              {getPrimaryLabel(effect)}
-            </span>
+          <div className="tw-effect-labels">
+            <span className="tw-effect-primary">{getPrimaryLabel(effect)}</span>
             {getSecondaryLabel(effect) && (
-              <span style={{
-                color: '#c7d0dc',
-                fontFamily: 'var(--tw-font-hud)',
-                fontSize: '12px',
-                fontWeight: 500,
-                textShadow: '1px 1px 2px rgba(0,0,0,0.75)',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                maxWidth: '210px',
-              }}>
-                {getSecondaryLabel(effect)}
-              </span>
+              <span className="tw-effect-secondary">{getSecondaryLabel(effect)}</span>
             )}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: '52px' }}>
-            <span style={{
-              color: urgent ? '#ffd36a' : '#ffffff',
-              fontFamily: 'var(--tw-font-hud)',
-              fontSize: '16px',
-              fontWeight: 700,
-              textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-              textAlign: 'right',
-              whiteSpace: 'nowrap',
-            }}>
-              {formatRemainingSec(displayedRemainingSec)}
-            </span>
-            <span style={{
-              color: '#b8c2d0',
-              fontFamily: 'var(--tw-font-hud)',
-              fontSize: '11px',
-              fontWeight: 600,
-              textShadow: '1px 1px 2px rgba(0,0,0,0.75)',
-              whiteSpace: 'nowrap',
-            }}>
-              {Math.round(progressPct)}%
-            </span>
+          <div className="tw-effect-time-copy">
+            <span className="tw-effect-time">{formatRemainingSec(displayedRemainingSec)}</span>
+            <span className="tw-effect-percent">{Math.round(progressPct)}%</span>
+          </div>
+          <div className="tw-effect-progress" aria-hidden="true">
+            <div className="tw-effect-progress-fill" style={{ width: `${progressPct}%` }} />
           </div>
         </div>
       ))}
 
       {hiddenCount > 0 && (
-        <div style={{
-          color: '#cfcfcf',
-          fontFamily: 'var(--tw-font-hud)',
-          fontSize: '14px',
-          fontWeight: 500,
-          textAlign: layout === 'horizontal' ? 'left' : 'right',
-          textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-        }}>
-          +{hiddenCount}
-        </div>
+        <div className="tw-effect-hidden-count">+{hiddenCount}</div>
       )}
     </div>
   );

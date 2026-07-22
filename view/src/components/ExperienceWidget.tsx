@@ -1,12 +1,8 @@
 import { memo } from 'react';
-import { TrendingUp } from 'lucide-react';
 import { iconMap } from '../assets/icons';
 import { t } from '../i18n/translations';
 import type { IconTheme, Language } from '../types/settings';
-import {
-  EXPERIENCE_AVATAR_PRESENTATION,
-  getExperienceRingStroke,
-} from './experiencePresentation';
+import { getExperienceProgressPresentation } from './experiencePresentation';
 
 interface ExperienceWidgetProps {
   currentXp: number;
@@ -35,146 +31,58 @@ export const ExperienceWidget = memo(function ExperienceWidget({
     safeCurrentXp,
     safeTotalXp,
     percent,
-    radius,
-    circumference,
-    dashOffset,
-    innerMedallionSize,
-  } = getExperienceRingStroke(currentXp, totalXp);
-  const displayValue = `${formatInteger(safeCurrentXp)} / ${formatInteger(safeTotalXp)}`;
+  } = getExperienceProgressPresentation(currentXp, totalXp);
+  const currentDisplay = formatInteger(safeCurrentXp);
+  const totalDisplay = formatInteger(safeTotalXp);
+  const displayValue = `${currentDisplay} / ${totalDisplay}`;
   const safeLevel = Math.max(1, Math.round(level));
   const tooltip = `${t(lang, 'experienceProgress')}: ${displayValue} XP`;
   const experienceIconSrc = iconTheme === 'dororong' ? iconMap.experience : undefined;
-  const bottomLine = `${t(lang, 'level')} ${safeLevel} · ${displayValue}`;
-  const {
-    medallionSize,
-    ringThickness,
-    ringFillColor,
-    ringTrackColor,
-    innerBackground,
-    innerBorder,
-    iconObjectFit,
-    iconObjectPosition,
-  } = EXPERIENCE_AVATAR_PRESENTATION;
 
   return (
-    <div
-      title={tooltip}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '2px 0',
-      }}
-    >
+    <div className="tw-experience-widget" title={tooltip} data-experience-widget="true">
       <div
-        role="progressbar"
-        aria-label={t(lang, 'experienceProgress')}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={percent}
-        title={tooltip}
-        style={{
-          width: `${medallionSize}px`,
-          height: `${medallionSize}px`,
-          borderRadius: '50%',
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
+        className="tw-experience-level-mark"
+        data-experience-icon-theme={iconTheme}
+        aria-label={`${t(lang, 'level')} ${safeLevel}`}
       >
-        <svg
-          aria-hidden="true"
-          width={medallionSize}
-          height={medallionSize}
-          viewBox={`0 0 ${medallionSize} ${medallionSize}`}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            overflow: 'visible',
-          }}
-        >
-          <circle
-            data-testid="experience-ring-track"
-            cx={medallionSize / 2}
-            cy={medallionSize / 2}
-            r={radius}
-            fill="none"
-            stroke={ringTrackColor}
-            strokeWidth={ringThickness}
+        {experienceIconSrc ? (
+          <img
+            src={experienceIconSrc}
+            alt=""
+            aria-hidden="true"
+            data-experience-image="true"
           />
-          <circle
-            data-testid="experience-ring-fill"
-            cx={medallionSize / 2}
-            cy={medallionSize / 2}
-            r={radius}
-            fill="none"
-            stroke={ringFillColor}
-            strokeWidth={ringThickness}
-            strokeLinecap="round"
-            strokeDasharray={`${circumference} ${circumference}`}
-            strokeDashoffset={dashOffset}
-            transform={`rotate(-90 ${medallionSize / 2} ${medallionSize / 2})`}
-            style={{
-              filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.28))',
-            }}
-          />
-        </svg>
+        ) : (
+          <span data-experience-level-value="true">{safeLevel}</span>
+        )}
+      </div>
+
+      <div className="tw-experience-copy">
+        <div className="tw-experience-meta">
+          <span className="tw-experience-level-label">
+            {t(lang, 'level')} {safeLevel}
+          </span>
+          <span className="tw-experience-value" data-experience-value="true">
+            {currentDisplay}<small> / {totalDisplay}</small>
+          </span>
+        </div>
         <div
-          data-experience-icon-theme={iconTheme}
-          style={{
-            width: `${innerMedallionSize}px`,
-            height: `${innerMedallionSize}px`,
-            borderRadius: '50%',
-            background: innerBackground,
-            border: innerBorder,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden',
-          }}
+          className="tw-experience-track"
+          role="progressbar"
+          aria-label={t(lang, 'experienceProgress')}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={percent}
+          title={tooltip}
         >
-          {experienceIconSrc ? (
-            <img
-              src={experienceIconSrc}
-              alt=""
-              aria-hidden="true"
-              width={74}
-              height={74}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: iconObjectFit,
-                objectPosition: iconObjectPosition,
-              }}
-            />
-          ) : (
-            <TrendingUp
-              data-experience-standard-icon="true"
-              aria-hidden="true"
-              size={44}
-              color="#ffffff"
-              strokeWidth={2.2}
-              style={{ filter: 'drop-shadow(0 0 3px rgba(255, 255, 255, 0.42))' }}
-            />
-          )}
+          <div
+            className="tw-experience-fill"
+            data-testid="experience-bar-fill"
+            style={{ width: `${percent}%` }}
+          />
         </div>
       </div>
-      <span
-        style={{
-          color: '#ffffff',
-          fontFamily: 'var(--tw-font-hud)',
-          fontSize: '14px',
-          fontWeight: 700,
-          textShadow: '1px 1px 2px rgba(0,0,0,0.82)',
-          lineHeight: 1.15,
-          whiteSpace: 'nowrap',
-          textAlign: 'center',
-        }}
-      >
-        {bottomLine}
-      </span>
     </div>
   );
 });

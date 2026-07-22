@@ -28,6 +28,7 @@ import {
   useSharedTimeWidgetClock,
 } from '../utils/timeWidgetShared';
 import { sortItemIdsByZIndex } from '../utils/itemLayoutEditing';
+import '../assets/hud-widgets.css';
 
 const ELEMENTAL_RESIST_CAP = 85;
 const DISEASE_RESIST_MIN = 0;
@@ -404,12 +405,14 @@ export function HudWidgetItems({
                 iconTheme={settings.general.iconTheme}
                 icon="magic"
                 iconColor="#b366ff"
+                label={t(lang, 'magic')}
                 value={presentation.value}
                 unit="%"
                 visible
                 cap={presentation.cap}
                 secondaryValue={presentation.secondaryValue}
                 secondaryUnit="%"
+                secondaryLabel={rawLabel}
                 secondaryTone={stats.calcMeta.rawResistances.magic > elementalCap + 0.05 ? 'warning' : 'neutral'}
                 tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.magic)}% | ${capLabel} <= ${elementalCap}%`}
               />
@@ -428,12 +431,14 @@ export function HudWidgetItems({
                 iconTheme={settings.general.iconTheme}
                 icon="fire"
                 iconColor="#ff6633"
+                label={t(lang, 'fire')}
                 value={presentation.value}
                 unit="%"
                 visible
                 cap={presentation.cap}
                 secondaryValue={presentation.secondaryValue}
                 secondaryUnit="%"
+                secondaryLabel={rawLabel}
                 secondaryTone={stats.calcMeta.rawResistances.fire > elementalCap + 0.05 ? 'warning' : 'neutral'}
                 tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.fire)}% | ${capLabel} <= ${elementalCap}%`}
               />
@@ -452,12 +457,14 @@ export function HudWidgetItems({
                 iconTheme={settings.general.iconTheme}
                 icon="frost"
                 iconColor="#66ccff"
+                label={t(lang, 'frost')}
                 value={presentation.value}
                 unit="%"
                 visible
                 cap={presentation.cap}
                 secondaryValue={presentation.secondaryValue}
                 secondaryUnit="%"
+                secondaryLabel={rawLabel}
                 secondaryTone={stats.calcMeta.rawResistances.frost > elementalCap + 0.05 ? 'warning' : 'neutral'}
                 tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.frost)}% | ${capLabel} <= ${elementalCap}%`}
               />
@@ -476,12 +483,14 @@ export function HudWidgetItems({
                 iconTheme={settings.general.iconTheme}
                 icon="shock"
                 iconColor="#ffdd33"
+                label={t(lang, 'shock')}
                 value={presentation.value}
                 unit="%"
                 visible
                 cap={presentation.cap}
                 secondaryValue={presentation.secondaryValue}
                 secondaryUnit="%"
+                secondaryLabel={rawLabel}
                 secondaryTone={stats.calcMeta.rawResistances.shock > elementalCap + 0.05 ? 'warning' : 'neutral'}
                 tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.shock)}% | ${capLabel} <= ${elementalCap}%`}
               />
@@ -500,12 +509,14 @@ export function HudWidgetItems({
                 iconTheme={settings.general.iconTheme}
                 icon="poison"
                 iconColor="#66ff66"
+                label={t(lang, 'poison')}
                 value={presentation.value}
                 unit="%"
                 visible
                 cap={presentation.cap}
                 secondaryValue={presentation.secondaryValue}
                 secondaryUnit="%"
+                secondaryLabel={rawLabel}
                 secondaryTone={stats.calcMeta.rawResistances.poison > elementalCap + 0.05 ? 'warning' : 'neutral'}
                 tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.poison)}% | ${capLabel} <= ${elementalCap}%`}
               />
@@ -524,6 +535,7 @@ export function HudWidgetItems({
                 iconTheme={settings.general.iconTheme}
                 icon="disease"
                 iconColor="#99cc66"
+                label={t(lang, 'disease')}
                 value={presentation.value}
                 unit="%"
                 visible
@@ -531,6 +543,7 @@ export function HudWidgetItems({
                 cap={presentation.cap}
                 secondaryValue={presentation.secondaryValue}
                 secondaryUnit="%"
+                secondaryLabel={rawLabel}
                 secondaryTone={stats.calcMeta.rawResistances.disease > diseaseCap + 0.05 ? 'warning' : 'neutral'}
                 tooltip={`${rawLabel} ${Math.round(stats.calcMeta.rawResistances.disease)}% | ${capLabel} <= ${diseaseCap}%`}
               />
@@ -565,11 +578,11 @@ export function HudWidgetItems({
             ));
           case 'offense.rightHandDamage':
             return renderEditableItem((
-              <StatWidget {...statIconProps} icon="rightHand" iconColor="#e85050" value={stats.offense.rightHandDamage} visible min={WEAPON_DAMAGE_MIN} cap={WEAPON_DAMAGE_CAP} />
+              <StatWidget {...statIconProps} icon="rightHand" standardIcon="rightHandDamage" iconColor="#e85050" value={stats.offense.rightHandDamage} visible min={WEAPON_DAMAGE_MIN} cap={WEAPON_DAMAGE_CAP} />
             ));
           case 'offense.leftHandDamage':
             return renderEditableItem((
-              <StatWidget {...statIconProps} icon="leftHand" iconColor="#e88080" value={stats.offense.leftHandDamage} visible min={WEAPON_DAMAGE_MIN} cap={WEAPON_DAMAGE_CAP} />
+              <StatWidget {...statIconProps} icon="leftHand" standardIcon="leftHandDamage" iconColor="#e88080" value={stats.offense.leftHandDamage} visible min={WEAPON_DAMAGE_MIN} cap={WEAPON_DAMAGE_CAP} />
             ));
           case 'offense.critChance':
             return renderEditableItem((
@@ -592,6 +605,7 @@ export function HudWidgetItems({
               <StatWidget
                 {...statIconProps}
                 icon="rightHand"
+                standardIcon="rightHandEquipped"
                 iconColor="#e85050"
                 value={stats.equipped.rightHand || t(lang, 'equippedEmpty')}
                 visible
@@ -604,6 +618,7 @@ export function HudWidgetItems({
               <StatWidget
                 {...statIconProps}
                 icon="leftHand"
+                standardIcon="leftHandEquipped"
                 iconColor="#4090e8"
                 value={stats.equipped.leftHand || t(lang, 'equippedEmpty')}
                 visible

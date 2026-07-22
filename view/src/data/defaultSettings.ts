@@ -15,7 +15,7 @@ export const defaultSettings: WidgetSettings = {
     iconTheme: 'standard',
     showIconBadges: false,
     accentColor: '',
-    transparentBg: true,
+    transparentBg: false,
   },
   resistances: {
     magic: true,

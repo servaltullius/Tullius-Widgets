@@ -24,7 +24,7 @@ describe('ExperienceWidget', () => {
     delete reactActEnvironment.IS_REACT_ACT_ENVIRONMENT;
   });
 
-  it('renders integrated progression details with a stable progressbar hook', async () => {
+  it('renders a level mark and thin horizontal progress bar', async () => {
     await act(async () => {
       root = createRoot(container);
       root.render(
@@ -38,33 +38,21 @@ describe('ExperienceWidget', () => {
       );
     });
 
-    expect(container.textContent).toContain('레벨 57 · 123,456 / 987,654');
-    expect(container.textContent).not.toContain('12%');
-    const bottomLine = Array.from(container.querySelectorAll('span')).find(element => element.textContent?.includes('레벨 57'));
-    expect((bottomLine as HTMLSpanElement | undefined)?.style.fontFamily).toBe('var(--tw-font-hud)');
-    expect(container.querySelector('img[src*="experience"]')).toBeNull();
-    expect(container.querySelector('[data-experience-standard-icon="true"]')).toBeTruthy();
+    expect(container.textContent).toContain('레벨 57');
+    expect(container.textContent).toContain('123,456');
+    expect(container.textContent).toContain('987,654');
+    expect(container.querySelector('[data-experience-level-value="true"]')?.textContent).toBe('57');
     expect(container.querySelector('[data-experience-icon-theme="standard"]')).toBeTruthy();
+
     const progressbar = container.querySelector('[role="progressbar"]');
-    expect(progressbar).toBeTruthy();
-    expect(progressbar?.textContent).toBe('');
+    const fill = container.querySelector('[data-testid="experience-bar-fill"]') as HTMLDivElement | null;
     expect(progressbar?.getAttribute('aria-valuenow')).toBe('12');
     expect(progressbar?.getAttribute('title')).toContain('경험치 진행도: 123,456 / 987,654 XP');
-    const ringFill = container.querySelector('[data-testid="experience-ring-fill"]');
-    expect(ringFill).toBeTruthy();
-    expect(ringFill?.getAttribute('stroke')).toBe('#ffffff');
-    expect(ringFill?.getAttribute('stroke-width')).toBe('6');
-    const dashArray = Number.parseFloat(ringFill?.getAttribute('stroke-dasharray')?.split(' ')[0] ?? '0');
-    const dashOffset = Number.parseFloat(ringFill?.getAttribute('stroke-dashoffset') ?? '0');
-    expect(dashArray).toBeGreaterThan(0);
-    expect(dashOffset).toBeGreaterThan(0);
-    expect(dashOffset).toBeLessThan(dashArray);
-    const ringTrack = container.querySelector('[data-testid="experience-ring-track"]');
-    expect(ringTrack).toBeTruthy();
-    expect(ringTrack?.getAttribute('stroke')).toBe('rgba(255, 255, 255, 0.22)');
+    expect(fill?.style.width).toBe('12%');
+    expect(container.querySelector('[data-testid="experience-ring-fill"]')).toBeNull();
   });
 
-  it('keeps the Dororong experience image geometrically centered without a forced offset', async () => {
+  it('keeps the Dororong experience image centered inside the level mark', async () => {
     await act(async () => {
       root = createRoot(container);
       root.render(
@@ -79,14 +67,10 @@ describe('ExperienceWidget', () => {
       );
     });
 
-    const iconImage = container.querySelector('img[src*="experience"]') as HTMLImageElement | null;
+    const iconImage = container.querySelector('[data-experience-image="true"]') as HTMLImageElement | null;
     expect(iconImage).toBeTruthy();
-    expect(iconImage?.style.objectFit).toBe('contain');
-    expect(iconImage?.style.objectPosition).toBe('center center');
-    expect(iconImage?.style.width).toBe('100%');
-    expect(iconImage?.style.height).toBe('100%');
-    expect(iconImage?.style.transform).toBe('');
     expect(container.querySelector('[data-experience-icon-theme="dororong"]')).toBeTruthy();
+    expect(container.textContent).toContain('레벨 10');
   });
 
   it('clamps visible progress safely for bad inputs', async () => {
@@ -104,14 +88,9 @@ describe('ExperienceWidget', () => {
     });
 
     const progressbar = container.querySelector('[role="progressbar"]');
-    expect(progressbar).toBeTruthy();
+    const fill = container.querySelector('[data-testid="experience-bar-fill"]') as HTMLDivElement | null;
     expect(progressbar?.getAttribute('aria-valuenow')).toBe('100');
-    expect(container.textContent).toContain('레벨 1 · 1,300 / 1,000');
-    expect(container.textContent).not.toContain('100%');
     expect(progressbar?.getAttribute('title')).toContain('경험치 진행도: 1,300 / 1,000 XP');
-    const ringFill = container.querySelector('[data-testid="experience-ring-fill"]');
-    expect(ringFill).toBeTruthy();
-    const dashOffset = Number.parseFloat(ringFill?.getAttribute('stroke-dashoffset') ?? '1');
-    expect(dashOffset).toBeCloseTo(0, 3);
+    expect(fill?.style.width).toBe('100%');
   });
 });

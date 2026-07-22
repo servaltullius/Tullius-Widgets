@@ -255,9 +255,11 @@ describe('HudWidgetItems', () => {
     const progressionWidget = getWidget(container, 'experience.progress');
     expect(progressionWidget.querySelector('[role="progressbar"]')).toBeTruthy();
     expect(progressionWidget.querySelector('[data-experience-icon-theme="standard"]')).toBeTruthy();
-    expect(progressionWidget.textContent).toContain('레벨 42 · 72,450 / 76,000');
+    expect(progressionWidget.textContent).toContain('레벨 42');
+    expect(progressionWidget.textContent).toContain('72,450 / 76,000');
     expect(progressionWidget.textContent).not.toContain('95%');
-    expect(container.querySelector('[data-widget-item-id="player.level"]')).toBeTruthy();
+    expect(progressionWidget.getAttribute('data-widget-independent')).toBe('true');
+    expect(container.querySelector('[data-widget-item-id="player.level"]')?.getAttribute('data-widget-independent')).toBe('true');
 
     const nextItemLayouts = {
       ...itemLayouts,
@@ -484,7 +486,7 @@ describe('HudWidgetItems', () => {
     expect(gameTimeWidget.textContent).not.toContain('4E');
   });
 
-  it('applies the shared hud font variable to stat widget values', async () => {
+  it('applies the shared Nordic-neutral value class to stat widgets', async () => {
     const settings = cloneSettings();
     const stats = cloneStats();
     const itemLayouts = resolveWidgetItemLayouts({
@@ -512,9 +514,62 @@ describe('HudWidgetItems', () => {
     });
 
     const goldWidget = getWidget(container, 'player.gold');
-    const valueNode = goldWidget.querySelector('span') as HTMLSpanElement | null;
+    const valueNode = goldWidget.querySelector('[data-stat-value="true"]') as HTMLSpanElement | null;
 
-    expect(valueNode?.style.fontFamily).toBe('var(--tw-font-hud)');
+    expect(valueNode?.classList.contains('tw-stat-value')).toBe(true);
+  });
+
+  it('uses distinct standard icons for hand damage and equipped items', async () => {
+    const settings = cloneSettings();
+    const stats = cloneStats();
+    const itemLayouts = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+
+    hideAllItems(itemLayouts);
+    for (const itemId of [
+      'offense.rightHandDamage',
+      'offense.leftHandDamage',
+      'equipped.rightHand',
+      'equipped.leftHand',
+    ]) {
+      itemLayouts[itemId] = { ...itemLayouts[itemId], visible: true };
+    }
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <HudWidgetItems
+          shouldShow
+          stats={stats}
+          settings={settings}
+          settingsOpen={false}
+          lang="ko"
+          itemLayouts={itemLayouts}
+          accentColor="#4fd1c5"
+        />,
+      );
+    });
+
+    const iconKey = (itemId: string) => getWidget(container, itemId)
+      .querySelector('[data-standard-icon]')
+      ?.getAttribute('data-standard-icon');
+    const iconClass = (itemId: string) => getWidget(container, itemId)
+      .querySelector('[data-standard-icon] svg')
+      ?.getAttribute('class');
+
+    expect(iconKey('offense.rightHandDamage')).toBe('rightHandDamage');
+    expect(iconKey('equipped.rightHand')).toBe('rightHandEquipped');
+    expect(iconKey('offense.leftHandDamage')).toBe('leftHandDamage');
+    expect(iconKey('equipped.leftHand')).toBe('leftHandEquipped');
+    expect(iconKey('offense.rightHandDamage')).not.toBe(iconKey('equipped.rightHand'));
+    expect(iconKey('offense.leftHandDamage')).not.toBe(iconKey('equipped.leftHand'));
+    expect(iconClass('offense.rightHandDamage')).toContain('lucide-swords');
+    expect(iconClass('equipped.rightHand')).toContain('lucide-hand-fist');
+    expect(iconClass('offense.leftHandDamage')).toContain('lucide-sword');
+    expect(iconClass('equipped.leftHand')).toContain('lucide-hand');
   });
 
   it('updates real time-only display with the shared clock', async () => {

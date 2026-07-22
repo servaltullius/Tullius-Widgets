@@ -151,6 +151,7 @@ export function resetItemToDefaultPlacement(params: {
     settings: {
       ...settings,
       positions: {},
+      layouts: {},
       groupScales: {},
       itemLayouts: {},
     },

@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, type CSSProperties } from 'react';
 import { iconMap } from '../assets/icons';
 import { standardStatIconMap } from '../data/standardStatIcons';
 import type { IconTheme } from '../types/settings';
@@ -6,6 +6,7 @@ import type { IconTheme } from '../types/settings';
 interface ResistanceWidgetProps {
   icon: string;
   iconColor: string;
+  label?: string;
   value: number | string;
   unit?: string;
   visible: boolean;
@@ -15,14 +16,23 @@ interface ResistanceWidgetProps {
   format?: (value: number) => string;
   secondaryValue?: number | string;
   secondaryUnit?: string;
+  secondaryLabel?: string;
   secondaryTone?: 'neutral' | 'warning';
   tooltip?: string;
 }
 
+function hexToRgba(hex: string, alpha: number): string {
+  const normalized = hex.replace('#', '');
+  const r = Number.parseInt(normalized.slice(0, 2), 16) || 0;
+  const g = Number.parseInt(normalized.slice(2, 4), 16) || 0;
+  const b = Number.parseInt(normalized.slice(4, 6), 16) || 0;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 function resolveValueColor(isAtCap: boolean, isNegative: boolean): string {
-  if (isAtCap) return '#ffd700';
-  if (isNegative) return '#ff8d8d';
-  return '#ffffff';
+  if (isAtCap) return '#d7c79a';
+  if (isNegative) return '#d98378';
+  return '#f2f4f5';
 }
 
 function formatDisplayValue(
@@ -42,21 +52,23 @@ function formatDisplayValue(
   return `${format ? format(displayValue) : Math.round(displayValue).toString()}${unit}`;
 }
 
-export const ResistanceWidget = memo(function ResistanceWidget(props: ResistanceWidgetProps) {
-  const {
-    icon,
-    value,
-    unit = '',
-    visible,
-    iconTheme = 'standard',
-    min,
-    cap,
-    format,
-    secondaryValue,
-    secondaryUnit = '',
-    secondaryTone = 'neutral',
-    tooltip,
-  } = props;
+export const ResistanceWidget = memo(function ResistanceWidget({
+  icon,
+  iconColor,
+  label,
+  value,
+  unit = '',
+  visible,
+  iconTheme = 'standard',
+  min,
+  cap,
+  format,
+  secondaryValue,
+  secondaryUnit = '',
+  secondaryLabel,
+  secondaryTone = 'neutral',
+  tooltip,
+}: ResistanceWidgetProps) {
   if (!visible) return null;
 
   const iconSrc = iconTheme === 'dororong' ? iconMap[icon] : undefined;
@@ -67,117 +79,60 @@ export const ResistanceWidget = memo(function ResistanceWidget(props: Resistance
     : formatDisplayValue(secondaryValue, secondaryUnit, undefined, undefined, format);
   const isAtCap = typeof value === 'number' && cap !== undefined && value >= cap;
   const isNegative = typeof value === 'number' && value < 0;
-  const secondaryColor = secondaryTone === 'warning' ? '#ffcf7a' : '#aeb8c6';
+  const secondaryColor = secondaryTone === 'warning' ? '#d6a65f' : '#7f888f';
+  const widgetStyle = {
+    '--tw-icon-color': iconColor,
+    '--tw-icon-accent': hexToRgba(iconColor, 0.88),
+    '--tw-icon-border': hexToRgba(iconColor, 0.46),
+    '--tw-icon-tint': hexToRgba(iconColor, 0.16),
+    '--tw-icon-glow': hexToRgba(iconColor, 0.3),
+    '--tw-value-color': resolveValueColor(isAtCap, isNegative),
+    '--tw-secondary-color': secondaryColor,
+  } as CSSProperties;
 
   return (
     <div
+      className="tw-resistance-widget"
       data-resistance-widget="true"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-        gap: '2px',
-        minWidth: '52px',
-        padding: '2px 0',
-      }}
+      style={widgetStyle}
       title={tooltip}
     >
-      <span
-        data-resistance-primary="true"
-        style={{
-          color: resolveValueColor(isAtCap, isNegative),
-          fontFamily: 'var(--tw-font-hud)',
-          fontSize: '18px',
-          fontWeight: 700,
-          lineHeight: 1,
-          textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-          whiteSpace: 'nowrap',
-          textAlign: 'center',
-        }}
-      >
-        {primaryDisplayValue}
-      </span>
-      {secondaryDisplayValue && (
-        <span
-          data-resistance-secondary="true"
-          style={{
-            color: secondaryColor,
-            fontFamily: 'var(--tw-font-hud)',
-            fontSize: '10px',
-            fontWeight: 600,
-            lineHeight: 1,
-            textShadow: '1px 1px 2px rgba(0,0,0,0.75)',
-            whiteSpace: 'nowrap',
-            textAlign: 'center',
-            opacity: 0.95,
-          }}
-        >
-          {secondaryDisplayValue}
-        </span>
-      )}
       <div
+        className="tw-resistance-icon-frame"
         data-resistance-icon="true"
+        data-standard-icon={icon}
+        data-resistance-icon-fallback={!iconSrc ? 'true' : undefined}
         data-icon-theme={iconTheme}
-        style={{
-          position: 'relative',
-          width: '34px',
-          height: '34px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          filter: iconSrc ? 'none' : `drop-shadow(0 0 3px ${props.iconColor}66)`,
-        }}
+        style={{ width: 30, height: 30 }}
       >
         {iconSrc ? (
           <img
             src={iconSrc}
             alt={icon}
-            style={{
-              position: 'absolute',
-              left: '-4px',
-              top: '-4px',
-              width: '42px',
-              height: '42px',
-              display: 'block',
-              objectFit: 'contain',
-              borderRadius: '6px',
-            }}
+            className="tw-resistance-icon-image"
+            style={{ left: -4, top: -4, width: 38, height: 38 }}
           />
         ) : StandardIcon ? (
-          <div
-            data-resistance-icon-fallback="true"
-            style={{
-              position: 'relative',
-              width: '34px',
-              height: '34px',
-              borderRadius: '50%',
-              background: 'linear-gradient(180deg, rgba(24, 30, 42, 0.98) 0%, rgba(7, 9, 16, 0.98) 100%)',
-              border: '1px solid rgba(255, 255, 255, 0.72)',
-              boxShadow: `0 0 0 1px ${props.iconColor}80, 0 3px 8px rgba(0, 0, 0, 0.58)`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              aria-hidden="true"
-              style={{
-                position: 'absolute',
-                inset: '2px',
-                borderRadius: '50%',
-                background: `radial-gradient(circle at 35% 30%, ${props.iconColor}8c 0%, ${props.iconColor}2e 58%, rgba(0, 0, 0, 0) 100%)`,
-              }}
-            />
-            <StandardIcon
-              size={20}
-              color="#ffffff"
-              strokeWidth={2.2}
-              style={{ position: 'relative', filter: `drop-shadow(0 0 2px ${props.iconColor}b8) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.95))` }}
-            />
-          </div>
+          <StandardIcon size={16} color="currentColor" strokeWidth={1.9} />
         ) : null}
+      </div>
+
+      <div className="tw-resistance-copy">
+        {label && (
+          <span className="tw-resistance-label" data-resistance-label="true">
+            {label}
+          </span>
+        )}
+        <div className="tw-resistance-values">
+          <span className="tw-resistance-primary" data-resistance-primary="true">
+            {primaryDisplayValue}
+          </span>
+          {secondaryDisplayValue && (
+            <span className="tw-resistance-secondary" data-resistance-secondary="true">
+              {secondaryLabel ? `${secondaryLabel} ` : ''}{secondaryDisplayValue}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

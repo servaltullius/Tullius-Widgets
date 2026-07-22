@@ -86,9 +86,8 @@ describe('TimedEffectList', () => {
 
     const list = container.firstElementChild as HTMLDivElement | null;
     expect(list).toBeTruthy();
-    expect(list?.style.display).toBe('flex');
-    expect(list?.style.flexDirection).toBe('column');
-    expect(list?.style.flexWrap).toBe('nowrap');
+    expect(list?.classList.contains('tw-effect-list')).toBe(true);
+    expect(list?.getAttribute('data-layout')).toBe('vertical');
     expect(list?.lastElementChild?.textContent).toBe('+1');
   });
 
@@ -107,9 +106,8 @@ describe('TimedEffectList', () => {
 
     const list = container.firstElementChild as HTMLDivElement | null;
     expect(list).toBeTruthy();
-    expect(list?.style.display).toBe('flex');
-    expect(list?.style.flexDirection).toBe('row-reverse');
-    expect(list?.style.flexWrap).toBe('wrap');
+    expect(list?.classList.contains('tw-effect-list')).toBe(true);
+    expect(list?.getAttribute('data-layout')).toBe('horizontal');
     expect(list?.lastElementChild?.textContent).toBe('+1');
   });
 
@@ -127,6 +125,6 @@ describe('TimedEffectList', () => {
     });
 
     expect(container.textContent).toContain('표시할 지속 효과 없음');
-    expect((container.firstElementChild as HTMLDivElement | null)?.style.fontFamily).toBe('var(--tw-font-hud)');
+    expect((container.firstElementChild as HTMLDivElement | null)?.classList.contains('tw-effect-empty')).toBe(true);
   });
 });

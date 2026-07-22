@@ -68,6 +68,8 @@ describe('EditableWidgetItem', () => {
     const resizeHandle = container.querySelector('[data-resize-handle="player.level"]') as HTMLButtonElement | null;
     expect(widget).not.toBeNull();
     expect(resizeHandle).not.toBeNull();
+    expect(widget?.getAttribute('data-widget-independent')).toBe('true');
+    expect(widget?.getAttribute('data-widget-surface')).toBe('framed');
     expect(widget?.style.border).toContain('2px solid');
     expect(widget?.style.zIndex).toBe('4');
 

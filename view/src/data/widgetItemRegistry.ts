@@ -52,6 +52,46 @@ export const DEFAULT_ITEM_LAYOUT_BASELINE_VIEWPORT = {
   height: 2160,
 } as const;
 
+const NORDIC_DEFAULT_ITEM_POSITIONS: Record<string, GroupPosition> = {
+  'experience.progress': { x: 1530, y: 60 },
+  'player.level': { x: 1380, y: 60 },
+  'player.gold': { x: 1480, y: 145 },
+  'player.carryWeight': { x: 1620, y: 145 },
+  'player.health': { x: 1480, y: 630 },
+  'player.magicka': { x: 1620, y: 630 },
+  'player.stamina': { x: 1760, y: 630 },
+  'resistance.magic': { x: 1480, y: 265 },
+  'resistance.fire': { x: 1620, y: 265 },
+  'resistance.frost': { x: 1760, y: 265 },
+  'resistance.shock': { x: 1480, y: 325 },
+  'resistance.poison': { x: 1620, y: 325 },
+  'resistance.disease': { x: 1760, y: 325 },
+  'defense.armorRating': { x: 1480, y: 390 },
+  'defense.damageReduction': { x: 1620, y: 390 },
+  'offense.rightHandDamage': { x: 1480, y: 450 },
+  'offense.leftHandDamage': { x: 1620, y: 450 },
+  'offense.critChance': { x: 1760, y: 450 },
+  'equipped.rightHand': { x: 1480, y: 510 },
+  'equipped.leftHand': { x: 1700, y: 510 },
+  'equipped.voice': { x: 1480, y: 570 },
+  'time.game': { x: 1480, y: 205 },
+  'time.real': { x: 1700, y: 205 },
+  'movement.speedMult': { x: 1760, y: 390 },
+  'timedEffects.list': { x: 1100, y: 60 },
+};
+
+export const NORDIC_DEFAULT_BASELINE_VIEWPORT = {
+  width: 1920,
+  height: 1080,
+} as const;
+
+const NORDIC_DEFAULT_SIZE_SCALE_MAP: Record<WidgetSize, number> = {
+  xsmall: 0.78,
+  small: 0.9,
+  medium: 1,
+  large: 1.18,
+};
+
 const LEGACY_WIDGET_SIZE_SCALE_MAP: Record<WidgetSize, number> = {
   xsmall: 0.85,
   small: 1.0,
@@ -391,6 +431,38 @@ function readVisibilityByPath(source: LegacyWidgetLayoutSource, path: string): b
   return cursor === true;
 }
 
+export function buildNordicDefaultItemLayouts(
+  source: LegacyWidgetLayoutSource,
+): Record<string, WidgetItemLayout> {
+  const scale = NORDIC_DEFAULT_SIZE_SCALE_MAP[source.general.size];
+
+  return Object.fromEntries(
+    WIDGET_ITEM_IDS.map(itemId => {
+      const entry = getWidgetItemRegistryEntry(itemId);
+      const position = NORDIC_DEFAULT_ITEM_POSITIONS[itemId] ?? { x: 0, y: 0 };
+      return [
+        itemId,
+        {
+          visible: readVisibilityByPath(source, entry.visibilityPath),
+          x: position.x,
+          y: position.y,
+          scale,
+          locked: false,
+          zIndex: getWidgetItemDefaultZIndex(itemId),
+          viewportWidth: NORDIC_DEFAULT_BASELINE_VIEWPORT.width,
+          viewportHeight: NORDIC_DEFAULT_BASELINE_VIEWPORT.height,
+        },
+      ];
+    }),
+  );
+}
+
+export function hasLegacyWidgetPlacementOverrides(source: LegacyWidgetLayoutSource): boolean {
+  return Object.keys(source.positions).length > 0
+    || Object.keys(source.layouts).length > 0
+    || Object.keys(source.groupScales).length > 0;
+}
+
 function getPlacementOffset(layout: WidgetLayout, order: number): GroupPosition {
   if (layout === 'horizontal') {
     return {
@@ -556,13 +628,17 @@ export function resolveWidgetItemLayouts(params: {
   viewportHeight: number;
 }): Record<string, WidgetItemLayout> {
   const { settings, viewportWidth, viewportHeight } = params;
+  const canonicalLayouts = sanitizeWidgetItemLayouts(settings.itemLayouts);
+  const useNordicDefaults = !hasLegacyWidgetPlacementOverrides(settings);
+  const baselineLayouts = useNordicDefaults
+    ? buildNordicDefaultItemLayouts(settings)
+    : buildBaselineItemLayoutsFromLegacySettings(settings);
   const fallbackLayouts = Object.fromEntries(
-    Object.entries(buildBaselineItemLayoutsFromLegacySettings(settings)).map(([itemId, layout]) => [
+    Object.entries(baselineLayouts).map(([itemId, layout]) => [
       itemId,
       resolveCanonicalLayoutForViewport(itemId, layout, viewportWidth, viewportHeight),
     ]),
   ) as Record<string, WidgetItemLayout>;
-  const canonicalLayouts = sanitizeWidgetItemLayouts(settings.itemLayouts);
 
   if (Object.keys(canonicalLayouts).length === 0) {
     return fallbackLayouts;

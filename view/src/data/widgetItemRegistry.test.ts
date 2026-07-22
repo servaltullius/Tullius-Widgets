@@ -4,6 +4,7 @@ import {
   WIDGET_ITEM_IDS,
   WIDGET_ITEM_REGISTRY,
   buildItemLayoutsFromLegacySettings,
+  buildNordicDefaultItemLayouts,
   getWidgetItemRegistryEntry,
   resolveWidgetItemLayouts,
 } from './widgetItemRegistry';
@@ -123,5 +124,31 @@ describe('widgetItemRegistry', () => {
     expect(fhdItemLayouts['player.gold'].scale).toBeLessThan(uhdItemLayouts['player.gold'].scale);
     expect(fhdItemLayouts['player.gold'].x / 1920).toBeCloseTo(uhdItemLayouts['player.gold'].x / 3840, 2);
     expect(fhdItemLayouts['player.gold'].y / 1080).toBeCloseTo(uhdItemLayouts['player.gold'].y / 2160, 2);
+  });
+
+  it('uses adjacent but independent Nordic-neutral placements for fresh defaults', () => {
+    const baseline = buildNordicDefaultItemLayouts(defaultSettings);
+    const fhd = resolveWidgetItemLayouts({
+      settings: structuredClone(defaultSettings),
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+
+    expect(defaultSettings.general.transparentBg).toBe(false);
+    expect(baseline['experience.progress']).toMatchObject({
+      x: 1530,
+      y: 60,
+      scale: 1,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+    expect(fhd['experience.progress']).toMatchObject({ x: 1530, y: 60, scale: 1 });
+    expect(fhd['player.gold']).toMatchObject({ x: 1480, y: 145, scale: 1 });
+    expect(fhd['player.carryWeight']).toMatchObject({ x: 1620, y: 145, scale: 1 });
+
+    const visiblePositions = Object.values(fhd)
+      .filter(layout => layout.visible)
+      .map(layout => `${layout.x}:${layout.y}`);
+    expect(new Set(visiblePositions).size).toBe(visiblePositions.length);
   });
 });

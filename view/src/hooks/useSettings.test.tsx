@@ -272,7 +272,7 @@ describe('useSettings', () => {
     vi.useRealTimers();
   });
 
-  it('uses the fixed design baseline when seeding visible legacy item layouts without canonical metadata', async () => {
+  it('uses the Nordic FHD baseline when seeding fresh layouts without canonical metadata', async () => {
     vi.useFakeTimers();
     const onSettingsChanged = vi.fn();
     window.onSettingsChanged = onSettingsChanged;
@@ -294,15 +294,19 @@ describe('useSettings', () => {
     });
 
     expect(latest?.itemLayouts['player.carryWeight']).toMatchObject({
-      viewportWidth: 3840,
-      viewportHeight: 2160,
-      scale: 1.3,
+      x: 1620,
+      y: 145,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+      scale: 1,
     });
     expect(onSettingsChanged).toHaveBeenCalledTimes(1);
     expect(JSON.parse(onSettingsChanged.mock.calls[0]?.[0] as string).itemLayouts['player.carryWeight']).toMatchObject({
-      viewportWidth: 3840,
-      viewportHeight: 2160,
-      scale: 1.3,
+      x: 1620,
+      y: 145,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+      scale: 1,
     });
     vi.useRealTimers();
   });

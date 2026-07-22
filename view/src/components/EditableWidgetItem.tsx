@@ -291,6 +291,8 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
     <div
       ref={containerRef}
       data-widget-item-id={itemId}
+      data-widget-independent="true"
+      data-widget-surface={showBg ? 'framed' : 'transparent'}
       onMouseDown={handleMouseDown}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -302,24 +304,25 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
         transform: `scale(${scale})`,
         transformOrigin: 'top left',
         background: showBg
-          ? `linear-gradient(135deg, ${hexToRgba(accentColor, 0.12)} 0%, rgba(0,0,0,0.45) 60%)`
+          ? `linear-gradient(135deg, ${hexToRgba(accentColor, 0.045)} 0%, rgba(16,20,24,0.9) 34%, rgba(7,9,12,0.86) 100%)`
           : 'transparent',
-        borderRadius: '8px',
-        padding: showBg ? '8px 12px' : '0',
+        borderRadius: '2px 8px 2px 8px',
+        padding: showBg ? '7px 9px' : '0',
         border: showSelectionFrame
           ? `2px solid ${hexToRgba('#ffd700', 0.95)}`
           : showHoverFrame
             ? `1px solid ${hexToRgba('#ffd700', 0.45)}`
             : editable
               ? '1px dashed rgba(255, 215, 0, 0.25)'
-              : showBg ? `1px solid ${hexToRgba(accentColor, 0.25)}` : 'none',
+              : showBg ? '1px solid rgba(229, 234, 238, 0.18)' : 'none',
         boxShadow: showSelectionFrame
           ? `0 0 0 2px ${hexToRgba('#ffd700', 0.22)}, inset 0 0 20px ${hexToRgba(accentColor, 0.1)}, 0 0 18px ${hexToRgba('#ffd700', 0.2)}`
           : showHoverFrame
             ? `0 0 0 1px ${hexToRgba('#ffd700', 0.14)}, inset 0 0 18px ${hexToRgba(accentColor, 0.08)}`
             : showBg
-              ? `inset 0 0 20px ${hexToRgba(accentColor, 0.06)}, 0 0 8px ${hexToRgba(accentColor, 0.1)}`
+              ? '0 8px 22px rgba(0, 0, 0, 0.24), inset 0 1px rgba(255, 255, 255, 0.025)'
               : 'none',
+        backdropFilter: showBg ? 'blur(4px)' : undefined,
         overflow: 'visible',
         userSelect: 'none',
         pointerEvents: editable ? 'auto' : 'none',

@@ -24,18 +24,20 @@ describe('ResistanceWidget', () => {
     delete reactActEnvironment.IS_REACT_ACT_ENVIRONMENT;
   });
 
-  it('stacks the primary value above the icon and keeps the raw value as a smaller secondary line', async () => {
+  it('uses one horizontal grammar for icon, label, effective value, and raw value', async () => {
     await act(async () => {
       root = createRoot(container);
       root.render(
         <ResistanceWidget
           icon="fire"
           iconColor="#ff6633"
+          label="화염"
           value={45}
           unit="%"
           visible
           secondaryValue={120}
           secondaryUnit="%"
+          secondaryLabel="원본"
           tooltip="test"
           iconTheme="dororong"
         />,
@@ -43,39 +45,27 @@ describe('ResistanceWidget', () => {
     });
 
     const widget = container.querySelector('[data-resistance-widget="true"]') as HTMLDivElement | null;
-    expect(widget).toBeTruthy();
-    expect(widget?.style.flexDirection).toBe('column');
-
-    const primary = widget?.querySelector('[data-resistance-primary="true"]') as HTMLSpanElement | null;
-    const secondary = widget?.querySelector('[data-resistance-secondary="true"]') as HTMLSpanElement | null;
     const icon = widget?.querySelector('[data-resistance-icon="true"]') as HTMLDivElement | null;
     const iconImage = icon?.querySelector('img[alt="fire"]') as HTMLImageElement | null;
 
-    expect(primary?.textContent).toBe('45%');
-    expect(secondary?.textContent).toBe('120%');
-    expect(primary?.style.fontFamily).toBe('var(--tw-font-hud)');
-    expect(secondary?.style.fontFamily).toBe('var(--tw-font-hud)');
-    expect(icon).toBeTruthy();
-    expect(iconImage?.style.width).toBe('42px');
-    expect(iconImage?.style.height).toBe('42px');
-    expect(iconImage?.style.position).toBe('absolute');
+    expect(widget?.classList.contains('tw-resistance-widget')).toBe(true);
+    expect(widget?.querySelector('[data-resistance-label="true"]')?.textContent).toBe('화염');
+    expect(widget?.querySelector('[data-resistance-primary="true"]')?.textContent).toBe('45%');
+    expect(widget?.querySelector('[data-resistance-secondary="true"]')?.textContent).toBe('원본 120%');
+    expect(iconImage?.style.width).toBe('38px');
+    expect(iconImage?.style.height).toBe('38px');
     expect(iconImage?.style.left).toBe('-4px');
     expect(iconImage?.style.top).toBe('-4px');
-    expect(iconImage?.style.transform).toBe('');
-
-    const children = Array.from(widget?.children ?? []);
-    expect(children[0]).toBe(primary);
-    expect(children[1]).toBe(secondary);
-    expect(children[2]).toBe(icon);
   });
 
-  it('uses a standard glyph instead of a Dororong image by default', async () => {
+  it('uses a semantic-color clipped glyph frame by default', async () => {
     await act(async () => {
       root = createRoot(container);
       root.render(
         <ResistanceWidget
           icon="fire"
           iconColor="#ff6633"
+          label="Fire"
           value={45}
           unit="%"
           visible
@@ -83,8 +73,14 @@ describe('ResistanceWidget', () => {
       );
     });
 
+    const frame = container.querySelector('[data-resistance-icon-fallback="true"]') as HTMLDivElement | null;
     expect(container.querySelector('img[alt="fire"]')).toBeNull();
-    expect(container.querySelector('[data-resistance-icon-fallback="true"] svg')).toBeTruthy();
-    expect(container.querySelector('[data-resistance-icon="true"]')?.getAttribute('data-icon-theme')).toBe('standard');
+    expect(frame?.classList.contains('tw-resistance-icon-frame')).toBe(true);
+    expect(frame?.querySelector('svg')?.getAttribute('stroke')).toBe('currentColor');
+    expect(frame?.getAttribute('data-icon-theme')).toBe('standard');
+    expect(frame?.getAttribute('data-standard-icon')).toBe('fire');
+    const widget = container.querySelector('[data-resistance-widget="true"]') as HTMLDivElement | null;
+    expect(widget?.style.getPropertyValue('--tw-icon-color')).toBe('#ff6633');
+    expect(widget?.style.getPropertyValue('--tw-icon-tint')).toBe('rgba(255, 102, 51, 0.16)');
   });
 });

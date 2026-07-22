@@ -8,8 +8,9 @@ import type {
 import { defaultSettings } from '../data/defaultSettings';
 import {
   DEFAULT_ITEM_LAYOUT_BASELINE_VIEWPORT,
-  buildItemLayoutsFromLegacySettings,
+  NORDIC_DEFAULT_BASELINE_VIEWPORT,
   getWidgetItemIdByVisibilityPath,
+  hasLegacyWidgetPlacementOverrides,
   resolveWidgetItemLayouts,
 } from '../data/widgetItemRegistry';
 import type { RuntimeDiagnostics } from '../types/runtime';
@@ -98,8 +99,15 @@ function resolveCanonicalViewportBaseline(settings: WidgetSettings): { width: nu
 }
 
 function seedVisibleLegacyItemLayouts(settings: WidgetSettings): WidgetSettings {
-  const baseline = resolveCanonicalViewportBaseline(settings);
-  const fallbackLayouts = buildItemLayoutsFromLegacySettings(settings, baseline.width, baseline.height);
+  const baseline = Object.keys(settings.itemLayouts).length === 0
+    && !hasLegacyWidgetPlacementOverrides(settings)
+    ? NORDIC_DEFAULT_BASELINE_VIEWPORT
+    : resolveCanonicalViewportBaseline(settings);
+  const fallbackLayouts = resolveWidgetItemLayouts({
+    settings,
+    viewportWidth: baseline.width,
+    viewportHeight: baseline.height,
+  });
   let changed = false;
   const nextItemLayouts: WidgetSettings['itemLayouts'] = { ...settings.itemLayouts };
 
