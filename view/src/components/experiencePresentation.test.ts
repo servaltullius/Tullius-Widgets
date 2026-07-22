@@ -9,12 +9,12 @@ describe('experiencePresentation', () => {
     expect(EXPERIENCE_AVATAR_PRESENTATION).toMatchObject({
       medallionSize: 94,
       ringThickness: 6,
-      iconTranslateX: 4,
       ringFillColor: '#ffffff',
       ringTrackColor: 'rgba(255, 255, 255, 0.22)',
       iconObjectFit: 'contain',
       iconObjectPosition: 'center center',
     });
+    expect('iconTranslateX' in EXPERIENCE_AVATAR_PRESENTATION).toBe(false);
   });
 
   it('computes clamped svg ring geometry for experience progress', () => {

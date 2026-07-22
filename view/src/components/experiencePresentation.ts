@@ -14,7 +14,6 @@ export const EXPERIENCE_AVATAR_PRESENTATION = {
   innerBorder: '1px solid rgba(255, 255, 255, 0.18)',
   iconObjectFit: 'contain',
   iconObjectPosition: 'center center',
-  iconTranslateX: 4,
 } as const;
 
 export interface ExperienceRingStroke {

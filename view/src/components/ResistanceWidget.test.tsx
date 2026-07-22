@@ -37,6 +37,7 @@ describe('ResistanceWidget', () => {
           secondaryValue={120}
           secondaryUnit="%"
           tooltip="test"
+          iconTheme="dororong"
         />,
       );
     });
@@ -66,5 +67,24 @@ describe('ResistanceWidget', () => {
     expect(children[0]).toBe(primary);
     expect(children[1]).toBe(secondary);
     expect(children[2]).toBe(icon);
+  });
+
+  it('uses a standard glyph instead of a Dororong image by default', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <ResistanceWidget
+          icon="fire"
+          iconColor="#ff6633"
+          value={45}
+          unit="%"
+          visible
+        />,
+      );
+    });
+
+    expect(container.querySelector('img[alt="fire"]')).toBeNull();
+    expect(container.querySelector('[data-resistance-icon-fallback="true"] svg')).toBeTruthy();
+    expect(container.querySelector('[data-resistance-icon="true"]')?.getAttribute('data-icon-theme')).toBe('standard');
   });
 });

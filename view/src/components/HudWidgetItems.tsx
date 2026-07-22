@@ -237,6 +237,10 @@ export function HudWidgetItems({
   const capLabel = t(lang, 'capLimitLabel');
   const armorLimitLabel = t(lang, 'capArmorLimitLabel');
   const rawLabel = t(lang, 'capRawLabel');
+  const statIconProps = {
+    iconTheme: settings.general.iconTheme,
+    showIconBadge: settings.general.showIconBadges,
+  } as const;
 
   const elementalCap = stats.calcMeta.caps.elementalResist || ELEMENTAL_RESIST_CAP;
   const diseaseCap = stats.calcMeta.caps.diseaseResist || 100;
@@ -306,20 +310,22 @@ export function HudWidgetItems({
                   level={stats.playerInfo.level}
                   visible
                   lang={lang}
+                  iconTheme={settings.general.iconTheme}
                 />
               ),
             );
           case 'player.level':
             return renderEditableItem((
-              <StatWidget icon="level" iconColor="#ffd700" value={stats.playerInfo.level} visible prominence="secondary" />
+              <StatWidget {...statIconProps} icon="level" iconColor="#ffd700" value={stats.playerInfo.level} visible prominence="secondary" />
             ));
           case 'player.gold':
             return renderEditableItem((
-              <StatWidget icon="gold" iconColor="#f0c040" value={stats.playerInfo.gold} visible format={formatGold} prominence="secondary" />
+              <StatWidget {...statIconProps} icon="gold" iconColor="#f0c040" value={stats.playerInfo.gold} visible format={formatGold} prominence="secondary" />
             ));
           case 'player.carryWeight':
             return renderEditableItem((
               <StatWidget
+                {...statIconProps}
                 icon="weight"
                 iconColor="#cc9966"
                 value={stats.playerInfo.carryWeight}
@@ -343,6 +349,7 @@ export function HudWidgetItems({
           case 'player.health':
             return renderEditableItem((
               <StatWidget
+                {...statIconProps}
                 icon="health"
                 iconColor="#e84040"
                 value={stats.playerInfo.health}
@@ -357,6 +364,7 @@ export function HudWidgetItems({
           case 'player.magicka':
             return renderEditableItem((
               <StatWidget
+                {...statIconProps}
                 icon="magicka"
                 iconColor="#4090e8"
                 value={stats.playerInfo.magicka}
@@ -371,6 +379,7 @@ export function HudWidgetItems({
           case 'player.stamina':
             return renderEditableItem((
               <StatWidget
+                {...statIconProps}
                 icon="stamina"
                 iconColor="#40c840"
                 value={stats.playerInfo.stamina}
@@ -392,6 +401,7 @@ export function HudWidgetItems({
               );
             return renderEditableItem((
               <ResistanceWidget
+                iconTheme={settings.general.iconTheme}
                 icon="magic"
                 iconColor="#b366ff"
                 value={presentation.value}
@@ -415,6 +425,7 @@ export function HudWidgetItems({
               );
             return renderEditableItem((
               <ResistanceWidget
+                iconTheme={settings.general.iconTheme}
                 icon="fire"
                 iconColor="#ff6633"
                 value={presentation.value}
@@ -438,6 +449,7 @@ export function HudWidgetItems({
               );
             return renderEditableItem((
               <ResistanceWidget
+                iconTheme={settings.general.iconTheme}
                 icon="frost"
                 iconColor="#66ccff"
                 value={presentation.value}
@@ -461,6 +473,7 @@ export function HudWidgetItems({
               );
             return renderEditableItem((
               <ResistanceWidget
+                iconTheme={settings.general.iconTheme}
                 icon="shock"
                 iconColor="#ffdd33"
                 value={presentation.value}
@@ -484,6 +497,7 @@ export function HudWidgetItems({
               );
             return renderEditableItem((
               <ResistanceWidget
+                iconTheme={settings.general.iconTheme}
                 icon="poison"
                 iconColor="#66ff66"
                 value={presentation.value}
@@ -507,6 +521,7 @@ export function HudWidgetItems({
               );
             return renderEditableItem((
               <ResistanceWidget
+                iconTheme={settings.general.iconTheme}
                 icon="disease"
                 iconColor="#99cc66"
                 value={presentation.value}
@@ -524,6 +539,7 @@ export function HudWidgetItems({
           case 'defense.armorRating':
             return renderEditableItem((
               <StatWidget
+                {...statIconProps}
                 icon="armor"
                 iconColor="#aabbcc"
                 value={stats.defense.armorRating}
@@ -536,6 +552,7 @@ export function HudWidgetItems({
           case 'defense.damageReduction':
             return renderEditableItem((
               <StatWidget
+                {...statIconProps}
                 icon="damageReduce"
                 iconColor="#44aaaa"
                 value={stats.defense.damageReduction}
@@ -548,15 +565,16 @@ export function HudWidgetItems({
             ));
           case 'offense.rightHandDamage':
             return renderEditableItem((
-              <StatWidget icon="rightHand" iconColor="#e85050" value={stats.offense.rightHandDamage} visible min={WEAPON_DAMAGE_MIN} cap={WEAPON_DAMAGE_CAP} />
+              <StatWidget {...statIconProps} icon="rightHand" iconColor="#e85050" value={stats.offense.rightHandDamage} visible min={WEAPON_DAMAGE_MIN} cap={WEAPON_DAMAGE_CAP} />
             ));
           case 'offense.leftHandDamage':
             return renderEditableItem((
-              <StatWidget icon="leftHand" iconColor="#e88080" value={stats.offense.leftHandDamage} visible min={WEAPON_DAMAGE_MIN} cap={WEAPON_DAMAGE_CAP} />
+              <StatWidget {...statIconProps} icon="leftHand" iconColor="#e88080" value={stats.offense.leftHandDamage} visible min={WEAPON_DAMAGE_MIN} cap={WEAPON_DAMAGE_CAP} />
             ));
           case 'offense.critChance':
             return renderEditableItem((
               <StatWidget
+                {...statIconProps}
                 icon="crit"
                 iconColor="#ff8800"
                 value={stats.offense.critChance}
@@ -572,6 +590,7 @@ export function HudWidgetItems({
           case 'equipped.rightHand':
             return renderEditableItem((
               <StatWidget
+                {...statIconProps}
                 icon="rightHand"
                 iconColor="#e85050"
                 value={stats.equipped.rightHand || t(lang, 'equippedEmpty')}
@@ -583,6 +602,7 @@ export function HudWidgetItems({
           case 'equipped.leftHand':
             return renderEditableItem((
               <StatWidget
+                {...statIconProps}
                 icon="leftHand"
                 iconColor="#4090e8"
                 value={stats.equipped.leftHand || t(lang, 'equippedEmpty')}
@@ -594,6 +614,7 @@ export function HudWidgetItems({
           case 'equipped.voice':
             return renderEditableItem((
               <StatWidget
+                {...statIconProps}
                 icon="voice"
                 iconColor={stats.equipped.voiceType === 'power' ? '#82c8ff' : '#d8c17a'}
                 value={stats.equipped.voice || t(lang, 'equippedEmpty')}
@@ -605,6 +626,7 @@ export function HudWidgetItems({
           case 'time.game':
             return renderEditableItem((
               <StatWidget
+                {...statIconProps}
                 icon="gameTime"
                 iconColor="#d8b96b"
                 value={gameTimeValue}
@@ -616,6 +638,7 @@ export function HudWidgetItems({
           case 'time.real':
             return renderEditableItem((
               <StatWidget
+                {...statIconProps}
                 icon="realTime"
                 iconColor="#77d8ff"
                 value={realTimeValue}
@@ -626,7 +649,7 @@ export function HudWidgetItems({
             ));
           case 'movement.speedMult':
             return renderEditableItem((
-              <StatWidget icon="speed" iconColor="#44ddff" value={stats.movement.speedMult} unit="%" visible prominence="secondary" />
+              <StatWidget {...statIconProps} icon="speed" iconColor="#44ddff" value={stats.movement.speedMult} unit="%" visible prominence="secondary" />
             ));
           case 'timedEffects.list':
             return renderEditableItem((

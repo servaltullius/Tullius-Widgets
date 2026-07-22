@@ -42,14 +42,9 @@ describe('ExperienceWidget', () => {
     expect(container.textContent).not.toContain('12%');
     const bottomLine = Array.from(container.querySelectorAll('span')).find(element => element.textContent?.includes('레벨 57'));
     expect((bottomLine as HTMLSpanElement | undefined)?.style.fontFamily).toBe('var(--tw-font-hud)');
-    const iconImage = container.querySelector('img[src*="experience"]');
-    expect(iconImage).toBeTruthy();
-    expect((iconImage as HTMLImageElement | null)?.style.objectFit).toBe('contain');
-    expect((iconImage as HTMLImageElement | null)?.style.objectPosition).toBe('center center');
-    expect((iconImage as HTMLImageElement | null)?.style.width).toBe('100%');
-    expect((iconImage as HTMLImageElement | null)?.style.height).toBe('100%');
-    expect((iconImage as HTMLImageElement | null)?.style.filter).toBe('');
-    expect((iconImage as HTMLImageElement | null)?.style.transform).toBe('translateX(4px)');
+    expect(container.querySelector('img[src*="experience"]')).toBeNull();
+    expect(container.querySelector('[data-experience-standard-icon="true"]')).toBeTruthy();
+    expect(container.querySelector('[data-experience-icon-theme="standard"]')).toBeTruthy();
     const progressbar = container.querySelector('[role="progressbar"]');
     expect(progressbar).toBeTruthy();
     expect(progressbar?.textContent).toBe('');
@@ -67,6 +62,31 @@ describe('ExperienceWidget', () => {
     const ringTrack = container.querySelector('[data-testid="experience-ring-track"]');
     expect(ringTrack).toBeTruthy();
     expect(ringTrack?.getAttribute('stroke')).toBe('rgba(255, 255, 255, 0.22)');
+  });
+
+  it('keeps the Dororong experience image geometrically centered without a forced offset', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <ExperienceWidget
+          currentXp={500}
+          totalXp={1000}
+          level={10}
+          visible
+          lang="ko"
+          iconTheme="dororong"
+        />,
+      );
+    });
+
+    const iconImage = container.querySelector('img[src*="experience"]') as HTMLImageElement | null;
+    expect(iconImage).toBeTruthy();
+    expect(iconImage?.style.objectFit).toBe('contain');
+    expect(iconImage?.style.objectPosition).toBe('center center');
+    expect(iconImage?.style.width).toBe('100%');
+    expect(iconImage?.style.height).toBe('100%');
+    expect(iconImage?.style.transform).toBe('');
+    expect(container.querySelector('[data-experience-icon-theme="dororong"]')).toBeTruthy();
   });
 
   it('clamps visible progress safely for bad inputs', async () => {

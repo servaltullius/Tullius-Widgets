@@ -33,6 +33,8 @@ describe('StatWidget', () => {
           iconColor="#e84040"
           value={330}
           visible
+          iconTheme="dororong"
+          showIconBadge
         />,
       );
     });
@@ -49,6 +51,43 @@ describe('StatWidget', () => {
     expect(glyph?.getAttribute('stroke')).toBe('#ffffff');
     expect(glyph?.getAttribute('stroke-width')).toBe('2.5');
     expect(glyph?.style.filter).toContain('drop-shadow');
+  });
+
+  it('can hide overlay badges while keeping Dororong image icons', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <StatWidget
+          icon="health"
+          iconColor="#e84040"
+          value={330}
+          visible
+          iconTheme="dororong"
+          showIconBadge={false}
+        />,
+      );
+    });
+
+    expect(container.querySelector('img[alt="health"]')).toBeTruthy();
+    expect(container.querySelector('[data-stat-icon-badge="true"]')).toBeNull();
+  });
+
+  it('uses the standard glyph instead of an image by default', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <StatWidget
+          icon="health"
+          iconColor="#e84040"
+          value={330}
+          visible
+        />,
+      );
+    });
+
+    expect(container.querySelector('img[alt="health"]')).toBeNull();
+    expect(container.querySelector('[data-stat-icon-fallback="true"] svg')).toBeTruthy();
+    expect(container.querySelector('[data-stat-icon="true"]')?.getAttribute('data-icon-theme')).toBe('standard');
   });
 
   it('uses the same contrast treatment for lucide-only fallback icons', async () => {

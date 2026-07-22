@@ -1,5 +1,7 @@
 import { memo } from 'react';
 import { iconMap } from '../assets/icons';
+import { standardStatIconMap } from '../data/standardStatIcons';
+import type { IconTheme } from '../types/settings';
 
 interface ResistanceWidgetProps {
   icon: string;
@@ -7,6 +9,7 @@ interface ResistanceWidgetProps {
   value: number | string;
   unit?: string;
   visible: boolean;
+  iconTheme?: IconTheme;
   min?: number;
   cap?: number;
   format?: (value: number) => string;
@@ -45,6 +48,7 @@ export const ResistanceWidget = memo(function ResistanceWidget(props: Resistance
     value,
     unit = '',
     visible,
+    iconTheme = 'standard',
     min,
     cap,
     format,
@@ -55,7 +59,8 @@ export const ResistanceWidget = memo(function ResistanceWidget(props: Resistance
   } = props;
   if (!visible) return null;
 
-  const iconSrc = iconMap[icon];
+  const iconSrc = iconTheme === 'dororong' ? iconMap[icon] : undefined;
+  const StandardIcon = standardStatIconMap[icon];
   const primaryDisplayValue = formatDisplayValue(value, unit, min, cap, format);
   const secondaryDisplayValue = secondaryValue === undefined
     ? null
@@ -113,6 +118,7 @@ export const ResistanceWidget = memo(function ResistanceWidget(props: Resistance
       )}
       <div
         data-resistance-icon="true"
+        data-icon-theme={iconTheme}
         style={{
           position: 'relative',
           width: '34px',
@@ -120,7 +126,7 @@ export const ResistanceWidget = memo(function ResistanceWidget(props: Resistance
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          filter: 'none',
+          filter: iconSrc ? 'none' : `drop-shadow(0 0 3px ${props.iconColor}66)`,
         }}
       >
         {iconSrc ? (
@@ -138,6 +144,39 @@ export const ResistanceWidget = memo(function ResistanceWidget(props: Resistance
               borderRadius: '6px',
             }}
           />
+        ) : StandardIcon ? (
+          <div
+            data-resistance-icon-fallback="true"
+            style={{
+              position: 'relative',
+              width: '34px',
+              height: '34px',
+              borderRadius: '50%',
+              background: 'linear-gradient(180deg, rgba(24, 30, 42, 0.98) 0%, rgba(7, 9, 16, 0.98) 100%)',
+              border: '1px solid rgba(255, 255, 255, 0.72)',
+              boxShadow: `0 0 0 1px ${props.iconColor}80, 0 3px 8px rgba(0, 0, 0, 0.58)`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              aria-hidden="true"
+              style={{
+                position: 'absolute',
+                inset: '2px',
+                borderRadius: '50%',
+                background: `radial-gradient(circle at 35% 30%, ${props.iconColor}8c 0%, ${props.iconColor}2e 58%, rgba(0, 0, 0, 0) 100%)`,
+              }}
+            />
+            <StandardIcon
+              size={20}
+              color="#ffffff"
+              strokeWidth={2.2}
+              style={{ position: 'relative', filter: `drop-shadow(0 0 2px ${props.iconColor}b8) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.95))` }}
+            />
+          </div>
         ) : null}
       </div>
     </div>

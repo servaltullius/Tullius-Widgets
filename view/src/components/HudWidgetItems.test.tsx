@@ -254,6 +254,7 @@ describe('HudWidgetItems', () => {
 
     const progressionWidget = getWidget(container, 'experience.progress');
     expect(progressionWidget.querySelector('[role="progressbar"]')).toBeTruthy();
+    expect(progressionWidget.querySelector('[data-experience-icon-theme="standard"]')).toBeTruthy();
     expect(progressionWidget.textContent).toContain('레벨 42 · 72,450 / 76,000');
     expect(progressionWidget.textContent).not.toContain('95%');
     expect(container.querySelector('[data-widget-item-id="player.level"]')).toBeTruthy();
@@ -593,14 +594,9 @@ describe('HudWidgetItems', () => {
 
     const voiceWidget = getWidget(container, 'equipped.voice');
     expect(voiceWidget.textContent).toContain('Unrelenting Force');
-    const voiceIcon = voiceWidget.querySelector('img[alt="voice"]') as HTMLImageElement | null;
-    expect(voiceIcon).toBeTruthy();
-    expect(voiceIcon?.style.width).toBe('42px');
-    expect(voiceIcon?.style.height).toBe('42px');
-    expect(voiceIcon?.style.position).toBe('absolute');
-    expect(voiceIcon?.style.left).toBe('-4px');
-    expect(voiceIcon?.style.top).toBe('-4px');
-    expect(voiceIcon?.style.transform).toBe('');
+    expect(voiceWidget.querySelector('img[alt="voice"]')).toBeNull();
+    expect(voiceWidget.querySelector('[data-stat-icon-fallback="true"] svg')).toBeTruthy();
+    expect(voiceWidget.querySelector('[data-stat-icon="true"]')?.getAttribute('data-icon-theme')).toBe('standard');
 
     const initialValueNode = voiceWidget.querySelector('[data-stat-value="true"]') as HTMLSpanElement | null;
     expect(initialValueNode).toBeTruthy();

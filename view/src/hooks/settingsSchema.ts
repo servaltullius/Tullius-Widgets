@@ -2,6 +2,7 @@ import type {
   CarryWeightDisplayMode,
   FontPreset,
   GroupPosition,
+  IconTheme,
   Language,
   ResistanceDisplayMode,
   TimeDisplayMode,
@@ -40,7 +41,9 @@ const CARRY_WEIGHT_DISPLAY_MODES = ['combined', 'valueOnly', 'meterOnly'] as con
 const RESISTANCE_DISPLAY_MODES = ['effectiveOnly', 'rawOnly', 'both'] as const;
 const TIME_DISPLAY_MODES = ['dateTime', 'timeOnly'] as const;
 const FONT_PRESETS = ['default', 'readable', 'compact', 'classic'] as const;
+const ICON_THEMES = ['standard', 'dororong'] as const;
 const STAGE2_STANDALONE_LEVEL_SCHEMA_VERSION = 4;
+const ICON_PRESENTATION_SCHEMA_VERSION = 6;
 
 interface MergeSettingsOptions {
   allowLegacyStandaloneLevelFallback?: boolean;
@@ -102,8 +105,18 @@ function cloneDefaultSettings(): WidgetSettings {
   return JSON.parse(JSON.stringify(defaultSettings)) as WidgetSettings;
 }
 
-function mergeGeneralSettings(target: WidgetSettings['general'], incoming: unknown): void {
+function mergeGeneralSettings(
+  target: WidgetSettings['general'],
+  incoming: unknown,
+  savedSchemaVersion: number | null,
+): void {
+  const isLegacyIconPresentation = savedSchemaVersion === null
+    || savedSchemaVersion < ICON_PRESENTATION_SCHEMA_VERSION;
   if (!isPlainObject(incoming)) {
+    if (isLegacyIconPresentation) {
+      target.iconTheme = 'dororong';
+      target.showIconBadges = true;
+    }
     return;
   }
 
@@ -116,6 +129,19 @@ function mergeGeneralSettings(target: WidgetSettings['general'], incoming: unkno
   target.size = readEnum<WidgetSize>(incoming.size, target.size, ['xsmall', 'small', 'medium', 'large']);
   target.language = readLanguageCode(incoming.language, target.language);
   target.fontPreset = readEnum<FontPreset>(incoming.fontPreset, target.fontPreset, FONT_PRESETS);
+  const hasExplicitIconTheme = typeof incoming.iconTheme === 'string'
+    && ICON_THEMES.includes(incoming.iconTheme as IconTheme);
+  const hasExplicitIconBadgeSetting = typeof incoming.showIconBadges === 'boolean';
+  target.iconTheme = readEnum<IconTheme>(incoming.iconTheme, target.iconTheme, ICON_THEMES);
+  target.showIconBadges = readBoolean(incoming.showIconBadges, target.showIconBadges);
+  if (isLegacyIconPresentation) {
+    if (!hasExplicitIconTheme) {
+      target.iconTheme = 'dororong';
+    }
+    if (!hasExplicitIconBadgeSetting) {
+      target.showIconBadges = true;
+    }
+  }
   target.accentColor = readAccentColor(incoming.accentColor, target.accentColor);
   target.transparentBg = readBoolean(incoming.transparentBg, target.transparentBg);
 }
@@ -281,7 +307,7 @@ export function mergeWithDefaults(
   const merged = cloneDefaultSettings();
   const savedSchemaVersion = readRevision(saved.schemaVersion);
 
-  mergeGeneralSettings(merged.general, saved.general);
+  mergeGeneralSettings(merged.general, saved.general, savedSchemaVersion);
   mergeResistancesSettings(merged.resistances, saved.resistances);
   merged.defense = mergeBooleanSection(merged.defense, saved.defense);
   merged.offense = mergeBooleanSection(merged.offense, saved.offense);

@@ -1,7 +1,8 @@
 import { memo } from 'react';
+import { TrendingUp } from 'lucide-react';
 import { iconMap } from '../assets/icons';
 import { t } from '../i18n/translations';
-import type { Language } from '../types/settings';
+import type { IconTheme, Language } from '../types/settings';
 import {
   EXPERIENCE_AVATAR_PRESENTATION,
   getExperienceRingStroke,
@@ -13,6 +14,7 @@ interface ExperienceWidgetProps {
   level: number;
   visible: boolean;
   lang: Language;
+  iconTheme?: IconTheme;
 }
 
 function formatInteger(value: number): string {
@@ -25,6 +27,7 @@ export const ExperienceWidget = memo(function ExperienceWidget({
   level,
   visible,
   lang,
+  iconTheme = 'standard',
 }: ExperienceWidgetProps) {
   if (!visible) return null;
 
@@ -40,7 +43,7 @@ export const ExperienceWidget = memo(function ExperienceWidget({
   const displayValue = `${formatInteger(safeCurrentXp)} / ${formatInteger(safeTotalXp)}`;
   const safeLevel = Math.max(1, Math.round(level));
   const tooltip = `${t(lang, 'experienceProgress')}: ${displayValue} XP`;
-  const experienceIconSrc = iconMap.experience;
+  const experienceIconSrc = iconTheme === 'dororong' ? iconMap.experience : undefined;
   const bottomLine = `${t(lang, 'level')} ${safeLevel} · ${displayValue}`;
   const {
     medallionSize,
@@ -51,7 +54,6 @@ export const ExperienceWidget = memo(function ExperienceWidget({
     innerBorder,
     iconObjectFit,
     iconObjectPosition,
-    iconTranslateX,
   } = EXPERIENCE_AVATAR_PRESENTATION;
 
   return (
@@ -120,6 +122,7 @@ export const ExperienceWidget = memo(function ExperienceWidget({
           />
         </svg>
         <div
+          data-experience-icon-theme={iconTheme}
           style={{
             width: `${innerMedallionSize}px`,
             height: `${innerMedallionSize}px`,
@@ -144,10 +147,18 @@ export const ExperienceWidget = memo(function ExperienceWidget({
                 height: '100%',
                 objectFit: iconObjectFit,
                 objectPosition: iconObjectPosition,
-                transform: `translateX(${iconTranslateX}px)`,
               }}
             />
-          ) : null}
+          ) : (
+            <TrendingUp
+              data-experience-standard-icon="true"
+              aria-hidden="true"
+              size={44}
+              color="#ffffff"
+              strokeWidth={2.2}
+              style={{ filter: 'drop-shadow(0 0 3px rgba(255, 255, 255, 0.42))' }}
+            />
+          )}
         </div>
       </div>
       <span

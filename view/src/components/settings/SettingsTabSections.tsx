@@ -121,6 +121,13 @@ function buildFontPresetOptions(lang: Language) {
   }));
 }
 
+function buildIconThemeOptions(lang: Language) {
+  return [
+    { value: 'standard', label: t(lang, 'iconThemeStandard') },
+    { value: 'dororong', label: t(lang, 'iconThemeDororong') },
+  ];
+}
+
 interface GeneralTabSectionsProps extends SectionControlProps {
   settings: WidgetSettings;
   selectedLanguage: Language;
@@ -143,6 +150,7 @@ export function GeneralTabSections({
   panelScale = 1,
 }: GeneralTabSectionsProps) {
   const fontPresetOptions = buildFontPresetOptions(lang);
+  const iconThemeOptions = buildIconThemeOptions(lang);
 
   return (
     <AccordionSection
@@ -205,6 +213,23 @@ export function GeneralTabSections({
         panelScale={panelScale}
         testId="font-preset-select"
       />
+
+      <SelectRow
+        label={t(lang, 'iconTheme')}
+        value={settings.general.iconTheme}
+        options={iconThemeOptions}
+        onChange={nextValue => onUpdate('general.iconTheme', nextValue)}
+        panelScale={panelScale}
+        testId="icon-theme-select"
+      />
+      {settings.general.iconTheme === 'dororong' && (
+        <Toggle
+          label={t(lang, 'showIconBadges')}
+          checked={settings.general.showIconBadges}
+          onChange={value => onUpdate('general.showIconBadges', value)}
+          panelScale={panelScale}
+        />
+      )}
 
       <div style={{ padding: `${scalePanelPixels(8, panelScale)} 0` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: scalePanelPixels(8, panelScale) }}>

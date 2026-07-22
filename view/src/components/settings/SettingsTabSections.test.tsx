@@ -126,6 +126,67 @@ describe('SettingsTabSections', () => {
     expect(onUpdate).toHaveBeenCalledWith('general.fontPreset', 'readable');
   });
 
+  it('updates the icon theme and exposes the badge toggle for Dororong icons', async () => {
+    const settings = cloneSettings();
+    const onUpdate = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <GeneralTabSections
+          lang="ko"
+          settings={settings}
+          selectedLanguage="ko"
+          effectiveVisible={settings.general.visible}
+          onUpdate={onUpdate}
+          accentColor="#ffffff"
+          availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json' }]}
+          isSectionExpanded={() => true}
+          toggleSection={() => {}}
+        />,
+      );
+    });
+
+    const iconThemeSelect = getByTestId(container, 'icon-theme-select');
+    expect(iconThemeSelect).toBeTruthy();
+    expect(getToggleInputByLabel(container, '아이콘 위 보조 뱃지')).toBeFalsy();
+
+    await act(async () => {
+      iconThemeSelect?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    const dororongOption = getByTestIdFromDocument('icon-theme-select-option-dororong');
+    expect(dororongOption).toBeTruthy();
+    await act(async () => {
+      dororongOption?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(onUpdate).toHaveBeenCalledWith('general.iconTheme', 'dororong');
+
+    settings.general.iconTheme = 'dororong';
+    settings.general.showIconBadges = true;
+    await act(async () => {
+      root?.render(
+        <GeneralTabSections
+          lang="ko"
+          settings={settings}
+          selectedLanguage="ko"
+          effectiveVisible={settings.general.visible}
+          onUpdate={onUpdate}
+          accentColor="#ffffff"
+          availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json' }]}
+          isSectionExpanded={() => true}
+          toggleSection={() => {}}
+        />,
+      );
+    });
+
+    const badgeToggle = getToggleInputByLabel(container, '아이콘 위 보조 뱃지');
+    expect(badgeToggle).toBeTruthy();
+    await act(async () => {
+      badgeToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(onUpdate).toHaveBeenCalledWith('general.showIconBadges', false);
+  });
+
   it('resets layout tools through canonical itemLayouts instead of legacy positions', async () => {
     const settings = cloneSettings();
     const onUpdate = vi.fn();

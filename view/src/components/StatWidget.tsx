@@ -1,35 +1,7 @@
 import { memo } from 'react';
-import {
-  Flame, Snowflake, Zap, Sparkles, Skull, Bug,
-  Shield, ShieldCheck, Swords, Sword, Target,
-  Wind, Star, Coins, Weight, Heart, Droplets, Battery,
-  CalendarDays, Clock3,
-  type LucideIcon,
-} from 'lucide-react';
 import { iconMap } from '../assets/icons';
-
-const badgeIconMap: Record<string, LucideIcon> = {
-  fire: Flame,
-  frost: Snowflake,
-  shock: Zap,
-  magic: Sparkles,
-  poison: Skull,
-  disease: Bug,
-  armor: Shield,
-  damageReduce: ShieldCheck,
-  rightHand: Swords,
-  leftHand: Sword,
-  crit: Target,
-  speed: Wind,
-  level: Star,
-  gold: Coins,
-  weight: Weight,
-  health: Heart,
-  magicka: Droplets,
-  stamina: Battery,
-  gameTime: CalendarDays,
-  realTime: Clock3,
-};
+import { standardStatIconMap } from '../data/standardStatIcons';
+import type { IconTheme } from '../types/settings';
 
 interface StatWidgetProps {
   icon: string;
@@ -37,6 +9,8 @@ interface StatWidgetProps {
   value: number | string;
   unit?: string;
   visible: boolean;
+  iconTheme?: IconTheme;
+  showIconBadge?: boolean;
   min?: number;
   cap?: number;
   format?: (v: number) => string;
@@ -151,6 +125,8 @@ export const StatWidget = memo(function StatWidget({
   value,
   unit = '',
   visible,
+  iconTheme = 'standard',
+  showIconBadge = false,
   min,
   cap,
   format,
@@ -199,8 +175,8 @@ export const StatWidget = memo(function StatWidget({
   const resolvedHelperMaxWidth = helperMaxWidth ?? styles.maxWidth;
   const resolvedMeterFillHeight = meterFillHeight ?? meterHeight;
 
-  const iconSrc = iconMap[icon];
-  const BadgeIcon = badgeIconMap[icon];
+  const iconSrc = iconTheme === 'dororong' ? iconMap[icon] : undefined;
+  const BadgeIcon = standardStatIconMap[icon];
   const fallbackBadgeStyle = buildBadgePlateStyle(styles.iconSize, iconColor);
   const overlayBadgeStyle = buildBadgePlateStyle(styles.badgeSize, iconColor);
   const badgeAccentStyle = buildBadgeAccentStyle(iconColor);
@@ -218,7 +194,7 @@ export const StatWidget = memo(function StatWidget({
         width: `${styles.iconSize}px`,
         height: `${styles.iconSize}px`,
         filter: iconSrc ? 'none' : `drop-shadow(0 0 3px ${iconColor}66)`,
-      }} data-stat-icon="true">
+      }} data-stat-icon="true" data-icon-theme={iconTheme}>
         {iconSrc ? (
           <img
             src={iconSrc}
@@ -240,7 +216,7 @@ export const StatWidget = memo(function StatWidget({
             <BadgeIcon size={styles.glyphSize} color="#ffffff" strokeWidth={2.2} style={badgeGlyphStyle} />
           </div>
         ) : null}
-        {iconSrc && BadgeIcon && (
+        {showIconBadge && iconSrc && BadgeIcon && (
           <div style={{
             position: 'absolute',
             right: '-3px',

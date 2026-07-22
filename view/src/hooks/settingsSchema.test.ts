@@ -7,6 +7,42 @@ import {
 } from './settingsSchema';
 
 describe('settingsSchema', () => {
+  it('uses standard icons without badges for fresh schema v6 settings', () => {
+    const merged = mergeWithDefaults({
+      schemaVersion: 6,
+    });
+
+    expect(defaultSettings.general.iconTheme).toBe('standard');
+    expect(defaultSettings.general.showIconBadges).toBe(false);
+    expect(merged.general.iconTheme).toBe('standard');
+    expect(merged.general.showIconBadges).toBe(false);
+  });
+
+  it('preserves the legacy Dororong appearance for schema v5 settings', () => {
+    const merged = mergeWithDefaults({
+      schemaVersion: 5,
+      general: {
+        opacity: 80,
+      },
+    });
+
+    expect(merged.general.iconTheme).toBe('dororong');
+    expect(merged.general.showIconBadges).toBe(true);
+  });
+
+  it('honors explicit icon presentation fields in imported legacy payloads', () => {
+    const merged = mergeWithDefaults({
+      schemaVersion: 5,
+      general: {
+        iconTheme: 'standard',
+        showIconBadges: false,
+      },
+    });
+
+    expect(merged.general.iconTheme).toBe('standard');
+    expect(merged.general.showIconBadges).toBe(false);
+  });
+
   it('defaults the standalone level widget off for fresh stage 2 installs', () => {
     const merged = mergeWithDefaults({
       schemaVersion: 4,

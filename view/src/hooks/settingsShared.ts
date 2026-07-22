@@ -2,7 +2,7 @@ import type { WidgetItemLayout, WidgetSettings } from '../types/settings';
 import { getWidgetItemDefaultZIndex } from '../data/widgetItemRegistry';
 import { isPlainObject } from '../utils/normalize';
 
-export const SETTINGS_SCHEMA_VERSION = 5;
+export const SETTINGS_SCHEMA_VERSION = 6;
 
 const DEFAULT_ITEM_LAYOUT: WidgetItemLayout = {
   visible: true,
