@@ -2,20 +2,32 @@
 
 [size=4][b]Tullius Widgets[/b][/size]
 
-A combat-focused Skyrim SE/AE HUD mod powered by [url=https://www.nexusmods.com/skyrimspecialedition/mods/148718]Prisma UI[/url].
-It keeps the numbers and status details you actually check during combat and exploration on screen, without opening menus.
-You can also tune layout, styling, and visibility rules directly from the in-game settings panel.
+A modern combat HUD and STB Widgets alternative for Skyrim SE/AE, powered by [url=https://www.nexusmods.com/skyrimspecialedition/mods/148718]Prisma UI[/url].
+It presents 25 combat and utility items in a restrained Nordic-style design while keeping every widget independently movable and configurable.
+Standard, widely recognizable icons are used by default. The original Dororong icon theme remains available as an option.
+
+[size=3][b]v1.6.0 Highlights[/b][/size]
+
+[list]
+[*]Redesigned the HUD with dark translucent surfaces, thin borders, clearer number hierarchy, and stat-specific accent colors
+[*]Kept [b]all widgets independent[/b]: each item can still be moved, resized, locked, hidden, or reordered separately
+[*]Made the standard icon set the default; Dororong icons remain optional and identifier badges can be disabled
+[*]Reworked Experience into a horizontal level/value/progress widget
+[*]Reworked Resistances into horizontal widgets showing both effective and raw values
+[*]Separated attack and equipment widgets with distinct sword and hand icons
+[/list]
 
 [line]
 
 [size=3][b]Core Features[/b][/size]
 
 [list]
-[*]Shows [b]20 combat stats[/b] plus [b]time[/b], [b]equipped slots[/b], and [b]timed effects[/b] on the HUD
-[*]Uses [b]custom icons[/b] and [b]circular identifier badges[/b] for faster recognition
-[*]Supports [b]direct drag/resize editing[/b] in the settings panel with neighbor snapping
+[*]Shows [b]25 independently positioned HUD items[/b] covering progression, player stats, resistances, defense, offense, equipment, time, movement, and timed effects
+[*]Uses familiar [b]standard icons by default[/b], with the original Dororong theme and optional identifier badges still available
+[*]Supports per-widget [b]move, resize, lock, visibility, and layer order[/b] controls
+[*]Supports direct drag editing, neighbor snapping, alignment guides, and 1px/10px keyboard movement
 [*]Optional [b]Combat Only[/b] and [b]Show Only When Values Change[/b] display modes
-[*]Opacity, size, layout direction, color tone, and transparent background controls
+[*]Global opacity, HUD font, color tone, and transparent background controls
 [*][b]Preset export/import[/b] support
 [*][b]Visual vignette alerts[/b] for low Health/Magicka/Stamina and overencumbrance
 [*][b]Runtime warning banner[/b] for unsupported runtime / SKSE / Address Library combinations
@@ -27,11 +39,11 @@ You can also tune layout, styling, and visibility rules directly from the in-gam
 [size=3][b]Displayed Categories[/b][/size]
 
 [list]
-[*][b]Player Info[/b] - Level, Gold, Carry Weight, Health, Magicka, Stamina
+[*][b]Progression / Player Info[/b] - Experience progress, Level, Gold, Carry Weight, Health, Magicka, Stamina
 [*][b]Resistances[/b] - Magic, Fire, Frost, Shock, Poison, Disease
 [*][b]Defense[/b] - Armor Rating, Damage Reduction
 [*][b]Offense[/b] - Right/Left Hand Damage, Critical Chance
-[*][b]Equipped Slots[/b] - Right/Left hand equipment info
+[*][b]Equipped Slots[/b] - Right/Left hand equipment and selected Shout/Power
 [*][b]Movement[/b] - Speed multiplier
 [*][b]Time[/b] - Skyrim date/time and real date/time
 [*][b]Timed Effects[/b] - Source name, effect name, remaining duration
@@ -83,6 +95,8 @@ Data/
 [*][b]F11[/b] - Toggle widget visibility
 [*][b]ESC[/b] - Close the settings panel
 [*][b]Drag / Resize[/b] - Edit widgets while the settings panel is open
+[*][b]Arrow keys[/b] - Move the selected widget by 1px
+[*][b]Shift + Arrow keys[/b] - Move the selected widget by 10px
 [/list]
 
 [line]
