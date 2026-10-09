@@ -20,12 +20,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -51,7 +51,7 @@ jobs:
           xmake-version: 2.9.7
 
       - name: Restore xmake compiler cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .xmake-cache/ccache
           key: ${{ runner.os }}-xmake-ccache-${{ github.ref_name }}-${{ github.sha }}
@@ -107,7 +107,7 @@ jobs:
           Compress-Archive -Path "dist/*" -DestinationPath $env:ZIP_NAME
 
       - name: Upload package artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: TulliusWidgets-windows-package
           path: ${{ env.ZIP_NAME }}
