@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build-and-release:
-    runs-on: ${{ vars.WINDOWS_RUNNER_LABEL != '' && vars.WINDOWS_RUNNER_LABEL || 'windows-latest' }}
+    runs-on: ${{ vars.WINDOWS_RUNNER_LABEL != '' && vars.WINDOWS_RUNNER_LABEL || 'windows-2022' }}
     timeout-minutes: 40
 
     steps:
