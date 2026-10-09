@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build-and-release:
-    runs-on: ${{ vars.WINDOWS_RUNNER_LABEL != '' && vars.WINDOWS_RUNNER_LABEL || 'windows-2022' }}
+    runs-on: ${{ vars.WINDOWS_RUNNER_LABEL != '' && vars.WINDOWS_RUNNER_LABEL || 'windows-2025-vs2026' }}
     timeout-minutes: 40
 
     steps:
@@ -47,7 +47,7 @@ jobs:
       - name: Setup xmake
         uses: xmake-io/github-action-setup-xmake@v1
         with:
-          xmake-version: 2.9.7
+          xmake-version: 3.0.6
 
       - name: Restore xmake compiler cache
         uses: actions/cache@v6
