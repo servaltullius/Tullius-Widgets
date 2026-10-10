@@ -213,7 +213,7 @@ export function GeneralTabSections({
       )}
 
       <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${scalePanelPixels(8, panelScale)} 0` }}>
-        <span style={{ color: '#ddd', fontSize: scalePanelPixels(24, panelScale) }}>{t(lang, 'opacity')}: {settings.general.opacity}%</span>
+        <span style={{ color: '#ddd', fontSize: scalePanelPixels(24, panelScale) }}>{t(lang, settings.general.hudStyle === 'compact' ? 'compactSurfaceOpacity' : 'opacity')}: {settings.general.opacity}%</span>
         <input
           type="range"
           min={10}
