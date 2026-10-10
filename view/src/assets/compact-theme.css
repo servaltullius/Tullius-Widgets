@@ -63,7 +63,7 @@
 }
 
 .tw-compact-sub {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--c-text-2);
 }
@@ -142,14 +142,15 @@
 .tw-ceffect-track {
   grid-column: 1 / -1;
   height: 2px;
-  background: rgba(236, 231, 219, 0.14);
+  margin-left: 17px;
+  background: rgba(236, 231, 219, 0.12);
   box-shadow: 0 0 1px rgba(0, 0, 0, 0.9);
 }
 
 .tw-ceffect-fill {
   display: block;
   height: 2px;
-  background: rgba(236, 231, 219, 0.7);
+  background: rgba(236, 231, 219, 0.45);
 }
 
 .tw-ceffect-row[data-debuff='true'] .tw-ceffect-fill { background: var(--c-danger); }

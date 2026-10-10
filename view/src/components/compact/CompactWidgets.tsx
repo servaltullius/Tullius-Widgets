@@ -97,7 +97,7 @@ export const CompactStat = memo(function CompactStat({
   const delta = useValueDelta(trackValue);
   return (
     <div title={title} data-compact-item="stat" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 5 }}>
-      {Icon && <Icon size={iconSize} strokeWidth={2.1} color={iconColor} aria-hidden="true" style={{ flex: 'none' }} />}
+      {Icon && <Icon size={iconSize} strokeWidth={1.9} color={iconColor} aria-hidden="true" style={{ flex: 'none' }} />}
       {label && <span className="tw-compact-label">{label}</span>}
       <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
         <span className="tw-compact-value" data-tone={tone}>
@@ -149,7 +149,7 @@ export const CompactResistance = memo(function CompactResistance({
 
   return (
     <div title={title} data-compact-item="resistance" style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 54 }}>
-      {Icon && <Icon size={16} strokeWidth={2.1} color={iconColor} aria-hidden="true" style={{ flex: 'none' }} />}
+      {Icon && <Icon size={16} strokeWidth={1.9} color={iconColor} aria-hidden="true" style={{ flex: 'none' }} />}
       <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
         <span className="tw-compact-value" data-tone={tone}>
           {formatSignedPercent(value)}
@@ -178,7 +178,7 @@ export const CompactResource = memo(function CompactResource({ icon, color, valu
   const clamped = Math.max(0, Math.min(100, pct));
   return (
     <div data-compact-item="resource" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      {Icon && <Icon size={14} strokeWidth={2.1} color={color} aria-hidden="true" style={{ flex: 'none' }} />}
+      {Icon && <Icon size={14} strokeWidth={1.9} color={color} aria-hidden="true" style={{ flex: 'none' }} />}
       <div style={{ width: 96, height: 6, background: 'rgba(8, 8, 8, 0.55)', boxShadow: '0 0 0 1px var(--c-line)' }}>
         <div style={{ width: `${clamped}%`, height: 6, background: color }} />
       </div>
@@ -307,7 +307,6 @@ interface CompactEquipSlotProps {
   kind: EquippedItemKind;
   value?: number;
   nameDisplay: EquipNameDisplay;
-  accent?: string;
   chargePct?: number | null;
   ammoCount?: number | null;
   cooldownSec?: number;
@@ -357,7 +356,6 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
   kind,
   value,
   nameDisplay,
-  accent,
   chargePct = null,
   ammoCount = null,
   cooldownSec = 0,
@@ -409,7 +407,7 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
           justifyContent: 'center',
         }}
       >
-        <span className="tw-compact-label" style={{ position: 'absolute', left: 5, top: 3, fontSize: 10, fontWeight: 700, color: accent ?? 'var(--c-text-2)' }}>
+        <span className="tw-compact-label" style={{ position: 'absolute', left: 5, top: 3, fontSize: 10, fontWeight: 700, color: 'var(--c-text-2)' }}>
           {slotKey}
         </span>
         {isPotion ? (
@@ -420,11 +418,11 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
             aria-hidden="true"
           />
         ) : slotKey !== 'Z' && kind === 'dagger' ? (
-          <DaggerIcon size={26} strokeWidth={1.7} color="var(--c-text)" />
+          <DaggerIcon size={26} strokeWidth={1.8} color="var(--c-text)" />
         ) : Icon && (
           <Icon
             size={26}
-            strokeWidth={1.7}
+            strokeWidth={1.8}
             color={isEmpty || coolingDown ? 'rgba(236, 231, 219, 0.35)' : 'var(--c-text)'}
             aria-hidden="true"
           />
@@ -435,8 +433,9 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
               data-compact-cooldown
               style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: `${cooldown.fraction * 100}%`, background: 'rgba(8, 8, 8, 0.5)', borderRadius: '0 0 3px 3px' }}
             />
-            <span className="tw-compact-value" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700 }}>
+            <span className="tw-compact-value" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'baseline', justifyContent: 'center', paddingTop: 20, fontSize: 16, fontWeight: 700 }}>
               {Math.ceil(cooldown.remaining)}
+              <span className="tw-compact-unit">s</span>
             </span>
           </>
         )}
@@ -460,8 +459,11 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
           </span>
         )}
         {showAmmo && (
-          <span className="tw-compact-value" data-compact-ammo style={{ position: 'absolute', right: 5, top: 3, fontSize: 10, fontWeight: 700, color: ammoCount === 0 ? 'var(--c-danger)' : 'var(--c-text-2)' }}>
-            {ammoCount}
+          <span className="tw-compact-value" style={{ position: 'absolute', right: 5, top: 3, display: 'flex', alignItems: 'center', gap: 2, fontSize: 10, fontWeight: 700, color: ammoCount === 0 ? 'var(--c-danger)' : 'var(--c-text-2)' }}>
+            <svg width={8} height={8} viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" aria-hidden="true" style={{ filter: 'none' }}>
+              <path d="M1 7L7 1M4 1h3v3M1 5.5L2.5 7" />
+            </svg>
+            <span data-compact-ammo>{ammoCount}</span>
           </span>
         )}
         {showValue && (
