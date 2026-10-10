@@ -53,12 +53,14 @@ function formatDeltaMagnitude(value: number): string {
   return value.toLocaleString('en-US');
 }
 
-function DeltaBadge({ delta, placement = 'above' }: { delta: { delta: number; key: number } | null; placement?: 'above' | 'right' }) {
+// Below the value by default: above it the badge sits right under the combat row and reads
+// like a change to the armour figure.
+function DeltaBadge({ delta, placement = 'below' }: { delta: { delta: number; key: number } | null; placement?: 'below' | 'right' }) {
   if (!delta) return null;
   return (
     <span
       key={delta.key}
-      className={placement === 'right' ? 'tw-compact-delta tw-compact-delta--right' : 'tw-compact-delta'}
+      className={`tw-compact-delta tw-compact-delta--${placement}`}
       data-compact-delta
       data-direction={delta.delta > 0 ? 'up' : 'down'}
     >
