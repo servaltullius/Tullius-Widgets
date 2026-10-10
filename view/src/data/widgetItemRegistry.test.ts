@@ -152,10 +152,10 @@ describe('widgetItemRegistry', () => {
       viewportHeight: 2160,
     });
 
-    expect(fhd['experience.progress']).toMatchObject({ x: 34, y: 932, scale: 1, visible: true });
+    expect(fhd['experience.progress']).toMatchObject({ x: 34, y: 934, scale: 1, visible: true });
     expect(fhd['resistance.disease'].visible).toBe(true);
     expect(fhd['equipped.voice'].visible).toBe(true);
-    expect(uhd['experience.progress']).toMatchObject({ x: 68, y: 1864, scale: 2 });
+    expect(uhd['experience.progress']).toMatchObject({ x: 68, y: 1868, scale: 2 });
     for (const layout of Object.values(fhd)) {
       expect(layout.x).toBeLessThan(960);
       expect(layout.y).toBeLessThan(1010);

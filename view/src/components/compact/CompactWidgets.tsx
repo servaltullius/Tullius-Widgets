@@ -316,7 +316,7 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
       <span
         className="tw-compact-label"
         data-compact-equip-name
-        style={{ fontSize: 11, color: 'var(--c-text)', height: 14, maxWidth: 108, overflow: 'hidden', textOverflow: 'ellipsis', visibility: visibleName ? 'visible' : 'hidden' }}
+        style={{ fontSize: 11, color: 'var(--c-text)', height: 14, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', visibility: visibleName ? 'visible' : 'hidden' }}
       >
         {visibleName ?? ' '}
       </span>
