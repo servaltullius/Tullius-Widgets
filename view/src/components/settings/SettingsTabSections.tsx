@@ -971,6 +971,7 @@ export function PresetsTabSections({
                   onUpdate('groupScales', {}, { persist: false });
                   onUpdate('general.hudStyle', slot.hudStyle, { persist: false });
                   onUpdate('general.compactAnchor', slot.compactAnchor, { persist: false });
+                  if (slot.size) onUpdate('general.size', slot.size, { persist: false });
                   onUpdate('itemLayouts', { ...slot.itemLayouts });
                 }}
                 style={slotButtonStyle(panelScale, Boolean(slot))}

@@ -249,6 +249,7 @@ export function captureLayoutSlot(
     savedAt,
     hudStyle: settings.general.hudStyle,
     compactAnchor: settings.general.compactAnchor,
+    size: settings.general.size,
     itemLayouts: Object.fromEntries(
       Object.entries(resolved).map(([itemId, layout]) => [
         itemId,

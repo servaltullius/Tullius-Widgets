@@ -53,6 +53,7 @@ const ICON_PRESENTATION_SCHEMA_VERSION = 6;
 // Settings saved before the compact HUD existed keep the classic card look and layout.
 const HUD_STYLE_SCHEMA_VERSION = 7;
 const HUD_STYLES: readonly HudStyle[] = ['compact', 'classic'];
+const WIDGET_SIZES: readonly WidgetSize[] = ['xsmall', 'small', 'medium', 'large'];
 
 interface MergeSettingsOptions {
   allowLegacyStandaloneLevelFallback?: boolean;
@@ -119,6 +120,7 @@ function sanitizeLayoutSlots(incoming: unknown): WidgetSettings['layoutSlots'] {
       savedAt: readNumber(raw.savedAt, 0, 0, Number.MAX_SAFE_INTEGER),
       hudStyle: readEnum<HudStyle>(raw.hudStyle, 'compact', HUD_STYLES),
       compactAnchor: readEnum<CompactAnchor>(raw.compactAnchor, 'bottomLeft', ['bottomLeft', 'bottomRight', 'topLeft', 'topRight']),
+      ...(typeof raw.size === 'string' && WIDGET_SIZES.includes(raw.size as WidgetSize) ? { size: raw.size as WidgetSize } : {}),
       itemLayouts,
     };
   }
@@ -158,7 +160,7 @@ function mergeGeneralSettings(
   target.changeDisplaySeconds = readNumber(incoming.changeDisplaySeconds, target.changeDisplaySeconds, 1, 15);
   target.onboardingSeen = readBoolean(incoming.onboardingSeen, target.onboardingSeen);
   target.opacity = readNumber(incoming.opacity, target.opacity, 10, 100);
-  target.size = readEnum<WidgetSize>(incoming.size, target.size, ['xsmall', 'small', 'medium', 'large']);
+  target.size = readEnum<WidgetSize>(incoming.size, target.size, WIDGET_SIZES);
   target.language = readLanguageCode(incoming.language, target.language);
   target.fontPreset = readEnum<FontPreset>(incoming.fontPreset, target.fontPreset, FONT_PRESETS);
   const hasExplicitIconTheme = typeof incoming.iconTheme === 'string'

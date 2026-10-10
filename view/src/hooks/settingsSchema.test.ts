@@ -55,14 +55,14 @@ describe('settingsSchema', () => {
     const merged = mergeWithDefaults({
       schemaVersion: 7,
       layoutSlots: [
-        { savedAt: 5, hudStyle: 'classic', compactAnchor: 'topLeft', itemLayouts: { 'player.gold': { visible: true, x: 1, y: 2, scale: 1 } } },
+        { savedAt: 5, hudStyle: 'classic', compactAnchor: 'topLeft', size: 'large', itemLayouts: { 'player.gold': { visible: true, x: 1, y: 2, scale: 1 } } },
         'junk',
         { savedAt: 9, hudStyle: 'compact', itemLayouts: {} },
         { savedAt: 1, hudStyle: 'compact', itemLayouts: { 'player.gold': { visible: true, x: 1, y: 2, scale: 1 } } },
       ],
     });
     expect(merged.layoutSlots).toHaveLength(3);
-    expect(merged.layoutSlots[0]).toMatchObject({ savedAt: 5, hudStyle: 'classic', compactAnchor: 'topLeft' });
+    expect(merged.layoutSlots[0]).toMatchObject({ savedAt: 5, hudStyle: 'classic', compactAnchor: 'topLeft', size: 'large' });
     expect(merged.layoutSlots[1]).toBeNull();
     expect(merged.layoutSlots[2]).toBeNull();
     expect(mergeWithDefaults({ schemaVersion: 7 }).layoutSlots).toEqual([null, null, null]);

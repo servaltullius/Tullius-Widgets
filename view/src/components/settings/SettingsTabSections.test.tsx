@@ -188,7 +188,7 @@ describe('SettingsTabSections', () => {
     });
     const saveCall = onUpdate.mock.calls.find(call => call[0] === 'layoutSlots');
     const savedSlots = saveCall?.[1];
-    expect(savedSlots[0]).toMatchObject({ hudStyle: 'compact', compactAnchor: 'bottomLeft' });
+    expect(savedSlots[0]).toMatchObject({ hudStyle: 'compact', compactAnchor: 'bottomLeft', size: 'medium' });
     expect(savedSlots[0].itemLayouts['experience.progress']).toMatchObject({ viewportWidth: window.innerWidth, viewportHeight: window.innerHeight });
 
     onUpdate.mockClear();
@@ -214,6 +214,7 @@ describe('SettingsTabSections', () => {
       (container.querySelector('[data-layout-slot-load="0"]') as HTMLButtonElement).click();
     });
     expect(onUpdate).toHaveBeenCalledWith('general.hudStyle', 'compact', { persist: false });
+    expect(onUpdate).toHaveBeenCalledWith('general.size', 'medium', { persist: false });
     expect(onUpdate).toHaveBeenCalledWith('itemLayouts', savedSlots[0].itemLayouts);
     const loadedLayouts = onUpdate.mock.calls.find(call => call[0] === 'itemLayouts')?.[1];
     expect(loadedLayouts).not.toBe(savedSlots[0].itemLayouts);

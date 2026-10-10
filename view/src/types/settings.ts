@@ -34,6 +34,8 @@ export interface LayoutSlot {
   savedAt: number;
   hudStyle: HudStyle;
   compactAnchor: CompactAnchor;
+  /** Compact size preset in effect when saved (older slots: unset). */
+  size?: WidgetSize;
   itemLayouts: Record<string, WidgetItemLayout>;
 }
 
