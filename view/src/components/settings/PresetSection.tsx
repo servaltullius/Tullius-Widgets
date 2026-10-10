@@ -15,7 +15,8 @@ function buildPresetExportPayload(settings: WidgetSettings): string {
   delete presetSettings.positions;
   delete presetSettings.layouts;
   delete presetSettings.groupScales;
-  // Key bindings belong to the player, not the preset.
+  // Saved layout slots and key bindings belong to the player, not the preset.
+  delete presetSettings.layoutSlots;
   const general: Partial<WidgetSettings['general']> = { ...settings.general };
   delete general.settingsHotkey;
   delete general.visibilityHotkey;

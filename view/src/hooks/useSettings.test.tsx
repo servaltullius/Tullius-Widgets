@@ -311,6 +311,29 @@ describe('useSettings', () => {
     vi.useRealTimers();
   });
 
+  it('keeps the player\'s layout slots when a preset is imported', async () => {
+    let latest: WidgetSettings | null = null;
+    let updateSetting: UpdateSettingFn | null = null;
+    window.onSettingsChanged = vi.fn();
+    window.onImportResult = vi.fn();
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<SettingsAndUpdateHarness onSettings={settings => { latest = settings; }} onReady={value => { updateSetting = value; }} />);
+    });
+    const mine = { savedAt: 1, hudStyle: 'compact' as const, compactAnchor: 'bottomLeft' as const, itemLayouts: { 'player.gold': { visible: true, x: 1, y: 2, scale: 1, locked: false, zIndex: 1 } } };
+    await act(async () => {
+      updateSetting?.('layoutSlots', [mine, null, null]);
+    });
+    await act(async () => {
+      window.importSettingsFromNative?.(JSON.stringify({
+        schemaVersion: 7,
+        layoutSlots: [null, { ...mine, savedAt: 99 }, null],
+      }));
+    });
+    expect(latest!.layoutSlots[0]).toMatchObject({ savedAt: 1 });
+    expect(latest!.layoutSlots[1]).toBeNull();
+  });
+
   it('preserves imported group scales from native import when serializing later settings updates', async () => {
     const onSettingsChanged = vi.fn();
     const onImportResult = vi.fn();
