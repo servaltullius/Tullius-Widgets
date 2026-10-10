@@ -404,12 +404,54 @@ static OffenseSnapshot CollectOffenseSnapshot(RE::PlayerCharacter* player)
     return snapshot;
 }
 
+// Coarse item kind for the compact HUD's slot icon; must match EQUIPPED_ITEM_KINDS in the view.
+static const char* GetEquippedKind(RE::PlayerCharacter* player, bool leftHand)
+{
+    auto* equipped = GetEquippedForm(player, leftHand);
+    if (!equipped) return "empty";
+
+    if (const auto* weapon = equipped->As<RE::TESObjectWEAP>()) {
+        switch (weapon->GetWeaponType()) {
+        case RE::WEAPON_TYPE::kHandToHandMelee: return "unarmed";
+        case RE::WEAPON_TYPE::kOneHandSword: return "sword";
+        case RE::WEAPON_TYPE::kOneHandDagger: return "dagger";
+        case RE::WEAPON_TYPE::kOneHandAxe: return "waraxe";
+        case RE::WEAPON_TYPE::kOneHandMace: return "mace";
+        case RE::WEAPON_TYPE::kTwoHandSword: return "greatsword";
+        // Battleaxes and warhammers share an animation type; keywords keep their EDIDs in memory.
+        case RE::WEAPON_TYPE::kTwoHandAxe: return weapon->HasKeywordString("WeapTypeWarhammer") ? "warhammer" : "battleaxe";
+        case RE::WEAPON_TYPE::kBow: return "bow";
+        case RE::WEAPON_TYPE::kStaff: return "staff";
+        case RE::WEAPON_TYPE::kCrossbow: return "crossbow";
+        default: return "other";
+        }
+    }
+    if (const auto* spell = equipped->As<RE::SpellItem>()) {
+        if (const auto* effect = spell->GetAVEffect()) {
+            switch (effect->GetMagickSkill()) {
+            case RE::ActorValue::kDestruction: return "destruction";
+            case RE::ActorValue::kRestoration: return "restoration";
+            case RE::ActorValue::kAlteration: return "alteration";
+            case RE::ActorValue::kIllusion: return "illusion";
+            case RE::ActorValue::kConjuration: return "conjuration";
+            default: break;
+            }
+        }
+        return "spell";
+    }
+    if (equipped->As<RE::TESObjectARMO>()) return "shield";
+    if (equipped->As<RE::TESObjectLIGH>()) return "torch";
+    return "other";
+}
+
 static EquippedSnapshot CollectEquippedSnapshot(RE::PlayerCharacter* player)
 {
     auto* selectedVoice = GetSelectedVoiceForm(player);
     return EquippedSnapshot{
         GetEquippedName(player, false),
         GetEquippedName(player, true),
+        GetEquippedKind(player, false),
+        GetEquippedKind(player, true),
         GetSelectedVoiceName(player),
         GetSelectedVoiceType(selectedVoice)
     };

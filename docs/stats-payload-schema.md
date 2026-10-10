@@ -30,6 +30,8 @@
   "equipped": {
     "rightHand": "Daedric Sword",
     "leftHand": "Chain Lightning",
+    "rightHandKind": "sword",
+    "leftHandKind": "destruction",
     "voice": "Unrelenting Force",
     "voiceType": "shout"
   },
@@ -123,6 +125,7 @@
   - `equipped.rightHand`, `equipped.leftHand`는 가능한 경우 인벤토리 표시명(`InventoryEntryData::GetDisplayName`)을 우선 사용합니다.
   - 왼손은 주문/무기 외에 방패 슬롯 보강 판별을 포함합니다.
   - `equipped.voice`는 현재 선택된 포효/파워 이름입니다.
+  - `equipped.rightHandKind`, `equipped.leftHandKind`는 손별 장비 종류입니다: `empty | unarmed | sword | dagger | waraxe | mace | greatsword | battleaxe | warhammer | bow | crossbow | staff | spell | destruction | restoration | alteration | illusion | conjuration | shield | torch | other`. 주문은 학파가 확인되면 학파 이름을, 아니면 `spell`을 씁니다. 구버전 payload에서는 생략될 수 있으며, UI는 이름이 있으면 `other`, 없으면 `empty`로 처리합니다.
   - `equipped.voiceType`은 `empty | shout | power` 중 하나이며, UI가 포효/파워 슬롯을 표시할 때 참고할 수 있습니다.
   - 장착 이벤트 직후 값은 안정성을 위해 한 틱 지연 후 반영될 수 있습니다.
 - 경험치 계약:

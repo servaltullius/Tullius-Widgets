@@ -73,6 +73,8 @@ struct OffenseSnapshot {
 struct EquippedSnapshot {
     std::string rightHand{};
     std::string leftHand{};
+    std::string rightHandKind{"empty"};
+    std::string leftHandKind{"empty"};
     std::string voice{};
     std::string voiceType{"empty"};
 };

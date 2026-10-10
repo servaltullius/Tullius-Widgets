@@ -24,4 +24,6 @@ test('stats collector writer still emits core payload contract sections', () => 
   assert.match(statsWriterText, /\\"timedEffects\\"/);
   assert.match(statsWriterText, /\\"expectedLevelThreshold\\"/);
   assert.match(statsWriterText, /\\"isInCombat\\"/);
+  assert.match(statsWriterText, /\\"rightHandKind\\"/);
+  assert.match(statsWriterText, /\\"leftHandKind\\"/);
 });
