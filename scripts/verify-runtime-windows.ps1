@@ -107,6 +107,7 @@ try {
       $repoBuildDir = Join-Path $repoRoot "build/windows/x64/release"
       New-Item -ItemType Directory -Path $repoBuildDir -Force | Out-Null
       Copy-Item -LiteralPath $stagedDllPath -Destination (Join-Path $repoBuildDir "TulliusWidgets.dll") -Force
+      Sync-RequiresLockFromStage -StageRoot $pluginBuildRoot -RepoRoot $repoRoot | Out-Null
     } else {
       xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false
       xmake build

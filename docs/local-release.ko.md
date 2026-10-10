@@ -6,9 +6,16 @@ CI를 사용하지 않고 로컬에서 빌드한 결과물만으로 ZIP 생성�
 - OS: Windows
 - 필수 도구:
   - Node.js + npm
-  - xmake
-  - Visual Studio C++ Build Tools (MSVC)
+  - xmake 3.0.6 (CI `xmake-version`과 동일하게 유지)
+  - Visual Studio 2026 C++ 도구 (MSVC, CI 이미지 `windows-2025-vs2026`과 동일)
   - GitHub CLI (`gh`) 로그인 완료
+
+## 툴체인/패키지 버전 고정
+- xmake 버전과 Visual Studio 버전은 로컬과 CI(`.github/workflows/build-windows-package.yml`, `release.yml`)를 항상 함께 올립니다.
+- C++ 의존 패키지 버전은 루트의 `xmake-requires.lock`으로 고정합니다.
+  - 로컬 빌드 스크립트는 이 파일을 스테이징 경로에 복사해 사용하고, 빌드 중 내용이 바뀌면 저장소로 다시 가져옵니다. 바뀐 경우 검토 후 커밋하세요.
+  - CI는 lock과 다른 패키지가 쓰이면 `Check xmake package lock` 단계에서 경고를 남깁니다.
+- GitHub Actions 메이저 업데이트는 Dependabot이 매월 PR로 올립니다.
 
 ## WSL에서 작업 중인 경우
 이제는 WSL UNC worktree에서도 공식 스크립트로 바로 빌드할 수 있습니다. 스크립트가 필요한 파일을 임시 Windows 경로로 스테이징한 뒤 `VsDevCmd.bat` + `xmake`를 호출합니다.

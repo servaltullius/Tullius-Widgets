@@ -141,6 +141,7 @@ function Invoke-ReleaseLocal {
         $repoBuildDir = Join-Path $repoRoot "build/windows/x64/release"
         New-Item -ItemType Directory -Path $repoBuildDir -Force | Out-Null
         Copy-Item -LiteralPath $stagedDllPath -Destination (Join-Path $repoBuildDir "TulliusWidgets.dll") -Force
+        Sync-RequiresLockFromStage -StageRoot $pluginBuildRoot -RepoRoot $repoRoot | Out-Null
       }
 
       Write-PluginBuildStamp -RepoRoot $repoRoot -PluginDllPath $pluginDllPath

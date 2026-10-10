@@ -385,6 +385,59 @@ exit /b 1
     }
   }
 
+  It "stages xmake-requires.lock when the repo has one" {
+    $root = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
+    $sourceRoot = Join-Path $root "repo"
+    $commonLibRoot = Join-Path $sourceRoot "lib\commonlibsse-ng"
+    $stageRoot = $null
+
+    New-Item -ItemType Directory -Path (Join-Path $sourceRoot "src") -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $commonLibRoot "src") -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $commonLibRoot "include") -Force | Out-Null
+    Set-Content -Path (Join-Path $sourceRoot "xmake.lua") -Value 'set_version("1.2.1-rc.3")' -Encoding UTF8
+    Set-Content -Path (Join-Path $sourceRoot "xmake-requires.lock") -Value '{ "__meta__": {} }' -Encoding UTF8
+    Set-Content -Path (Join-Path $commonLibRoot "xmake.lua") -Value 'target("commonlibsse-ng")' -Encoding UTF8
+    Set-Content -Path (Join-Path $commonLibRoot "xmake-rules.lua") -Value 'rule("commonlibsse-ng.plugin")' -Encoding UTF8
+
+    try {
+      $stageRoot = Prepare-PluginBuildWorkspace -SourceRoot $sourceRoot
+
+      (Test-Path (Join-Path $stageRoot "xmake-requires.lock")) | Should Be $true
+    }
+    finally {
+      if ($stageRoot -and (Test-Path $stageRoot)) {
+        Remove-Item -LiteralPath $stageRoot -Recurse -Force
+      }
+      if (Test-Path $root) {
+        Remove-Item -LiteralPath $root -Recurse -Force
+      }
+    }
+  }
+
+  It "syncs a changed xmake-requires.lock back from the stage" {
+    $root = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
+    $repoRoot = Join-Path $root "repo"
+    $stageRoot = Join-Path $root "stage"
+    New-Item -ItemType Directory -Path $repoRoot -Force | Out-Null
+    New-Item -ItemType Directory -Path $stageRoot -Force | Out-Null
+
+    try {
+      (Sync-RequiresLockFromStage -StageRoot $stageRoot -RepoRoot $repoRoot) | Should Be $false
+      (Test-Path (Join-Path $repoRoot "xmake-requires.lock")) | Should Be $false
+
+      Set-Content -Path (Join-Path $stageRoot "xmake-requires.lock") -Value '{ "v": 1 }' -Encoding UTF8
+      (Sync-RequiresLockFromStage -StageRoot $stageRoot -RepoRoot $repoRoot) | Should Be $true
+      (Get-Content -LiteralPath (Join-Path $repoRoot "xmake-requires.lock") -Raw).Trim() | Should Be '{ "v": 1 }'
+
+      (Sync-RequiresLockFromStage -StageRoot $stageRoot -RepoRoot $repoRoot) | Should Be $false
+    }
+    finally {
+      if (Test-Path $root) {
+        Remove-Item -LiteralPath $root -Recurse -Force
+      }
+    }
+  }
+
   It "removes temporary stage directories" {
     $root = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
     $stageA = Join-Path $root "stage-a"

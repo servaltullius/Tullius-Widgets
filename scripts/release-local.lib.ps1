@@ -691,12 +691,40 @@ function Prepare-PluginBuildWorkspace {
     Copy-FileToStage -SourceRoot $SourceRoot -StageRoot $stageRoot -RelativePath ".gitmodules"
   }
   Copy-FileToStage -SourceRoot $SourceRoot -StageRoot $stageRoot -RelativePath "xmake.lua"
+  if (Test-Path (Join-Path $SourceRoot "xmake-requires.lock")) {
+    Copy-FileToStage -SourceRoot $SourceRoot -StageRoot $stageRoot -RelativePath "xmake-requires.lock"
+  }
   Copy-DirectorySnapshot `
     -SourcePath (Join-Path $SourceRoot "src") `
     -DestinationPath (Join-Path $stageRoot "src")
   Copy-CommonLibSseNgReleaseSubset -SourceRoot $SourceRoot -StageRoot $stageRoot
 
   return $stageRoot
+}
+
+function Sync-RequiresLockFromStage {
+  param(
+    [string]$StageRoot,
+    [string]$RepoRoot
+  )
+
+  $stagedLockPath = Join-Path $StageRoot "xmake-requires.lock"
+  if (-not (Test-Path $stagedLockPath)) {
+    return $false
+  }
+
+  $repoLockPath = Join-Path $RepoRoot "xmake-requires.lock"
+  if (Test-Path $repoLockPath) {
+    $stagedText = Get-Content -LiteralPath $stagedLockPath -Raw
+    $repoText = Get-Content -LiteralPath $repoLockPath -Raw
+    if ($stagedText -eq $repoText) {
+      return $false
+    }
+  }
+
+  Copy-Item -LiteralPath $stagedLockPath -Destination $repoLockPath -Force
+  Write-Host "xmake-requires.lock was updated by the staged build. Review and commit it."
+  return $true
 }
 
 function Prepare-FrontendBuildWorkspace {

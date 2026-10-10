@@ -66,6 +66,14 @@ jobs:
           xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false --ccache=y --ccachedir="$ccacheDir"
           xmake build -y -v
 
+      - name: Check xmake package lock
+        shell: bash
+        run: |
+          if ! git diff --quiet -- xmake-requires.lock; then
+            echo "::warning file=xmake-requires.lock::xmake resolved packages that differ from the committed lock file"
+            git diff -- xmake-requires.lock
+          fi
+
       - name: Resolve version and validate release note
         shell: pwsh
         run: |
