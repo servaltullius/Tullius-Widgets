@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { BRIDGE_HANDLERS } from '../constants/bridge';
-import type { CombatStats, EquippedVoiceType, GameTimeInfo, TimedEffect } from '../types/stats';
+import { EQUIPPED_ITEM_KINDS, type CombatStats, type EquippedItemKind, type EquippedVoiceType, type GameTimeInfo, type TimedEffect } from '../types/stats';
 import { mockStats } from '../data/mockStats';
 import { isPlainObject, readBoolean, readNumber, readText } from '../utils/normalize';
 import { registerDualBridgeHandler } from '../utils/bridge';
@@ -49,6 +49,14 @@ function readSchemaVersion(value: unknown): number | null {
   const schemaVersion = Math.trunc(value);
   if (schemaVersion < 0) return null;
   return schemaVersion;
+}
+
+// Older plugins do not send a hand kind; fall back to what the item name alone can tell us.
+function readEquippedItemKind(value: unknown, name: string): EquippedItemKind {
+  if (typeof value === 'string' && (EQUIPPED_ITEM_KINDS as readonly string[]).includes(value)) {
+    return value as EquippedItemKind;
+  }
+  return name ? 'other' : 'empty';
 }
 
 function readEquippedVoiceType(value: unknown, fallback: EquippedVoiceType): EquippedVoiceType {
@@ -317,12 +325,18 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
       leftHandDamage: readNumber(rawOffense?.leftHandDamage, fallback.offense.leftHandDamage, -100000, 100000),
       critChance: readNumber(rawOffense?.critChance, fallback.offense.critChance, -1000, 1000),
     },
-    equipped: {
-      rightHand: readText(rawEquipped?.rightHand, fallback.equipped.rightHand, true),
-      leftHand: readText(rawEquipped?.leftHand, fallback.equipped.leftHand, true),
-      voice: readText(rawEquipped?.voice, fallback.equipped.voice, true),
-      voiceType: readEquippedVoiceType(rawEquipped?.voiceType, fallback.equipped.voiceType),
-    },
+    equipped: (() => {
+      const rightHand = readText(rawEquipped?.rightHand, fallback.equipped.rightHand, true);
+      const leftHand = readText(rawEquipped?.leftHand, fallback.equipped.leftHand, true);
+      return {
+        rightHand,
+        leftHand,
+        rightHandKind: readEquippedItemKind(rawEquipped?.rightHandKind, rightHand),
+        leftHandKind: readEquippedItemKind(rawEquipped?.leftHandKind, leftHand),
+        voice: readText(rawEquipped?.voice, fallback.equipped.voice, true),
+        voiceType: readEquippedVoiceType(rawEquipped?.voiceType, fallback.equipped.voiceType),
+      };
+    })(),
     movement: {
       speedMult: readNumber(rawMovement?.speedMult, fallback.movement.speedMult, 0, 10000),
     },

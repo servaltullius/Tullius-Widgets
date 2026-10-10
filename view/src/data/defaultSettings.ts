@@ -24,7 +24,7 @@ export const defaultSettings: WidgetSettings = {
     frost: true,
     shock: true,
     poison: true,
-    disease: false,
+    disease: true,
     displayMode: 'both',
   },
   defense: {
@@ -39,7 +39,8 @@ export const defaultSettings: WidgetSettings = {
   equipped: {
     rightHand: true,
     leftHand: true,
-    voice: false,
+    voice: true,
+    nameDisplay: 'always',
   },
   timedEffects: {
     enabled: true,
@@ -51,9 +52,9 @@ export const defaultSettings: WidgetSettings = {
   },
   time: {
     gameDateTime: true,
-    gameDisplay: 'dateTime',
+    gameDisplay: 'timeOnly',
     realDateTime: true,
-    realDisplay: 'dateTime',
+    realDisplay: 'timeOnly',
   },
   experience: {
     enabled: true,

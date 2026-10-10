@@ -80,6 +80,35 @@ const NORDIC_DEFAULT_ITEM_POSITIONS: Record<string, GroupPosition> = {
   'timedEffects.list': { x: 1100, y: 60 },
 };
 
+// Compact HUD: a bottom-left cluster that sits just above the vanilla/TrueHUD resource bars.
+const COMPACT_DEFAULT_ITEM_POSITIONS: Record<string, GroupPosition> = {
+  'timedEffects.list': { x: 34, y: 668 },
+  'player.gold': { x: 34, y: 830 },
+  'player.carryWeight': { x: 112, y: 830 },
+  'time.game': { x: 232, y: 830 },
+  'time.real': { x: 338, y: 830 },
+  'resistance.magic': { x: 34, y: 860 },
+  'resistance.fire': { x: 98, y: 860 },
+  'resistance.frost': { x: 162, y: 860 },
+  'resistance.shock': { x: 226, y: 860 },
+  'resistance.poison': { x: 290, y: 860 },
+  'resistance.disease': { x: 354, y: 860 },
+  'defense.armorRating': { x: 34, y: 893 },
+  'defense.damageReduction': { x: 96, y: 893 },
+  'offense.rightHandDamage': { x: 162, y: 893 },
+  'offense.leftHandDamage': { x: 216, y: 893 },
+  'offense.critChance': { x: 270, y: 893 },
+  'movement.speedMult': { x: 334, y: 893 },
+  'experience.progress': { x: 34, y: 932 },
+  'equipped.rightHand': { x: 186, y: 926 },
+  'equipped.leftHand': { x: 270, y: 926 },
+  'equipped.voice': { x: 354, y: 926 },
+  'player.level': { x: 440, y: 830 },
+  'player.health': { x: 440, y: 860 },
+  'player.magicka': { x: 440, y: 880 },
+  'player.stamina': { x: 440, y: 900 },
+};
+
 export const NORDIC_DEFAULT_BASELINE_VIEWPORT = {
   width: 1920,
   height: 1080,
@@ -457,6 +486,32 @@ export function buildNordicDefaultItemLayouts(
   );
 }
 
+export function buildCompactDefaultItemLayouts(
+  source: LegacyWidgetLayoutSource,
+): Record<string, WidgetItemLayout> {
+  const scale = NORDIC_DEFAULT_SIZE_SCALE_MAP[source.general.size];
+
+  return Object.fromEntries(
+    WIDGET_ITEM_IDS.map(itemId => {
+      const entry = getWidgetItemRegistryEntry(itemId);
+      const position = COMPACT_DEFAULT_ITEM_POSITIONS[itemId] ?? { x: 0, y: 0 };
+      return [
+        itemId,
+        {
+          visible: readVisibilityByPath(source, entry.visibilityPath),
+          x: position.x,
+          y: position.y,
+          scale,
+          locked: false,
+          zIndex: getWidgetItemDefaultZIndex(itemId),
+          viewportWidth: NORDIC_DEFAULT_BASELINE_VIEWPORT.width,
+          viewportHeight: NORDIC_DEFAULT_BASELINE_VIEWPORT.height,
+        },
+      ];
+    }),
+  );
+}
+
 export function hasLegacyWidgetPlacementOverrides(source: LegacyWidgetLayoutSource): boolean {
   return Object.keys(source.positions).length > 0
     || Object.keys(source.layouts).length > 0
@@ -630,9 +685,11 @@ export function resolveWidgetItemLayouts(params: {
   const { settings, viewportWidth, viewportHeight } = params;
   const canonicalLayouts = sanitizeWidgetItemLayouts(settings.itemLayouts);
   const useNordicDefaults = !hasLegacyWidgetPlacementOverrides(settings);
-  const baselineLayouts = useNordicDefaults
-    ? buildNordicDefaultItemLayouts(settings)
-    : buildBaselineItemLayoutsFromLegacySettings(settings);
+  const baselineLayouts = !useNordicDefaults
+    ? buildBaselineItemLayoutsFromLegacySettings(settings)
+    : settings.general.hudStyle === 'compact'
+      ? buildCompactDefaultItemLayouts(settings)
+      : buildNordicDefaultItemLayouts(settings);
   const fallbackLayouts = Object.fromEntries(
     Object.entries(baselineLayouts).map(([itemId, layout]) => [
       itemId,

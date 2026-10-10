@@ -6,6 +6,15 @@ interface TimedEffectListProps {
   maxVisible: number;
   emptyLabel: string;
   layout?: 'vertical' | 'horizontal';
+  variant?: 'card' | 'compact';
+}
+
+function formatCompactRemaining(value: number): string {
+  const total = Math.max(0, Math.round(value));
+  if (total < 60) return `${total}s`;
+  const minutes = Math.floor(total / 60);
+  if (minutes < 60) return `${minutes}:${String(total % 60).padStart(2, '0')}`;
+  return `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`;
 }
 
 function formatRemainingSec(value: number): string {
@@ -56,6 +65,7 @@ export function TimedEffectList({
   maxVisible,
   emptyLabel,
   layout = 'vertical',
+  variant = 'card',
 }: TimedEffectListProps) {
   const [nowMs, setNowMs] = useState(() => Date.now());
 
@@ -101,7 +111,29 @@ export function TimedEffectList({
   const hiddenCount = Math.max(0, sorted.length - visible.length);
 
   if (visible.length === 0) {
-    return <div className="tw-effect-empty">{emptyLabel}</div>;
+    return <div className={variant === 'compact' ? 'tw-ceffect-empty' : 'tw-effect-empty'}>{emptyLabel}</div>;
+  }
+
+  if (variant === 'compact') {
+    return (
+      <div className="tw-ceffect-list" data-layout={layout}>
+        {visible.map(({ effect, displayedRemainingSec, progressPct, urgent }) => (
+          <div
+            className="tw-ceffect-row"
+            data-debuff={effect.isDebuff ? 'true' : 'false'}
+            data-urgent={urgent ? 'true' : 'false'}
+            key={effect.stableKey}
+          >
+            <span className="tw-ceffect-name">{getPrimaryLabel(effect)}</span>
+            <span className="tw-ceffect-time">{formatCompactRemaining(displayedRemainingSec)}</span>
+            <span className="tw-ceffect-track" aria-hidden="true">
+              <span className="tw-ceffect-fill" style={{ width: `${progressPct}%` }} />
+            </span>
+          </div>
+        ))}
+        {hiddenCount > 0 && <div className="tw-ceffect-more">+{hiddenCount}</div>}
+      </div>
+    );
   }
 
   return (

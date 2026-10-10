@@ -7,6 +7,7 @@ export type TimeDisplayMode = 'dateTime' | 'timeOnly';
 export type FontPreset = 'default' | 'readable' | 'compact' | 'classic';
 export type IconTheme = 'standard' | 'dororong';
 export type HudStyle = 'compact' | 'classic';
+export type EquipNameDisplay = 'always' | 'onChange' | 'never';
 export type Language = string;
 
 export interface GroupPosition {
@@ -64,6 +65,7 @@ export interface WidgetSettings {
     rightHand: boolean;
     leftHand: boolean;
     voice: boolean;
+    nameDisplay: EquipNameDisplay;
   };
   timedEffects: {
     enabled: boolean;

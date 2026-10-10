@@ -75,3 +75,83 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* Compact timed effects: one slim row per effect, no card. */
+.tw-ceffect-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 190px;
+}
+
+.tw-ceffect-list[data-layout='horizontal'] {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  max-width: 560px;
+}
+
+.tw-ceffect-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 12px;
+  row-gap: 3px;
+  align-items: baseline;
+  padding-left: 8px;
+  position: relative;
+  min-width: 190px;
+}
+
+.tw-ceffect-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 3px;
+  width: 2px;
+  height: 11px;
+  background: var(--c-text-2);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.9);
+}
+
+.tw-ceffect-row[data-debuff='true']::before { background: var(--c-danger); }
+
+.tw-ceffect-name {
+  font-size: 12px;
+  font-weight: 560;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.tw-ceffect-row[data-debuff='true'] .tw-ceffect-name { color: #f1b1aa; }
+
+.tw-ceffect-time {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--c-text-2);
+  text-align: right;
+}
+
+.tw-ceffect-row[data-urgent='true'] .tw-ceffect-time { color: var(--c-warn); }
+
+.tw-ceffect-track {
+  grid-column: 1 / -1;
+  height: 2px;
+  background: rgba(236, 231, 219, 0.14);
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0.9);
+}
+
+.tw-ceffect-fill {
+  display: block;
+  height: 2px;
+  background: rgba(236, 231, 219, 0.7);
+}
+
+.tw-ceffect-row[data-debuff='true'] .tw-ceffect-fill { background: var(--c-danger); }
+
+.tw-ceffect-more,
+.tw-ceffect-empty {
+  font-size: 11px;
+  color: var(--c-text-3);
+  padding-left: 8px;
+}

@@ -18,6 +18,20 @@ describe('settingsSchema', () => {
     expect(mergeWithDefaults({ schemaVersion: 7, general: { hudStyle: 'bogus' } }).general.hudStyle).toBe('compact');
   });
 
+  it('keeps pre-compact defaults for fields missing from older saves', () => {
+    const legacy = mergeWithDefaults({ schemaVersion: 6, general: { opacity: 80 } });
+    expect(legacy.resistances.disease).toBe(false);
+    expect(legacy.equipped.voice).toBe(false);
+    expect(legacy.time.gameDisplay).toBe('dateTime');
+    expect(legacy.time.realDisplay).toBe('dateTime');
+
+    const fresh = mergeWithDefaults({ schemaVersion: 7 });
+    expect(fresh.resistances.disease).toBe(true);
+    expect(fresh.equipped.voice).toBe(true);
+    expect(fresh.equipped.nameDisplay).toBe('always');
+    expect(fresh.time.gameDisplay).toBe('timeOnly');
+  });
+
   it('uses standard icons without badges for fresh schema v6 settings', () => {
     const merged = mergeWithDefaults({
       schemaVersion: 6,

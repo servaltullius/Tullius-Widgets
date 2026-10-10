@@ -126,10 +126,34 @@ describe('widgetItemRegistry', () => {
     expect(fhdItemLayouts['player.gold'].y / 1080).toBeCloseTo(uhdItemLayouts['player.gold'].y / 2160, 2);
   });
 
-  it('uses adjacent but independent Nordic-neutral placements for fresh defaults', () => {
-    const baseline = buildNordicDefaultItemLayouts(defaultSettings);
+  it('places fresh compact defaults as a bottom-left cluster above the resource bars', () => {
     const fhd = resolveWidgetItemLayouts({
       settings: structuredClone(defaultSettings),
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+    const uhd = resolveWidgetItemLayouts({
+      settings: structuredClone(defaultSettings),
+      viewportWidth: 3840,
+      viewportHeight: 2160,
+    });
+
+    expect(fhd['experience.progress']).toMatchObject({ x: 34, y: 932, scale: 1, visible: true });
+    expect(fhd['resistance.disease'].visible).toBe(true);
+    expect(fhd['equipped.voice'].visible).toBe(true);
+    expect(uhd['experience.progress']).toMatchObject({ x: 68, y: 1864, scale: 2 });
+    for (const layout of Object.values(fhd)) {
+      expect(layout.x).toBeLessThan(960);
+      expect(layout.y).toBeLessThan(1010);
+    }
+  });
+
+  it('uses adjacent but independent Nordic-neutral placements for fresh classic defaults', () => {
+    const classicSettings = structuredClone(defaultSettings);
+    classicSettings.general.hudStyle = 'classic';
+    const baseline = buildNordicDefaultItemLayouts(defaultSettings);
+    const fhd = resolveWidgetItemLayouts({
+      settings: classicSettings,
       viewportWidth: 1920,
       viewportHeight: 1080,
     });

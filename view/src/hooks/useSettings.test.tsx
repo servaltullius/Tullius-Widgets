@@ -506,14 +506,14 @@ describe('useSettings', () => {
 
     await act(async () => {
       window.onSettingsSyncResult?.(false, firstRevision);
-      updateSetting?.('itemLayouts.resistance.disease.visible', false);
+      updateSetting?.('itemLayouts.player.health.visible', false);
       vi.advanceTimersByTime(200);
     });
 
     expect(onSettingsChanged).toHaveBeenCalledTimes(3);
     const retriedPayload = JSON.parse(onSettingsChanged.mock.calls[2]?.[0] as string) as WidgetSettings & { rev?: number };
     expect(retriedPayload.general.opacity).toBe(77);
-    expect(retriedPayload.itemLayouts['resistance.disease']).toBeUndefined();
+    expect(retriedPayload.itemLayouts['player.health']).toBeUndefined();
     expect(retriedPayload.rev).toBeGreaterThan(firstRevision ?? 0);
     vi.useRealTimers();
   });
@@ -604,17 +604,17 @@ describe('useSettings', () => {
     });
 
     await act(async () => {
-      updateSetting?.('itemLayouts.resistance.disease.visible', true);
+      updateSetting?.('itemLayouts.player.health.visible', true);
     });
 
     const fallbackLayout = resolveWidgetItemLayouts({
       settings: structuredClone(defaultSettings),
       viewportWidth: window.innerWidth,
       viewportHeight: window.innerHeight,
-    })['resistance.disease'];
+    })['player.health'];
 
     expect(fallbackLayout).toBeTruthy();
-    expect(latest?.itemLayouts['resistance.disease']).toEqual({
+    expect(latest?.itemLayouts['player.health']).toEqual({
       ...fallbackLayout,
       visible: true,
       viewportWidth: window.innerWidth,

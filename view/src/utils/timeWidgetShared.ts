@@ -180,3 +180,16 @@ export function formatRealDateTime(nowMs: number, lang: Language): string {
 export function formatRealTimeOnly(nowMs: number, lang: Language): string {
   return getCachedTimeOnlyFormatter(lang).format(new Date(nowMs));
 }
+
+// Compact HUD formats: short enough to sit in a single HUD line.
+export function formatGameCompact(gameTime: GameTimeInfo, nowMs: number, withDate: boolean): string {
+  const current = advanceGameTime(gameTime, nowMs);
+  const hhmm = `${pad2(current.hour)}:${pad2(current.minute)}`;
+  return withDate ? `${current.month + 1}/${current.day} ${hhmm}` : hhmm;
+}
+
+export function formatRealCompact(nowMs: number, withDate: boolean): string {
+  const date = new Date(nowMs);
+  const hhmm = `${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+  return withDate ? `${date.getMonth() + 1}/${date.getDate()} ${hhmm}` : hhmm;
+}

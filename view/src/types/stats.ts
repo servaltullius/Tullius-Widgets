@@ -20,9 +20,19 @@ export interface Offense {
 
 export type EquippedVoiceType = 'empty' | 'shout' | 'power';
 
+export const EQUIPPED_ITEM_KINDS = [
+  'empty', 'unarmed', 'sword', 'dagger', 'waraxe', 'mace', 'greatsword', 'battleaxe', 'warhammer',
+  'bow', 'crossbow', 'staff', 'spell', 'destruction', 'restoration', 'alteration', 'illusion',
+  'conjuration', 'shield', 'torch', 'other',
+] as const;
+
+export type EquippedItemKind = typeof EQUIPPED_ITEM_KINDS[number];
+
 export interface Equipped {
   rightHand: string;
   leftHand: string;
+  rightHandKind: EquippedItemKind;
+  leftHandKind: EquippedItemKind;
   voice: string;
   voiceType: EquippedVoiceType;
 }

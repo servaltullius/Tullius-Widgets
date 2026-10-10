@@ -21,6 +21,8 @@ export const mockStats: CombatStats = {
   equipped: {
     rightHand: 'Daedric Sword',
     leftHand: 'Fireball',
+    rightHandKind: 'sword',
+    leftHandKind: 'destruction',
     voice: 'Unrelenting Force',
     voiceType: 'shout',
   },

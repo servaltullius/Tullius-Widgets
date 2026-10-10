@@ -115,5 +115,16 @@
   "settingsSyncFailed": "설정 저장에 실패했습니다. 경로/권한을 확인해 주세요.",
   "capRawLabel": "원본",
   "capLimitLabel": "캡",
-  "capArmorLimitLabel": "최대 효율 AR"
+  "capArmorLimitLabel": "최대 효율 AR",
+  "compactGameTime": "게임",
+  "compactRealTime": "현실",
+  "compactRawShort": "원",
+  "hudStyleLabel": "HUD 스타일",
+  "hudStyleCompact": "컴팩트",
+  "hudStyleClassic": "클래식 카드",
+  "hudStyleHint": "스타일을 바꾸면 위젯 배치가 해당 스타일의 기본 배치로 바뀝니다.",
+  "equipNameDisplayLabel": "장비 이름 표시",
+  "equipNameAlways": "항상",
+  "equipNameOnChange": "바꿀 때만 (3초)",
+  "equipNameNever": "숨김"
 }

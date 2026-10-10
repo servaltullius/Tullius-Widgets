@@ -33,7 +33,7 @@
 - [x] 0. `feat/compact-hud` 브랜치 생성, 기준 테스트 통과 확인
 - [x] 1. 변경 감지 버그 수정: 현실 시계·효과 타이머가 "값 변화" 판정을 매초 깨우는 문제, 포효/능력(`equipped.voice`) 교체 미감지 — 테스트 추가
 - [x] 2. 디자인 토큰: Compact 테마 토큰(색·글꼴·간격·그림자), 글자/배경 불투명도 분리, 로컬 번들 폰트(Noto Sans KR 서브셋 등, OFL) 추가
-- [ ] 3. Compact 표시 변형: 카드 없는 래퍼, 프레임 없는 아이콘, 텍스트 그림자 — Classic 테마는 그대로 유지
+- [x] 3. Compact 표시 변형: 카드 없는 래퍼, 프레임 없는 아이콘, 텍스트 그림자 — Classic 테마는 그대로 유지
 - [ ] 4. 저항·스탯 항목 Compact 표현(원값 차이 시만 보조값, 상한/음수 표식)
 - [ ] 5. 경험치 링 위젯 변형(레벨 + 진행 링 + 숫자)
 - [ ] 6. 장비 슬롯 위젯(R/L/Z): 키 배지·종류 아이콘·피해/수량·교체 직후 이름 표시. 필요하면 네이티브 payload에 장비 종류(무기 종류·주문 학파·맨손/방패) 추가
@@ -52,4 +52,5 @@
 
 - 03:01 0단계: `feat/compact-hud` 생성, 기준 lint/tsc/190 tests/build/계약 15 통과
 - 03:03 1단계: 변경 감지에서 게임·현실 시계와 효과 카운트다운 제외, 포효/능력 교체 추적 추가, 회귀 테스트 추가 (191 tests 통과)
-- 03:25 2단계: `general.hudStyle`(compact/classic) 추가 — 신규 설치는 compact, 스키마 7 이전 저장 설정은 classic 유지(스키마 버전 7). Compact 토큰 CSS(`compact-theme.css`), 로컬 번들 폰트 Pretendard Variable(OFL, 2.0MB woff2) — 193 tests 통과
+- 03:06 2단계: `general.hudStyle`(compact/classic) 추가 — 신규 설치는 compact, 스키마 7 이전 저장 설정은 classic 유지(스키마 버전 7). Compact 토큰 CSS(`compact-theme.css`), 로컬 번들 폰트 Pretendard Variable(OFL, 2.0MB woff2) — 193 tests 통과
+- 03:40 3단계: `EditableWidgetItem`에 `surface='bare'`(카드·blur·그림자 없음, 편집 프레임은 outline), `CompactHudItem`/`CompactWidgets`(스탯·저항·자원·경험치 링·장비 슬롯) 추가, 효과 목록 compact 변형, Compact 기본 배치(왼쪽 아래), 장비 종류 타입(`rightHandKind/leftHandKind`, 구 플러그인 대비 폴백), `equipped.nameDisplay`, 신규 기본값(질병·포효 표시, 시각만 표시)과 구버전 저장 설정 고정 — 195 tests 통과

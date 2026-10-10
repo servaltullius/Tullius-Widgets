@@ -115,5 +115,16 @@
   "settingsSyncFailed": "Failed to save settings. Check file path and permissions.",
   "capRawLabel": "Raw",
   "capLimitLabel": "Cap",
-  "capArmorLimitLabel": "Max effective AR"
+  "capArmorLimitLabel": "Max effective AR",
+  "compactGameTime": "Game",
+  "compactRealTime": "Real",
+  "compactRawShort": "raw",
+  "hudStyleLabel": "HUD style",
+  "hudStyleCompact": "Compact",
+  "hudStyleClassic": "Classic cards",
+  "hudStyleHint": "Switching style moves widgets to that style's default layout.",
+  "equipNameDisplayLabel": "Equipment names",
+  "equipNameAlways": "Always",
+  "equipNameOnChange": "On change (3s)",
+  "equipNameNever": "Hidden"
 }

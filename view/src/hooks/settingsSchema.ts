@@ -1,6 +1,7 @@
 import type {
   CarryWeightDisplayMode,
   FontPreset,
+  EquipNameDisplay,
   HudStyle,
   GroupPosition,
   IconTheme,
@@ -321,12 +322,27 @@ export function mergeWithDefaults(
 ): WidgetSettings {
   const merged = cloneDefaultSettings();
   const savedSchemaVersion = readRevision(saved.schemaVersion);
+  if (savedSchemaVersion === null || savedSchemaVersion < HUD_STYLE_SCHEMA_VERSION) {
+    // Fields missing from pre-compact saves keep the defaults those versions shipped with.
+    merged.resistances.disease = false;
+    merged.equipped.voice = false;
+    merged.time.gameDisplay = 'dateTime';
+    merged.time.realDisplay = 'dateTime';
+  }
 
   mergeGeneralSettings(merged.general, saved.general, savedSchemaVersion);
   mergeResistancesSettings(merged.resistances, saved.resistances);
   merged.defense = mergeBooleanSection(merged.defense, saved.defense);
   merged.offense = mergeBooleanSection(merged.offense, saved.offense);
-  merged.equipped = mergeBooleanSection(merged.equipped, saved.equipped);
+  const { nameDisplay: defaultNameDisplay, ...equippedVisibility } = merged.equipped;
+  merged.equipped = {
+    ...mergeBooleanSection(equippedVisibility, saved.equipped),
+    nameDisplay: readEnum<EquipNameDisplay>(
+      isPlainObject(saved.equipped) ? saved.equipped.nameDisplay : undefined,
+      defaultNameDisplay,
+      ['always', 'onChange', 'never'],
+    ),
+  };
   merged.movement = mergeBooleanSection(merged.movement, saved.movement);
   mergeTimeSettings(merged.time, saved.time);
   merged.experience = mergeBooleanSection(merged.experience, saved.experience);

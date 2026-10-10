@@ -353,6 +353,7 @@ describe('SettingsTabSections', () => {
 
   it('renders the voice equipped toggle and updates the canonical item visibility path', async () => {
     const settings = cloneSettings();
+    settings.equipped.voice = false;
     const onUpdate = vi.fn();
 
     await act(async () => {

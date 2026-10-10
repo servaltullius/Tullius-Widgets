@@ -4,6 +4,7 @@ import { ExperienceWidget } from './ExperienceWidget';
 import { ResistanceWidget } from './ResistanceWidget';
 import { StatWidget } from './StatWidget';
 import { TimedEffectList } from './TimedEffectList';
+import { CompactHudItem } from './compact/CompactHudItem';
 import { t } from '../i18n/translations';
 import { getWidgetItemRegistryEntry } from '../data/widgetItemRegistry';
 import type { WidgetInteractionMode } from '../hooks/useWidgetEditSelection';
@@ -138,6 +139,7 @@ function renderItemShell(
   transparentBg: boolean,
   child: ReactNode,
   options?: {
+    surface?: 'card' | 'bare';
     editable: boolean;
     selected: boolean;
     minScale: number;
@@ -181,6 +183,7 @@ function renderItemShell(
       opacity={opacity}
       accentColor={accentColor}
       transparentBg={transparentBg}
+      surface={resolvedOptions.surface ?? 'card'}
       editable={resolvedOptions.editable}
       selected={resolvedOptions.selected}
       onSelect={resolvedOptions.onSelect}
@@ -234,6 +237,7 @@ export function HudWidgetItems({
     return null;
   }
 
+  const compact = settings.general.hudStyle === 'compact';
   const { currentXp, totalXpForNextLevel } = resolveExperienceProgress(stats.playerInfo);
   const capLabel = t(lang, 'capLimitLabel');
   const armorLimitLabel = t(lang, 'capArmorLimitLabel');
@@ -286,6 +290,7 @@ export function HudWidgetItems({
           settings.general.transparentBg,
           child,
           {
+            surface: compact ? 'bare' : 'card',
             editable,
             selected: selectedItemId === itemId,
             minScale: registryEntry.minScale,
@@ -300,6 +305,12 @@ export function HudWidgetItems({
             onElementRef: onItemElementRef,
           },
         );
+
+        if (compact) {
+          return renderEditableItem((
+            <CompactHudItem itemId={itemId} stats={stats} settings={settings} lang={lang} nowMs={nowMs} />
+          ));
+        }
 
         switch (itemId) {
           case 'experience.progress':
