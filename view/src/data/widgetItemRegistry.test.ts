@@ -194,15 +194,50 @@ describe('widgetItemRegistry', () => {
         const settings = structuredClone(defaultSettings);
         settings.general.compactAnchor = compactAnchor;
         settings.general.size = size;
-        const layouts = resolveWidgetItemLayouts({ settings, viewportWidth: 1920, viewportHeight: 1080 });
-        for (const [itemId, layout] of Object.entries(layouts)) {
-          const width = itemId === 'timedEffects.list' ? 250 * layout.scale : 0;
-          expect(layout.x, `${compactAnchor}/${size}/${itemId}`).toBeGreaterThanOrEqual(0);
-          expect(layout.y, `${compactAnchor}/${size}/${itemId}`).toBeGreaterThanOrEqual(0);
-          expect(layout.x + width, `${compactAnchor}/${size}/${itemId}`).toBeLessThanOrEqual(1920);
+        for (const listLayout of ['vertical', 'horizontal'] as const) {
+          settings.timedEffects.listLayout = listLayout;
+          const layouts = resolveWidgetItemLayouts({ settings, viewportWidth: 1920, viewportHeight: 1080 });
+          for (const [itemId, layout] of Object.entries(layouts)) {
+            const label = `${compactAnchor}/${size}/${listLayout}/${itemId}`;
+            const width = itemId === 'timedEffects.list' ? (listLayout === 'horizontal' ? 532 : 250) * layout.scale : 0;
+            expect(layout.x, label).toBeGreaterThanOrEqual(0);
+            expect(layout.y, label).toBeGreaterThanOrEqual(0);
+            expect(layout.x + width, label).toBeLessThanOrEqual(1920);
+          }
         }
       }
     }
+  });
+
+  it('keeps a large compact cluster pinned to its right-hand corner on ultrawide screens', () => {
+    const settings = structuredClone(defaultSettings);
+    settings.general.compactAnchor = 'bottomRight';
+    settings.general.size = 'large';
+    const fhd = resolveWidgetItemLayouts({ settings, viewportWidth: 1920, viewportHeight: 1080 });
+    const wide = resolveWidgetItemLayouts({ settings, viewportWidth: 2560, viewportHeight: 1080 });
+    for (const itemId of ['player.gold', 'timedEffects.list', 'experience.progress']) {
+      expect(wide[itemId].x - fhd[itemId].x, itemId).toBeCloseTo(640, 3);
+    }
+  });
+
+  it('keeps widgets dragged to the far side of the screen near their own edge on ultrawide', () => {
+    const classic = structuredClone(defaultSettings);
+    classic.general.hudStyle = 'classic';
+    const seeded = resolveWidgetItemLayouts({ settings: classic, viewportWidth: 1920, viewportHeight: 1080 });
+    classic.itemLayouts = Object.fromEntries(
+      Object.entries(seeded).map(([itemId, layout]) => [itemId, { ...layout, viewportWidth: 1920, viewportHeight: 1080 }]),
+    );
+    classic.itemLayouts['timedEffects.list'] = { ...classic.itemLayouts['timedEffects.list'], x: 40 };
+    const wide = resolveWidgetItemLayouts({ settings: classic, viewportWidth: 2560, viewportHeight: 1080 });
+    expect(wide['timedEffects.list'].x).toBe(40);
+    expect(wide['experience.progress'].x).toBeCloseTo(seeded['experience.progress'].x + 640, 3);
+
+    const compact = structuredClone(defaultSettings);
+    compact.itemLayouts = { 'player.gold': { visible: true, x: 1820, y: 30, scale: 1, locked: false, zIndex: 1, viewportWidth: 1920, viewportHeight: 1080 } };
+    const tall = resolveWidgetItemLayouts({ settings: compact, viewportWidth: 1920, viewportHeight: 1200 });
+    expect(tall['player.gold']).toMatchObject({ x: 1820, y: 30 });
+    const ultrawide = resolveWidgetItemLayouts({ settings: compact, viewportWidth: 2560, viewportHeight: 1080 });
+    expect(ultrawide['player.gold'].x).toBe(2460);
   });
 
   it('keeps clusters anchored to their screen edge on ultrawide viewports', () => {

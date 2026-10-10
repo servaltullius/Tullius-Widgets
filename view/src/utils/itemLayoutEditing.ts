@@ -1,4 +1,6 @@
 import {
+  COMPACT_EFFECT_COLUMN_WIDTH,
+  COMPACT_EFFECT_ROW_WIDTH,
   WIDGET_ITEM_IDS,
   resolveWidgetItemLayouts,
   getWidgetItemDefaultZIndex,
@@ -253,5 +255,30 @@ export function captureLayoutSlot(
         { ...layout, viewportWidth: baseline.width, viewportHeight: baseline.height },
       ]),
     ),
+  };
+}
+
+// In a right-hand compact corner the effect list hugs the right edge; switching between the
+// column (250px) and row (532px) layouts keeps its right edge in place instead of letting the
+// wider row run off-screen. Returns null when nothing needs to move.
+export function shiftEffectListForLayout(
+  settings: WidgetSettings,
+  nextLayout: WidgetSettings['timedEffects']['listLayout'],
+): Record<string, WidgetItemLayout> | null {
+  const anchor = settings.general.compactAnchor;
+  const listLayout = settings.itemLayouts['timedEffects.list'];
+  if (
+    settings.general.hudStyle !== 'compact'
+    || (anchor !== 'bottomRight' && anchor !== 'topRight')
+    || nextLayout === settings.timedEffects.listLayout
+    || !listLayout
+  ) {
+    return null;
+  }
+  const widthDelta = (COMPACT_EFFECT_ROW_WIDTH - COMPACT_EFFECT_COLUMN_WIDTH) * listLayout.scale;
+  const x = nextLayout === 'horizontal' ? listLayout.x - widthDelta : listLayout.x + widthDelta;
+  return {
+    ...settings.itemLayouts,
+    'timedEffects.list': { ...listLayout, x: Number(Math.max(0, x).toFixed(3)) },
   };
 }

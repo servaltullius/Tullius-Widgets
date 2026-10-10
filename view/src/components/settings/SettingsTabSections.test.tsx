@@ -219,6 +219,34 @@ describe('SettingsTabSections', () => {
     expect(loadedLayouts).not.toBe(savedSlots[0].itemLayouts);
   });
 
+  it('lets an unanswered slot load confirmation lapse', async () => {
+    vi.useFakeTimers();
+    try {
+      const settings = cloneSettings();
+      settings.layoutSlots = [
+        { savedAt: 0, hudStyle: 'compact', compactAnchor: 'bottomLeft', itemLayouts: {} },
+        null,
+        null,
+      ];
+      const onUpdate = vi.fn();
+      await act(async () => {
+        root = createRoot(container);
+        root.render(
+          <PresetsTabSections lang="ko" settings={settings} onUpdate={onUpdate} isSectionExpanded={() => true} toggleSection={() => {}} />,
+        );
+      });
+      const load = () => container.querySelector('[data-layout-slot-load="0"]') as HTMLButtonElement;
+      await act(async () => { load().click(); });
+      expect(load().textContent).toContain('한 번 더');
+      await act(async () => { vi.advanceTimersByTime(5000); });
+      expect(load().textContent).not.toContain('한 번 더');
+      await act(async () => { load().click(); });
+      expect(onUpdate).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('updates the icon theme and exposes the badge toggle for Dororong icons', async () => {
     const settings = cloneSettings();
     settings.general.hudStyle = 'classic';

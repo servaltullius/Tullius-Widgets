@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Language, UpdateSettingFn, WidgetSettings } from '../../types/settings';
 import { t, type LocalizationLanguageEntry } from '../../i18n/translations';
 import { AccordionSection, CustomSelect, Toggle } from './SettingsControls';
 import { PresetSection } from './PresetSection';
 import { scalePanelPixels } from './panelScale';
 import { FONT_PRESET_OPTIONS } from '../../utils/fontPresets';
-import { buildItemLayoutsForHudStyle, captureLayoutSlot } from '../../utils/itemLayoutEditing';
+import { buildItemLayoutsForHudStyle, captureLayoutSlot, shiftEffectListForLayout } from '../../utils/itemLayoutEditing';
+
+const SLOT_LOAD_CONFIRM_MS = 4000;
 
 const PRESET_COLORS = [
   '', '#6699cc', '#cc6666', '#66cc99', '#cc99cc', '#ccaa66', '#66cccc', '#ffffff',
@@ -695,7 +697,12 @@ export function EffectsTabSections({
           label={t(lang, 'timedEffectsLayout')}
           value={settings.timedEffects.listLayout}
           options={timedEffectsLayoutOptions}
-          onChange={nextValue => onUpdate('timedEffects.listLayout', nextValue)}
+          onChange={nextValue => {
+            const listLayout = nextValue as WidgetSettings['timedEffects']['listLayout'];
+            const shifted = shiftEffectListForLayout(settings, listLayout);
+            if (shifted) onUpdate('itemLayouts', shifted, { persist: false });
+            onUpdate('timedEffects.listLayout', listLayout);
+          }}
           panelScale={panelScale}
           testId="timed-effects-layout-select"
         />
@@ -804,6 +811,12 @@ export function PresetsTabSections({
   panelScale = 1,
 }: PresetsTabSectionsProps) {
   const [pendingSlotLoad, setPendingSlotLoad] = useState<number | null>(null);
+  // An unanswered load confirmation lapses so a much later single click cannot replace the layout.
+  useEffect(() => {
+    if (pendingSlotLoad === null) return;
+    const timer = window.setTimeout(() => setPendingSlotLoad(null), SLOT_LOAD_CONFIRM_MS);
+    return () => window.clearTimeout(timer);
+  }, [pendingSlotLoad]);
   return (
     <>
       <AccordionSection
@@ -877,6 +890,7 @@ export function PresetsTabSections({
                 data-layout-slot-save={index}
                 onClick={() => {
                   const next = [...settings.layoutSlots];
+                  setPendingSlotLoad(null);
                   next[index] = captureLayoutSlot(settings, Date.now(), { width: window.innerWidth, height: window.innerHeight });
                   onUpdate('layoutSlots', next);
                 }}

@@ -36,7 +36,7 @@ export interface LegacyWidgetLayoutSource {
   defense: WidgetSettings['defense'];
   offense: WidgetSettings['offense'];
   equipped: WidgetSettings['equipped'];
-  timedEffects: Pick<WidgetSettings['timedEffects'], 'enabled'>;
+  timedEffects: Pick<WidgetSettings['timedEffects'], 'enabled'> & Partial<Pick<WidgetSettings['timedEffects'], 'listLayout'>>;
   movement: WidgetSettings['movement'];
   time: WidgetSettings['time'];
   experience: WidgetSettings['experience'];
@@ -137,18 +137,24 @@ const COMPACT_DEFAULT_SHOW_WHEN: Record<string, ItemShowWhen> = {
 };
 
 const COMPACT_CLUSTER_ANCHOR = { x: 34 } as const;
-// Widest compact element: the timed-effect column (fixed 250px in compact-theme.css).
-const COMPACT_EFFECT_COLUMN_WIDTH = 250;
+// Widest compact element: the timed-effect list (fixed widths in compact-theme.css).
+export const COMPACT_EFFECT_COLUMN_WIDTH = 250;
+export const COMPACT_EFFECT_ROW_WIDTH = 532;
 const COMPACT_TOP_MARGIN = 72;
 
 // Corner presets move the whole cluster, using its real bounds (hidden items included) at the
 // current size scale so no item can land off-screen.
-function getCompactAnchorOffset(anchor: CompactAnchor | undefined, scale: number): GroupPosition {
+function getCompactAnchorOffset(
+  anchor: CompactAnchor | undefined,
+  scale: number,
+  effectListLayout: WidgetSettings['timedEffects']['listLayout'] | undefined,
+): GroupPosition {
   const right = anchor === 'bottomRight' || anchor === 'topRight';
   const top = anchor === 'topLeft' || anchor === 'topRight';
   const { width, height } = NORDIC_DEFAULT_BASELINE_VIEWPORT;
   const positions = Object.values(COMPACT_DEFAULT_ITEM_POSITIONS);
-  const rightEdge = Math.max(...positions.map(position => position.x)) + COMPACT_EFFECT_COLUMN_WIDTH;
+  const effectWidth = effectListLayout === 'horizontal' ? COMPACT_EFFECT_ROW_WIDTH : COMPACT_EFFECT_COLUMN_WIDTH;
+  const rightEdge = Math.max(...positions.map(position => position.x)) + effectWidth;
   const topEdge = Math.min(...positions.map(position => position.y));
   const scaledRight = COMPACT_CLUSTER_ANCHOR.x + (rightEdge - COMPACT_CLUSTER_ANCHOR.x) * scale;
   const scaledTop = height - (height - topEdge) * scale;
@@ -588,7 +594,7 @@ export function buildCompactDefaultItemLayouts(
   source: LegacyWidgetLayoutSource,
 ): Record<string, WidgetItemLayout> {
   const scale = NORDIC_DEFAULT_SIZE_SCALE_MAP[source.general.size];
-  const offset = getCompactAnchorOffset(source.general.compactAnchor, scale);
+  const offset = getCompactAnchorOffset(source.general.compactAnchor, scale, source.timedEffects.listLayout);
 
   return Object.fromEntries(
     WIDGET_ITEM_IDS.map(itemId => {
@@ -783,6 +789,33 @@ function resolveLayoutAnchor(layouts: WidgetItemLayout[]): LayoutAnchor {
   };
 }
 
+// The compact cluster is pinned to its chosen corner; the midline test above would flip it to
+// proportional when a large size pushes an edge item past the centre.
+function resolveCompactCornerAnchor(anchor: CompactAnchor | undefined): LayoutAnchor {
+  const right = anchor === 'bottomRight' || anchor === 'topRight';
+  const top = anchor === 'topLeft' || anchor === 'topRight';
+  return { x: right ? 'end' : 'start', y: top ? 'start' : 'end' };
+}
+
+// Items the player dragged clearly onto the other half of the screen keep the distance to
+// their own edge. The dead zone around the centre keeps the cluster's own edge items (and
+// anything near the midline) on the layout anchor so the cluster never tears apart.
+const OWN_EDGE_MARGIN = 0.1;
+
+function resolveItemAxisAnchor(anchor: AxisAnchor, ratio: number): AxisAnchor {
+  if (anchor === 'start' && ratio >= 0.5 + OWN_EDGE_MARGIN) return 'end';
+  if (anchor === 'end' && ratio < 0.5 - OWN_EDGE_MARGIN) return 'start';
+  return anchor;
+}
+
+function resolveItemAnchor(layout: WidgetItemLayout, anchor: LayoutAnchor): LayoutAnchor {
+  if (!layout.viewportWidth || !layout.viewportHeight) return anchor;
+  return {
+    x: resolveItemAxisAnchor(anchor.x, layout.x / layout.viewportWidth),
+    y: resolveItemAxisAnchor(anchor.y, layout.y / layout.viewportHeight),
+  };
+}
+
 function resolveCanonicalLayoutForViewport(
   itemId: string,
   layout: WidgetItemLayout,
@@ -845,7 +878,9 @@ export function resolveWidgetItemLayouts(params: {
       : buildNordicDefaultItemLayouts(settings);
   // The anchor comes from the style's default arrangement only, so dragging a widget can
   // never re-anchor (and visibly shift) the rest of the HUD.
-  const layoutAnchor = resolveLayoutAnchor(Object.values(baselineLayouts));
+  const layoutAnchor = useNordicDefaults && settings.general.hudStyle === 'compact'
+    ? resolveCompactCornerAnchor(settings.general.compactAnchor)
+    : resolveLayoutAnchor(Object.values(baselineLayouts));
   const fallbackLayouts = Object.fromEntries(
     Object.entries(baselineLayouts).map(([itemId, layout]) => [
       itemId,
@@ -860,7 +895,13 @@ export function resolveWidgetItemLayouts(params: {
   const resolvedCanonicalLayouts = Object.fromEntries(
     Object.entries(canonicalLayouts).map(([itemId, layout]) => [
       itemId,
-      resolveCanonicalLayoutForViewport(itemId, layout, viewportWidth, viewportHeight, layoutAnchor),
+      resolveCanonicalLayoutForViewport(
+        itemId,
+        layout,
+        viewportWidth,
+        viewportHeight,
+        resolveItemAnchor(layout, layoutAnchor),
+      ),
     ]),
   ) as Record<string, WidgetItemLayout>;
 

@@ -9,6 +9,7 @@ import {
   normalizeItemLayoutZIndices,
   nudgeItemLayout,
   resetItemToDefaultPlacement,
+  shiftEffectListForLayout,
 } from './itemLayoutEditing';
 
 function cloneSettings(): WidgetSettings {
@@ -259,5 +260,18 @@ describe('itemLayoutEditing', () => {
 
     expect(resetOnFhd[itemId].x / 1920).toBeCloseTo(resetOnUhd[itemId].x / 3840, 2);
     expect(resetOnFhd[itemId].y / 1080).toBeCloseTo(resetOnUhd[itemId].y / 2160, 2);
+  });
+
+  it('keeps the effect list right edge in place when its layout changes in a right corner', () => {
+    const settings = structuredClone(defaultSettings);
+    settings.general.compactAnchor = 'bottomRight';
+    settings.itemLayouts = buildItemLayoutsForHudStyle(settings, 'compact');
+    const before = settings.itemLayouts['timedEffects.list'];
+    const shifted = shiftEffectListForLayout(settings, 'horizontal');
+    expect(shifted?.['timedEffects.list'].x).toBeCloseTo(before.x - 282 * before.scale, 3);
+    expect(shifted!['timedEffects.list'].x + 532 * before.scale).toBeLessThanOrEqual(1920);
+
+    settings.general.compactAnchor = 'bottomLeft';
+    expect(shiftEffectListForLayout(settings, 'horizontal')).toBeNull();
   });
 });
