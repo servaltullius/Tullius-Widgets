@@ -129,6 +129,8 @@
 }
 
 .tw-ceffect-row[data-debuff='true'] .tw-ceffect-label { color: #f1b1aa; }
+/* Losses read as a threat at a glance, not as another buff number. */
+.tw-ceffect-row[data-debuff='true'] .tw-ceffect-magnitude { color: #e47770; font-weight: 600; }
 
 .tw-ceffect-time {
   font-size: 12px;

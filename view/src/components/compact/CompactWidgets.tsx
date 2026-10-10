@@ -397,6 +397,10 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
   const showCharge = chargePct !== null && !isEmpty;
   const showAmmo = ammoCount !== null && (kind === 'bow' || kind === 'crossbow');
   const showPoison = poisonCount > 0 && !isEmpty;
+  // A staff (or any weapon without a damage figure) running low shows the charge as a number,
+  // since a short bar alone is easy to miss in combat.
+  const showChargeNumber = showCharge && chargePct !== null && chargePct < LOW_CHARGE_PCT && !showValue;
+  const potionSpent = isPotion && !isEmpty && value === 0;
 
   return (
     <div data-compact-item="equip-slot" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, width: 54 }}>
@@ -424,6 +428,7 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
             size={24}
             strokeWidth={1.8}
             color={isEmpty ? 'rgba(236, 231, 219, 0.35)' : POTION_COLORS[potionKind ?? 'other']}
+            opacity={potionSpent ? 0.45 : 1}
             aria-hidden="true"
           />
         ) : slotKey !== 'Z' && kind === 'dagger' ? (
@@ -494,6 +499,15 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
             {isPotion ? `\u00d7${Math.round(value)}` : Math.round(value)}
           </span>
         )}
+        {showChargeNumber && chargePct !== null && (
+          <span
+            className="tw-compact-value"
+            data-compact-charge-number
+            style={{ position: 'absolute', right: 5, bottom: 6, fontSize: 11, fontWeight: 600, color: 'var(--c-warn)' }}
+          >
+            {Math.round(chargePct)}%
+          </span>
+        )}
         {showCharge && (
           <div data-compact-charge style={{ position: 'absolute', left: 4, right: 4, bottom: 3, height: 2, background: 'rgba(236, 231, 219, 0.16)' }}>
             <div style={{ width: `${chargePct}%`, height: 2, background: chargePct < LOW_CHARGE_PCT ? 'var(--c-warn)' : '#a991e8' }} />
@@ -503,7 +517,7 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
       <span
         className="tw-compact-label"
         data-compact-equip-name
-        style={{ fontSize: 11, color: 'var(--c-text)', height: 14, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', visibility: visibleName ? 'visible' : 'hidden' }}
+        style={{ fontSize: 11, color: potionSpent ? '#aaa69b' : 'var(--c-text)', height: 14, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', visibility: visibleName ? 'visible' : 'hidden' }}
       >
         {visibleName ?? ' '}
       </span>

@@ -131,6 +131,13 @@ describe('CompactWidgets', () => {
     expect(states).toEqual(['unlocked', 'known', 'unknown']);
   });
 
+  it('spells out a low charge on a staff that has no damage figure', () => {
+    render(<CompactEquipSlot slotKey="L" name="마법 지팡이" emptyLabel="-" kind="staff" value={0} nameDisplay="never" chargePct={15} />);
+    expect(container.querySelector('[data-compact-charge-number]')?.textContent).toBe('15%');
+    render(<CompactEquipSlot slotKey="L" name="마법 지팡이" emptyLabel="-" kind="staff" value={0} nameDisplay="never" chargePct={60} />);
+    expect(container.querySelector('[data-compact-charge-number]')).toBeNull();
+  });
+
   it('shows the doses left of an applied weapon poison', () => {
     render(<CompactEquipSlot slotKey="R" name="강철 단검" emptyLabel="-" kind="dagger" value={12} nameDisplay="never" poisonCount={3} />);
     expect(container.querySelector('[data-compact-poison]')?.textContent).toBe('3');
