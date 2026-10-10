@@ -126,6 +126,42 @@ describe('SettingsTabSections', () => {
     expect(onUpdate).toHaveBeenCalledWith('general.fontPreset', 'readable');
   });
 
+  it('switches the HUD style and moves widgets to that style\'s default layout', async () => {
+    const settings = cloneSettings();
+    const onUpdate = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <GeneralTabSections
+          lang="ko"
+          settings={settings}
+          selectedLanguage="ko"
+          effectiveVisible={settings.general.visible}
+          onUpdate={onUpdate}
+          accentColor="#ffffff"
+          availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json' }]}
+          isSectionExpanded={() => true}
+          toggleSection={() => {}}
+        />,
+      );
+    });
+
+    const hudStyleSelect = getByTestId(container, 'hud-style-select');
+    expect(hudStyleSelect?.textContent).toContain('컴팩트');
+
+    await act(async () => {
+      hudStyleSelect?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      getByTestIdFromDocument('hud-style-select-option-classic')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(onUpdate).toHaveBeenCalledWith('general.hudStyle', 'classic', { persist: false });
+    const itemLayoutsCall = onUpdate.mock.calls.find(call => call[0] === 'itemLayouts');
+    expect(itemLayoutsCall?.[1]['experience.progress']).toMatchObject({ x: 1530, y: 60 });
+  });
+
   it('updates the icon theme and exposes the badge toggle for Dororong icons', async () => {
     const settings = cloneSettings();
     const onUpdate = vi.fn();

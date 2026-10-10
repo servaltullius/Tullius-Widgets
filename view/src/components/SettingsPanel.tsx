@@ -26,6 +26,7 @@ import { resolvePanelScale, scalePanelPixels } from './settings/panelScale';
 import {
   getWidgetItemDefaultZIndex,
   getWidgetItemRegistryEntry,
+  resolveItemShowWhen,
 } from '../data/widgetItemRegistry';
 import type { WidgetItemLayout } from '../types/settings';
 
@@ -323,6 +324,10 @@ export function SettingsPanel({
           onToggleLocked={selectedItemLayoutActions?.setSelectedItemLocked}
           onBringForward={selectedItemLayoutActions?.bringSelectedItemForward}
           onSendBackward={selectedItemLayoutActions?.sendSelectedItemBackward}
+          showWhen={selectedItemId ? resolveItemShowWhen(selectedItemId, resolvedSelectedItemLayout, settings.general.hudStyle) : undefined}
+          onShowWhenChange={next => {
+            if (selectedItemId) onUpdate(`itemLayouts.${selectedItemId}.showWhen`, next);
+          }}
           panelScale={panelScale}
         />
       )}

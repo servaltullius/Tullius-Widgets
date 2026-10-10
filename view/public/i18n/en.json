@@ -127,5 +127,10 @@
   "equipNameAlways": "Always",
   "equipNameOnChange": "On change (3s)",
   "equipNameNever": "Hidden",
-  "compactXpLabel": "XP"
+  "compactXpLabel": "XP",
+  "showWhenLabel": "Show when",
+  "showWhenAlways": "Always",
+  "showWhenCombat": "In combat",
+  "showWhenChange": "On change",
+  "showWhenCombatOrChange": "In combat or on change"
 }

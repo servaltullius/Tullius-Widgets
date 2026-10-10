@@ -3,7 +3,7 @@ import {
   resolveWidgetItemLayouts,
   getWidgetItemDefaultZIndex,
 } from '../data/widgetItemRegistry';
-import type { WidgetItemLayout, WidgetSettings } from '../types/settings';
+import type { HudStyle, WidgetItemLayout, WidgetSettings } from '../types/settings';
 
 function stampLayoutViewport(
   layout: WidgetItemLayout,
@@ -198,4 +198,38 @@ export function nudgeItemLayout(
       y: currentLayout.y + deltaY,
     },
   };
+}
+
+// Switching HUD style moves every item to that style's default placement but keeps which
+// items the player chose to show.
+export function buildItemLayoutsForHudStyle(
+  settings: WidgetSettings,
+  hudStyle: HudStyle,
+): Record<string, WidgetItemLayout> {
+  const baseline = { width: 1920, height: 1080 };
+  const current = resolveWidgetItemLayouts({ settings, viewportWidth: baseline.width, viewportHeight: baseline.height });
+  const target = resolveWidgetItemLayouts({
+    settings: {
+      ...settings,
+      general: { ...settings.general, hudStyle },
+      positions: {},
+      layouts: {},
+      groupScales: {},
+      itemLayouts: {},
+    },
+    viewportWidth: baseline.width,
+    viewportHeight: baseline.height,
+  });
+
+  return Object.fromEntries(
+    Object.entries(target).map(([itemId, layout]) => [
+      itemId,
+      {
+        ...layout,
+        visible: current[itemId]?.visible ?? layout.visible,
+        viewportWidth: baseline.width,
+        viewportHeight: baseline.height,
+      },
+    ]),
+  );
 }

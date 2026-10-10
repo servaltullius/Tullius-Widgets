@@ -4,6 +4,7 @@ import { resolveWidgetItemLayouts } from '../hooks/useWidgetItemLayouts';
 import type { WidgetSettings } from '../types/settings';
 import {
   bringVisibleItemForward,
+  buildItemLayoutsForHudStyle,
   normalizeItemLayoutZIndices,
   nudgeItemLayout,
   resetItemToDefaultPlacement,
@@ -14,6 +15,23 @@ function cloneSettings(): WidgetSettings {
 }
 
 describe('itemLayoutEditing', () => {
+  it('moves items to the target style defaults while keeping the chosen visibility', () => {
+    const settings = cloneSettings();
+    settings.general.hudStyle = 'classic';
+    settings.positions = { playerInfo: { x: 10, y: 10 } };
+    settings.itemLayouts = {
+      'player.gold': { visible: false, x: 5, y: 5, scale: 1, locked: false, zIndex: 3, viewportWidth: 1920, viewportHeight: 1080 },
+    };
+
+    const compact = buildItemLayoutsForHudStyle(settings, 'compact');
+    expect(compact['player.gold']).toMatchObject({ visible: false, x: 34, y: 830 });
+    expect(compact['experience.progress']).toMatchObject({ x: 34, y: 932, viewportWidth: 1920, viewportHeight: 1080 });
+
+    const classic = buildItemLayoutsForHudStyle({ ...settings, general: { ...settings.general, hudStyle: 'compact' }, itemLayouts: compact }, 'classic');
+    expect(classic['player.gold'].visible).toBe(false);
+    expect(classic['experience.progress']).toMatchObject({ x: 1530, y: 60 });
+  });
+
   it('normalizes zIndex into contiguous order while preserving hidden item relative order', () => {
     const settings = cloneSettings();
     const itemLayouts = resolveWidgetItemLayouts({

@@ -162,6 +162,11 @@ export const bundledTranslations = {
     equipNameOnChange: '바꿀 때만 (3초)',
     equipNameNever: '숨김',
     compactXpLabel: '경험치',
+    showWhenLabel: '표시 조건',
+    showWhenAlways: '항상',
+    showWhenCombat: '전투 중',
+    showWhenChange: '값이 바뀔 때',
+    showWhenCombatOrChange: '전투 중 또는 값이 바뀔 때',
   },
   en: {
     title: 'Tullius Widgets',
@@ -323,6 +328,11 @@ export const bundledTranslations = {
     equipNameOnChange: 'On change (3s)',
     equipNameNever: 'Hidden',
     compactXpLabel: 'XP',
+    showWhenLabel: 'Show when',
+    showWhenAlways: 'Always',
+    showWhenCombat: 'In combat',
+    showWhenChange: 'On change',
+    showWhenCombatOrChange: 'In combat or on change',
   },
 } as const;
 

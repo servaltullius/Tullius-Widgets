@@ -4,6 +4,7 @@ import { AccordionSection, CustomSelect, Toggle } from './SettingsControls';
 import { PresetSection } from './PresetSection';
 import { scalePanelPixels } from './panelScale';
 import { FONT_PRESET_OPTIONS } from '../../utils/fontPresets';
+import { buildItemLayoutsForHudStyle } from '../../utils/itemLayoutEditing';
 
 const PRESET_COLORS = [
   '', '#6699cc', '#cc6666', '#66cc99', '#cc99cc', '#ccaa66', '#66cccc', '#ffffff',
@@ -121,6 +122,21 @@ function buildFontPresetOptions(lang: Language) {
   }));
 }
 
+function buildHudStyleOptions(lang: Language) {
+  return [
+    { value: 'compact', label: t(lang, 'hudStyleCompact') },
+    { value: 'classic', label: t(lang, 'hudStyleClassic') },
+  ];
+}
+
+function buildEquipNameDisplayOptions(lang: Language) {
+  return [
+    { value: 'always', label: t(lang, 'equipNameAlways') },
+    { value: 'onChange', label: t(lang, 'equipNameOnChange') },
+    { value: 'never', label: t(lang, 'equipNameNever') },
+  ];
+}
+
 function buildIconThemeOptions(lang: Language) {
   return [
     { value: 'standard', label: t(lang, 'iconThemeStandard') },
@@ -204,6 +220,27 @@ export function GeneralTabSections({
           panelScale={panelScale}
         />
       </label>
+
+      <SelectRow
+        label={t(lang, 'hudStyleLabel')}
+        value={settings.general.hudStyle}
+        options={buildHudStyleOptions(lang)}
+        onChange={nextValue => {
+          const hudStyle = nextValue === 'classic' ? 'classic' : 'compact';
+          if (hudStyle === settings.general.hudStyle) return;
+          const nextItemLayouts = buildItemLayoutsForHudStyle(settings, hudStyle);
+          onUpdate('positions', {}, { persist: false });
+          onUpdate('layouts', {}, { persist: false });
+          onUpdate('groupScales', {}, { persist: false });
+          onUpdate('general.hudStyle', hudStyle, { persist: false });
+          onUpdate('itemLayouts', nextItemLayouts);
+        }}
+        panelScale={panelScale}
+        testId="hud-style-select"
+      />
+      <p style={{ color: '#88a4c4', fontSize: scalePanelPixels(18, panelScale), margin: `0 0 ${scalePanelPixels(8, panelScale)} 0` }}>
+        {t(lang, 'hudStyleHint')}
+      </p>
 
       <SelectRow
         label={t(lang, 'fontPreset')}
@@ -507,6 +544,16 @@ export function CombatTabSections({
             panelScale={panelScale}
           />
         ))}
+        {settings.general.hudStyle === 'compact' && (
+          <SelectRow
+            label={t(lang, 'equipNameDisplayLabel')}
+            value={settings.equipped.nameDisplay}
+            options={buildEquipNameDisplayOptions(lang)}
+            onChange={nextValue => onUpdate('equipped.nameDisplay', nextValue)}
+            panelScale={panelScale}
+            testId="equip-name-display-select"
+          />
+        )}
       </AccordionSection>
 
       <AccordionSection

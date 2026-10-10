@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
-import type { Language, WidgetItemLayout } from '../../types/settings';
+import type { ItemShowWhen, Language, WidgetItemLayout } from '../../types/settings';
+import { CustomSelect } from './SettingsControls';
 import { t } from '../../i18n/translations';
 import { scalePanelPixels } from './panelScale';
 import { createPanelCheckboxStyle } from './checkboxStyles';
@@ -18,8 +19,17 @@ interface SelectedWidgetQuickEditCardProps {
   onToggleLocked?: (nextLocked: boolean) => void;
   onBringForward?: () => void;
   onSendBackward?: () => void;
+  showWhen?: ItemShowWhen;
+  onShowWhenChange?: (next: ItemShowWhen) => void;
   panelScale?: number;
 }
+
+const SHOW_WHEN_LABEL_KEYS = {
+  always: 'showWhenAlways',
+  combat: 'showWhenCombat',
+  change: 'showWhenChange',
+  combatOrChange: 'showWhenCombatOrChange',
+} as const;
 
 export function SelectedWidgetQuickEditCard({
   lang,
@@ -35,6 +45,8 @@ export function SelectedWidgetQuickEditCard({
   onToggleLocked = () => {},
   onBringForward = () => {},
   onSendBackward = () => {},
+  showWhen,
+  onShowWhenChange,
   panelScale = 1,
 }: SelectedWidgetQuickEditCardProps) {
   const reorderDisabled = layout.locked || !layout.visible;
@@ -146,6 +158,18 @@ export function SelectedWidgetQuickEditCard({
           {t(lang, 'bringForward')}
         </button>
       </div>
+      {showWhen && onShowWhenChange && (
+        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: scalePanelPixels(12, panelScale) }}>
+          <span style={{ color: '#aaa', fontSize: scalePanelPixels(20, panelScale) }}>{t(lang, 'showWhenLabel')}</span>
+          <CustomSelect
+            value={showWhen}
+            options={(Object.keys(SHOW_WHEN_LABEL_KEYS) as ItemShowWhen[]).map(value => ({ value, label: t(lang, SHOW_WHEN_LABEL_KEYS[value]) }))}
+            onChange={next => onShowWhenChange(next as ItemShowWhen)}
+            panelScale={panelScale}
+            testId="selected-widget-show-when"
+          />
+        </label>
+      )}
     </section>
   );
 }
