@@ -137,8 +137,8 @@ export function App() {
   }, [clearPreviewState, interactionResetToken]);
 
   const trackedChangeSignature = useMemo(() => {
-    return buildTrackedChangeSignature(stats, itemLayouts, nowMs);
-  }, [itemLayouts, nowMs, stats]);
+    return buildTrackedChangeSignature(stats, itemLayouts);
+  }, [itemLayouts, stats]);
 
   useEffect(() => {
     const changedAt = Date.now();

@@ -34,12 +34,38 @@ describe('hudPresentation', () => {
     itemLayouts['resistance.disease'] = { ...itemLayouts['resistance.disease'], visible: false };
     itemLayouts['player.health'] = { ...itemLayouts['player.health'], visible: false };
 
-    const signature = buildTrackedChangeSignature(stats, itemLayouts, 12345);
+    const signature = buildTrackedChangeSignature(stats, itemLayouts);
 
     expect(signature).toContain(`res.magic:${stats.resistances.magic}`);
     expect(signature).not.toContain(`res.disease:${stats.resistances.disease}`);
     expect(signature).not.toContain(`pi.health:${stats.playerInfo.health}`);
-    expect(signature).toContain('effects:id:101:82:120:0');
+    expect(signature).toContain('effects:id:101:120:0');
+  });
+
+  it('ignores clock ticks and effect countdowns but tracks equipment and effect changes', () => {
+    const settings = cloneSettings();
+    const stats = cloneStats();
+    const itemLayouts = resolveWidgetItemLayouts({
+      settings,
+      viewportWidth: 1920,
+      viewportHeight: 1080,
+    });
+    for (const itemId of ['time.game', 'time.real', 'timedEffects.list', 'equipped.voice']) {
+      itemLayouts[itemId] = { ...itemLayouts[itemId], visible: true };
+    }
+
+    const before = buildTrackedChangeSignature(stats, itemLayouts);
+    stats.time.minute = (stats.time.minute + 1) % 60;
+    stats.time.hour = (stats.time.hour + 1) % 24;
+    stats.timedEffects = stats.timedEffects.map(effect => ({ ...effect, remainingSec: Math.max(0, effect.remainingSec - 5) }));
+    expect(buildTrackedChangeSignature(stats, itemLayouts)).toBe(before);
+
+    stats.equipped.voice = 'Whirlwind Sprint';
+    const afterVoice = buildTrackedChangeSignature(stats, itemLayouts);
+    expect(afterVoice).not.toBe(before);
+
+    stats.timedEffects = stats.timedEffects.slice(1);
+    expect(buildTrackedChangeSignature(stats, itemLayouts)).not.toBe(afterVoice);
   });
 
   it('tracks raw resistance changes when the visible widget presentation includes raw values', () => {
@@ -56,9 +82,9 @@ describe('hudPresentation', () => {
     }
     itemLayouts['resistance.fire'] = { ...itemLayouts['resistance.fire'], visible: true };
 
-    const before = buildTrackedChangeSignature(stats, itemLayouts, 12345);
+    const before = buildTrackedChangeSignature(stats, itemLayouts);
     stats.calcMeta.rawResistances.fire = 130;
-    const after = buildTrackedChangeSignature(stats, itemLayouts, 12345);
+    const after = buildTrackedChangeSignature(stats, itemLayouts);
 
     expect(before).not.toBe(after);
   });
@@ -79,9 +105,9 @@ describe('hudPresentation', () => {
     itemLayouts['experience.progress'] = { ...itemLayouts['experience.progress'], visible: true };
     itemLayouts['player.level'] = { ...itemLayouts['player.level'], visible: false };
 
-    const before = buildTrackedChangeSignature(stats, itemLayouts, 12345);
+    const before = buildTrackedChangeSignature(stats, itemLayouts);
     stats.playerInfo.level = 43;
-    const after = buildTrackedChangeSignature(stats, itemLayouts, 12345);
+    const after = buildTrackedChangeSignature(stats, itemLayouts);
 
     expect(before).toContain('pi.level:42');
     expect(before).toContain(`xp.current:${mockStats.playerInfo.experience}`);

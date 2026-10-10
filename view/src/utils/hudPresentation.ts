@@ -86,10 +86,11 @@ export function resolveExperienceProgress(playerInfo: PlayerInfo): ExperiencePro
   };
 }
 
+// Clocks and effect countdowns tick on their own, so they are deliberately left out: only
+// changes the player should notice (values, equipment, effects gained or lost) count.
 export function buildTrackedChangeSignature(
   stats: CombatStats,
   itemLayouts: Record<string, WidgetItemLayout>,
-  nowMs: number,
 ): string {
   const parts: string[] = [`combat:${stats.isInCombat ? 1 : 0}`];
   const visibleItemIds = new Set(getVisibleHudItemIds(itemLayouts, stats, false));
@@ -113,6 +114,7 @@ export function buildTrackedChangeSignature(
   if (visibleItemIds.has('offense.critChance')) parts.push(`off.crit:${stats.offense.critChance}`);
   if (visibleItemIds.has('equipped.rightHand')) parts.push(`eq.right:${stats.equipped.rightHand}`);
   if (visibleItemIds.has('equipped.leftHand')) parts.push(`eq.left:${stats.equipped.leftHand}`);
+  if (visibleItemIds.has('equipped.voice')) parts.push(`eq.voice:${stats.equipped.voiceType}:${stats.equipped.voice}`);
   if (visibleItemIds.has('movement.speedMult')) parts.push(`move.speed:${stats.movement.speedMult}`);
   if (visibleItemIds.has('player.level')) parts.push(`pi.level:${stats.playerInfo.level}`);
   if (visibleItemIds.has('player.gold')) parts.push(`pi.gold:${stats.playerInfo.gold}`);
@@ -131,20 +133,9 @@ export function buildTrackedChangeSignature(
     parts.push(`xp.total:${stats.playerInfo.nextLevelTotalXp}`);
   }
 
-  if (visibleItemIds.has('time.game')) {
-    parts.push(`time.year:${stats.time.year}`);
-    parts.push(`time.month:${stats.time.month}`);
-    parts.push(`time.day:${stats.time.day}`);
-    parts.push(`time.hour:${stats.time.hour}`);
-    parts.push(`time.minute:${stats.time.minute}`);
-  }
-  if (visibleItemIds.has('time.real')) {
-    parts.push(`time.real:${Math.floor(nowMs / 1000)}`);
-  }
-
   if (visibleItemIds.has('timedEffects.list')) {
     const timedEffectSignature = stats.timedEffects
-      .map(effect => `${effect.stableKey}:${Math.trunc(effect.remainingSec)}:${Math.trunc(effect.totalSec)}:${effect.isDebuff ? 1 : 0}`)
+      .map(effect => `${effect.stableKey}:${Math.trunc(effect.totalSec)}:${effect.isDebuff ? 1 : 0}`)
       .join(';');
     parts.push(`effects:${timedEffectSignature}`);
   }
