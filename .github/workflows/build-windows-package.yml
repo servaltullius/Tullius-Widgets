@@ -70,9 +70,10 @@ jobs:
       - name: Check xmake package lock
         shell: bash
         run: |
-          if ! git diff --quiet -- xmake-requires.lock; then
-            echo "::warning file=xmake-requires.lock::xmake resolved packages that differ from the committed lock file"
-            git diff -- xmake-requires.lock
+          # cmake/ninja are host build tools whose versions come from the runner image, not the lock.
+          strip_tools() { awk '/\["(cmake|ninja)#/ { skip = 1 } skip && /}/ { skip = 0; next } !skip'; }
+          if ! diff -u <(git show HEAD:xmake-requires.lock | strip_tools) <(strip_tools < xmake-requires.lock); then
+            echo "::warning file=xmake-requires.lock::xmake resolved library packages that differ from the committed lock file"
           fi
 
       - name: Resolve version and validate Korean release note
