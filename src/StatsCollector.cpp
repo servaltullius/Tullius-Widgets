@@ -3,6 +3,7 @@
 #include "StatsPayload.h"
 #include "RE/C/Calendar.h"
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cmath>
 #include <string_view>
@@ -296,12 +297,40 @@ static float GetArmorRating(RE::PlayerCharacter* player)
 }
 
 // The engine adds a hidden fArmorBaseFactor (3%) per worn head/body/hands/feet/shield
-// piece on top of the armor-rating share; use its own sum instead of re-deriving the slots.
+// armor piece on top of the armor-rating share. Prefer the engine's cached sum (already in
+// percent); fall back to counting worn light/heavy pieces when it has not been populated.
+static int CountWornArmorPieces(RE::PlayerCharacter* player)
+{
+    using Slot = RE::BGSBipedObjectForm::BipedObjectSlot;
+    std::array<const RE::TESObjectARMO*, 5> counted{};
+    int count = 0;
+    for (const auto slot : { Slot::kHead, Slot::kBody, Slot::kHands, Slot::kFeet, Slot::kShield }) {
+        const auto* armor = player->GetWornArmor(slot, false);
+        if (!armor || !(armor->IsLightArmor() || armor->IsHeavyArmor())) continue;
+        if (std::find(counted.begin(), counted.begin() + count, armor) != counted.begin() + count) continue;
+        counted[static_cast<std::size_t>(count++)] = armor;
+    }
+    return count;
+}
+
 static float GetArmorPieceBonus(RE::PlayerCharacter* player)
 {
     if (!player) return 0.0f;
-    const float sum = player->GetArmorBaseFactorSum();
-    return std::isfinite(sum) && sum > 0.0f ? sum * 100.0f : 0.0f;
+    constexpr float kArmorBaseFactorPercent = 3.0f;
+    const float cached = player->GetActorRuntimeData().armorBaseFactorSum;
+    const int wornPieces = CountWornArmorPieces(player);
+    const float bonus = std::isfinite(cached) && cached > 0.0f
+        ? cached
+        : static_cast<float>(wornPieces) * kArmorBaseFactorPercent;
+
+    static float lastLoggedBonus = -1.0f;
+    if (std::abs(bonus - lastLoggedBonus) > 0.01f) {
+        lastLoggedBonus = bonus;
+        logger::info(
+            "Armor piece bonus: {:.2f}% (engine cached {:.4f}, engine virtual {:.4f}, worn pieces {})",
+            bonus, cached, player->GetArmorBaseFactorSum(), wornPieces);
+    }
+    return bonus;
 }
 
 static float CalculateRawDamageReduction(float armorRating, float armorPieceBonus)
