@@ -55,11 +55,21 @@ export function formatHotkey(dik: number): string {
   return BY_DIK.get(dik)?.label ?? `0x${dik.toString(16).toUpperCase()}`;
 }
 
+// With NumLock off the numpad reports navigation keyCodes (Insert, End, ...), but DirectInput
+// still sees the numpad keys, so map them by location when only keyCode is available.
+const NUMPAD_NAVIGATION_KEY_CODES: Record<number, number> = {
+  45: 0x52, 35: 0x4F, 40: 0x50, 34: 0x51, 37: 0x4B, 12: 0x4C, 39: 0x4D, 36: 0x47, 38: 0x48, 33: 0x49, 46: 0x53,
+};
+const DOM_KEY_LOCATION_NUMPAD = 3;
+
 // Prefers the physical `code`; falls back to the legacy keyCode for engines that only set that.
-export function keyboardEventToHotkey(event: Pick<KeyboardEvent, 'code' | 'keyCode'>): number | null {
+export function keyboardEventToHotkey(event: Pick<KeyboardEvent, 'code' | 'keyCode'> & { location?: number }): number | null {
   const byCode = event.code ? BY_CODE.get(event.code) : undefined;
   if (byCode) return byCode.dik;
   if (event.code) return null;
+  if (event.location === DOM_KEY_LOCATION_NUMPAD && NUMPAD_NAVIGATION_KEY_CODES[event.keyCode] !== undefined) {
+    return NUMPAD_NAVIGATION_KEY_CODES[event.keyCode];
+  }
   return BY_KEY_CODE.get(event.keyCode)?.dik ?? null;
 }
 

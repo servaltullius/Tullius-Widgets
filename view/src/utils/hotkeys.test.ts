@@ -12,6 +12,10 @@ describe('hotkeys', () => {
   it('falls back to keyCode when the engine leaves code empty', () => {
     expect(keyboardEventToHotkey({ code: '', keyCode: 36 })).toBe(0xC7);
     expect(keyboardEventToHotkey({ code: '', keyCode: 123 })).toBe(0x58);
+    // NumLock off: the numpad sends navigation keyCodes from the numpad location.
+    expect(keyboardEventToHotkey({ code: '', keyCode: 45, location: 3 })).toBe(0x52);
+    expect(keyboardEventToHotkey({ code: '', keyCode: 36, location: 3 })).toBe(0x47);
+    expect(keyboardEventToHotkey({ code: '', keyCode: 45, location: 0 })).toBe(0xD2);
   });
 
   it('refuses keys the game, the console and the panel need', () => {
