@@ -88,6 +88,7 @@ export interface WidgetSettings {
   };
   experience: {
     enabled: boolean;
+    showNumbers: boolean;
   };
   playerInfo: {
     level: boolean;

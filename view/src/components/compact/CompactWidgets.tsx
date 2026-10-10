@@ -194,6 +194,7 @@ interface CompactExperienceRingProps {
   currentXp: number;
   totalXp: number;
   xpLabel: string;
+  showNumbers?: boolean;
 }
 
 const RING_SIZE = 50;
@@ -205,6 +206,7 @@ export const CompactExperienceRing = memo(function CompactExperienceRing({
   currentXp,
   totalXp,
   xpLabel,
+  showNumbers = true,
 }: CompactExperienceRingProps) {
   const pct = totalXp > 0 ? Math.max(0, Math.min(1, currentXp / totalXp)) : 0;
   const delta = useValueDelta(currentXp + level * 1e9);
@@ -239,10 +241,12 @@ export const CompactExperienceRing = memo(function CompactExperienceRing({
           {xpLabel} {Math.floor(pct * 100)}%
           <DeltaBadge delta={xpDelta} placement="right" />
         </span>
-        <span className="tw-compact-value" style={{ fontSize: 13 }}>
-          {Math.round(currentXp).toLocaleString('en-US')}
-          <span className="tw-compact-unit"> / {Math.round(totalXp).toLocaleString('en-US')}</span>
-        </span>
+        {showNumbers && (
+          <span className="tw-compact-value" data-compact-xp-numbers style={{ fontSize: 13 }}>
+            {Math.round(currentXp).toLocaleString('en-US')}
+            <span className="tw-compact-unit"> / {Math.round(totalXp).toLocaleString('en-US')}</span>
+          </span>
+        )}
       </div>
     </div>
   );

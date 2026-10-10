@@ -69,3 +69,4 @@
 - 03:57 추가(STB 장비 위젯 격차): 물약 슬롯 P — 이번 세션에 마지막으로 마신 물약(음식·독 제외, 장착 이벤트로 감지)과 남은 개수(×4, 0이면 붉은색), 종류별 플라스크 색. 네이티브 `potionName/potionCount/potionKind`, 클래식 렌더러·설정 토글·i18n, 신규 기본 표시(구버전은 숨김). 스탯 수집이 게임 메인 스레드(작업 큐)에서 실행됨을 확인. 로컬 Windows 빌드 성공(DLL 701KB), QA 15회차, 212 tests. **게임 내 확인 필요**
 - 04:00 추가(STB 격차): Z 슬롯에 포효 단어 표시(점 3개 — 해금=채움, 배움=테두리, 미습득=흐림). 네이티브 `voiceWordsKnown/voiceWordsUnlocked`(`TESWordOfPower` known/unlocked 플래그). 로컬 Windows 빌드 성공, QA 16회차, 213 tests
 - 04:01 추가(편집기, 우선순위 8): 위젯 배치 편집 되돌리기/다시 실행(Ctrl+Z / Ctrl+Y·Ctrl+Shift+Z, 설정 패널 열린 동안, 400ms 이내 연속 편집은 한 단계, 최대 40단계, 입력칸에서는 무시) + 배치 도구 안내 문구. 215 tests
+- 04:02 추가: 경험치 숫자 숨김 옵션(`experience.showNumbers`, 컴팩트·클래식 공통, 기본 표시) — STB 요청 기능

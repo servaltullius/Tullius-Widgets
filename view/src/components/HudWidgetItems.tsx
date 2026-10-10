@@ -335,6 +335,7 @@ export function HudWidgetItems({
                   visible
                   lang={lang}
                   iconTheme={settings.general.iconTheme}
+                  showNumbers={settings.experience.showNumbers}
                 />
               ),
             );

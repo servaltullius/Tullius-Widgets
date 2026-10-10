@@ -176,6 +176,7 @@ export const bundledTranslations = {
     weatherUnknown: '-',
     equippedPotion: '최근 마신 물약',
     layoutUndoHint: 'Ctrl+Z 되돌리기 · Ctrl+Y 다시 실행',
+    experienceShowNumbers: '경험치 숫자 표시',
   },
   en: {
     title: 'Tullius Widgets',
@@ -351,6 +352,7 @@ export const bundledTranslations = {
     weatherUnknown: '-',
     equippedPotion: 'Last potion',
     layoutUndoHint: 'Ctrl+Z undo · Ctrl+Y redo',
+    experienceShowNumbers: 'Show XP numbers',
   },
 } as const;
 

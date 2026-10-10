@@ -434,6 +434,12 @@ export function CombatTabSections({
             panelScale={panelScale}
           />
         ))}
+        <Toggle
+          label={t(lang, 'experienceShowNumbers')}
+          checked={settings.experience.showNumbers}
+          onChange={value => onUpdate('experience.showNumbers', value)}
+          panelScale={panelScale}
+        />
       </AccordionSection>
 
       <AccordionSection

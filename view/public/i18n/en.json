@@ -141,5 +141,6 @@
   "weatherIndoor": "Indoors",
   "weatherUnknown": "-",
   "equippedPotion": "Last potion",
-  "layoutUndoHint": "Ctrl+Z undo · Ctrl+Y redo"
+  "layoutUndoHint": "Ctrl+Z undo · Ctrl+Y redo",
+  "experienceShowNumbers": "Show XP numbers"
 }

@@ -61,6 +61,7 @@ export const defaultSettings: WidgetSettings = {
   },
   experience: {
     enabled: true,
+    showNumbers: true,
   },
   playerInfo: {
     level: false,

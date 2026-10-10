@@ -107,6 +107,7 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs }: Compact
           currentXp={currentXp}
           totalXp={totalXpForNextLevel}
           xpLabel={t(lang, 'compactXpLabel')}
+          showNumbers={settings.experience.showNumbers}
         />
       );
     }

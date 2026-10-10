@@ -54,6 +54,10 @@ describe('CompactWidgets', () => {
     expect(container.textContent).toContain('13');
     expect(container.textContent).toContain('경험치 90%');
     expect(container.textContent).toContain('447 / 495');
+
+    render(<CompactExperienceRing level={13} currentXp={447} totalXp={495} xpLabel="경험치" showNumbers={false} />);
+    expect(container.querySelector('[data-compact-xp-numbers]')).toBeNull();
+    expect(container.textContent).toContain('경험치 90%');
   });
 
   it('flashes the equipment name for three seconds after a swap in on-change mode', () => {
