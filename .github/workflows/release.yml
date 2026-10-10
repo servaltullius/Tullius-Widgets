@@ -61,6 +61,9 @@ jobs:
       - name: Build plugin
         shell: pwsh
         run: |
+          # CommonLib auto-fetches a prebuilt lib when GITHUB_ACTIONS is set, but that lib is
+          # baked with skyrim_vr=y; build from source like local releases instead.
+          Remove-Item Env:GITHUB_ACTIONS -ErrorAction SilentlyContinue
           $ccacheDir = Join-Path $env:GITHUB_WORKSPACE ".xmake-cache\ccache"
           New-Item -ItemType Directory -Path $ccacheDir -Force | Out-Null
           xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false --ccache=y --ccachedir="$ccacheDir"

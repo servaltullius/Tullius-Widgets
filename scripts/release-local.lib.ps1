@@ -659,19 +659,24 @@ function Copy-CommonLibSseNgReleaseSubset {
   )
 
   $commonLibRoot = Join-Path $SourceRoot "lib\commonlibsse-ng"
-  foreach ($relativeFile in @(
-    "lib\commonlibsse-ng\xmake.lua",
-    "lib\commonlibsse-ng\xmake-rules.lua"
-  )) {
-    Copy-FileToStage -SourceRoot $SourceRoot -StageRoot $StageRoot -RelativePath $relativeFile
+  Copy-FileToStage -SourceRoot $SourceRoot -StageRoot $StageRoot -RelativePath "lib\commonlibsse-ng\xmake.lua"
+  # Older CommonLib releases kept the plugin rules in xmake-rules.lua; newer ones inline
+  # them in xmake.lua and load their templates from res\.
+  if (Test-Path (Join-Path $commonLibRoot "xmake-rules.lua")) {
+    Copy-FileToStage -SourceRoot $SourceRoot -StageRoot $StageRoot -RelativePath "lib\commonlibsse-ng\xmake-rules.lua"
   }
 
   foreach ($relativeDirectory in @(
     "lib\commonlibsse-ng\include",
-    "lib\commonlibsse-ng\src"
+    "lib\commonlibsse-ng\src",
+    "lib\commonlibsse-ng\res"
   )) {
+    $sourceDirectory = Join-Path $SourceRoot $relativeDirectory
+    if ($relativeDirectory.EndsWith("\res") -and -not (Test-Path $sourceDirectory)) {
+      continue
+    }
     Copy-DirectorySnapshot `
-      -SourcePath (Join-Path $SourceRoot $relativeDirectory) `
+      -SourcePath $sourceDirectory `
       -DestinationPath (Join-Path $StageRoot $relativeDirectory)
   }
 

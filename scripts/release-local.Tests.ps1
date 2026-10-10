@@ -385,6 +385,37 @@ exit /b 1
     }
   }
 
+  It "stages the inline-rules CommonLib layout with res templates" {
+    $root = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
+    $sourceRoot = Join-Path $root "repo"
+    $commonLibRoot = Join-Path $sourceRoot "lib\commonlibsse-ng"
+    $stageRoot = $null
+
+    New-Item -ItemType Directory -Path (Join-Path $sourceRoot "src") -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $commonLibRoot "src") -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $commonLibRoot "include") -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $commonLibRoot "res") -Force | Out-Null
+    Set-Content -Path (Join-Path $sourceRoot "xmake.lua") -Value 'set_version("1.2.1-rc.3")' -Encoding UTF8
+    Set-Content -Path (Join-Path $commonLibRoot "xmake.lua") -Value 'rule("commonlibsse-ng.plugin")' -Encoding UTF8
+    Set-Content -Path (Join-Path $commonLibRoot "res\commonlibsse-ng-plugin.cpp.in") -Value "// template" -Encoding UTF8
+
+    try {
+      $stageRoot = Prepare-PluginBuildWorkspace -SourceRoot $sourceRoot
+
+      (Test-Path (Join-Path $stageRoot "lib\commonlibsse-ng\xmake.lua")) | Should Be $true
+      (Test-Path (Join-Path $stageRoot "lib\commonlibsse-ng\xmake-rules.lua")) | Should Be $false
+      (Test-Path (Join-Path $stageRoot "lib\commonlibsse-ng\res\commonlibsse-ng-plugin.cpp.in")) | Should Be $true
+    }
+    finally {
+      if ($stageRoot -and (Test-Path $stageRoot)) {
+        Remove-Item -LiteralPath $stageRoot -Recurse -Force
+      }
+      if (Test-Path $root) {
+        Remove-Item -LiteralPath $root -Recurse -Force
+      }
+    }
+  }
+
   It "stages xmake-requires.lock when the repo has one" {
     $root = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
     $sourceRoot = Join-Path $root "repo"
