@@ -131,6 +131,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # The local release script (scripts/release-local.ps1) usually publishes first and
+          # creates this tag; keep that upload instead of failing on the existing release.
+          if gh release view "${{ github.ref_name }}" --repo "${{ github.repository }}" > /dev/null 2>&1; then
+            echo "::notice::Release ${{ github.ref_name }} already exists (published locally); skipping creation."
+            exit 0
+          fi
           ARGS=(
             release create "${{ github.ref_name }}"
             "${{ env.ZIP_NAME }}"
