@@ -19,6 +19,9 @@ constexpr std::uint32_t kF11ScanCode = 0x57;
 std::mutex g_bindingMutex;
 std::atomic<std::int64_t> g_captureUntilMs{0};
 constexpr std::int64_t kCaptureTimeoutMs = 15'000;
+// The page may report the end of a capture before the game-thread task for the same key
+// press runs; keep standing aside a little longer so that press is still ignored.
+constexpr std::int64_t kCaptureReleaseGraceMs = 300;
 
 std::int64_t NowMs()
 {
@@ -154,8 +157,12 @@ std::uint32_t CurrentVisibilityKey()
 
 void OnSettingsKey()
 {
+    // Read at key-press time: the page may end the capture before the queued task runs.
+    if (IsCaptureActive()) {
+        return;
+    }
     DispatchToGameThread([]() {
-        if (!IsViewReady() || !IsGameLoaded() || IsCaptureActive()) {
+        if (!IsViewReady() || !IsGameLoaded()) {
             return;
         }
         // Our own panel may hold text focus, so only opening is blocked while typing.
@@ -186,8 +193,11 @@ void OnSettingsKey()
 
 void OnVisibilityKey()
 {
+    if (IsCaptureActive()) {
+        return;
+    }
     DispatchToGameThread([]() {
-        if (IsViewReady() && IsGameLoaded() && !IsCaptureActive()
+        if (IsViewReady() && IsGameLoaded()
             && (IsSettingsPanelOpen() || !IsTypingIntoGame(CurrentVisibilityKey()))) {
             InvokeScript(TulliusWidgets::WidgetInteropContracts::kToggleWidgetsVisibilityScript);
         }
@@ -234,8 +244,11 @@ void RegisterDefaultHotkeys(const Callbacks& callbacks)
     }
 
     (void)keyHandler->Register(kEscapeScanCode, KeyEventType::KEY_DOWN, []() {
+        if (IsCaptureActive()) {
+            return;  // Esc cancels the capture on the page instead of closing the panel.
+        }
         DispatchToGameThread([]() {
-            if (IsViewReady() && IsGameLoaded() && IsSettingsPanelOpen() && !IsCaptureActive()) {
+            if (IsViewReady() && IsGameLoaded() && IsSettingsPanelOpen()) {
                 InvokeScript(TulliusWidgets::WidgetInteropContracts::kCloseSettingsScript);
                 UnfocusView();
             }
@@ -263,7 +276,7 @@ void ApplyHotkeysFromSettingsJson(std::string_view settingsJson)
 
 void SetCaptureActive(bool active)
 {
-    g_captureUntilMs.store(active ? NowMs() + kCaptureTimeoutMs : 0, std::memory_order_release);
+    g_captureUntilMs.store(NowMs() + (active ? kCaptureTimeoutMs : kCaptureReleaseGraceMs), std::memory_order_release);
 }
 
 }  // namespace TulliusWidgets::WidgetHotkeys

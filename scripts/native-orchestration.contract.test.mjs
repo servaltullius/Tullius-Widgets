@@ -58,7 +58,8 @@ test('saved hotkey bindings apply at startup and on every settings save', () => 
   assert.match(mainText, /WidgetHotkeys::ApplyHotkeysFromSettingsJson\(savedSettings\)/);
   assert.match(interopContractsText, /kOnHotkeyCapture\[] = "onHotkeyCapture"/);
   assert.match(jsListenersText, /WidgetHotkeys::SetCaptureActive\(active\)/);
-  assert.match(hotkeysText, /IsSettingsPanelOpen\(\) && !IsCaptureActive\(\)/);
+  assert.match(hotkeysText, /return;  \/\/ Esc cancels the capture on the page instead of closing the panel\./);
+  assert.match(hotkeysText, /kCaptureReleaseGraceMs/);
 });
 
 test('settings hotkey uses tracked settings-panel state and closes explicitly', () => {

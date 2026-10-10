@@ -28,6 +28,8 @@ export function HotkeySettings({ lang, settings, onUpdate, panelScale = 1 }: Hot
   useEffect(() => {
     if (!capturing) return;
     setHotkeyCaptureActive(true);
+    // The plugin's pause expires on its own; keep it alive while the page is still waiting.
+    const keepAlive = window.setInterval(() => setHotkeyCaptureActive(true), 5000);
     const handleKeyDown = (event: KeyboardEvent) => {
       event.preventDefault();
       event.stopPropagation();
@@ -52,6 +54,7 @@ export function HotkeySettings({ lang, settings, onUpdate, panelScale = 1 }: Hot
     };
     window.addEventListener('keydown', handleKeyDown, true);
     return () => {
+      window.clearInterval(keepAlive);
       setHotkeyCaptureActive(false);
       window.removeEventListener('keydown', handleKeyDown, true);
     };
