@@ -362,6 +362,8 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
           ? Math.trunc(rawEquipped.ammoCount)
           : null,
         voiceCooldownSec: readNumber(rawEquipped?.voiceCooldownSec, 0, 0, 100000),
+        voiceWordsKnown: Math.trunc(readNumber(rawEquipped?.voiceWordsKnown, 0, 0, 3)),
+        voiceWordsUnlocked: Math.trunc(readNumber(rawEquipped?.voiceWordsUnlocked, 0, 0, 3)),
         potionName: readText(rawEquipped?.potionName, '', true),
         potionCount: typeof rawEquipped?.potionCount === 'number' && Number.isFinite(rawEquipped.potionCount) && rawEquipped.potionCount >= 0
           ? Math.trunc(rawEquipped.potionCount)

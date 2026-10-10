@@ -83,6 +83,8 @@ struct EquippedSnapshot {
     std::string ammoName{};
     std::int32_t ammoCount{-1};  // -1: no ammo equipped
     float voiceCooldownSec{0.0f};
+    std::int32_t voiceWordsKnown{0};     // shouts only: words learned (0-3)
+    std::int32_t voiceWordsUnlocked{0};  // shouts only: words unlocked with dragon souls (0-3)
     std::string potionName{};
     std::int32_t potionCount{-1};  // -1: no potion used yet this session
     std::string potionKind{"other"};  // health | magicka | stamina | other

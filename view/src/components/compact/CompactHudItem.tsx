@@ -240,6 +240,8 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs }: Compact
           nameDisplay={settings.equipped.nameDisplay}
           accent={stats.equipped.voiceType === 'power' ? '#9cc8e8' : COLORS.gold}
           cooldownSec={stats.equipped.voiceCooldownSec}
+          wordsKnown={stats.equipped.voiceType === 'shout' ? stats.equipped.voiceWordsKnown : 0}
+          wordsUnlocked={stats.equipped.voiceWordsUnlocked}
         />
       );
     case 'equipped.potion':

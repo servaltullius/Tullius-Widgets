@@ -28,6 +28,8 @@ export const mockStats: CombatStats = {
     ammoName: '',
     ammoCount: null,
     voiceCooldownSec: 0,
+    voiceWordsKnown: 3,
+    voiceWordsUnlocked: 2,
     potionName: 'Potion of Healing',
     potionCount: 4,
     potionKind: 'health',

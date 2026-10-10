@@ -309,6 +309,9 @@ interface CompactEquipSlotProps {
   cooldownSec?: number;
   /** Potion slot: tints the flask and always shows the remaining count (even 0). */
   potionKind?: PotionKind;
+  /** Shout slot: words learned / unlocked, drawn as three pips. */
+  wordsKnown?: number;
+  wordsUnlocked?: number;
 }
 
 const NAME_FLASH_MS = 3000;
@@ -355,6 +358,8 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
   ammoCount = null,
   cooldownSec = 0,
   potionKind,
+  wordsKnown = 0,
+  wordsUnlocked = 0,
 }: CompactEquipSlotProps) {
   const cooldown = useCooldown(cooldownSec);
   const coolingDown = cooldown.remaining > 0.05;
@@ -430,6 +435,25 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
               {Math.ceil(cooldown.remaining)}
             </span>
           </>
+        )}
+        {slotKey === 'Z' && wordsKnown > 0 && (
+          <span data-compact-shout-words style={{ position: 'absolute', right: 5, top: 5, display: 'flex', gap: 2 }}>
+            {[0, 1, 2].map(index => (
+              <span
+                key={index}
+                data-state={index < wordsUnlocked ? 'unlocked' : index < wordsKnown ? 'known' : 'unknown'}
+                style={{
+                  width: 4,
+                  height: 4,
+                  borderRadius: 2,
+                  boxSizing: 'border-box',
+                  background: index < wordsUnlocked ? 'var(--c-gold)' : 'transparent',
+                  border: `1px solid ${index < wordsKnown ? 'var(--c-gold)' : 'rgba(236, 231, 219, 0.25)'}`,
+                  boxShadow: '0 0 1px rgba(0, 0, 0, 0.9)',
+                }}
+              />
+            ))}
+          </span>
         )}
         {showAmmo && (
           <span className="tw-compact-value" data-compact-ammo style={{ position: 'absolute', right: 5, top: 3, fontSize: 10, fontWeight: 700, color: ammoCount === 0 ? 'var(--c-danger)' : 'var(--c-text-2)' }}>

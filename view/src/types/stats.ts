@@ -42,6 +42,9 @@ export interface Equipped {
   ammoCount: number | null;
   /** Seconds until the selected shout can be used again. */
   voiceCooldownSec: number;
+  /** Shouts only: words learned and words unlocked with dragon souls (0-3). */
+  voiceWordsKnown: number;
+  voiceWordsUnlocked: number;
   /** Last potion the player drank this session and how many are left (null: none yet). */
   potionName: string;
   potionCount: number | null;

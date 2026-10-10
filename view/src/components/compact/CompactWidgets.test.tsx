@@ -121,6 +121,12 @@ describe('CompactWidgets', () => {
     expect(container.querySelector('[data-compact-delta]')?.textContent).toBe('+1.3M');
   });
 
+  it('draws learned and unlocked shout words as pips', () => {
+    render(<CompactEquipSlot slotKey="Z" name="불사의 외침" emptyLabel="-" kind="other" nameDisplay="never" wordsKnown={2} wordsUnlocked={1} />);
+    const states = Array.from(container.querySelectorAll('[data-compact-shout-words] > span')).map(el => el.getAttribute('data-state'));
+    expect(states).toEqual(['unlocked', 'known', 'unknown']);
+  });
+
   it('shows the remaining count on the potion slot, including zero', () => {
     render(<CompactEquipSlot slotKey="P" name="체력 회복 물약" emptyLabel="-" kind="other" value={0} nameDisplay="always" potionKind="health" />);
     expect(container.textContent).toContain('\u00d70');

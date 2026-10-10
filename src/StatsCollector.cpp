@@ -553,6 +553,16 @@ static EquippedSnapshot CollectEquippedSnapshot(RE::PlayerCharacter* player)
     };
     snapshot.voice = GetSelectedVoiceName(player);
     snapshot.voiceType = GetSelectedVoiceType(selectedVoice);
+    if (const auto* shout = selectedVoice ? selectedVoice->As<RE::TESShout>() : nullptr) {
+        for (const auto& variation : shout->variations) {
+            const auto* word = variation.word;
+            if (!word || !word->GetKnown()) continue;
+            ++snapshot.voiceWordsKnown;
+            if ((word->GetFormFlags() & RE::TESForm::RecordFlags::kUnlocked) != 0) {
+                ++snapshot.voiceWordsUnlocked;
+            }
+        }
+    }
     if (!player) return snapshot;
 
     snapshot.rightHandChargePct = GetEquippedChargePct(player, false);
