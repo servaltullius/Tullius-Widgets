@@ -163,7 +163,10 @@ void StatsJsonWriter::AppendCalcMeta(const StatsPayload& payload)
     AppendFloat(payload.defense.rawDamageReduction);
     json_ += ',';
     json_ += "\"armorCapForMaxReduction\":";
-    AppendFloat(kArmorRatingForMaxReduction);
+    AppendFloat(payload.defense.armorRatingForMaxReduction);
+    json_ += ',';
+    json_ += "\"armorPieceBonus\":";
+    AppendFloat(payload.defense.armorPieceBonus);
     json_ += ',';
     json_ += "\"caps\":{";
     json_ += "\"elementalResist\":";

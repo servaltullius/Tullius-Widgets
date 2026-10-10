@@ -21,7 +21,6 @@ inline constexpr float kDiseaseResistMin = 0.0f;
 inline constexpr float kCritChanceCap = 100.0f;
 inline constexpr float kDamageReductionCap = 80.0f;
 inline constexpr float kArmorRatingMultiplier = 0.12f;
-inline constexpr float kArmorRatingForMaxReduction = 666.67f;
 inline constexpr std::uint32_t kStatsSchemaVersion = 1;
 
 struct TimedEffectEntry {
@@ -58,6 +57,8 @@ struct ResistanceSnapshot {
 
 struct DefenseSnapshot {
     float armorRating{0.0f};
+    float armorPieceBonus{0.0f};
+    float armorRatingForMaxReduction{0.0f};
     float rawDamageReduction{0.0f};
     float effectiveDamageReduction{0.0f};
     bool damageReductionClamped{false};

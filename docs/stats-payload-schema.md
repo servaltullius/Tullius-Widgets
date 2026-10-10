@@ -87,8 +87,9 @@
       "disease": 100.0
     },
     "rawCritChance": 120.0,
-    "rawDamageReduction": 85.44,
-    "armorCapForMaxReduction": 666.67,
+    "rawDamageReduction": 97.44,
+    "armorCapForMaxReduction": 566.67,
+    "armorPieceBonus": 12.0,
     "caps": {
       "elementalResist": 85.0,
       "elementalResistMin": -100.0,
@@ -114,6 +115,7 @@
   - `seq`: 단조 증가 시퀀스 번호(역순/중복 payload 드롭에 사용 가능)
 - `resistances`, `offense.critChance`, `defense.damageReduction`는 **실효 표시값**입니다.
 - 원본 계산값은 `calcMeta.rawResistances`, `calcMeta.rawCritChance`, `calcMeta.rawDamageReduction`에 전달됩니다.
+- 피해 감소율 원본값은 `방어도 × 0.12 + armorPieceBonus`입니다. `armorPieceBonus`는 엔진의 착용 부위 보너스(머리·몸통·손·발·방패 부위당 3%, `Actor::GetArmorBaseFactorSum`)이고, `armorCapForMaxReduction`은 이 보너스를 반영해 상한에 도달하는 방어도입니다.
 - UI는 `calcMeta.caps` 기준으로 캡/보조 텍스트를 표시합니다.
 - 원소/독 저항은 현재 `85%` 상한 clamp를 기준으로 안내하며, 음수 하한은 엔진/모드 조합에 따라 달라질 수 있어 고정 clamp 계약으로 두지 않습니다.
 - 고빈도 fast 동기화 payload에서는 `timedEffects`가 생략될 수 있으며, UI는 이전 목록을 유지해야 합니다.

@@ -295,14 +295,23 @@ static float GetArmorRating(RE::PlayerCharacter* player)
     return player->AsActorValueOwner()->GetActorValue(RE::ActorValue::kDamageResist);
 }
 
-static float CalculateRawDamageReduction(float armorRating)
+// The engine adds a hidden fArmorBaseFactor (3%) per worn head/body/hands/feet/shield
+// piece on top of the armor-rating share; use its own sum instead of re-deriving the slots.
+static float GetArmorPieceBonus(RE::PlayerCharacter* player)
 {
-    return armorRating * kArmorRatingMultiplier;
+    if (!player) return 0.0f;
+    const float sum = player->GetArmorBaseFactorSum();
+    return std::isfinite(sum) && sum > 0.0f ? sum * 100.0f : 0.0f;
 }
 
-static float CalculateDamageReduction(float armorRating)
+static float CalculateRawDamageReduction(float armorRating, float armorPieceBonus)
 {
-    return (std::min)(CalculateRawDamageReduction(armorRating), kDamageReductionCap);
+    return armorRating * kArmorRatingMultiplier + armorPieceBonus;
+}
+
+static float CalculateArmorRatingForMaxReduction(float armorPieceBonus)
+{
+    return (std::max)(0.0f, (kDamageReductionCap - armorPieceBonus) / kArmorRatingMultiplier);
 }
 
 static std::int32_t GetGoldCount(RE::PlayerCharacter* player)
@@ -345,11 +354,14 @@ static ResistanceSnapshot CollectResistanceSnapshot(RE::PlayerCharacter* player)
 static DefenseSnapshot CollectDefenseSnapshot(RE::PlayerCharacter* player)
 {
     const float armorRating = GetArmorRating(player);
-    const float rawDamageReduction = CalculateRawDamageReduction(armorRating);
+    const float armorPieceBonus = GetArmorPieceBonus(player);
+    const float rawDamageReduction = CalculateRawDamageReduction(armorRating, armorPieceBonus);
     return DefenseSnapshot{
         armorRating,
+        armorPieceBonus,
+        CalculateArmorRatingForMaxReduction(armorPieceBonus),
         rawDamageReduction,
-        CalculateDamageReduction(armorRating),
+        (std::min)(rawDamageReduction, kDamageReductionCap),
         rawDamageReduction > kDamageReductionCap + 0.001f
     };
 }
