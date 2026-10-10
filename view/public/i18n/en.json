@@ -178,5 +178,6 @@
   "equipDetailCharge": "Charge {n}%",
   "equipDetailPoison": "Poison ×{n}",
   "equipDetailAmmo": "Ammo {n}",
-  "hotkeyReset": "Defaults"
+  "hotkeyReset": "Defaults",
+  "equipDetailCooldown": "Ready in {n}s"
 }

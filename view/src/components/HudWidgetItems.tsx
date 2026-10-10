@@ -3,6 +3,7 @@ import { EditableWidgetItem } from './EditableWidgetItem';
 import { ExperienceWidget } from './ExperienceWidget';
 import { ResistanceWidget } from './ResistanceWidget';
 import { StatWidget } from './StatWidget';
+import { ClassicVoiceWidget } from './ClassicVoiceWidget';
 import { TimedEffectList } from './TimedEffectList';
 import { CompactHudItem } from './compact/CompactHudItem';
 import { t } from '../i18n/translations';
@@ -656,7 +657,7 @@ export function HudWidgetItems({
             ));
           case 'equipped.voice':
             return renderEditableItem((
-              <StatWidget
+              <ClassicVoiceWidget
                 {...statIconProps}
                 icon="voice"
                 iconColor={stats.equipped.voiceType === 'power' ? '#82c8ff' : '#d8c17a'}
@@ -664,6 +665,8 @@ export function HudWidgetItems({
                 visible
                 prominence="secondary"
                 remountValueOnChange
+                cooldownSec={stats.equipped.voiceCooldownSec}
+                cooldownTemplate={t(lang, 'equipDetailCooldown')}
               />
             ));
           case 'equipped.potion':

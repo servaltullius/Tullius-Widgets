@@ -213,6 +213,7 @@ export const bundledTranslations = {
     equipDetailPoison: '독 {n}회',
     equipDetailAmmo: '탄약 {n}',
     hotkeyReset: '기본 키로',
+    equipDetailCooldown: '대기 {n}초',
   },
   en: {
     title: 'Tullius Widgets',
@@ -425,6 +426,7 @@ export const bundledTranslations = {
     equipDetailPoison: 'Poison ×{n}',
     equipDetailAmmo: 'Ammo {n}',
     hotkeyReset: 'Defaults',
+    equipDetailCooldown: 'Ready in {n}s',
   },
 } as const;
 
