@@ -14,6 +14,7 @@ import type {
   WidgetSettings,
   WidgetSize,
 } from '../types/settings';
+import { LAYOUT_SLOT_COUNT } from '../types/settings';
 import { defaultSettings } from '../data/defaultSettings';
 import { sanitizeWidgetItemLayouts } from '../data/widgetItemRegistry';
 import { isPlainObject, readBoolean, readNumber } from '../utils/normalize';
@@ -102,6 +103,24 @@ function sanitizeGroupScales(incoming: unknown): Record<string, number> {
     out[key] = rawScale;
   }
   return out;
+}
+
+function sanitizeLayoutSlots(incoming: unknown): WidgetSettings['layoutSlots'] {
+  const slots: WidgetSettings['layoutSlots'] = Array.from({ length: LAYOUT_SLOT_COUNT }, () => null);
+  if (!Array.isArray(incoming)) return slots;
+  for (let index = 0; index < LAYOUT_SLOT_COUNT; index++) {
+    const raw = incoming[index];
+    if (!isPlainObject(raw)) continue;
+    const itemLayouts = sanitizeWidgetItemLayouts(raw.itemLayouts);
+    if (Object.keys(itemLayouts).length === 0) continue;
+    slots[index] = {
+      savedAt: readNumber(raw.savedAt, 0, 0, Number.MAX_SAFE_INTEGER),
+      hudStyle: readEnum<HudStyle>(raw.hudStyle, 'compact', HUD_STYLES),
+      compactAnchor: readEnum<CompactAnchor>(raw.compactAnchor, 'bottomLeft', ['bottomLeft', 'bottomRight', 'topLeft', 'topRight']),
+      itemLayouts,
+    };
+  }
+  return slots;
 }
 
 function cloneDefaultSettings(): WidgetSettings {
@@ -366,6 +385,7 @@ export function mergeWithDefaults(
   merged.layouts = sanitizeLayouts(saved.layouts);
   merged.groupScales = sanitizeGroupScales(saved.groupScales);
   merged.itemLayouts = sanitizeWidgetItemLayouts(saved.itemLayouts);
+  merged.layoutSlots = sanitizeLayoutSlots(saved.layoutSlots);
   reconcileStandaloneLevelVisibility(
     merged.playerInfo,
     saved.playerInfo,

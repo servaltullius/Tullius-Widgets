@@ -149,5 +149,11 @@
   "compactAnchorBottomRight": "Bottom right",
   "compactAnchorTopLeft": "Top left",
   "compactAnchorTopRight": "Top right",
-  "compactAnchorHint": "Moves every widget to that corner's default layout (visibility is kept)."
+  "compactAnchorHint": "Moves every widget to that corner's default layout (visibility is kept).",
+  "layoutSlotsLabel": "Layout slots",
+  "layoutSlotName": "Slot",
+  "layoutSlotEmpty": "Empty",
+  "layoutSlotSave": "Save",
+  "layoutSlotLoad": "Load",
+  "layoutSlotsHint": "Save the current arrangement (style, positions, visibility) and switch back any time."
 }

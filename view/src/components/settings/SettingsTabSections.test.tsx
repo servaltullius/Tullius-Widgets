@@ -163,6 +163,54 @@ describe('SettingsTabSections', () => {
     expect(itemLayoutsCall?.[1]['experience.progress']).toMatchObject({ x: 1530, y: 60 });
   });
 
+  it('saves the current arrangement to a layout slot and loads it back', async () => {
+    const settings = cloneSettings();
+    const onUpdate = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <PresetsTabSections
+          lang="ko"
+          settings={settings}
+          onUpdate={onUpdate}
+          isSectionExpanded={() => true}
+          toggleSection={() => {}}
+        />,
+      );
+    });
+
+    const load = container.querySelector('[data-layout-slot-load="0"]') as HTMLButtonElement;
+    expect(load.disabled).toBe(true);
+
+    await act(async () => {
+      (container.querySelector('[data-layout-slot-save="0"]') as HTMLButtonElement).click();
+    });
+    const saveCall = onUpdate.mock.calls.find(call => call[0] === 'layoutSlots');
+    const savedSlots = saveCall?.[1];
+    expect(savedSlots[0]).toMatchObject({ hudStyle: 'compact', compactAnchor: 'bottomLeft' });
+    expect(savedSlots[0].itemLayouts['experience.progress']).toMatchObject({ x: 34, viewportWidth: 1920, viewportHeight: 1080 });
+
+    onUpdate.mockClear();
+    const withSlot = { ...settings, layoutSlots: savedSlots };
+    await act(async () => {
+      root!.render(
+        <PresetsTabSections
+          lang="ko"
+          settings={withSlot}
+          onUpdate={onUpdate}
+          isSectionExpanded={() => true}
+          toggleSection={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      (container.querySelector('[data-layout-slot-load="0"]') as HTMLButtonElement).click();
+    });
+    expect(onUpdate).toHaveBeenCalledWith('general.hudStyle', 'compact', { persist: false });
+    expect(onUpdate).toHaveBeenCalledWith('itemLayouts', savedSlots[0].itemLayouts);
+  });
+
   it('updates the icon theme and exposes the badge toggle for Dororong icons', async () => {
     const settings = cloneSettings();
     settings.general.hudStyle = 'classic';

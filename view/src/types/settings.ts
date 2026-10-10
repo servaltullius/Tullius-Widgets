@@ -30,6 +30,15 @@ export interface WidgetItemLayout {
   viewportHeight?: number;
 }
 
+export interface LayoutSlot {
+  savedAt: number;
+  hudStyle: HudStyle;
+  compactAnchor: CompactAnchor;
+  itemLayouts: Record<string, WidgetItemLayout>;
+}
+
+export const LAYOUT_SLOT_COUNT = 3;
+
 export interface WidgetSettings {
   general: {
     visible: boolean;
@@ -115,6 +124,7 @@ export interface WidgetSettings {
   layouts: Record<string, WidgetLayout>;
   groupScales: Record<string, number>;
   itemLayouts: Record<string, WidgetItemLayout>;
+  layoutSlots: Array<LayoutSlot | null>;
 }
 
 export interface UpdateSettingOptions {

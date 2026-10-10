@@ -4,7 +4,7 @@ import { AccordionSection, CustomSelect, Toggle } from './SettingsControls';
 import { PresetSection } from './PresetSection';
 import { scalePanelPixels } from './panelScale';
 import { FONT_PRESET_OPTIONS } from '../../utils/fontPresets';
-import { buildItemLayoutsForHudStyle } from '../../utils/itemLayoutEditing';
+import { buildItemLayoutsForHudStyle, captureLayoutSlot } from '../../utils/itemLayoutEditing';
 
 const PRESET_COLORS = [
   '', '#6699cc', '#cc6666', '#66cc99', '#cc99cc', '#ccaa66', '#66cccc', '#ffffff',
@@ -120,6 +120,18 @@ function buildFontPresetOptions(lang: Language) {
     value: option.value,
     label: t(lang, option.labelKey),
   }));
+}
+
+function slotButtonStyle(panelScale: number, enabled: boolean) {
+  return {
+    background: enabled ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)',
+    border: '1px solid rgba(255,255,255,0.2)',
+    color: enabled ? '#d7d7d7' : '#666',
+    fontSize: scalePanelPixels(17, panelScale),
+    borderRadius: scalePanelPixels(6, panelScale),
+    padding: `${scalePanelPixels(6, panelScale)} ${scalePanelPixels(12, panelScale)}`,
+    cursor: enabled ? 'pointer' : 'default',
+  } as const;
 }
 
 function buildHudStyleOptions(lang: Language) {
@@ -839,6 +851,59 @@ export function PresetsTabSections({
             </p>
           </>
         )}
+        <div data-layout-slots style={{ margin: `0 0 ${scalePanelPixels(12, panelScale)} 0` }}>
+          <div style={{ color: '#aaa', fontSize: scalePanelPixels(20, panelScale), marginBottom: scalePanelPixels(6, panelScale) }}>
+            {t(lang, 'layoutSlotsLabel')}
+          </div>
+          {settings.layoutSlots.map((slot, index) => (
+            <div
+              key={index}
+              data-layout-slot={index}
+              style={{ display: 'flex', alignItems: 'center', gap: scalePanelPixels(8, panelScale), padding: `${scalePanelPixels(4, panelScale)} 0` }}
+            >
+              <span style={{ flex: 1, color: '#ddd', fontSize: scalePanelPixels(19, panelScale) }}>
+                {t(lang, 'layoutSlotName')} {index + 1}
+                <span style={{ color: '#888', marginLeft: scalePanelPixels(8, panelScale) }}>
+                  {slot
+                    ? `${t(lang, slot.hudStyle === 'compact' ? 'hudStyleCompact' : 'hudStyleClassic')} · ${new Date(slot.savedAt).toLocaleString(lang === 'ko' ? 'ko-KR' : 'en-US', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+                    : t(lang, 'layoutSlotEmpty')}
+                </span>
+              </span>
+              <button
+                type="button"
+                data-layout-slot-save={index}
+                onClick={() => {
+                  const next = [...settings.layoutSlots];
+                  next[index] = captureLayoutSlot(settings, Date.now());
+                  onUpdate('layoutSlots', next);
+                }}
+                style={slotButtonStyle(panelScale, true)}
+              >
+                {t(lang, 'layoutSlotSave')}
+              </button>
+              <button
+                type="button"
+                data-layout-slot-load={index}
+                disabled={!slot}
+                onClick={() => {
+                  if (!slot) return;
+                  onUpdate('positions', {}, { persist: false });
+                  onUpdate('layouts', {}, { persist: false });
+                  onUpdate('groupScales', {}, { persist: false });
+                  onUpdate('general.hudStyle', slot.hudStyle, { persist: false });
+                  onUpdate('general.compactAnchor', slot.compactAnchor, { persist: false });
+                  onUpdate('itemLayouts', slot.itemLayouts);
+                }}
+                style={slotButtonStyle(panelScale, Boolean(slot))}
+              >
+                {t(lang, 'layoutSlotLoad')}
+              </button>
+            </div>
+          ))}
+          <p style={{ color: '#88a4c4', fontSize: scalePanelPixels(17, panelScale), margin: `${scalePanelPixels(4, panelScale)} 0 0 0` }}>
+            {t(lang, 'layoutSlotsHint')}
+          </p>
+        </div>
         <button
           onClick={() => {
             onUpdate('positions', {}, { persist: false });

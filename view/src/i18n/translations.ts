@@ -184,6 +184,12 @@ export const bundledTranslations = {
     compactAnchorTopLeft: '왼쪽 위',
     compactAnchorTopRight: '오른쪽 위',
     compactAnchorHint: '선택하면 모든 위젯이 해당 위치의 기본 배치로 이동합니다(표시 여부는 유지).',
+    layoutSlotsLabel: '배치 슬롯',
+    layoutSlotName: '슬롯',
+    layoutSlotEmpty: '비어 있음',
+    layoutSlotSave: '저장',
+    layoutSlotLoad: '불러오기',
+    layoutSlotsHint: '현재 배치(스타일·위치·표시 여부)를 저장해 두고 언제든 되돌릴 수 있습니다.',
   },
   en: {
     title: 'Tullius Widgets',
@@ -367,6 +373,12 @@ export const bundledTranslations = {
     compactAnchorTopLeft: 'Top left',
     compactAnchorTopRight: 'Top right',
     compactAnchorHint: 'Moves every widget to that corner\'s default layout (visibility is kept).',
+    layoutSlotsLabel: 'Layout slots',
+    layoutSlotName: 'Slot',
+    layoutSlotEmpty: 'Empty',
+    layoutSlotSave: 'Save',
+    layoutSlotLoad: 'Load',
+    layoutSlotsHint: 'Save the current arrangement (style, positions, visibility) and switch back any time.',
   },
 } as const;
 

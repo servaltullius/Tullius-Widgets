@@ -3,7 +3,7 @@ import {
   resolveWidgetItemLayouts,
   getWidgetItemDefaultZIndex,
 } from '../data/widgetItemRegistry';
-import type { HudStyle, WidgetItemLayout, WidgetSettings } from '../types/settings';
+import type { HudStyle, LayoutSlot, WidgetItemLayout, WidgetSettings } from '../types/settings';
 
 function stampLayoutViewport(
   layout: WidgetItemLayout,
@@ -232,4 +232,21 @@ export function buildItemLayoutsForHudStyle(
       },
     ]),
   );
+}
+
+// Snapshot of the arrangement the player currently sees, at the 1080p baseline.
+export function captureLayoutSlot(settings: WidgetSettings, savedAt: number): LayoutSlot {
+  const baseline = { width: 1920, height: 1080 };
+  const resolved = resolveWidgetItemLayouts({ settings, viewportWidth: baseline.width, viewportHeight: baseline.height });
+  return {
+    savedAt,
+    hudStyle: settings.general.hudStyle,
+    compactAnchor: settings.general.compactAnchor,
+    itemLayouts: Object.fromEntries(
+      Object.entries(resolved).map(([itemId, layout]) => [
+        itemId,
+        { ...layout, viewportWidth: baseline.width, viewportHeight: baseline.height },
+      ]),
+    ),
+  };
 }
