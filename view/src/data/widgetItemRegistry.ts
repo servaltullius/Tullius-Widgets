@@ -151,9 +151,21 @@ function getCompactAnchorOffset(anchor: CompactAnchor | undefined): GroupPositio
 
 export const ITEM_SHOW_WHEN_VALUES: readonly ItemShowWhen[] = ['always', 'combat', 'change', 'combatOrChange'];
 
+// Clocks tick constantly and never count as a change, so change-driven policies make no sense.
+const CHANGELESS_ITEMS = new Set(['time.game', 'time.real']);
+
+export function getItemShowWhenOptions(itemId: string): readonly ItemShowWhen[] {
+  return CHANGELESS_ITEMS.has(itemId) ? ['always', 'combat'] : ITEM_SHOW_WHEN_VALUES;
+}
+
 export function resolveItemShowWhen(itemId: string, layout: WidgetItemLayout | undefined, hudStyle: HudStyle): ItemShowWhen {
-  if (layout?.showWhen) return layout.showWhen;
-  return hudStyle === 'compact' ? COMPACT_DEFAULT_SHOW_WHEN[itemId] ?? 'always' : 'always';
+  const requested = layout?.showWhen
+    ?? (hudStyle === 'compact' ? COMPACT_DEFAULT_SHOW_WHEN[itemId] ?? 'always' : 'always');
+  if (CHANGELESS_ITEMS.has(itemId)) {
+    if (requested === 'change') return 'always';
+    if (requested === 'combatOrChange') return 'combat';
+  }
+  return requested;
 }
 
 export const NORDIC_DEFAULT_BASELINE_VIEWPORT = {
@@ -720,11 +732,44 @@ export function sanitizeWidgetItemLayouts(incoming: unknown): Record<string, Wid
   return out;
 }
 
+type AxisAnchor = 'start' | 'end' | 'proportional';
+
+interface LayoutAnchor {
+  x: AxisAnchor;
+  y: AxisAnchor;
+}
+
+const PROPORTIONAL_ANCHOR: LayoutAnchor = { x: 'proportional', y: 'proportional' };
+
+// A layout that sits entirely on one side of the screen centre keeps its distance to that
+// edge when the aspect ratio changes; one that spans the centre scales proportionally so
+// no cluster is ever torn apart at the midline.
+function resolveLayoutAnchor(layouts: WidgetItemLayout[]): LayoutAnchor {
+  // Hidden items count too, so toggling one widget never shifts the others.
+  const placed = layouts.filter(layout =>
+    layout.viewportWidth !== undefined
+    && layout.viewportHeight !== undefined
+    && layout.viewportWidth > 0
+    && layout.viewportHeight > 0);
+  if (placed.length === 0) return PROPORTIONAL_ANCHOR;
+
+  const axis = (ratios: number[]): AxisAnchor => {
+    if (ratios.every(ratio => ratio < 0.5)) return 'start';
+    if (ratios.every(ratio => ratio >= 0.5)) return 'end';
+    return 'proportional';
+  };
+  return {
+    x: axis(placed.map(layout => layout.x / layout.viewportWidth!)),
+    y: axis(placed.map(layout => layout.y / layout.viewportHeight!)),
+  };
+}
+
 function resolveCanonicalLayoutForViewport(
   itemId: string,
   layout: WidgetItemLayout,
   viewportWidth: number,
   viewportHeight: number,
+  anchor: LayoutAnchor = PROPORTIONAL_ANCHOR,
 ): WidgetItemLayout {
   if (
     layout.viewportWidth === undefined
@@ -745,14 +790,16 @@ function resolveCanonicalLayoutForViewport(
     ? Number(Math.min(registryEntry.maxScale, Math.max(registryEntry.minScale, scaledScale)).toFixed(3))
     : scaledScale;
 
-  // Keep each item at the same scaled distance from its nearest screen edge, so a cluster
-  // keeps its shape on other aspect ratios (e.g. 21:9) instead of being stretched apart.
-  const anchoredX = layout.x < layout.viewportWidth / 2
+  const anchoredX = anchor.x === 'start'
     ? layout.x * viewportScale
-    : viewportWidth - (layout.viewportWidth - layout.x) * viewportScale;
-  const anchoredY = layout.y < layout.viewportHeight / 2
+    : anchor.x === 'end'
+      ? viewportWidth - (layout.viewportWidth - layout.x) * viewportScale
+      : (layout.x * viewportWidth) / layout.viewportWidth;
+  const anchoredY = anchor.y === 'start'
     ? layout.y * viewportScale
-    : viewportHeight - (layout.viewportHeight - layout.y) * viewportScale;
+    : anchor.y === 'end'
+      ? viewportHeight - (layout.viewportHeight - layout.y) * viewportScale
+      : (layout.y * viewportHeight) / layout.viewportHeight;
 
   return {
     ...layout,
@@ -777,10 +824,11 @@ export function resolveWidgetItemLayouts(params: {
     : settings.general.hudStyle === 'compact'
       ? buildCompactDefaultItemLayouts(settings)
       : buildNordicDefaultItemLayouts(settings);
+  const fallbackAnchor = resolveLayoutAnchor(Object.values(baselineLayouts));
   const fallbackLayouts = Object.fromEntries(
     Object.entries(baselineLayouts).map(([itemId, layout]) => [
       itemId,
-      resolveCanonicalLayoutForViewport(itemId, layout, viewportWidth, viewportHeight),
+      resolveCanonicalLayoutForViewport(itemId, layout, viewportWidth, viewportHeight, fallbackAnchor),
     ]),
   ) as Record<string, WidgetItemLayout>;
 
@@ -788,10 +836,17 @@ export function resolveWidgetItemLayouts(params: {
     return fallbackLayouts;
   }
 
+  // Anchor saved items together with the defaults they sit among, as one layout.
+  const canonicalAnchor = resolveLayoutAnchor([
+    ...Object.values(canonicalLayouts),
+    ...Object.entries(baselineLayouts)
+      .filter(([itemId]) => !(itemId in canonicalLayouts))
+      .map(([, layout]) => layout),
+  ]);
   const resolvedCanonicalLayouts = Object.fromEntries(
     Object.entries(canonicalLayouts).map(([itemId, layout]) => [
       itemId,
-      resolveCanonicalLayoutForViewport(itemId, layout, viewportWidth, viewportHeight),
+      resolveCanonicalLayoutForViewport(itemId, layout, viewportWidth, viewportHeight, canonicalAnchor),
     ]),
   ) as Record<string, WidgetItemLayout>;
 

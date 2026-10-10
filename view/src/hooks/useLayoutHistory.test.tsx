@@ -11,8 +11,8 @@ function layoutAt(x: number): Layouts {
   return { 'player.gold': { visible: true, x, y: 10, scale: 1, locked: false, zIndex: 1 } };
 }
 
-function Harness({ enabled, layouts, onRestore }: { enabled: boolean; layouts: Layouts; onRestore: (l: Layouts) => void }) {
-  useLayoutHistory({ enabled, itemLayouts: layouts, onRestore });
+function Harness({ enabled, layouts, onRestore, resetKey }: { enabled: boolean; layouts: Layouts; onRestore: (l: Layouts) => void; resetKey?: string }) {
+  useLayoutHistory({ enabled, itemLayouts: layouts, onRestore, resetKey });
   return null;
 }
 
@@ -64,6 +64,15 @@ describe('useLayoutHistory', () => {
 
     press('y');
     expect(onRestore).toHaveBeenLastCalledWith(c);
+  });
+
+  it('starts a fresh history when the reset key changes', () => {
+    const onRestore = vi.fn();
+    act(() => root!.render(<Harness enabled layouts={layoutAt(0)} onRestore={onRestore} resetKey="classic" />));
+    act(() => { vi.advanceTimersByTime(1000); root!.render(<Harness enabled layouts={layoutAt(10)} onRestore={onRestore} resetKey="classic" />); });
+    act(() => { vi.advanceTimersByTime(1000); root!.render(<Harness enabled layouts={layoutAt(500)} onRestore={onRestore} resetKey="compact" />); });
+    press('z');
+    expect(onRestore).not.toHaveBeenCalled();
   });
 
   it('does nothing while disabled and ignores text inputs', () => {

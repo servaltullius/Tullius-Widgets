@@ -11,6 +11,9 @@ interface UseLayoutHistoryParams {
   enabled: boolean;
   itemLayouts: ItemLayouts;
   onRestore: (itemLayouts: ItemLayouts) => void;
+  /** Changing this (e.g. HUD style or cluster corner) starts a fresh history: older layouts
+   * belong to a different arrangement and would mix badly with the current one. */
+  resetKey?: string;
 }
 
 function isTextEntryTarget(target: EventTarget | null): boolean {
@@ -20,15 +23,17 @@ function isTextEntryTarget(target: EventTarget | null): boolean {
 }
 
 // Undo/redo for widget layout edits while the settings panel is open.
-export function useLayoutHistory({ enabled, itemLayouts, onRestore }: UseLayoutHistoryParams) {
+export function useLayoutHistory({ enabled, itemLayouts, onRestore, resetKey = '' }: UseLayoutHistoryParams) {
   const pastRef = useRef<ItemLayouts[]>([]);
   const futureRef = useRef<ItemLayouts[]>([]);
   const currentRef = useRef(itemLayouts);
   const restoringRef = useRef(false);
   const lastRecordedAtRef = useRef(0);
+  const resetKeyRef = useRef(resetKey);
 
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || resetKeyRef.current !== resetKey) {
+      resetKeyRef.current = resetKey;
       pastRef.current = [];
       futureRef.current = [];
       currentRef.current = itemLayouts;
@@ -49,7 +54,7 @@ export function useLayoutHistory({ enabled, itemLayouts, onRestore }: UseLayoutH
       futureRef.current = [];
     }
     currentRef.current = itemLayouts;
-  }, [enabled, itemLayouts]);
+  }, [enabled, itemLayouts, resetKey]);
 
   const undo = useCallback((): boolean => {
     const previous = pastRef.current.pop();

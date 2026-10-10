@@ -6,6 +6,7 @@ import {
   buildItemLayoutsFromLegacySettings,
   buildNordicDefaultItemLayouts,
   getWidgetItemRegistryEntry,
+  getItemShowWhenOptions,
   resolveItemShowWhen,
   resolveWidgetItemLayouts,
   sanitizeWidgetItemLayouts,
@@ -160,6 +161,20 @@ describe('widgetItemRegistry', () => {
     expect(topRight['resistance.magic'].y).toBeGreaterThanOrEqual(60);
   });
 
+  it('never tears a classic layout apart on 16:10 screens or when visibility changes', () => {
+    const classic = structuredClone(defaultSettings);
+    classic.general.hudStyle = 'classic';
+    const wide = resolveWidgetItemLayouts({ settings: classic, viewportWidth: 1920, viewportHeight: 1200 });
+    const rowGap = wide['equipped.voice'].y - wide['equipped.rightHand'].y;
+    expect(rowGap).toBeCloseTo(60 * (1200 / 1080), 2);
+
+    const withoutPotion = structuredClone(classic);
+    withoutPotion.equipped.potion = false;
+    const toggled = resolveWidgetItemLayouts({ settings: withoutPotion, viewportWidth: 1024, viewportHeight: 768 });
+    const original = resolveWidgetItemLayouts({ settings: classic, viewportWidth: 1024, viewportHeight: 768 });
+    expect(toggled['experience.progress']).toMatchObject({ x: original['experience.progress'].x, y: original['experience.progress'].y });
+  });
+
   it('keeps clusters anchored to their screen edge on ultrawide viewports', () => {
     const compact = resolveWidgetItemLayouts({ settings: structuredClone(defaultSettings), viewportWidth: 2560, viewportHeight: 1080 });
     expect(compact['experience.progress']).toMatchObject({ x: 34, y: 898, scale: 1 });
@@ -184,6 +199,11 @@ describe('widgetItemRegistry', () => {
     expect(resolveItemShowWhen('resistance.fire', undefined, 'compact')).toBe('combatOrChange');
     expect(resolveItemShowWhen('resistance.fire', undefined, 'classic')).toBe('always');
     expect(resolveItemShowWhen('player.gold', sanitized['player.gold'], 'compact')).toBe('combat');
+    const clock = { visible: true, x: 0, y: 0, scale: 1, locked: false, zIndex: 0 };
+    expect(resolveItemShowWhen('time.real', { ...clock, showWhen: 'change' }, 'compact')).toBe('always');
+    expect(resolveItemShowWhen('time.game', { ...clock, showWhen: 'combatOrChange' }, 'compact')).toBe('combat');
+    expect(getItemShowWhenOptions('time.real')).toEqual(['always', 'combat']);
+    expect(getItemShowWhenOptions('player.gold')).toHaveLength(4);
   });
 
   it('places fresh compact defaults as a bottom-left cluster above the resource bars', () => {

@@ -159,12 +159,20 @@ export function App() {
 
   useEffect(() => {
     const previous = previousItemSignaturesRef.current;
-    previousItemSignaturesRef.current = itemSignatures;
-    if (!hasLiveStats) return;
+    if (!hasLiveStats) {
+      previousItemSignaturesRef.current = itemSignatures;
+      return;
+    }
     const changed = Object.keys(itemSignatures).filter(itemId => !previous || previous[itemId] !== itemSignatures[itemId]);
-    if (changed.length === 0) return;
+    if (changed.length === 0) {
+      previousItemSignaturesRef.current = itemSignatures;
+      return;
+    }
     const changedAt = Date.now();
+    // Only advance the baseline once the change is recorded; if a newer render cancels this
+    // timer first, the next run still sees the difference against the old baseline.
     const timer = window.setTimeout(() => {
+      previousItemSignaturesRef.current = itemSignatures;
       setLastChangeAtByItem(prev => {
         const next = { ...prev };
         for (const itemId of changed) next[itemId] = changedAt;
@@ -289,7 +297,12 @@ export function App() {
   const restoreItemLayouts = useCallback((layouts: Record<string, WidgetItemLayout>) => {
     updateSetting('itemLayouts', layouts);
   }, [updateSetting]);
-  useLayoutHistory({ enabled: settingsOpen, itemLayouts: settings.itemLayouts, onRestore: restoreItemLayouts });
+  useLayoutHistory({
+    enabled: settingsOpen,
+    itemLayouts: settings.itemLayouts,
+    onRestore: restoreItemLayouts,
+    resetKey: `${settings.general.hudStyle}:${settings.general.compactAnchor}`,
+  });
 
   useWidgetKeyboardNudge({
     enabled: settingsOpen && selectedItemId !== null,

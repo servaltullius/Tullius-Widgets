@@ -20,6 +20,7 @@ interface SelectedWidgetQuickEditCardProps {
   onBringForward?: () => void;
   onSendBackward?: () => void;
   showWhen?: ItemShowWhen;
+  showWhenOptions?: readonly ItemShowWhen[];
   onShowWhenChange?: (next: ItemShowWhen) => void;
   panelScale?: number;
 }
@@ -46,6 +47,7 @@ export function SelectedWidgetQuickEditCard({
   onBringForward = () => {},
   onSendBackward = () => {},
   showWhen,
+  showWhenOptions = ['always', 'combat', 'change', 'combatOrChange'],
   onShowWhenChange,
   panelScale = 1,
 }: SelectedWidgetQuickEditCardProps) {
@@ -163,7 +165,7 @@ export function SelectedWidgetQuickEditCard({
           <span style={{ color: '#aaa', fontSize: scalePanelPixels(20, panelScale) }}>{t(lang, 'showWhenLabel')}</span>
           <CustomSelect
             value={showWhen}
-            options={(Object.keys(SHOW_WHEN_LABEL_KEYS) as ItemShowWhen[]).map(value => ({ value, label: t(lang, SHOW_WHEN_LABEL_KEYS[value]) }))}
+            options={showWhenOptions.map(value => ({ value, label: t(lang, SHOW_WHEN_LABEL_KEYS[value]) }))}
             onChange={next => onShowWhenChange(next as ItemShowWhen)}
             panelScale={panelScale}
             testId="selected-widget-show-when"
