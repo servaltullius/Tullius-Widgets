@@ -178,7 +178,7 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
         DispatchToGameThread([open]() {
             SetSettingsOpen(open);
             if (!open) {
-                TulliusWidgets::WidgetHotkeys::SetCaptureActive(false);
+                TulliusWidgets::WidgetHotkeys::ClearCapture();
             }
         });
     });

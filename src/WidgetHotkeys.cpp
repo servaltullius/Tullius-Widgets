@@ -279,4 +279,9 @@ void SetCaptureActive(bool active)
     g_captureUntilMs.store(NowMs() + (active ? kCaptureTimeoutMs : kCaptureReleaseGraceMs), std::memory_order_release);
 }
 
+void ClearCapture()
+{
+    g_captureUntilMs.store(0, std::memory_order_release);
+}
+
 }  // namespace TulliusWidgets::WidgetHotkeys

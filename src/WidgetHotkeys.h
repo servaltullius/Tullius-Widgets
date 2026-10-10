@@ -24,5 +24,7 @@ void ApplyHotkeysFromSettingsJson(std::string_view settingsJson);
 // stand aside so the key reaches the page. Expires on its own after a few seconds in case
 // the page never reports the end.
 void SetCaptureActive(bool active);
+// Ends any capture pause at once (settings panel closed); no grace period.
+void ClearCapture();
 
 }  // namespace TulliusWidgets::WidgetHotkeys
