@@ -177,5 +177,6 @@
   "timedEffectsHideLong60": "1시간 넘는 효과",
   "equipDetailCharge": "충전 {n}%",
   "equipDetailPoison": "독 {n}회",
-  "equipDetailAmmo": "탄약 {n}"
+  "equipDetailAmmo": "탄약 {n}",
+  "hotkeyReset": "기본 키로"
 }

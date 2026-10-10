@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
 import type { Language, UpdateSettingFn, WidgetSettings } from '../../types/settings';
 import { t } from '../../i18n/translations';
-import { formatHotkey, keyboardEventToHotkey, setHotkeyCaptureActive } from '../../utils/hotkeys';
+import {
+  DEFAULT_SETTINGS_HOTKEY,
+  DEFAULT_VISIBILITY_HOTKEY,
+  formatHotkey,
+  keyboardEventToHotkey,
+  setHotkeyCaptureActive,
+} from '../../utils/hotkeys';
 import { scalePanelPixels } from './panelScale';
 
 type HotkeyField = 'settingsHotkey' | 'visibilityHotkey';
@@ -95,9 +101,35 @@ export function HotkeySettings({ lang, settings, onUpdate, panelScale = 1 }: Hot
           </div>
         );
       })}
-      <p style={{ color: notice ? '#e4a07d' : '#88a4c4', fontSize: scalePanelPixels(16, panelScale), margin: `${scalePanelPixels(4, panelScale)} 0 0 0` }}>
-        {t(lang, notice ?? 'hotkeyHint')}
-      </p>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: scalePanelPixels(12, panelScale), marginTop: scalePanelPixels(4, panelScale) }}>
+        <p style={{ color: notice ? '#e4a07d' : '#88a4c4', fontSize: scalePanelPixels(16, panelScale), margin: 0 }}>
+          {t(lang, notice ?? 'hotkeyHint')}
+        </p>
+        {(settings.general.settingsHotkey !== DEFAULT_SETTINGS_HOTKEY || settings.general.visibilityHotkey !== DEFAULT_VISIBILITY_HOTKEY) && (
+          <button
+            type="button"
+            data-hotkey-reset
+            onClick={() => {
+              setCapturing(null);
+              setNotice(null);
+              onUpdate('general.settingsHotkey', DEFAULT_SETTINGS_HOTKEY, { persist: false });
+              onUpdate('general.visibilityHotkey', DEFAULT_VISIBILITY_HOTKEY);
+            }}
+            style={{
+              flex: 'none',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              color: '#d7d7d7',
+              fontSize: scalePanelPixels(16, panelScale),
+              borderRadius: scalePanelPixels(6, panelScale),
+              padding: `${scalePanelPixels(4, panelScale)} ${scalePanelPixels(10, panelScale)}`,
+              cursor: 'pointer',
+            }}
+          >
+            {t(lang, 'hotkeyReset')}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

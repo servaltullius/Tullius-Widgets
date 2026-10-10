@@ -177,5 +177,6 @@
   "timedEffectsHideLong60": "Longer than 1 hour",
   "equipDetailCharge": "Charge {n}%",
   "equipDetailPoison": "Poison ×{n}",
-  "equipDetailAmmo": "Ammo {n}"
+  "equipDetailAmmo": "Ammo {n}",
+  "hotkeyReset": "Defaults"
 }

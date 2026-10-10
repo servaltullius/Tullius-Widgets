@@ -49,6 +49,18 @@ describe('HotkeySettings', () => {
     delete window.onHotkeyCapture;
   });
 
+  it('offers a reset to Insert / F11 once a key was changed', () => {
+    const onUpdate = vi.fn();
+    const settings = structuredClone(defaultSettings);
+    act(() => root!.render(<HotkeySettings lang="ko" settings={settings} onUpdate={onUpdate} />));
+    expect(container.querySelector('[data-hotkey-reset]')).toBeNull();
+    settings.general.settingsHotkey = 0xC7;
+    act(() => root!.render(<HotkeySettings lang="ko" settings={{ ...settings }} onUpdate={onUpdate} />));
+    act(() => (container.querySelector('[data-hotkey-reset]') as HTMLButtonElement).click());
+    expect(onUpdate).toHaveBeenCalledWith('general.settingsHotkey', 0xD2, { persist: false });
+    expect(onUpdate).toHaveBeenCalledWith('general.visibilityHotkey', 0x57);
+  });
+
   it('refuses reserved keys and the key the other hotkey uses', () => {
     const onUpdate = vi.fn();
     act(() => root!.render(<HotkeySettings lang="ko" settings={structuredClone(defaultSettings)} onUpdate={onUpdate} />));
