@@ -158,7 +158,12 @@
 }
 
 /* Short-lived +/- readout next to counters (gold, XP). Animates opacity only. */
+/* Floats just above its value so it never pushes neighbours around. */
 .tw-compact-delta {
+  position: absolute;
+  left: 20px;
+  bottom: 100%;
+  margin-bottom: 1px;
   font-size: 11px;
   font-weight: 700;
   color: var(--c-good);
@@ -166,6 +171,13 @@
 }
 
 .tw-compact-delta[data-direction='down'] { color: var(--c-danger); }
+
+.tw-compact-delta--right {
+  left: calc(100% + 6px);
+  bottom: auto;
+  top: 0;
+  margin-bottom: 0;
+}
 
 @keyframes tw-compact-delta {
   0% { opacity: 0; }

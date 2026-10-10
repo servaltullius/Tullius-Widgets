@@ -232,6 +232,7 @@ function mergeTimeSettings(target: WidgetSettings['time'], incoming: unknown): v
     target.realDisplay,
     TIME_DISPLAY_MODES,
   );
+  target.weather = readBoolean(incoming.weather, target.weather);
 }
 
 function mergePlayerInfoSettings(target: WidgetSettings['playerInfo'], incoming: unknown): void {
@@ -330,6 +331,7 @@ export function mergeWithDefaults(
     merged.offense.leftHandDamage = true;
     merged.time.gameDisplay = 'dateTime';
     merged.time.realDisplay = 'dateTime';
+    merged.time.weather = false;
   }
 
   mergeGeneralSettings(merged.general, saved.general, savedSchemaVersion);

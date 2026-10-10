@@ -83,6 +83,7 @@ export interface WidgetSettings {
     gameDisplay: TimeDisplayMode;
     realDateTime: boolean;
     realDisplay: TimeDisplayMode;
+    weather: boolean;
   };
   experience: {
     enabled: boolean;

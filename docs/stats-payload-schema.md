@@ -50,6 +50,7 @@
     "hour": 5,
     "minute": 18,
     "monthName": "Last Seed",
+    "weather": "clear",
     "timeScale": 20.0
   },
   "playerInfo": {
@@ -126,6 +127,8 @@
 - UI는 `calcMeta.caps` 기준으로 캡/보조 텍스트를 표시합니다.
 - 원소/독 저항은 현재 `85%` 상한 clamp를 기준으로 안내하며, 음수 하한은 엔진/모드 조합에 따라 달라질 수 있어 고정 clamp 계약으로 두지 않습니다.
 - 고빈도 fast 동기화 payload에서는 `timedEffects`가 생략될 수 있으며, UI는 이전 목록을 유지해야 합니다.
+- 날씨 계약:
+  - `time.weather`는 `clear | cloudy | rain | snow | indoor | unknown` 중 하나입니다. 비/눈은 하늘의 전환(fade) 상태를 반영하며, 실내는 `indoor`입니다. 구버전 payload에서는 생략될 수 있고 UI는 이전 값(없으면 `unknown`)을 유지합니다.
 - 장착 표시 계약:
   - `equipped.rightHand`, `equipped.leftHand`는 가능한 경우 인벤토리 표시명(`InventoryEntryData::GetDisplayName`)을 우선 사용합니다.
   - 왼손은 주문/무기 외에 방패 슬롯 보강 판별을 포함합니다.

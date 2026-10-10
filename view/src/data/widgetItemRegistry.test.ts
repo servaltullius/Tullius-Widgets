@@ -39,6 +39,7 @@ describe('widgetItemRegistry', () => {
       'time.real',
       'movement.speedMult',
       'timedEffects.list',
+      'time.weather',
     ]);
 
     for (const itemId of WIDGET_ITEM_IDS) {

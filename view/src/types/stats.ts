@@ -49,6 +49,8 @@ export interface Movement {
   speedMult: number;
 }
 
+export type WeatherKind = 'clear' | 'cloudy' | 'rain' | 'snow' | 'indoor' | 'unknown';
+
 export interface GameTimeInfo {
   year: number;
   month: number;
@@ -57,6 +59,7 @@ export interface GameTimeInfo {
   minute: number;
   monthName: string;
   timeScale: number;
+  weather: WeatherKind;
   snapshotAtMs: number;
 }
 

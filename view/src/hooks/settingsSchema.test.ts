@@ -24,12 +24,14 @@ describe('settingsSchema', () => {
     expect(legacy.equipped.voice).toBe(false);
     expect(legacy.time.gameDisplay).toBe('dateTime');
     expect(legacy.time.realDisplay).toBe('dateTime');
+    expect(legacy.time.weather).toBe(false);
 
     const fresh = mergeWithDefaults({ schemaVersion: 7 });
     expect(fresh.resistances.disease).toBe(true);
     expect(fresh.equipped.voice).toBe(true);
     expect(fresh.equipped.nameDisplay).toBe('always');
     expect(fresh.time.gameDisplay).toBe('timeOnly');
+    expect(fresh.time.weather).toBe(true);
   });
 
   it('uses standard icons without badges for fresh schema v6 settings', () => {

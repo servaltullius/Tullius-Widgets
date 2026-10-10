@@ -245,6 +245,19 @@ static std::vector<TimedEffectEntry> CollectTimedEffects(RE::PlayerCharacter* pl
     return out;
 }
 
+// Coarse weather for the HUD; precipitation uses the sky's fade-aware checks.
+static const char* CollectWeatherKind()
+{
+    const auto* sky = RE::Sky::GetSingleton();
+    if (!sky) return "unknown";
+    if (sky->mode.get() == RE::Sky::Mode::kInterior) return "indoor";
+    if (!sky->currentWeather) return "unknown";
+    if (sky->IsSnowing()) return "snow";
+    if (sky->IsRaining()) return "rain";
+    if (sky->currentWeather->data.flags.any(RE::TESWeather::WeatherDataFlag::kCloudy)) return "cloudy";
+    return "clear";
+}
+
 static GameTimeEntry CollectGameTime()
 {
     GameTimeEntry out{
@@ -256,6 +269,7 @@ static GameTimeEntry CollectGameTime()
         20.0f,
         "Morning Star"
     };
+    out.weather = CollectWeatherKind();
 
     auto* calendar = RE::Calendar::GetSingleton();
     if (!calendar) return out;

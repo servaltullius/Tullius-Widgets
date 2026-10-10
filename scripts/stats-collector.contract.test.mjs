@@ -27,6 +27,7 @@ test('stats collector writer still emits core payload contract sections', () => 
   assert.match(statsWriterText, /\\"rightHandKind\\"/);
   assert.match(statsWriterText, /\\"leftHandKind\\"/);
   assert.match(statsWriterText, /\\"voiceCooldownSec\\"/);
+  assert.match(statsWriterText, /\\"weather\\"/);
   assert.match(statsWriterText, /\\"ammoCount\\"/);
   assert.match(statsWriterText, /\\"rightHandChargePct\\"/);
 });

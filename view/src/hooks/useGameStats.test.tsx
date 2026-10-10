@@ -147,6 +147,23 @@ describe('useGameStats', () => {
     expect(latest!.equipped).toMatchObject({ rightHandKind: 'other', leftHandKind: 'other', ammoCount: null, voiceCooldownSec: 0 });
   });
 
+  it('reads the weather kind and keeps the previous one for unknown values', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onStats={stats => { latest = stats; }} />);
+    });
+
+    await act(async () => {
+      window.updateStats?.(JSON.stringify(createStatsPayload({ seq: 1001, time: { year: 201, month: 7, day: 28, hour: 14, minute: 35, weather: 'snow' } })));
+    });
+    expect(latest!.time.weather).toBe('snow');
+
+    await act(async () => {
+      window.updateStats?.(JSON.stringify(createStatsPayload({ seq: 1002, time: { year: 201, month: 7, day: 28, hour: 14, minute: 36, weather: 'meteor' } })));
+    });
+    expect(latest!.time.weather).toBe('snow');
+  });
+
   it('ignores out-of-order stats payload by sequence number', async () => {
     await act(async () => {
       root = createRoot(container);

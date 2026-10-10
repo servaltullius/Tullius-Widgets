@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { BRIDGE_HANDLERS } from '../constants/bridge';
-import { EQUIPPED_ITEM_KINDS, type CombatStats, type EquippedItemKind, type EquippedVoiceType, type GameTimeInfo, type TimedEffect } from '../types/stats';
+import { EQUIPPED_ITEM_KINDS, type CombatStats, type EquippedItemKind, type EquippedVoiceType, type GameTimeInfo, type TimedEffect, type WeatherKind } from '../types/stats';
 import { mockStats } from '../data/mockStats';
 import { isPlainObject, readBoolean, readNumber, readText } from '../utils/normalize';
 import { registerDualBridgeHandler } from '../utils/bridge';
@@ -138,6 +138,12 @@ function warnInvalidStatsContract(
   );
 }
 
+const WEATHER_KINDS: readonly WeatherKind[] = ['clear', 'cloudy', 'rain', 'snow', 'indoor', 'unknown'];
+
+function readWeatherKind(value: unknown, fallback: WeatherKind): WeatherKind {
+  return typeof value === 'string' && (WEATHER_KINDS as readonly string[]).includes(value) ? value as WeatherKind : fallback;
+}
+
 function normalizeGameTime(value: unknown, fallback?: GameTimeInfo): GameTimeInfo {
   const snapshotAtMs = Date.now();
   const fallbackMonth = fallback ? Math.trunc(readNumber(fallback.month, 0, 0, 11)) : 0;
@@ -157,6 +163,7 @@ function normalizeGameTime(value: unknown, fallback?: GameTimeInfo): GameTimeInf
       minute: Math.trunc(readNumber(fallbackMinute, 0, 0, 59)),
       monthName: fallbackMonthName,
       timeScale: readNumber(fallbackTimeScale, 20, 0, 2000),
+      weather: fallback?.weather ?? 'unknown',
       snapshotAtMs,
     };
   }
@@ -172,6 +179,7 @@ function normalizeGameTime(value: unknown, fallback?: GameTimeInfo): GameTimeInf
     minute: Math.trunc(readNumber(value.minute, fallbackMinute, 0, 59)),
     monthName,
     timeScale: readNumber(value.timeScale, fallbackTimeScale, 0, 2000),
+    weather: readWeatherKind(value.weather, fallback?.weather ?? 'unknown'),
     snapshotAtMs,
   };
 }

@@ -33,6 +33,15 @@ import { sortItemIdsByZIndex } from '../utils/itemLayoutEditing';
 import '../assets/hud-widgets.css';
 
 const ELEMENTAL_RESIST_CAP = 85;
+
+const WEATHER_KEYS = {
+  clear: 'weatherClear',
+  cloudy: 'weatherCloudy',
+  rain: 'weatherRain',
+  snow: 'weatherSnow',
+  indoor: 'weatherIndoor',
+  unknown: 'weatherUnknown',
+} as const;
 const DISEASE_RESIST_MIN = 0;
 const WEAPON_DAMAGE_CAP = 9999;
 const WEAPON_DAMAGE_MIN = 0;
@@ -676,6 +685,20 @@ export function HudWidgetItems({
                 valueMaxWidth={TIME_WIDGET_VALUE_MAX_WIDTH}
               />
             ));
+          case 'time.weather': {
+            const weatherKey = WEATHER_KEYS[stats.time.weather];
+            return renderEditableItem((
+              <StatWidget
+                {...statIconProps}
+                icon="weather"
+                standardIcon={weatherKey}
+                iconColor="#9fc3d8"
+                value={t(lang, weatherKey)}
+                visible
+                prominence="secondary"
+              />
+            ));
+          }
           case 'movement.speedMult':
             return renderEditableItem((
               <StatWidget {...statIconProps} icon="speed" iconColor="#44ddff" value={stats.movement.speedMult} unit="%" visible prominence="secondary" />

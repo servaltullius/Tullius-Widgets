@@ -46,12 +46,12 @@ function useValueDelta(value: number | undefined): { delta: number; key: number 
   return state;
 }
 
-function DeltaBadge({ delta }: { delta: { delta: number; key: number } | null }) {
+function DeltaBadge({ delta, placement = 'above' }: { delta: { delta: number; key: number } | null; placement?: 'above' | 'right' }) {
   if (!delta) return null;
   return (
     <span
       key={delta.key}
-      className="tw-compact-delta"
+      className={placement === 'right' ? 'tw-compact-delta tw-compact-delta--right' : 'tw-compact-delta'}
       data-compact-delta
       data-direction={delta.delta > 0 ? 'up' : 'down'}
     >
@@ -89,7 +89,7 @@ export const CompactStat = memo(function CompactStat({
   const Icon = standardStatIconMap[icon];
   const delta = useValueDelta(trackValue);
   return (
-    <div title={title} data-compact-item="stat" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+    <div title={title} data-compact-item="stat" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 5 }}>
       {Icon && <Icon size={iconSize} strokeWidth={2.1} color={iconColor} aria-hidden="true" style={{ flex: 'none' }} />}
       {label && <span className="tw-compact-label">{label}</span>}
       <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
@@ -228,13 +228,13 @@ export const CompactExperienceRing = memo(function CompactExperienceRing({
         </span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span className="tw-compact-label">{xpLabel} {Math.floor(pct * 100)}%</span>
-        <span className="tw-compact-value" style={{ fontSize: 13, display: 'flex', alignItems: 'baseline', gap: 6 }}>
-          <span>
-            {Math.round(currentXp).toLocaleString('en-US')}
-            <span className="tw-compact-unit"> / {Math.round(totalXp).toLocaleString('en-US')}</span>
-          </span>
-          <DeltaBadge delta={xpDelta} />
+        <span className="tw-compact-label" style={{ position: 'relative' }}>
+          {xpLabel} {Math.floor(pct * 100)}%
+          <DeltaBadge delta={xpDelta} placement="right" />
+        </span>
+        <span className="tw-compact-value" style={{ fontSize: 13 }}>
+          {Math.round(currentXp).toLocaleString('en-US')}
+          <span className="tw-compact-unit"> / {Math.round(totalXp).toLocaleString('en-US')}</span>
         </span>
       </div>
     </div>

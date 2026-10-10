@@ -167,6 +167,13 @@ export const bundledTranslations = {
     showWhenCombat: '전투 중',
     showWhenChange: '값이 바뀔 때',
     showWhenCombatOrChange: '전투 중 또는 값이 바뀔 때',
+    weather: '날씨',
+    weatherClear: '맑음',
+    weatherCloudy: '흐림',
+    weatherRain: '비',
+    weatherSnow: '눈',
+    weatherIndoor: '실내',
+    weatherUnknown: '-',
   },
   en: {
     title: 'Tullius Widgets',
@@ -333,6 +340,13 @@ export const bundledTranslations = {
     showWhenCombat: 'In combat',
     showWhenChange: 'On change',
     showWhenCombatOrChange: 'In combat or on change',
+    weather: 'Weather',
+    weatherClear: 'Clear',
+    weatherCloudy: 'Cloudy',
+    weatherRain: 'Rain',
+    weatherSnow: 'Snow',
+    weatherIndoor: 'Indoors',
+    weatherUnknown: '-',
   },
 } as const;
 

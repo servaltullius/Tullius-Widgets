@@ -37,6 +37,15 @@ const COLORS = {
 
 const ELEMENTAL_RESIST_CAP = 85;
 
+const WEATHER_KEYS = {
+  clear: 'weatherClear',
+  cloudy: 'weatherCloudy',
+  rain: 'weatherRain',
+  snow: 'weatherSnow',
+  indoor: 'weatherIndoor',
+  unknown: 'weatherUnknown',
+} as const;
+
 type ResistanceKey = keyof CombatStats['resistances'];
 
 const RESISTANCES: Record<string, { key: ResistanceKey; color: string; labelKey: 'magic' | 'fire' | 'frost' | 'shock' | 'poison' | 'disease' }> = {
@@ -253,6 +262,10 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs }: Compact
           iconSize={14}
         />
       );
+    case 'time.weather': {
+      const key = WEATHER_KEYS[stats.time.weather];
+      return <CompactStat icon={key} iconColor={COLORS.text2} value={t(lang, key)} iconSize={14} />;
+    }
     case 'timedEffects.list':
       return (
         <TimedEffectList

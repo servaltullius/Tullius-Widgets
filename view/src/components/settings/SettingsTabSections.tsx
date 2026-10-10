@@ -592,6 +592,7 @@ export function EffectsTabSections({
   const timeToggles: ItemVisibilityToggleConfig[] = [
     { itemId: 'time.game', fallback: settings.time.gameDateTime, label: t(lang, 'gameDateTime') },
     { itemId: 'time.real', fallback: settings.time.realDateTime, label: t(lang, 'realDateTime') },
+    { itemId: 'time.weather', fallback: settings.time.weather, label: t(lang, 'weather') },
   ];
   const timedEffectsToggles: ItemVisibilityToggleConfig[] = [
     {

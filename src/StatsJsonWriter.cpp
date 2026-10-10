@@ -267,6 +267,9 @@ void StatsJsonWriter::AppendTime(const GameTimeEntry& time)
     json_ += "\"monthName\":";
     AppendEscapedString(time.monthName);
     json_ += ',';
+    json_ += "\"weather\":";
+    AppendEscapedString(time.weather);
+    json_ += ',';
     json_ += "\"timeScale\":";
     AppendFloat(time.timeScale);
     json_ += '}';

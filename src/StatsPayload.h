@@ -43,6 +43,7 @@ struct GameTimeEntry {
     std::uint32_t minute{0};
     float timeScale{0.0f};
     std::string monthName{};
+    std::string weather{"unknown"};  // clear | cloudy | rain | snow | indoor | unknown
 };
 
 struct ResistanceSnapshot {

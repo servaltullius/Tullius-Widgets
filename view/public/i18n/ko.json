@@ -132,5 +132,12 @@
   "showWhenAlways": "항상",
   "showWhenCombat": "전투 중",
   "showWhenChange": "값이 바뀔 때",
-  "showWhenCombatOrChange": "전투 중 또는 값이 바뀔 때"
+  "showWhenCombatOrChange": "전투 중 또는 값이 바뀔 때",
+  "weather": "날씨",
+  "weatherClear": "맑음",
+  "weatherCloudy": "흐림",
+  "weatherRain": "비",
+  "weatherSnow": "눈",
+  "weatherIndoor": "실내",
+  "weatherUnknown": "-"
 }

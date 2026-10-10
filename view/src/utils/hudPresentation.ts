@@ -108,6 +108,7 @@ function collectItemSignature(itemId: string, stats: CombatStats): string | null
     case 'equipped.leftHand': return `eq.left:${stats.equipped.leftHand}`;
     case 'equipped.voice': return `eq.voice:${stats.equipped.voiceType}:${stats.equipped.voice}`;
     case 'movement.speedMult': return `move.speed:${stats.movement.speedMult}`;
+    case 'time.weather': return `weather:${stats.time.weather}`;
     case 'player.level': return `pi.level:${stats.playerInfo.level}`;
     case 'player.gold': return `pi.gold:${stats.playerInfo.gold}`;
     case 'player.carryWeight': return `pi.carry:${stats.playerInfo.carryWeight}|pi.maxCarry:${stats.playerInfo.maxCarryWeight}`;

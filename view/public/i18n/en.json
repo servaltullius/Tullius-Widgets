@@ -132,5 +132,12 @@
   "showWhenAlways": "Always",
   "showWhenCombat": "In combat",
   "showWhenChange": "On change",
-  "showWhenCombatOrChange": "In combat or on change"
+  "showWhenCombatOrChange": "In combat or on change",
+  "weather": "Weather",
+  "weatherClear": "Clear",
+  "weatherCloudy": "Cloudy",
+  "weatherRain": "Rain",
+  "weatherSnow": "Snow",
+  "weatherIndoor": "Indoors",
+  "weatherUnknown": "-"
 }
