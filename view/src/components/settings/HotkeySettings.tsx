@@ -18,8 +18,9 @@ const FIELDS: Array<{ field: HotkeyField; labelKey: 'hotkeySettingsPanel' | 'hot
   { field: 'visibilityHotkey', labelKey: 'hotkeyVisibility' },
 ];
 
-// Click a key button, then press the new key; clicking again cancels. Keys already in use or
-// outside the bindable set are refused with a short note.
+// Click a key button, then press the new key; clicking again or Esc cancels (the plugin's own
+// hotkeys stand aside meanwhile). Keys already in use or outside the bindable set are refused
+// with a short note.
 export function HotkeySettings({ lang, settings, onUpdate, panelScale = 1 }: HotkeySettingsProps) {
   const [capturing, setCapturing] = useState<HotkeyField | null>(null);
   const [notice, setNotice] = useState<'hotkeyUnsupported' | 'hotkeyInUse' | null>(null);

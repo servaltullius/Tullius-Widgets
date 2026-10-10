@@ -3,6 +3,8 @@
 #include "JsonUtils.h"
 #include "WidgetInteropContracts.h"
 #include <keyhandler/keyhandler.h>
+#include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <mutex>
 
@@ -15,6 +17,19 @@ constexpr std::uint32_t kEscapeScanCode = 0x01;
 constexpr std::uint32_t kF11ScanCode = 0x57;
 
 std::mutex g_bindingMutex;
+std::atomic<std::int64_t> g_captureUntilMs{0};
+constexpr std::int64_t kCaptureTimeoutMs = 15'000;
+
+std::int64_t NowMs()
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+
+bool IsCaptureActive()
+{
+    return NowMs() < g_captureUntilMs.load(std::memory_order_acquire);
+}
 std::uint32_t g_settingsKey = 0;
 std::uint32_t g_visibilityKey = 0;
 KeyHandlerEvent g_settingsHandle = INVALID_REGISTRATION_HANDLE;
@@ -140,7 +155,7 @@ std::uint32_t CurrentVisibilityKey()
 void OnSettingsKey()
 {
     DispatchToGameThread([]() {
-        if (!IsViewReady() || !IsGameLoaded()) {
+        if (!IsViewReady() || !IsGameLoaded() || IsCaptureActive()) {
             return;
         }
         // Our own panel may hold text focus, so only opening is blocked while typing.
@@ -172,7 +187,8 @@ void OnSettingsKey()
 void OnVisibilityKey()
 {
     DispatchToGameThread([]() {
-        if (IsViewReady() && IsGameLoaded() && (IsSettingsPanelOpen() || !IsTypingIntoGame(CurrentVisibilityKey()))) {
+        if (IsViewReady() && IsGameLoaded() && !IsCaptureActive()
+            && (IsSettingsPanelOpen() || !IsTypingIntoGame(CurrentVisibilityKey()))) {
             InvokeScript(TulliusWidgets::WidgetInteropContracts::kToggleWidgetsVisibilityScript);
         }
     });
@@ -219,7 +235,7 @@ void RegisterDefaultHotkeys(const Callbacks& callbacks)
 
     (void)keyHandler->Register(kEscapeScanCode, KeyEventType::KEY_DOWN, []() {
         DispatchToGameThread([]() {
-            if (IsViewReady() && IsGameLoaded() && IsSettingsPanelOpen()) {
+            if (IsViewReady() && IsGameLoaded() && IsSettingsPanelOpen() && !IsCaptureActive()) {
                 InvokeScript(TulliusWidgets::WidgetInteropContracts::kCloseSettingsScript);
                 UnfocusView();
             }
@@ -243,6 +259,11 @@ void ApplyHotkeysFromSettingsJson(std::string_view settingsJson)
         visibilityKey = settingsKey == kF11ScanCode ? kInsertScanCode : kF11ScanCode;
     }
     BindKeys(settingsKey, visibilityKey);
+}
+
+void SetCaptureActive(bool active)
+{
+    g_captureUntilMs.store(active ? NowMs() + kCaptureTimeoutMs : 0, std::memory_order_release);
 }
 
 }  // namespace TulliusWidgets::WidgetHotkeys

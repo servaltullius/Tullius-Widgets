@@ -81,6 +81,12 @@ let captureActive = false;
 
 export function setHotkeyCaptureActive(active: boolean): void {
   captureActive = active;
+  // The plugin's own hotkeys (and Esc) stand aside too, so the pressed key reaches the page.
+  try {
+    window.onHotkeyCapture?.(active ? '1' : '0');
+  } catch (error) {
+    console.error('[TulliusWidgets] Failed to report hotkey capture:', error);
+  }
 }
 
 export function isHotkeyCaptureActive(): boolean {

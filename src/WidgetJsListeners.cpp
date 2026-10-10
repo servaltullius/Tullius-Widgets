@@ -177,7 +177,15 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
         const bool open = state == "open" || state == "true" || state == "1";
         DispatchToGameThread([open]() {
             SetSettingsOpen(open);
+            if (!open) {
+                TulliusWidgets::WidgetHotkeys::SetCaptureActive(false);
+            }
         });
+    });
+
+    prismaUI->RegisterJSListener(view, TulliusWidgets::WidgetInteropContracts::kOnHotkeyCapture, [](const char* data) -> void {
+        const bool active = data && std::string_view(data) == "1";
+        TulliusWidgets::WidgetHotkeys::SetCaptureActive(active);
     });
 }
 

@@ -164,7 +164,7 @@
   "hotkeySettingsPanel": "설정 패널 열기/닫기 키",
   "hotkeyVisibility": "위젯 전체 표시/숨김 키",
   "hotkeyPress": "새 키를 누르세요…",
-  "hotkeyHint": "버튼을 누른 뒤 새 키를 누르세요(다시 누르면 취소). Esc는 설정 닫기용으로 고정입니다.",
+  "hotkeyHint": "버튼을 누른 뒤 새 키를 누르세요(다시 누르거나 Esc로 취소).",
   "hotkeyUnsupported": "F1~F12, Insert·Delete·Home·End·Page Up/Down, Pause·Scroll Lock, 숫자패드 키만 지정할 수 있습니다.",
   "hotkeyInUse": "다른 단축키가 이미 쓰는 키입니다.",
   "timedEffectsFilter": "표시할 효과",

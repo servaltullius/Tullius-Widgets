@@ -32,6 +32,8 @@ describe('HotkeySettings', () => {
 
   it('captures the next key as the new binding', () => {
     const onUpdate = vi.fn();
+    const onHotkeyCapture = vi.fn();
+    window.onHotkeyCapture = onHotkeyCapture;
     act(() => root!.render(<HotkeySettings lang="ko" settings={structuredClone(defaultSettings)} onUpdate={onUpdate} />));
     const button = () => container.querySelector('[data-hotkey-field="settingsHotkey"]') as HTMLButtonElement;
     expect(button().textContent).toBe('Insert');
@@ -42,6 +44,9 @@ describe('HotkeySettings', () => {
     press('Home', 36);
     expect(onUpdate).toHaveBeenCalledWith('general.settingsHotkey', 0xC7);
     expect(isHotkeyCaptureActive()).toBe(false);
+    // The plugin is told to let keys through while capturing, and told again when done.
+    expect(onHotkeyCapture.mock.calls.map(call => call[0])).toEqual(['1', '0']);
+    delete window.onHotkeyCapture;
   });
 
   it('refuses reserved keys and the key the other hotkey uses', () => {

@@ -13,6 +13,7 @@ inline constexpr char kOnExportSettings[] = "onExportSettings";
 inline constexpr char kOnImportSettings[] = "onImportSettings";
 inline constexpr char kOnRequestUnfocus[] = "onRequestUnfocus";
 inline constexpr char kOnSettingsVisibilityChanged[] = "onSettingsVisibilityChanged";
+inline constexpr char kOnHotkeyCapture[] = "onHotkeyCapture";
 
 inline constexpr char kOnExportResult[] = "onExportResult";
 inline constexpr char kOnImportResult[] = "onImportResult";

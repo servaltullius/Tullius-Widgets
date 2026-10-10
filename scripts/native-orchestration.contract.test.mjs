@@ -56,6 +56,9 @@ test('saved hotkey bindings apply at startup and on every settings save', () => 
   assert.match(hotkeysText, /bool CanTypeText\(std::uint32_t code\)/);
   assert.match(jsListenersText, /WidgetHotkeys::ApplyHotkeysFromSettingsJson\(payload\)/);
   assert.match(mainText, /WidgetHotkeys::ApplyHotkeysFromSettingsJson\(savedSettings\)/);
+  assert.match(interopContractsText, /kOnHotkeyCapture\[] = "onHotkeyCapture"/);
+  assert.match(jsListenersText, /WidgetHotkeys::SetCaptureActive\(active\)/);
+  assert.match(hotkeysText, /IsSettingsPanelOpen\(\) && !IsCaptureActive\(\)/);
 });
 
 test('settings hotkey uses tracked settings-panel state and closes explicitly', () => {

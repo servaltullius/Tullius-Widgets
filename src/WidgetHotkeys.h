@@ -20,4 +20,9 @@ void RegisterDefaultHotkeys(const Callbacks& callbacks);
 // Missing, reserved or clashing codes fall back to Insert / F11.
 void ApplyHotkeysFromSettingsJson(std::string_view settingsJson);
 
+// While the settings panel waits for a new key, the plugin's own hotkeys (including Esc)
+// stand aside so the key reaches the page. Expires on its own after a few seconds in case
+// the page never reports the end.
+void SetCaptureActive(bool active);
+
 }  // namespace TulliusWidgets::WidgetHotkeys

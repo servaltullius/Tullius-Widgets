@@ -16,6 +16,7 @@ export const BRIDGE_CALLBACKS = {
   onImportSettings: 'onImportSettings',
   onRequestUnfocus: 'onRequestUnfocus',
   onSettingsVisibilityChanged: 'onSettingsVisibilityChanged',
+  onHotkeyCapture: 'onHotkeyCapture',
   onExportResult: 'onExportResult',
   onImportResult: 'onImportResult',
 } as const;
