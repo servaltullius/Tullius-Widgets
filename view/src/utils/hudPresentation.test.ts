@@ -11,6 +11,7 @@ import {
   getSettingsSyncWarningText,
   resolveExperienceProgress,
   resolveHudVisibility,
+  formatThousands,
 } from './hudPresentation';
 import type { CombatStats, PlayerInfo } from '../types/stats';
 import type { WidgetSettings } from '../types/settings';
@@ -24,6 +25,12 @@ function cloneStats(): CombatStats {
 }
 
 describe('hudPresentation', () => {
+  it('groups thousands like the en-US locale without calling it', () => {
+    for (const value of [0, 7, 999, 1000, 8876, 12500, 1234567, -3624, 42.6]) {
+      expect(formatThousands(value), String(value)).toBe(Math.round(value).toLocaleString('en-US'));
+    }
+  });
+
   it('tracks only enabled widget values in the change signature', () => {
     const settings = cloneSettings();
     const stats = cloneStats();

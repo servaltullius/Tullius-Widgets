@@ -55,8 +55,16 @@ export function formatWeight(value: number): string {
   return value.toFixed(1);
 }
 
+// Thousands separators without toLocaleString: these run on every stats update, and locale
+// formatting is by far the slowest part of a HUD render (more so in Ultralight).
+export function formatThousands(value: number): string {
+  const rounded = Math.round(value);
+  const digits = String(Math.abs(rounded)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return rounded < 0 ? `-${digits}` : digits;
+}
+
 export function formatGold(value: number): string {
-  return value.toLocaleString();
+  return formatThousands(value);
 }
 
 export function hasMeaningfulDifference(a: number, b: number): boolean {

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { standardStatIconMap } from '../../data/standardStatIcons';
 import type { EquippedItemKind, PotionKind } from '../../types/stats';
+import { formatThousands } from '../../utils/hudPresentation';
 
 export type CompactTone = 'default' | 'warning' | 'danger' | 'capped' | 'muted';
 
@@ -50,7 +51,7 @@ function useValueDelta(value: number | undefined): { delta: number; key: number 
 function formatDeltaMagnitude(value: number): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
   if (value >= 10_000) return `${Math.round(value / 1000)}k`;
-  return value.toLocaleString('en-US');
+  return formatThousands(value);
 }
 
 // Below the value by default: above it the badge sits right under the combat row and reads
@@ -245,8 +246,8 @@ export const CompactExperienceRing = memo(function CompactExperienceRing({
         </span>
         {showNumbers && (
           <span className="tw-compact-value" data-compact-xp-numbers style={{ fontSize: 13 }}>
-            {Math.round(currentXp).toLocaleString('en-US')}
-            <span className="tw-compact-unit"> / {Math.round(totalXp).toLocaleString('en-US')}</span>
+            {formatThousands(currentXp)}
+            <span className="tw-compact-unit"> / {formatThousands(totalXp)}</span>
           </span>
         )}
       </div>

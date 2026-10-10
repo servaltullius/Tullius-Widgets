@@ -3,6 +3,7 @@ import { DAYS_IN_MONTH } from '../data/constants';
 import { formatSkyrimDateTime, getLanguageLocale } from '../i18n/translations';
 import type { Language } from '../types/settings';
 import type { GameTimeInfo } from '../types/stats';
+import { formatThousands } from './hudPresentation';
 
 export const TIME_WIDGET_VALUE_MAX_WIDTH = 320;
 
@@ -184,7 +185,7 @@ export function formatRealTimeOnly(nowMs: number, lang: Language): string {
 export function formatPlaytime(hours: number, template: string): string {
   const totalMinutes = Math.max(0, Math.floor(hours * 60));
   return template
-    .replace('{h}', Math.floor(totalMinutes / 60).toLocaleString('en-US'))
+    .replace('{h}', formatThousands(Math.floor(totalMinutes / 60)))
     .replace('{m}', String(totalMinutes % 60).padStart(2, '0'));
 }
 

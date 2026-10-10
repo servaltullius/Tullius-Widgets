@@ -3,6 +3,7 @@ import { iconMap } from '../assets/icons';
 import { t } from '../i18n/translations';
 import type { IconTheme, Language } from '../types/settings';
 import { getExperienceProgressPresentation } from './experiencePresentation';
+import { formatThousands } from '../utils/hudPresentation';
 
 interface ExperienceWidgetProps {
   currentXp: number;
@@ -15,7 +16,7 @@ interface ExperienceWidgetProps {
 }
 
 function formatInteger(value: number): string {
-  return Math.round(value).toLocaleString();
+  return formatThousands(value);
 }
 
 export const ExperienceWidget = memo(function ExperienceWidget({
