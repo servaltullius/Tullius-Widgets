@@ -166,5 +166,13 @@
   "hotkeyPress": "Press a key…",
   "hotkeyHint": "Click a button, then press the new key (click again to cancel). Esc always closes the settings.",
   "hotkeyUnsupported": "Only F1–F12, Insert/Delete/Home/End/Page Up/Down, Pause/Scroll Lock and numpad keys can be used.",
-  "hotkeyInUse": "That key is already used by the other hotkey."
+  "hotkeyInUse": "That key is already used by the other hotkey.",
+  "timedEffectsFilter": "Effects to show",
+  "timedEffectsFilterAll": "All",
+  "timedEffectsFilterDebuffs": "Harmful only",
+  "timedEffectsFilterBuffs": "Helpful only",
+  "timedEffectsHideLong": "Hide long effects",
+  "timedEffectsHideLongOff": "Off",
+  "timedEffectsHideLong10": "Longer than 10 min",
+  "timedEffectsHideLong60": "Longer than 1 hour"
 }

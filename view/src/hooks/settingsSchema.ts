@@ -19,6 +19,7 @@ import { defaultSettings } from '../data/defaultSettings';
 import { sanitizeWidgetItemLayouts } from '../data/widgetItemRegistry';
 import { isPlainObject, readBoolean, readNumber } from '../utils/normalize';
 import { sanitizeHotkeys } from '../utils/hotkeys';
+import { TIMED_EFFECT_FILTERS, TIMED_EFFECT_LONG_LIMITS, type TimedEffectFilter } from '../utils/timedEffectFilter';
 import { readRevision, SETTINGS_SCHEMA_VERSION } from './settingsShared';
 
 function readEnum<T extends string>(value: unknown, fallback: T, allowed: readonly T[]): T {
@@ -227,6 +228,10 @@ function mergeTimedEffectsSettings(target: WidgetSettings['timedEffects'], incom
     target.listLayout,
     TIMED_EFFECT_LIST_LAYOUTS,
   );
+  target.filter = readEnum<TimedEffectFilter>(incoming.filter, target.filter, TIMED_EFFECT_FILTERS);
+  target.hideLongerThanMin = TIMED_EFFECT_LONG_LIMITS.includes(incoming.hideLongerThanMin as number)
+    ? incoming.hideLongerThanMin as number
+    : target.hideLongerThanMin;
 }
 
 function mergeResistancesSettings(target: WidgetSettings['resistances'], incoming: unknown): void {

@@ -89,6 +89,10 @@ export interface WidgetSettings {
     enabled: boolean;
     maxVisible: number;
     listLayout: TimedEffectListLayout;
+    /** all | debuffs (harmful only) | buffs (helpful only) */
+    filter: 'all' | 'debuffs' | 'buffs';
+    /** Hide effects whose full duration exceeds this many minutes (0: show all). */
+    hideLongerThanMin: number;
   };
   movement: {
     speedMult: boolean;

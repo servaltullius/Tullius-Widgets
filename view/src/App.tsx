@@ -21,6 +21,7 @@ import {
   resolveHudVisibility,
 } from './utils/hudPresentation';
 import { formatHotkey } from './utils/hotkeys';
+import { applyTimedEffectFilter } from './utils/timedEffectFilter';
 import { measureWidgetBoundsMap } from './utils/widgetBounds';
 import { snapWidgetMove, type AlignmentGuide } from './utils/widgetSnap';
 import { resolveFontPresetVariables } from './utils/fontPresets';
@@ -40,7 +41,7 @@ function resolveItemLayout(
 }
 
 export function App() {
-  const { stats, hasLiveStats } = useGameStatsState();
+  const { stats: rawStats, hasLiveStats } = useGameStatsState();
   const [viewport, setViewport] = useState(() => ({
     width: window.innerWidth,
     height: window.innerHeight,
@@ -57,6 +58,10 @@ export function App() {
     lastSettingsSyncOk,
     settingsSyncState,
   } = useSettings();
+  const stats = useMemo(
+    () => applyTimedEffectFilter(rawStats, settings.timedEffects),
+    [rawStats, settings.timedEffects],
+  );
   const [lastChangeAtMs, setLastChangeAtMs] = useState<number>(() => Date.now());
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const { activeLanguage: lang, availableLanguages } = useLocalization(settings.general.language);

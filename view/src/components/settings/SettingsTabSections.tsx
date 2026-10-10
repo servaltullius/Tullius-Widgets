@@ -709,6 +709,30 @@ export function EffectsTabSections({
           panelScale={panelScale}
           testId="timed-effects-layout-select"
         />
+        <SelectRow
+          label={t(lang, 'timedEffectsFilter')}
+          value={settings.timedEffects.filter}
+          options={[
+            { value: 'all', label: t(lang, 'timedEffectsFilterAll') },
+            { value: 'debuffs', label: t(lang, 'timedEffectsFilterDebuffs') },
+            { value: 'buffs', label: t(lang, 'timedEffectsFilterBuffs') },
+          ]}
+          onChange={nextValue => onUpdate('timedEffects.filter', nextValue)}
+          panelScale={panelScale}
+          testId="timed-effects-filter-select"
+        />
+        <SelectRow
+          label={t(lang, 'timedEffectsHideLong')}
+          value={String(settings.timedEffects.hideLongerThanMin)}
+          options={[
+            { value: '0', label: t(lang, 'timedEffectsHideLongOff') },
+            { value: '10', label: t(lang, 'timedEffectsHideLong10') },
+            { value: '60', label: t(lang, 'timedEffectsHideLong60') },
+          ]}
+          onChange={nextValue => onUpdate('timedEffects.hideLongerThanMin', Number(nextValue))}
+          panelScale={panelScale}
+          testId="timed-effects-hide-long-select"
+        />
         <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${scalePanelPixels(8, panelScale)} 0` }}>
           <span style={{ color: '#aaa', fontSize: scalePanelPixels(20, panelScale) }}>
             {t(lang, 'timedEffectsMaxVisible')}: {settings.timedEffects.maxVisible}

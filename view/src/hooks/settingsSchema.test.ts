@@ -18,6 +18,13 @@ describe('settingsSchema', () => {
     expect(mergeWithDefaults({ schemaVersion: 7, general: { hudStyle: 'bogus' } }).general.hudStyle).toBe('compact');
   });
 
+  it('reads the timed-effect filters and drops unknown values', () => {
+    expect(mergeWithDefaults({ schemaVersion: 7, timedEffects: { filter: 'debuffs', hideLongerThanMin: 60 } }).timedEffects)
+      .toMatchObject({ filter: 'debuffs', hideLongerThanMin: 60 });
+    expect(mergeWithDefaults({ schemaVersion: 7, timedEffects: { filter: 'odd', hideLongerThanMin: 7 } }).timedEffects)
+      .toMatchObject({ filter: 'all', hideLongerThanMin: 0 });
+  });
+
   it('keeps valid hotkeys and repairs invalid or clashing ones', () => {
     expect(mergeWithDefaults({ schemaVersion: 7 }).general).toMatchObject({ settingsHotkey: 0xD2, visibilityHotkey: 0x57 });
     expect(mergeWithDefaults({ schemaVersion: 7, general: { settingsHotkey: 0xC7, visibilityHotkey: 0xCF } }).general)

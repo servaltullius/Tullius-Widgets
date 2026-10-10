@@ -51,6 +51,8 @@ export const defaultSettings: WidgetSettings = {
     enabled: true,
     maxVisible: 6,
     listLayout: 'vertical',
+    filter: 'all',
+    hideLongerThanMin: 0,
   },
   movement: {
     speedMult: true,
