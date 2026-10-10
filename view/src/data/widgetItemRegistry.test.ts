@@ -130,7 +130,7 @@ describe('widgetItemRegistry', () => {
 
   it('keeps clusters anchored to their screen edge on ultrawide viewports', () => {
     const compact = resolveWidgetItemLayouts({ settings: structuredClone(defaultSettings), viewportWidth: 2560, viewportHeight: 1080 });
-    expect(compact['experience.progress']).toMatchObject({ x: 34, y: 934, scale: 1 });
+    expect(compact['experience.progress']).toMatchObject({ x: 34, y: 898, scale: 1 });
     expect(compact['resistance.fire'].x - compact['resistance.magic'].x).toBe(64);
 
     const classicSettings = structuredClone(defaultSettings);
@@ -166,13 +166,13 @@ describe('widgetItemRegistry', () => {
       viewportHeight: 2160,
     });
 
-    expect(fhd['experience.progress']).toMatchObject({ x: 34, y: 934, scale: 1, visible: true });
+    expect(fhd['experience.progress']).toMatchObject({ x: 34, y: 898, scale: 1, visible: true });
     expect(fhd['resistance.disease'].visible).toBe(true);
     expect(fhd['equipped.voice'].visible).toBe(true);
-    expect(uhd['experience.progress']).toMatchObject({ x: 68, y: 1868, scale: 2 });
+    expect(uhd['experience.progress']).toMatchObject({ x: 68, y: 1796, scale: 2 });
     for (const layout of Object.values(fhd)) {
       expect(layout.x).toBeLessThan(960);
-      expect(layout.y).toBeLessThan(1010);
+      expect(layout.y).toBeLessThan(975);
     }
   });
 

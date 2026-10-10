@@ -24,8 +24,8 @@ describe('itemLayoutEditing', () => {
     };
 
     const compact = buildItemLayoutsForHudStyle(settings, 'compact');
-    expect(compact['player.gold']).toMatchObject({ visible: false, x: 34, y: 894 });
-    expect(compact['experience.progress']).toMatchObject({ x: 34, y: 934, viewportWidth: 1920, viewportHeight: 1080 });
+    expect(compact['player.gold']).toMatchObject({ visible: false, x: 34, y: 858 });
+    expect(compact['experience.progress']).toMatchObject({ x: 34, y: 898, viewportWidth: 1920, viewportHeight: 1080 });
 
     const classic = buildItemLayoutsForHudStyle({ ...settings, general: { ...settings.general, hudStyle: 'compact' }, itemLayouts: compact }, 'classic');
     expect(classic['player.gold'].visible).toBe(false);
