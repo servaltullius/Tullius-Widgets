@@ -174,5 +174,8 @@
   "timedEffectsHideLong": "긴 효과 숨김",
   "timedEffectsHideLongOff": "숨기지 않음",
   "timedEffectsHideLong10": "10분 넘는 효과",
-  "timedEffectsHideLong60": "1시간 넘는 효과"
+  "timedEffectsHideLong60": "1시간 넘는 효과",
+  "equipDetailCharge": "충전 {n}%",
+  "equipDetailPoison": "독 {n}회",
+  "equipDetailAmmo": "탄약 {n}"
 }

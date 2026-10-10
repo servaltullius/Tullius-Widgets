@@ -11,6 +11,7 @@ import type { WidgetInteractionMode } from '../hooks/useWidgetEditSelection';
 import type { Language, WidgetItemLayout, WidgetSettings } from '../types/settings';
 import type { CombatStats } from '../types/stats';
 import {
+  buildClassicEquipDetail,
   formatGold,
   formatPercent,
   formatWeight,
@@ -633,6 +634,7 @@ export function HudWidgetItems({
                 standardIcon="rightHandEquipped"
                 iconColor="#e85050"
                 value={stats.equipped.rightHand || t(lang, 'equippedEmpty')}
+                helperText={buildClassicEquipDetail(stats, 'right', lang)}
                 visible
                 prominence="secondary"
                 remountValueOnChange
@@ -646,6 +648,7 @@ export function HudWidgetItems({
                 standardIcon="leftHandEquipped"
                 iconColor="#4090e8"
                 value={stats.equipped.leftHand || t(lang, 'equippedEmpty')}
+                helperText={buildClassicEquipDetail(stats, 'left', lang)}
                 visible
                 prominence="secondary"
                 remountValueOnChange

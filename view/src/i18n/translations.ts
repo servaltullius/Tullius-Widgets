@@ -209,6 +209,9 @@ export const bundledTranslations = {
     timedEffectsHideLongOff: '숨기지 않음',
     timedEffectsHideLong10: '10분 넘는 효과',
     timedEffectsHideLong60: '1시간 넘는 효과',
+    equipDetailCharge: '충전 {n}%',
+    equipDetailPoison: '독 {n}회',
+    equipDetailAmmo: '탄약 {n}',
   },
   en: {
     title: 'Tullius Widgets',
@@ -417,6 +420,9 @@ export const bundledTranslations = {
     timedEffectsHideLongOff: 'Off',
     timedEffectsHideLong10: 'Longer than 10 min',
     timedEffectsHideLong60: 'Longer than 1 hour',
+    equipDetailCharge: 'Charge {n}%',
+    equipDetailPoison: 'Poison ×{n}',
+    equipDetailAmmo: 'Ammo {n}',
   },
 } as const;
 

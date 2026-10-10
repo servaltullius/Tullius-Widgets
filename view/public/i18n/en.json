@@ -174,5 +174,8 @@
   "timedEffectsHideLong": "Hide long effects",
   "timedEffectsHideLongOff": "Off",
   "timedEffectsHideLong10": "Longer than 10 min",
-  "timedEffectsHideLong60": "Longer than 1 hour"
+  "timedEffectsHideLong60": "Longer than 1 hour",
+  "equipDetailCharge": "Charge {n}%",
+  "equipDetailPoison": "Poison ×{n}",
+  "equipDetailAmmo": "Ammo {n}"
 }

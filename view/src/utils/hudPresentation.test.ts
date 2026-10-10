@@ -11,6 +11,7 @@ import {
   getSettingsSyncWarningText,
   resolveExperienceProgress,
   resolveHudVisibility,
+  buildClassicEquipDetail,
   formatThousands,
 } from './hudPresentation';
 import type { CombatStats, PlayerInfo } from '../types/stats';
@@ -25,6 +26,19 @@ function cloneStats(): CombatStats {
 }
 
 describe('hudPresentation', () => {
+  it('summarises charge, poison and ammo for the classic equipment cards', () => {
+    const stats = structuredClone(mockStats);
+    stats.equipped.rightHandKind = 'bow';
+    stats.equipped.rightHandChargePct = 64.4;
+    stats.equipped.rightHandPoisonCount = 3;
+    stats.equipped.ammoCount = 1200;
+    expect(buildClassicEquipDetail(stats, 'right', 'ko')).toBe('충전 64% · 독 3회 · 탄약 1,200');
+    stats.equipped.leftHandKind = 'sword';
+    stats.equipped.leftHandChargePct = null;
+    stats.equipped.leftHandPoisonCount = 0;
+    expect(buildClassicEquipDetail(stats, 'left', 'ko')).toBeUndefined();
+  });
+
   it('groups thousands like the en-US locale without calling it', () => {
     for (const value of [0, 7, 999, 1000, 8876, 12500, 1234567, -3624, 42.6]) {
       expect(formatThousands(value), String(value)).toBe(Math.round(value).toLocaleString('en-US'));

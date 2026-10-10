@@ -155,6 +155,21 @@ export function buildItemChangeSignatures(
   return out;
 }
 
+// Classic cards show the extra weapon facts as one small line under the name.
+export function buildClassicEquipDetail(stats: CombatStats, hand: 'right' | 'left', lang: Language): string | undefined {
+  const equipped = stats.equipped;
+  const kind = hand === 'right' ? equipped.rightHandKind : equipped.leftHandKind;
+  const chargePct = hand === 'right' ? equipped.rightHandChargePct : equipped.leftHandChargePct;
+  const poisonCount = hand === 'right' ? equipped.rightHandPoisonCount : equipped.leftHandPoisonCount;
+  const parts: string[] = [];
+  if (chargePct !== null) parts.push(t(lang, 'equipDetailCharge').replace('{n}', String(Math.round(chargePct))));
+  if (poisonCount > 0) parts.push(t(lang, 'equipDetailPoison').replace('{n}', String(poisonCount)));
+  if (equipped.ammoCount !== null && (kind === 'bow' || kind === 'crossbow')) {
+    parts.push(t(lang, 'equipDetailAmmo').replace('{n}', formatThousands(equipped.ammoCount)));
+  }
+  return parts.length > 0 ? parts.join(' · ') : undefined;
+}
+
 export function joinTrackedChangeSignature(isInCombat: boolean, itemSignatures: Record<string, string>): string {
   return [`combat:${isInCombat ? 1 : 0}`, ...Object.values(itemSignatures)].join('|');
 }
