@@ -360,6 +360,12 @@ void StatsJsonWriter::AppendTimedEffects(const std::vector<TimedEffectEntry>& ti
         json_ += "\"effectFormId\":";
         AppendUInt(effect.effectFormId);
         json_ += ',';
+        json_ += "\"category\":";
+        AppendEscapedString(effect.category);
+        json_ += ',';
+        json_ += "\"magnitude\":";
+        AppendFloat(effect.magnitude);
+        json_ += ',';
         json_ += "\"spellFormId\":";
         AppendUInt(effect.spellFormId);
         json_ += '}';

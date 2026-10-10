@@ -33,6 +33,8 @@ struct TimedEffectEntry {
     std::uint32_t sourceFormId;
     std::uint32_t effectFormId;
     std::uint32_t spellFormId;
+    std::string category{"other"};  // icon category for the HUD, see GetEffectCategory
+    float magnitude{0.0f};
 };
 
 struct GameTimeEntry {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { BRIDGE_HANDLERS } from '../constants/bridge';
-import { EQUIPPED_ITEM_KINDS, type CombatStats, type EquippedItemKind, type EquippedVoiceType, type GameTimeInfo, type TimedEffect, type WeatherKind } from '../types/stats';
+import { EFFECT_CATEGORIES, EQUIPPED_ITEM_KINDS, type CombatStats, type EffectCategory, type EquippedItemKind, type EquippedVoiceType, type GameTimeInfo, type TimedEffect, type WeatherKind } from '../types/stats';
 import { mockStats } from '../data/mockStats';
 import { isPlainObject, readBoolean, readNumber, readText } from '../utils/normalize';
 import { registerDualBridgeHandler } from '../utils/bridge';
@@ -216,6 +216,10 @@ function normalizeTimedEffects(value: unknown): TimedEffect[] {
       ? Math.trunc(item.instanceId)
       : null;
     const instanceId = rawInstanceId ?? -1;
+    const category: EffectCategory = typeof item.category === 'string' && (EFFECT_CATEGORIES as readonly string[]).includes(item.category)
+      ? item.category as EffectCategory
+      : 'other';
+    const magnitude = typeof item.magnitude === 'number' && Number.isFinite(item.magnitude) ? item.magnitude : 0;
     const sourceFormId = readFormId(item.sourceFormId);
     const effectFormId = readFormId(item.effectFormId);
     const spellFormId = readFormId(item.spellFormId);
@@ -250,6 +254,8 @@ function normalizeTimedEffects(value: unknown): TimedEffect[] {
       sourceFormId,
       effectFormId,
       spellFormId,
+      category,
+      magnitude,
     });
   }
 
@@ -286,6 +292,8 @@ function normalizeTimedEffects(value: unknown): TimedEffect[] {
       sourceFormId: merged.sourceFormId,
       effectFormId: merged.effectFormId,
       spellFormId: merged.spellFormId,
+      category: merged.category,
+      magnitude: merged.magnitude,
     });
   }
 

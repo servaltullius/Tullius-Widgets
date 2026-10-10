@@ -84,6 +84,13 @@ export interface AlertData {
   carryPct: number;
 }
 
+export const EFFECT_CATEGORIES = [
+  'health', 'magicka', 'stamina', 'fire', 'frost', 'shock', 'magic', 'poison', 'disease', 'armor',
+  'speed', 'weight', 'water', 'invisibility', 'paralysis', 'vision', 'cloak', 'time', 'ethereal', 'skill', 'other',
+] as const;
+
+export type EffectCategory = typeof EFFECT_CATEGORIES[number];
+
 export interface TimedEffect {
   instanceId: number;
   stableKey: string;
@@ -96,6 +103,8 @@ export interface TimedEffect {
   sourceFormId: number;
   effectFormId: number;
   spellFormId: number;
+  category: EffectCategory;
+  magnitude: number;
 }
 
 export interface CalculationCaps {

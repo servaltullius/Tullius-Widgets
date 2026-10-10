@@ -127,6 +127,9 @@
 - UI는 `calcMeta.caps` 기준으로 캡/보조 텍스트를 표시합니다.
 - 원소/독 저항은 현재 `85%` 상한 clamp를 기준으로 안내하며, 음수 하한은 엔진/모드 조합에 따라 달라질 수 있어 고정 clamp 계약으로 두지 않습니다.
 - 고빈도 fast 동기화 payload에서는 `timedEffects`가 생략될 수 있으며, UI는 이전 목록을 유지해야 합니다.
+- 지속 효과 표시 보조:
+  - `timedEffects[].category`는 효과가 바꾸는 대상(주 액터 값/원형)에 따른 아이콘 분류입니다: `health | magicka | stamina | fire | frost | shock | magic | poison | disease | armor | speed | weight | water | invisibility | paralysis | vision | cloak | time | ethereal | skill | other`.
+  - `timedEffects[].magnitude`는 효과 크기(엔진 magnitude)이며, UI는 수치형 분류에서만 표시합니다.
 - 날씨 계약:
   - `time.weather`는 `clear | cloudy | rain | snow | indoor | unknown` 중 하나입니다. 비/눈은 하늘의 전환(fade) 상태를 반영하며, 실내는 `indoor`입니다. 구버전 payload에서는 생략될 수 있고 UI는 이전 값(없으면 `unknown`)을 유지합니다.
 - 장착 표시 계약:

@@ -46,6 +46,12 @@ function useValueDelta(value: number | undefined): { delta: number; key: number 
   return state;
 }
 
+function formatDeltaMagnitude(value: number): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 10_000) return `${Math.round(value / 1000)}k`;
+  return value.toLocaleString('en-US');
+}
+
 function DeltaBadge({ delta, placement = 'above' }: { delta: { delta: number; key: number } | null; placement?: 'above' | 'right' }) {
   if (!delta) return null;
   return (
@@ -55,7 +61,7 @@ function DeltaBadge({ delta, placement = 'above' }: { delta: { delta: number; ke
       data-compact-delta
       data-direction={delta.delta > 0 ? 'up' : 'down'}
     >
-      {delta.delta > 0 ? '+' : '\u2212'}{Math.abs(delta.delta).toLocaleString('en-US')}
+      {delta.delta > 0 ? '+' : '\u2212'}{formatDeltaMagnitude(Math.abs(delta.delta))}
     </span>
   );
 }

@@ -19,6 +19,8 @@ function buildEffects(): TimedEffect[] {
       sourceFormId: 1,
       effectFormId: 2,
       spellFormId: 3,
+      category: 'other',
+      magnitude: 0,
     },
     {
       instanceId: 2,
@@ -32,6 +34,8 @@ function buildEffects(): TimedEffect[] {
       sourceFormId: 4,
       effectFormId: 5,
       spellFormId: 6,
+      category: 'other',
+      magnitude: 0,
     },
     {
       instanceId: 3,
@@ -45,6 +49,8 @@ function buildEffects(): TimedEffect[] {
       sourceFormId: 7,
       effectFormId: 8,
       spellFormId: 9,
+      category: 'other',
+      magnitude: 0,
     },
   ];
 }

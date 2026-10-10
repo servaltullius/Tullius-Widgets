@@ -115,6 +115,10 @@ describe('CompactWidgets', () => {
     render(<CompactStat icon="gold" iconColor="#fff" value="20" trackValue={20} />);
     act(() => { vi.advanceTimersByTime(10); });
     expect(container.querySelector('[data-compact-delta]')?.getAttribute('data-direction')).toBe('down');
+
+    render(<CompactStat icon="gold" iconColor="#fff" value="1,284,530" trackValue={1_284_530} />);
+    act(() => { vi.advanceTimersByTime(10); });
+    expect(container.querySelector('[data-compact-delta]')?.textContent).toBe('+1.3M');
   });
 
   it('always shows names in always mode and the empty label for empty hands', () => {

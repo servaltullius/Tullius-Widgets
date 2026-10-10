@@ -184,6 +184,56 @@ static std::string GetTimedEffectSourceName(const RE::ActiveEffect* effect, std:
     return "";
 }
 
+// Icon category for the HUD effect list: what the effect changes, not where it came from.
+static const char* GetEffectCategory(const RE::EffectSetting* baseEffect)
+{
+    if (!baseEffect) return "other";
+    using Archetype = RE::EffectSetting::Archetype;
+    switch (baseEffect->GetArchetype()) {
+    case Archetype::kInvisibility: return "invisibility";
+    case Archetype::kParalysis: return "paralysis";
+    case Archetype::kNightEye: return "vision";
+    case Archetype::kDetectLife: return "vision";
+    case Archetype::kLight: return "vision";
+    case Archetype::kCloak: return "cloak";
+    case Archetype::kSlowTime: return "time";
+    case Archetype::kEtherealize: return "ethereal";
+    default: break;
+    }
+    switch (baseEffect->data.primaryAV) {
+    case RE::ActorValue::kHealth:
+    case RE::ActorValue::kHealRate:
+    case RE::ActorValue::kHealRateMult: return "health";
+    case RE::ActorValue::kMagicka:
+    case RE::ActorValue::kMagickaRate:
+    case RE::ActorValue::kMagickaRateMult: return "magicka";
+    case RE::ActorValue::kStamina:
+    case RE::ActorValue::kStaminaRate:
+    case RE::ActorValue::kStaminaRateMult: return "stamina";
+    case RE::ActorValue::kResistFire: return "fire";
+    case RE::ActorValue::kResistFrost: return "frost";
+    case RE::ActorValue::kResistShock: return "shock";
+    case RE::ActorValue::kResistMagic: return "magic";
+    case RE::ActorValue::kPoisonResist: return "poison";
+    case RE::ActorValue::kResistDisease: return "disease";
+    case RE::ActorValue::kDamageResist: return "armor";
+    case RE::ActorValue::kSpeedMult: return "speed";
+    case RE::ActorValue::kCarryWeight: return "weight";
+    case RE::ActorValue::kWaterBreathing: return "water";
+    case RE::ActorValue::kInvisibility: return "invisibility";
+    case RE::ActorValue::kNightEye: return "vision";
+    default: break;
+    }
+    const auto av = static_cast<std::uint32_t>(baseEffect->data.primaryAV);
+    if (av >= static_cast<std::uint32_t>(RE::ActorValue::kOneHanded) && av <= static_cast<std::uint32_t>(RE::ActorValue::kEnchanting)) {
+        return "skill";
+    }
+    if (av >= static_cast<std::uint32_t>(RE::ActorValue::kOneHandedModifier) && av <= static_cast<std::uint32_t>(RE::ActorValue::kEnchantingModifier)) {
+        return "skill";
+    }
+    return "other";
+}
+
 static std::vector<TimedEffectEntry> CollectTimedEffects(RE::PlayerCharacter* player)
 {
     std::vector<TimedEffectEntry> out;
@@ -218,6 +268,7 @@ static std::vector<TimedEffectEntry> CollectTimedEffects(RE::PlayerCharacter* pl
 
         const auto* baseEffect = effect->GetBaseObject();
         const bool isDebuff = baseEffect && (baseEffect->IsDetrimental() || baseEffect->IsHostile());
+        const float magnitude = std::isfinite(effect->magnitude) ? effect->magnitude : 0.0f;
         out.push_back(TimedEffectEntry{
             static_cast<std::int32_t>(effect->usUniqueID),
             std::move(sourceName),
@@ -227,7 +278,9 @@ static std::vector<TimedEffectEntry> CollectTimedEffects(RE::PlayerCharacter* pl
             isDebuff,
             GetFormId(effect->source),
             GetFormId(baseEffect),
-            GetFormId(effect->spell)
+            GetFormId(effect->spell),
+            GetEffectCategory(baseEffect),
+            magnitude
         });
     }
 

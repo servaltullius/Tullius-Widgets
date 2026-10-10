@@ -1,5 +1,72 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { TimedEffect } from '../types/stats';
+import {
+  Battery,
+  BookOpen,
+  Bug,
+  CircleDot,
+  Droplets,
+  Eye,
+  EyeOff,
+  Flame,
+  Ghost,
+  Heart,
+  Hourglass,
+  Orbit,
+  Shield,
+  ShieldOff,
+  Skull,
+  Snowflake,
+  Sparkles,
+  Waves,
+  Weight,
+  Wind,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react';
+import type { EffectCategory, TimedEffect } from '../types/stats';
+
+const EFFECT_CATEGORY_ICONS: Record<EffectCategory, LucideIcon> = {
+  health: Heart,
+  magicka: Droplets,
+  stamina: Battery,
+  fire: Flame,
+  frost: Snowflake,
+  shock: Zap,
+  magic: Sparkles,
+  poison: Skull,
+  disease: Bug,
+  armor: Shield,
+  speed: Wind,
+  weight: Weight,
+  water: Waves,
+  invisibility: EyeOff,
+  paralysis: ShieldOff,
+  vision: Eye,
+  cloak: Orbit,
+  time: Hourglass,
+  ethereal: Ghost,
+  skill: BookOpen,
+  other: CircleDot,
+};
+
+const EFFECT_CATEGORY_COLORS: Partial<Record<EffectCategory, string>> = {
+  health: '#d87a70',
+  magicka: '#7fa6dc',
+  stamina: '#8fbf86',
+  fire: '#e08a6c',
+  frost: '#98c6dc',
+  shock: '#d9c96f',
+  magic: '#b9a0d6',
+  poison: '#9cbf90',
+  disease: '#b6ad93',
+  armor: '#c9c2b3',
+  skill: '#d2bb83',
+};
+
+// Magnitudes are only meaningful as a number for stat-like effects.
+const MAGNITUDE_CATEGORIES = new Set<EffectCategory>([
+  'health', 'magicka', 'stamina', 'fire', 'frost', 'shock', 'magic', 'poison', 'disease', 'armor', 'speed', 'weight', 'skill',
+]);
 
 interface TimedEffectListProps {
   effects: TimedEffect[];
@@ -124,7 +191,26 @@ export function TimedEffectList({
             data-urgent={urgent ? 'true' : 'false'}
             key={effect.stableKey}
           >
-            <span className="tw-ceffect-name">{getPrimaryLabel(effect)}</span>
+            <span className="tw-ceffect-name">
+              {(() => {
+                const CategoryIcon = EFFECT_CATEGORY_ICONS[effect.category] ?? CircleDot;
+                return (
+                  <CategoryIcon
+                    size={12}
+                    strokeWidth={2.2}
+                    color={effect.isDebuff ? '#e8786d' : EFFECT_CATEGORY_COLORS[effect.category] ?? '#c3bdb0'}
+                    aria-hidden="true"
+                    style={{ flex: 'none' }}
+                  />
+                );
+              })()}
+              <span className="tw-ceffect-label">{getPrimaryLabel(effect)}</span>
+              {MAGNITUDE_CATEGORIES.has(effect.category) && Math.round(effect.magnitude) > 0 && (
+                <span className="tw-ceffect-magnitude">
+                  {effect.isDebuff ? '\u2212' : '+'}{Math.round(effect.magnitude)}
+                </span>
+              )}
+            </span>
             <span className="tw-ceffect-time">{formatCompactRemaining(displayedRemainingSec)}</span>
             <span className="tw-ceffect-track" aria-hidden="true">
               <span className="tw-ceffect-fill" style={{ width: `${progressPct}%` }} />
