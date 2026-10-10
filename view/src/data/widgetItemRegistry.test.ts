@@ -130,6 +130,18 @@ describe('widgetItemRegistry', () => {
     expect(fhdItemLayouts['player.gold'].y / 1080).toBeCloseTo(uhdItemLayouts['player.gold'].y / 2160, 2);
   });
 
+  it('scales compact default spacing with the legacy widget size so items never overlap', () => {
+    const settings = structuredClone(defaultSettings);
+    settings.general.size = 'large';
+    const large = resolveWidgetItemLayouts({ settings, viewportWidth: 1920, viewportHeight: 1080 });
+    const medium = resolveWidgetItemLayouts({ settings: structuredClone(defaultSettings), viewportWidth: 1920, viewportHeight: 1080 });
+    const gapLarge = large['resistance.fire'].x - large['resistance.magic'].x;
+    const gapMedium = medium['resistance.fire'].x - medium['resistance.magic'].x;
+    expect(gapLarge / gapMedium).toBeCloseTo(large['resistance.fire'].scale / medium['resistance.fire'].scale, 2);
+    expect(large['resistance.magic'].x).toBe(34);
+    expect(1080 - large['experience.progress'].y).toBeCloseTo((1080 - medium['experience.progress'].y) * 1.18, 1);
+  });
+
   it('keeps clusters anchored to their screen edge on ultrawide viewports', () => {
     const compact = resolveWidgetItemLayouts({ settings: structuredClone(defaultSettings), viewportWidth: 2560, viewportHeight: 1080 });
     expect(compact['experience.progress']).toMatchObject({ x: 34, y: 898, scale: 1 });

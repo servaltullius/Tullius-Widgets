@@ -133,6 +133,8 @@ const COMPACT_DEFAULT_SHOW_WHEN: Record<string, ItemShowWhen> = {
   'movement.speedMult': 'combatOrChange',
 };
 
+const COMPACT_CLUSTER_ANCHOR = { x: 34 } as const;
+
 export const ITEM_SHOW_WHEN_VALUES: readonly ItemShowWhen[] = ['always', 'combat', 'change', 'combatOrChange'];
 
 export function resolveItemShowWhen(itemId: string, layout: WidgetItemLayout | undefined, hudStyle: HudStyle): ItemShowWhen {
@@ -546,12 +548,15 @@ export function buildCompactDefaultItemLayouts(
     WIDGET_ITEM_IDS.map(itemId => {
       const entry = getWidgetItemRegistryEntry(itemId);
       const position = COMPACT_DEFAULT_ITEM_POSITIONS[itemId] ?? { x: 0, y: 0 };
+      // Grow the cluster around its bottom-left anchor so larger sizes never overlap.
+      const anchorX = COMPACT_CLUSTER_ANCHOR.x;
+      const anchorBottom = NORDIC_DEFAULT_BASELINE_VIEWPORT.height;
       return [
         itemId,
         {
           visible: readVisibilityByPath(source, entry.visibilityPath),
-          x: position.x,
-          y: position.y,
+          x: Number((anchorX + (position.x - anchorX) * scale).toFixed(3)),
+          y: Number((anchorBottom - (anchorBottom - position.y) * scale).toFixed(3)),
           scale,
           locked: false,
           zIndex: getWidgetItemDefaultZIndex(itemId),
