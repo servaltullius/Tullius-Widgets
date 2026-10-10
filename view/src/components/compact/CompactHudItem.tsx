@@ -215,6 +215,7 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs }: Compact
           value={stats.offense.rightHandDamage}
           nameDisplay={settings.equipped.nameDisplay}
           chargePct={stats.equipped.rightHandChargePct}
+          poisonCount={stats.equipped.rightHandPoisonCount}
           ammoCount={stats.equipped.ammoCount}
         />
       );
@@ -228,6 +229,7 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs }: Compact
           value={stats.offense.leftHandDamage}
           nameDisplay={settings.equipped.nameDisplay}
           chargePct={stats.equipped.leftHandChargePct}
+          poisonCount={stats.equipped.leftHandPoisonCount}
           ammoCount={stats.equipped.ammoCount}
         />
       );

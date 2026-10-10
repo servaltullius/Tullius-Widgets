@@ -3,6 +3,7 @@ import {
   Axe,
   BowArrow,
   Crosshair,
+  Droplet,
   FlaskConical,
   Flame,
   Hammer,
@@ -301,6 +302,7 @@ const POTION_COLORS: Record<PotionKind, string> = {
   stamina: '#7fbf74',
   other: '#c3bdb0',
 };
+const POISON_COLOR = '#a8d46f';
 export type EquipNameDisplay = 'always' | 'onChange' | 'never';
 
 interface CompactEquipSlotProps {
@@ -312,6 +314,8 @@ interface CompactEquipSlotProps {
   nameDisplay: EquipNameDisplay;
   chargePct?: number | null;
   ammoCount?: number | null;
+  /** Doses left of a poison applied to this weapon (0: none). */
+  poisonCount?: number;
   cooldownSec?: number;
   /** Potion slot: tints the flask and always shows the remaining count (even 0). */
   potionKind?: PotionKind;
@@ -361,6 +365,7 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
   nameDisplay,
   chargePct = null,
   ammoCount = null,
+  poisonCount = 0,
   cooldownSec = 0,
   potionKind,
   wordsKnown = 0,
@@ -391,6 +396,7 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
   const showValue = value !== undefined && !isEmpty && (value > 0 || isPotion);
   const showCharge = chargePct !== null && !isEmpty;
   const showAmmo = ammoCount !== null && (kind === 'bow' || kind === 'crossbow');
+  const showPoison = poisonCount > 0 && !isEmpty;
 
   return (
     <div data-compact-item="equip-slot" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, width: 54 }}>
@@ -467,6 +473,16 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
               <path d="M1 7L7 1M4 1h3v3M1 5.5L2.5 7" />
             </svg>
             <span data-compact-ammo>{ammoCount}</span>
+          </span>
+        )}
+        {showPoison && (
+          <span
+            className="tw-compact-value"
+            data-compact-poison
+            style={{ position: 'absolute', left: 5, bottom: showCharge ? 6 : 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: 10, fontWeight: 700, color: POISON_COLOR }}
+          >
+            <Droplet size={9} strokeWidth={2} fill="currentColor" aria-hidden="true" />
+            {poisonCount}
           </span>
         )}
         {showValue && (

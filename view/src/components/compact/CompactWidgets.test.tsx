@@ -131,6 +131,13 @@ describe('CompactWidgets', () => {
     expect(states).toEqual(['unlocked', 'known', 'unknown']);
   });
 
+  it('shows the doses left of an applied weapon poison', () => {
+    render(<CompactEquipSlot slotKey="R" name="강철 단검" emptyLabel="-" kind="dagger" value={12} nameDisplay="never" poisonCount={3} />);
+    expect(container.querySelector('[data-compact-poison]')?.textContent).toBe('3');
+    render(<CompactEquipSlot slotKey="R" name="강철 단검" emptyLabel="-" kind="dagger" value={12} nameDisplay="never" poisonCount={0} />);
+    expect(container.querySelector('[data-compact-poison]')).toBeNull();
+  });
+
   it('shows the remaining count on the potion slot, including zero', () => {
     render(<CompactEquipSlot slotKey="P" name="체력 회복 물약" emptyLabel="-" kind="other" value={0} nameDisplay="always" potionKind="health" />);
     expect(container.textContent).toContain('\u00d70');

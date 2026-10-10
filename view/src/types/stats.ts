@@ -37,6 +37,9 @@ export interface Equipped {
   /** Enchantment charge in percent, or null when the hand item is not enchanted. */
   rightHandChargePct: number | null;
   leftHandChargePct: number | null;
+  /** Doses left of a poison applied to the hand's weapon (0: none). */
+  rightHandPoisonCount: number;
+  leftHandPoisonCount: number;
   ammoName: string;
   /** Equipped arrows/bolts in the inventory, or null when no ammo is equipped. */
   ammoCount: number | null;

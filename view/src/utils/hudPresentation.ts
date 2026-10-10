@@ -112,8 +112,9 @@ function collectItemSignature(itemId: string, stats: CombatStats): string | null
     case 'offense.rightHandDamage': return `off.right:${stats.offense.rightHandDamage}`;
     case 'offense.leftHandDamage': return `off.left:${stats.offense.leftHandDamage}`;
     case 'offense.critChance': return `off.crit:${stats.offense.critChance}`;
-    case 'equipped.rightHand': return `eq.right:${stats.equipped.rightHand}`;
-    case 'equipped.leftHand': return `eq.left:${stats.equipped.leftHand}`;
+    // Applying a poison (or running out) wakes the slot; single doses used in combat do not.
+    case 'equipped.rightHand': return `eq.right:${stats.equipped.rightHand}:${stats.equipped.rightHandPoisonCount > 0}`;
+    case 'equipped.leftHand': return `eq.left:${stats.equipped.leftHand}:${stats.equipped.leftHandPoisonCount > 0}`;
     case 'equipped.voice': return `eq.voice:${stats.equipped.voiceType}:${stats.equipped.voice}`;
     case 'equipped.potion': return `eq.potion:${stats.equipped.potionName}:${stats.equipped.potionCount ?? -1}`;
     case 'movement.speedMult': return `move.speed:${stats.movement.speedMult}`;

@@ -357,6 +357,8 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
         leftHandKind: readEquippedItemKind(rawEquipped?.leftHandKind, leftHand),
         rightHandChargePct: readOptionalPercent(rawEquipped?.rightHandChargePct),
         leftHandChargePct: readOptionalPercent(rawEquipped?.leftHandChargePct),
+        rightHandPoisonCount: Math.trunc(readNumber(rawEquipped?.rightHandPoisonCount, 0, 0, 9999)),
+        leftHandPoisonCount: Math.trunc(readNumber(rawEquipped?.leftHandPoisonCount, 0, 0, 9999)),
         ammoName: readText(rawEquipped?.ammoName, '', true),
         ammoCount: typeof rawEquipped?.ammoCount === 'number' && Number.isFinite(rawEquipped.ammoCount) && rawEquipped.ammoCount >= 0
           ? Math.trunc(rawEquipped.ammoCount)

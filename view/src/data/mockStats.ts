@@ -25,6 +25,8 @@ export const mockStats: CombatStats = {
     leftHandKind: 'destruction',
     rightHandChargePct: 64,
     leftHandChargePct: null,
+    rightHandPoisonCount: 0,
+    leftHandPoisonCount: 0,
     ammoName: '',
     ammoCount: null,
     voiceCooldownSec: 0,

@@ -124,6 +124,7 @@ describe('useGameStats', () => {
         equipped: {
           rightHand: 'Dawnguard Rune Axe', leftHand: '', rightHandKind: 'waraxe', leftHandKind: 'bogus',
           rightHandChargePct: 37.5, leftHandChargePct: -1, ammoName: '', ammoCount: -1, voiceCooldownSec: 12.5,
+          rightHandPoisonCount: 3, leftHandPoisonCount: -2,
           voice: 'Fire Breath', voiceType: 'shout',
         },
       })));
@@ -136,6 +137,8 @@ describe('useGameStats', () => {
       leftHandChargePct: null,
       ammoCount: null,
       voiceCooldownSec: 12.5,
+      rightHandPoisonCount: 3,
+      leftHandPoisonCount: 0,
     });
 
     await act(async () => {
@@ -144,7 +147,7 @@ describe('useGameStats', () => {
         equipped: { rightHand: 'Old Bow', leftHand: 'Mystery', voice: '', voiceType: 'empty' },
       })));
     });
-    expect(latest!.equipped).toMatchObject({ rightHandKind: 'other', leftHandKind: 'other', ammoCount: null, voiceCooldownSec: 0 });
+    expect(latest!.equipped).toMatchObject({ rightHandKind: 'other', leftHandKind: 'other', ammoCount: null, voiceCooldownSec: 0, rightHandPoisonCount: 0 });
   });
 
   it('reads the weather kind and keeps the previous one for unknown values', async () => {

@@ -542,6 +542,21 @@ static float GetEquippedChargePct(RE::PlayerCharacter* player, bool leftHand)
     return static_cast<float>(std::clamp(*charge, 0.0, 100.0));
 }
 
+// Doses left of a poison applied to the equipped weapon (0 when none).
+static std::int32_t GetEquippedPoisonCount(RE::PlayerCharacter* player, bool leftHand)
+{
+    if (!player) return 0;
+    auto* entry = player->GetEquippedEntryData(leftHand);
+    if (!entry || !entry->object || !entry->object->As<RE::TESObjectWEAP>() || !entry->extraLists) return 0;
+    for (auto* extraList : *entry->extraLists) {
+        if (!extraList) continue;
+        if (const auto* poison = extraList->GetByType<RE::ExtraPoison>(); poison && poison->poison && poison->count > 0) {
+            return static_cast<std::int32_t>((std::min)(poison->count, 9999u));
+        }
+    }
+    return 0;
+}
+
 static EquippedSnapshot CollectEquippedSnapshot(RE::PlayerCharacter* player)
 {
     auto* selectedVoice = GetSelectedVoiceForm(player);
@@ -567,6 +582,8 @@ static EquippedSnapshot CollectEquippedSnapshot(RE::PlayerCharacter* player)
 
     snapshot.rightHandChargePct = GetEquippedChargePct(player, false);
     snapshot.leftHandChargePct = GetEquippedChargePct(player, true);
+    snapshot.rightHandPoisonCount = GetEquippedPoisonCount(player, false);
+    snapshot.leftHandPoisonCount = GetEquippedPoisonCount(player, true);
     if (auto* ammo = player->GetCurrentAmmo()) {
         const char* name = ammo->GetName();
         snapshot.ammoName = name ? name : "";

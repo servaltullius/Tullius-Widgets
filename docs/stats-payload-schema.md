@@ -133,6 +133,8 @@
 - 지속 효과 표시 보조:
   - `timedEffects[].category`는 효과가 바꾸는 대상(주 액터 값/원형)에 따른 아이콘 분류입니다: `health | magicka | stamina | fire | frost | shock | magic | poison | disease | armor | speed | weight | water | invisibility | paralysis | vision | cloak | time | ethereal | skill | other`.
   - `timedEffects[].magnitude`는 효과 크기(엔진 magnitude)이며, UI는 수치형 분류에서만 표시합니다.
+- 무기 독:
+  - `equipped.rightHandPoisonCount` / `leftHandPoisonCount`는 해당 손 무기에 바른 독의 남은 횟수입니다(없으면 0).
 - 플레이 시간:
   - `playerInfo.playtimeHours`는 현재 캐릭터의 누적 실제 플레이 시간(시간 단위, 엔진 `totalPlayingTime` 기준)입니다.
 - 날씨 계약:

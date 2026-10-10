@@ -80,6 +80,8 @@ struct EquippedSnapshot {
     std::string leftHandKind{"empty"};
     float rightHandChargePct{-1.0f};  // -1: not enchanted
     float leftHandChargePct{-1.0f};
+    std::int32_t rightHandPoisonCount{0};  // applied poison doses left (0: none)
+    std::int32_t leftHandPoisonCount{0};
     std::string ammoName{};
     std::int32_t ammoCount{-1};  // -1: no ammo equipped
     float voiceCooldownSec{0.0f};

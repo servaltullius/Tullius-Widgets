@@ -221,6 +221,12 @@ void StatsJsonWriter::AppendEquipped(const StatsPayload& payload)
     json_ += "\"leftHandChargePct\":";
     AppendFloat(payload.equipped.leftHandChargePct);
     json_ += ',';
+    json_ += "\"rightHandPoisonCount\":";
+    json_ += std::to_string(payload.equipped.rightHandPoisonCount);
+    json_ += ',';
+    json_ += "\"leftHandPoisonCount\":";
+    json_ += std::to_string(payload.equipped.leftHandPoisonCount);
+    json_ += ',';
     json_ += "\"ammoName\":";
     AppendEscapedString(payload.equipped.ammoName);
     json_ += ',';
