@@ -128,6 +128,20 @@ describe('widgetItemRegistry', () => {
     expect(fhdItemLayouts['player.gold'].y / 1080).toBeCloseTo(uhdItemLayouts['player.gold'].y / 2160, 2);
   });
 
+  it('keeps clusters anchored to their screen edge on ultrawide viewports', () => {
+    const compact = resolveWidgetItemLayouts({ settings: structuredClone(defaultSettings), viewportWidth: 2560, viewportHeight: 1080 });
+    expect(compact['experience.progress']).toMatchObject({ x: 34, y: 934, scale: 1 });
+    expect(compact['resistance.fire'].x - compact['resistance.magic'].x).toBe(64);
+
+    const classicSettings = structuredClone(defaultSettings);
+    classicSettings.general.hudStyle = 'classic';
+    const classic = resolveWidgetItemLayouts({ settings: classicSettings, viewportWidth: 2560, viewportHeight: 1080 });
+    expect(classic['experience.progress']).toMatchObject({ x: 2170, y: 60 });
+
+    const uhd = resolveWidgetItemLayouts({ settings: classicSettings, viewportWidth: 3840, viewportHeight: 2160 });
+    expect(uhd['experience.progress']).toMatchObject({ x: 3060, y: 120, scale: 2 });
+  });
+
   it('keeps valid per-item showWhen values and drops unknown ones', () => {
     const sanitized = sanitizeWidgetItemLayouts({
       'player.gold': { visible: true, x: 1, y: 2, scale: 1, showWhen: 'combat' },

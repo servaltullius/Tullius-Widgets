@@ -700,10 +700,19 @@ function resolveCanonicalLayoutForViewport(
     ? Number(Math.min(registryEntry.maxScale, Math.max(registryEntry.minScale, scaledScale)).toFixed(3))
     : scaledScale;
 
+  // Keep each item at the same scaled distance from its nearest screen edge, so a cluster
+  // keeps its shape on other aspect ratios (e.g. 21:9) instead of being stretched apart.
+  const anchoredX = layout.x < layout.viewportWidth / 2
+    ? layout.x * viewportScale
+    : viewportWidth - (layout.viewportWidth - layout.x) * viewportScale;
+  const anchoredY = layout.y < layout.viewportHeight / 2
+    ? layout.y * viewportScale
+    : viewportHeight - (layout.viewportHeight - layout.y) * viewportScale;
+
   return {
     ...layout,
-    x: Number(((layout.x * viewportWidth) / layout.viewportWidth).toFixed(3)),
-    y: Number(((layout.y * viewportHeight) / layout.viewportHeight).toFixed(3)),
+    x: Number(anchoredX.toFixed(3)),
+    y: Number(anchoredY.toFixed(3)),
     scale: nextScale,
     viewportWidth,
     viewportHeight,
