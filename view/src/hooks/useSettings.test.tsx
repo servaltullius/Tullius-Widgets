@@ -869,7 +869,7 @@ describe('useSettings', () => {
     expect(onSettingsChanged).toHaveBeenCalledTimes(1);
     const payload = JSON.parse(onSettingsChanged.mock.calls[0]?.[0] as string) as WidgetSettings & { schemaVersion?: number };
 
-    expect(payload.schemaVersion).toBe(6);
+    expect(payload.schemaVersion).toBe(7);
     expect(payload.playerInfo.carryWeightDisplay).toBe('meterOnly');
     expect(payload.resistances.displayMode).toBe('rawOnly');
     expect(payload.time.gameDisplay).toBe('timeOnly');

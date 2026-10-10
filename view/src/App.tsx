@@ -22,6 +22,7 @@ import { measureWidgetBoundsMap } from './utils/widgetBounds';
 import { snapWidgetMove, type AlignmentGuide } from './utils/widgetSnap';
 import { resolveFontPresetVariables } from './utils/fontPresets';
 import './assets/ui-theme.css';
+import './assets/compact-theme.css';
 import './assets/screen-effects.css';
 
 const SNAP_THRESHOLD = 15;
@@ -57,8 +58,8 @@ export function App() {
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const { activeLanguage: lang, availableLanguages } = useLocalization(settings.general.language);
   const fontVariables = useMemo(
-    () => resolveFontPresetVariables(settings.general.fontPreset),
-    [settings.general.fontPreset],
+    () => resolveFontPresetVariables(settings.general.fontPreset, settings.general.hudStyle),
+    [settings.general.fontPreset, settings.general.hudStyle],
   );
   const canonicalItemLayouts = useWidgetItemLayouts({
     settings,

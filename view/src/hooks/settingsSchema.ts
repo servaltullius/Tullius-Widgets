@@ -1,6 +1,7 @@
 import type {
   CarryWeightDisplayMode,
   FontPreset,
+  HudStyle,
   GroupPosition,
   IconTheme,
   Language,
@@ -44,6 +45,9 @@ const FONT_PRESETS = ['default', 'readable', 'compact', 'classic'] as const;
 const ICON_THEMES = ['standard', 'dororong'] as const;
 const STAGE2_STANDALONE_LEVEL_SCHEMA_VERSION = 4;
 const ICON_PRESENTATION_SCHEMA_VERSION = 6;
+// Settings saved before the compact HUD existed keep the classic card look and layout.
+const HUD_STYLE_SCHEMA_VERSION = 7;
+const HUD_STYLES: readonly HudStyle[] = ['compact', 'classic'];
 
 interface MergeSettingsOptions {
   allowLegacyStandaloneLevelFallback?: boolean;
@@ -112,7 +116,12 @@ function mergeGeneralSettings(
 ): void {
   const isLegacyIconPresentation = savedSchemaVersion === null
     || savedSchemaVersion < ICON_PRESENTATION_SCHEMA_VERSION;
+  const isLegacyHudStyle = savedSchemaVersion === null
+    || savedSchemaVersion < HUD_STYLE_SCHEMA_VERSION;
   if (!isPlainObject(incoming)) {
+    if (isLegacyHudStyle) {
+      target.hudStyle = 'classic';
+    }
     if (isLegacyIconPresentation) {
       target.iconTheme = 'dororong';
       target.showIconBadges = true;
@@ -141,6 +150,12 @@ function mergeGeneralSettings(
     if (!hasExplicitIconBadgeSetting) {
       target.showIconBadges = true;
     }
+  }
+  const hasExplicitHudStyle = typeof incoming.hudStyle === 'string'
+    && HUD_STYLES.includes(incoming.hudStyle as HudStyle);
+  target.hudStyle = readEnum<HudStyle>(incoming.hudStyle, target.hudStyle, HUD_STYLES);
+  if (isLegacyHudStyle && !hasExplicitHudStyle) {
+    target.hudStyle = 'classic';
   }
   target.accentColor = readAccentColor(incoming.accentColor, target.accentColor);
   target.transparentBg = readBoolean(incoming.transparentBg, target.transparentBg);

@@ -13,6 +13,7 @@ export const defaultSettings: WidgetSettings = {
     language: '',
     fontPreset: 'default',
     iconTheme: 'standard',
+    hudStyle: 'compact',
     showIconBadges: false,
     accentColor: '',
     transparentBg: false,

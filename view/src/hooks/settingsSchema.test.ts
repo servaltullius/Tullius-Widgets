@@ -7,6 +7,17 @@ import {
 } from './settingsSchema';
 
 describe('settingsSchema', () => {
+  it('defaults new installs to the compact HUD and keeps older saves on classic', () => {
+    expect(defaultSettings.general.hudStyle).toBe('compact');
+    expect(mergeWithDefaults({ schemaVersion: 7 }).general.hudStyle).toBe('compact');
+    expect(mergeWithDefaults({ schemaVersion: 6, general: { opacity: 80 } }).general.hudStyle).toBe('classic');
+    expect(mergeWithDefaults({ schemaVersion: 6 }).general.hudStyle).toBe('classic');
+    expect(mergeWithDefaults({ general: { opacity: 80 } }).general.hudStyle).toBe('classic');
+    expect(mergeWithDefaults({ schemaVersion: 6, general: { hudStyle: 'compact' } }).general.hudStyle).toBe('compact');
+    expect(mergeWithDefaults({ schemaVersion: 7, general: { hudStyle: 'classic' } }).general.hudStyle).toBe('classic');
+    expect(mergeWithDefaults({ schemaVersion: 7, general: { hudStyle: 'bogus' } }).general.hudStyle).toBe('compact');
+  });
+
   it('uses standard icons without badges for fresh schema v6 settings', () => {
     const merged = mergeWithDefaults({
       schemaVersion: 6,
