@@ -15,8 +15,10 @@ function intensity(current: number, threshold: number, invert = false): number {
   return Math.min((threshold - current) / threshold, 1);
 }
 
-function buildShadow(color: string, spread: number): string {
-  return `inset 0 0 ${spread}px ${spread * 0.4}px ${color}`;
+// A radial gradient edge instead of a huge blurred inset shadow: Prisma renders on the CPU,
+// and a full-screen box-shadow blur is the most expensive thing this view could repaint.
+function buildVignette(color: string, inner: number): string {
+  return `radial-gradient(ellipse 78% 74% at 50% 50%, rgba(0, 0, 0, 0) ${inner}%, ${color} 100%)`;
 }
 
 export function ScreenEffects({ alertData, settings }: ScreenEffectsProps) {
@@ -36,9 +38,9 @@ export function ScreenEffects({ alertData, settings }: ScreenEffectsProps) {
   const hasSecondary = staminaI > 0 || magickaI > 0 || carryI > 0;
   const secondaryShadows = hasSecondary
     ? [
-        staminaI > 0 ? buildShadow('rgba(200, 160, 30, 0.45)', 150) : '',
-        magickaI > 0 ? buildShadow('rgba(40, 60, 180, 0.45)', 150) : '',
-        carryI > 0 ? buildShadow('rgba(140, 100, 40, 0.45)', 130) : '',
+        staminaI > 0 ? buildVignette('rgba(200, 160, 30, 0.5)', 62) : '',
+        magickaI > 0 ? buildVignette('rgba(40, 60, 180, 0.5)', 62) : '',
+        carryI > 0 ? buildVignette('rgba(140, 100, 40, 0.5)', 66) : '',
       ].filter(Boolean).join(', ')
     : '';
 
@@ -58,7 +60,7 @@ export function ScreenEffects({ alertData, settings }: ScreenEffectsProps) {
           bottom: 0,
           pointerEvents: 'none',
           zIndex: 500,
-          boxShadow: secondaryShadows,
+          backgroundImage: secondaryShadows,
           opacity: secondaryOpacity,
           transition: 'opacity 0.8s ease',
           willChange: 'opacity',
@@ -73,7 +75,7 @@ export function ScreenEffects({ alertData, settings }: ScreenEffectsProps) {
           bottom: 0,
           pointerEvents: 'none',
           zIndex: 501,
-          boxShadow: buildShadow('rgba(180, 20, 20, 0.45)', 180),
+          backgroundImage: buildVignette('rgba(180, 20, 20, 0.55)', 55),
           opacity: healthOpacity,
           transition: 'opacity 0.8s ease',
           willChange: 'opacity',

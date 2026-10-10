@@ -41,7 +41,7 @@
 - [x] 8. 항목별 등장 정책(상시/전투/변경 시) 도입 — 그룹 기본값: 생활·자원 상시, 저항·스탯·장비 전투/변경
 - [x] 9. Compact 기본 배치 프리셋(1080p 기준 왼쪽 아래, 해상도 변환), 신규 설치 기본값, 설정에서 Compact/Classic 전환, 기존 설정 마이그레이션 테스트
 - [x] 10. 설정 UI·i18n(ko/en) 갱신
-- [ ] 11. 렌더링 비용 정리: backdrop-filter blur 제거, 저자원 비네트의 큰 inset shadow 단순화
+- [x] 11. 렌더링 비용 정리: backdrop-filter blur 제거, 저자원 비네트의 큰 inset shadow 단순화
 - [ ] 12. 시각 QA 반복: Playwright 1080p/4K 캡처 → 품질 기준 1~8 점검 → 다듬기 (최소 3회 반복, 매번 개선점 기록)
 - [ ] 13. 문서: README 기능 설명, `docs/release-notes/1.8.0.ko.md` 초안(게시하지 않음)
 - [ ] 14. 마무리 보고서: 이 파일 끝에 "아침 보고"(한 일, 남은 일, 스크린샷 경로, 확인 필요 사항) 작성
@@ -58,3 +58,4 @@
 - 03:25 6단계: 네이티브 payload에 `equipped.rightHandKind/leftHandKind` 추가(무기 종류, 양손 도끼/전투 망치는 `WeapTypeWarhammer` 키워드로 구분, 주문 학파, 방패, 횃불). 스키마 문서·계약 테스트 갱신, 로컬 Windows 빌드 성공(DLL 692KB, 경고 없음)
 - 03:25 8단계: 항목별 등장 정책 `showWhen`(always/combat/change/combatOrChange) — 저장값이 없으면 스타일 기본값(컴팩트: 저항·방어·공격·이동은 전투/변화 시, 나머지 상시). 항목별 변화 서명·변화 시각 추적, 폴링 대신 다음 만료 시각에 타이머 1회, 등장 시 140ms 페이드 — 204 tests 통과
 - 03:29 9·10단계: 설정 일반 탭에 HUD 스타일 선택(전환 시 해당 스타일 기본 배치로 이동하되 표시 여부 유지, 안내 문구), 장비 섹션에 장비 이름 표시(항상/바꿀 때만 3초/숨김), 위젯 빠른 편집 카드에 표시 조건 선택. i18n ko/en(내장·외부 JSON) 갱신, 스타일 전환·UI 테스트 추가 — 206 tests 통과
+- 03:30 11단계: 저자원/과적 비네트의 전체 화면 inset box-shadow(130~180px blur)를 radial-gradient로 교체, 클래식 카드의 backdrop-filter blur 제거, 컴팩트 아이콘 drop-shadow 2겹→1겹. QA 4회차(체력 22% 비네트 상태)에서 가독성 확인

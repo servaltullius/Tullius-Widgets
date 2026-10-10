@@ -337,7 +337,6 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
             : showBg
               ? '0 8px 22px rgba(0, 0, 0, 0.24), inset 0 1px rgba(255, 255, 255, 0.025)'
               : 'none',
-        backdropFilter: showBg ? 'blur(4px)' : undefined,
         overflow: 'visible',
         userSelect: 'none',
         pointerEvents: editable ? 'auto' : 'none',
