@@ -236,20 +236,6 @@ describe('widgetItemRegistry', () => {
     }
   });
 
-  it('keeps compact text readable on small screens without tearing the cluster', () => {
-    const settings = structuredClone(defaultSettings);
-    const hd = resolveWidgetItemLayouts({ settings, viewportWidth: 1280, viewportHeight: 720 });
-    expect(hd['experience.progress']).toMatchObject({ x: 27.2, y: 574.4, scale: 0.8 });
-    // Spacing scales with the same floor, so neighbours keep their relative positions.
-    expect(hd['resistance.fire'].x - hd['resistance.magic'].x).toBeCloseTo(64 * 0.8, 3);
-    // Classic layouts spread over the screen keep plain proportional scaling.
-    const classic = structuredClone(defaultSettings);
-    classic.general.hudStyle = 'classic';
-    const classicHd = resolveWidgetItemLayouts({ settings: classic, viewportWidth: 1280, viewportHeight: 720 });
-    expect(classicHd['experience.progress'].y).toBeCloseTo(60 * (720 / 1080), 3);
-    expect(classicHd['experience.progress'].scale).toBeLessThan(0.8);
-  });
-
   it('keeps a widget dragged from a right cluster into the left half on the left', () => {
     const settings = structuredClone(defaultSettings);
     settings.general.compactAnchor = 'bottomRight';

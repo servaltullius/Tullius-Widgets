@@ -830,19 +830,12 @@ function resolveItemAnchor(
   };
 }
 
-// On small screens (720p, 768p) plain scaling shrinks HUD text to about 7px. A layout pinned to
-// screen edges on both axes can keep a minimum scale instead: every item keeps its distance to
-// its own edge at that scale, so the arrangement stays intact. Proportional layouts (spread
-// over the screen) keep plain scaling, since a floor there would make neighbours overlap.
-const EDGE_LAYOUT_MIN_VIEWPORT_SCALE = 0.8;
-
 function resolveCanonicalLayoutForViewport(
   itemId: string,
   layout: WidgetItemLayout,
   viewportWidth: number,
   viewportHeight: number,
   anchor: LayoutAnchor = PROPORTIONAL_ANCHOR,
-  minViewportScale = 0,
 ): WidgetItemLayout {
   if (
     layout.viewportWidth === undefined
@@ -854,9 +847,9 @@ function resolveCanonicalLayoutForViewport(
   }
 
   const registryEntry = getWidgetItemRegistryEntry(itemId);
-  const viewportScale = Math.max(
-    minViewportScale,
-    Math.min(viewportWidth / layout.viewportWidth, viewportHeight / layout.viewportHeight),
+  const viewportScale = Math.min(
+    viewportWidth / layout.viewportWidth,
+    viewportHeight / layout.viewportHeight,
   );
   const scaledScale = Number((layout.scale * viewportScale).toFixed(3));
   const nextScale = registryEntry
@@ -902,13 +895,10 @@ export function resolveWidgetItemLayouts(params: {
   const layoutAnchor = useNordicDefaults && settings.general.hudStyle === 'compact'
     ? resolveCompactCornerAnchor(settings.general.compactAnchor)
     : resolveLayoutAnchor(Object.values(baselineLayouts));
-  const minViewportScale = layoutAnchor.x !== 'proportional' && layoutAnchor.y !== 'proportional'
-    ? EDGE_LAYOUT_MIN_VIEWPORT_SCALE
-    : 0;
   const fallbackLayouts = Object.fromEntries(
     Object.entries(baselineLayouts).map(([itemId, layout]) => [
       itemId,
-      resolveCanonicalLayoutForViewport(itemId, layout, viewportWidth, viewportHeight, layoutAnchor, minViewportScale),
+      resolveCanonicalLayoutForViewport(itemId, layout, viewportWidth, viewportHeight, layoutAnchor),
     ]),
   ) as Record<string, WidgetItemLayout>;
 
@@ -925,7 +915,6 @@ export function resolveWidgetItemLayouts(params: {
         viewportWidth,
         viewportHeight,
         resolveItemAnchor(layout, layoutAnchor, baselineLayouts[itemId]),
-        minViewportScale,
       ),
     ]),
   ) as Record<string, WidgetItemLayout>;
