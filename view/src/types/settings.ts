@@ -8,6 +8,7 @@ export type FontPreset = 'default' | 'readable' | 'compact' | 'classic';
 export type IconTheme = 'standard' | 'dororong';
 export type HudStyle = 'compact' | 'classic';
 export type EquipNameDisplay = 'always' | 'onChange' | 'never';
+export type ItemShowWhen = 'always' | 'combat' | 'change' | 'combatOrChange';
 export type Language = string;
 
 export interface GroupPosition {
@@ -22,6 +23,8 @@ export interface WidgetItemLayout {
   scale: number;
   locked: boolean;
   zIndex: number;
+  /** When the item may appear; unset means the HUD style's default for this item. */
+  showWhen?: ItemShowWhen;
   viewportWidth?: number;
   viewportHeight?: number;
 }

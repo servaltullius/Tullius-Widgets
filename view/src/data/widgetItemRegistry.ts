@@ -1,6 +1,8 @@
 import { getWidgetDefaultPositions, type WidgetGroupId } from './widgetRegistry';
 import type {
   GroupPosition,
+  HudStyle,
+  ItemShowWhen,
   WidgetItemLayout,
   WidgetLayout,
   WidgetSettings,
@@ -108,6 +110,29 @@ const COMPACT_DEFAULT_ITEM_POSITIONS: Record<string, GroupPosition> = {
   'player.magicka': { x: 440, y: 880 },
   'player.stamina': { x: 440, y: 900 },
 };
+
+// Compact HUD: combat numbers step back while exploring and return in combat or on change.
+const COMPACT_DEFAULT_SHOW_WHEN: Record<string, ItemShowWhen> = {
+  'resistance.magic': 'combatOrChange',
+  'resistance.fire': 'combatOrChange',
+  'resistance.frost': 'combatOrChange',
+  'resistance.shock': 'combatOrChange',
+  'resistance.poison': 'combatOrChange',
+  'resistance.disease': 'combatOrChange',
+  'defense.armorRating': 'combatOrChange',
+  'defense.damageReduction': 'combatOrChange',
+  'offense.rightHandDamage': 'combatOrChange',
+  'offense.leftHandDamage': 'combatOrChange',
+  'offense.critChance': 'combatOrChange',
+  'movement.speedMult': 'combatOrChange',
+};
+
+export const ITEM_SHOW_WHEN_VALUES: readonly ItemShowWhen[] = ['always', 'combat', 'change', 'combatOrChange'];
+
+export function resolveItemShowWhen(itemId: string, layout: WidgetItemLayout | undefined, hudStyle: HudStyle): ItemShowWhen {
+  if (layout?.showWhen) return layout.showWhen;
+  return hudStyle === 'compact' ? COMPACT_DEFAULT_SHOW_WHEN[itemId] ?? 'always' : 'always';
+}
 
 export const NORDIC_DEFAULT_BASELINE_VIEWPORT = {
   width: 1920,
@@ -627,6 +652,11 @@ export function sanitizeWidgetItemLayouts(incoming: unknown): Record<string, Wid
       continue;
     }
 
+    const showWhen = typeof rawLayout.showWhen === 'string'
+      && (ITEM_SHOW_WHEN_VALUES as readonly string[]).includes(rawLayout.showWhen)
+      ? rawLayout.showWhen as ItemShowWhen
+      : undefined;
+
     out[itemId] = {
       visible,
       x,
@@ -634,6 +664,7 @@ export function sanitizeWidgetItemLayouts(incoming: unknown): Record<string, Wid
       scale,
       locked,
       zIndex,
+      ...(showWhen !== undefined ? { showWhen } : {}),
       ...(viewportWidth !== undefined ? { viewportWidth } : {}),
       ...(viewportHeight !== undefined ? { viewportHeight } : {}),
     };

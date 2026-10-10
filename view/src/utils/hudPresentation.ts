@@ -1,6 +1,6 @@
-import { WIDGET_ITEM_IDS } from '../data/widgetItemRegistry';
+import { resolveItemShowWhen, WIDGET_ITEM_IDS } from '../data/widgetItemRegistry';
 import { t } from '../i18n/translations';
-import type { Language, WidgetItemLayout, WidgetSettings } from '../types/settings';
+import type { HudStyle, Language, WidgetItemLayout, WidgetSettings } from '../types/settings';
 import type { RuntimeDiagnostics } from '../types/runtime';
 import type { CombatStats, PlayerInfo } from '../types/stats';
 
@@ -86,67 +86,98 @@ export function resolveExperienceProgress(playerInfo: PlayerInfo): ExperiencePro
   };
 }
 
-// Clocks and effect countdowns tick on their own, so they are deliberately left out: only
-// changes the player should notice (values, equipment, effects gained or lost) count.
+const RESISTANCE_SIGNATURE_KEYS = ['magic', 'fire', 'frost', 'shock', 'poison', 'disease'] as const;
+
+// Per-item change signature. Clocks and effect countdowns tick on their own, so they are
+// deliberately left out: only changes the player should notice (values, equipment, effects
+// gained or lost) count.
+function collectItemSignature(itemId: string, stats: CombatStats): string | null {
+  for (const key of RESISTANCE_SIGNATURE_KEYS) {
+    if (itemId === `resistance.${key}`) {
+      return `res.${key}:${stats.resistances[key]}|res.${key}.raw:${stats.calcMeta.rawResistances[key]}`;
+    }
+  }
+
+  switch (itemId) {
+    case 'defense.armorRating': return `def.armor:${stats.defense.armorRating}`;
+    case 'defense.damageReduction': return `def.reduction:${stats.defense.damageReduction}`;
+    case 'offense.rightHandDamage': return `off.right:${stats.offense.rightHandDamage}`;
+    case 'offense.leftHandDamage': return `off.left:${stats.offense.leftHandDamage}`;
+    case 'offense.critChance': return `off.crit:${stats.offense.critChance}`;
+    case 'equipped.rightHand': return `eq.right:${stats.equipped.rightHand}`;
+    case 'equipped.leftHand': return `eq.left:${stats.equipped.leftHand}`;
+    case 'equipped.voice': return `eq.voice:${stats.equipped.voiceType}:${stats.equipped.voice}`;
+    case 'movement.speedMult': return `move.speed:${stats.movement.speedMult}`;
+    case 'player.level': return `pi.level:${stats.playerInfo.level}`;
+    case 'player.gold': return `pi.gold:${stats.playerInfo.gold}`;
+    case 'player.carryWeight': return `pi.carry:${stats.playerInfo.carryWeight}|pi.maxCarry:${stats.playerInfo.maxCarryWeight}`;
+    case 'player.health': return `pi.health:${stats.playerInfo.health}`;
+    case 'player.magicka': return `pi.magicka:${stats.playerInfo.magicka}`;
+    case 'player.stamina': return `pi.stamina:${stats.playerInfo.stamina}`;
+    case 'experience.progress':
+      return [
+        `pi.level:${stats.playerInfo.level}`,
+        `xp.current:${stats.playerInfo.experience}`,
+        `xp.toNext:${stats.playerInfo.expToNextLevel}`,
+        `xp.total:${stats.playerInfo.nextLevelTotalXp}`,
+      ].join('|');
+    case 'timedEffects.list':
+      return `effects:${stats.timedEffects
+        .map(effect => `${effect.stableKey}:${Math.trunc(effect.totalSec)}:${effect.isDebuff ? 1 : 0}`)
+        .join(';')}`;
+    default:
+      return null;
+  }
+}
+
+export function buildItemChangeSignatures(
+  stats: CombatStats,
+  itemLayouts: Record<string, WidgetItemLayout>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const itemId of getVisibleHudItemIds(itemLayouts, stats, false)) {
+    const signature = collectItemSignature(itemId, stats);
+    if (signature !== null) {
+      out[itemId] = signature;
+    }
+  }
+  return out;
+}
+
 export function buildTrackedChangeSignature(
   stats: CombatStats,
   itemLayouts: Record<string, WidgetItemLayout>,
 ): string {
-  const parts: string[] = [`combat:${stats.isInCombat ? 1 : 0}`];
-  const visibleItemIds = new Set(getVisibleHudItemIds(itemLayouts, stats, false));
+  return [`combat:${stats.isInCombat ? 1 : 0}`, ...Object.values(buildItemChangeSignatures(stats, itemLayouts))].join('|');
+}
 
-  if (visibleItemIds.has('resistance.magic')) parts.push(`res.magic:${stats.resistances.magic}`);
-  if (visibleItemIds.has('resistance.magic')) parts.push(`res.magic.raw:${stats.calcMeta.rawResistances.magic}`);
-  if (visibleItemIds.has('resistance.fire')) parts.push(`res.fire:${stats.resistances.fire}`);
-  if (visibleItemIds.has('resistance.fire')) parts.push(`res.fire.raw:${stats.calcMeta.rawResistances.fire}`);
-  if (visibleItemIds.has('resistance.frost')) parts.push(`res.frost:${stats.resistances.frost}`);
-  if (visibleItemIds.has('resistance.frost')) parts.push(`res.frost.raw:${stats.calcMeta.rawResistances.frost}`);
-  if (visibleItemIds.has('resistance.shock')) parts.push(`res.shock:${stats.resistances.shock}`);
-  if (visibleItemIds.has('resistance.shock')) parts.push(`res.shock.raw:${stats.calcMeta.rawResistances.shock}`);
-  if (visibleItemIds.has('resistance.poison')) parts.push(`res.poison:${stats.resistances.poison}`);
-  if (visibleItemIds.has('resistance.poison')) parts.push(`res.poison.raw:${stats.calcMeta.rawResistances.poison}`);
-  if (visibleItemIds.has('resistance.disease')) parts.push(`res.disease:${stats.resistances.disease}`);
-  if (visibleItemIds.has('resistance.disease')) parts.push(`res.disease.raw:${stats.calcMeta.rawResistances.disease}`);
-  if (visibleItemIds.has('defense.armorRating')) parts.push(`def.armor:${stats.defense.armorRating}`);
-  if (visibleItemIds.has('defense.damageReduction')) parts.push(`def.reduction:${stats.defense.damageReduction}`);
-  if (visibleItemIds.has('offense.rightHandDamage')) parts.push(`off.right:${stats.offense.rightHandDamage}`);
-  if (visibleItemIds.has('offense.leftHandDamage')) parts.push(`off.left:${stats.offense.leftHandDamage}`);
-  if (visibleItemIds.has('offense.critChance')) parts.push(`off.crit:${stats.offense.critChance}`);
-  if (visibleItemIds.has('equipped.rightHand')) parts.push(`eq.right:${stats.equipped.rightHand}`);
-  if (visibleItemIds.has('equipped.leftHand')) parts.push(`eq.left:${stats.equipped.leftHand}`);
-  if (visibleItemIds.has('equipped.voice')) parts.push(`eq.voice:${stats.equipped.voiceType}:${stats.equipped.voice}`);
-  if (visibleItemIds.has('movement.speedMult')) parts.push(`move.speed:${stats.movement.speedMult}`);
-  if (visibleItemIds.has('player.level')) parts.push(`pi.level:${stats.playerInfo.level}`);
-  if (visibleItemIds.has('player.gold')) parts.push(`pi.gold:${stats.playerInfo.gold}`);
-  if (visibleItemIds.has('player.carryWeight')) {
-    parts.push(`pi.carry:${stats.playerInfo.carryWeight}`);
-    parts.push(`pi.maxCarry:${stats.playerInfo.maxCarryWeight}`);
-  }
-  if (visibleItemIds.has('player.health')) parts.push(`pi.health:${stats.playerInfo.health}`);
-  if (visibleItemIds.has('player.magicka')) parts.push(`pi.magicka:${stats.playerInfo.magicka}`);
-  if (visibleItemIds.has('player.stamina')) parts.push(`pi.stamina:${stats.playerInfo.stamina}`);
+export interface ItemPresenceContext {
+  hudStyle: HudStyle;
+  nowMs: number;
+  lastChangeAtByItem: Record<string, number>;
+  changeWindowMs: number;
+}
 
-  if (visibleItemIds.has('experience.progress')) {
-    parts.push(`pi.level:${stats.playerInfo.level}`);
-    parts.push(`xp.current:${stats.playerInfo.experience}`);
-    parts.push(`xp.toNext:${stats.playerInfo.expToNextLevel}`);
-    parts.push(`xp.total:${stats.playerInfo.nextLevelTotalXp}`);
-  }
-
-  if (visibleItemIds.has('timedEffects.list')) {
-    const timedEffectSignature = stats.timedEffects
-      .map(effect => `${effect.stableKey}:${Math.trunc(effect.totalSec)}:${effect.isDebuff ? 1 : 0}`)
-      .join(';');
-    parts.push(`effects:${timedEffectSignature}`);
-  }
-
-  return parts.join('|');
+export function isItemPresent(
+  itemId: string,
+  layout: WidgetItemLayout | undefined,
+  stats: CombatStats,
+  context: ItemPresenceContext,
+): boolean {
+  const showWhen = resolveItemShowWhen(itemId, layout, context.hudStyle);
+  if (showWhen === 'always') return true;
+  const changedAt = context.lastChangeAtByItem[itemId];
+  const recentlyChanged = changedAt !== undefined && context.nowMs - changedAt <= context.changeWindowMs;
+  if (showWhen === 'combat') return stats.isInCombat;
+  if (showWhen === 'change') return recentlyChanged;
+  return stats.isInCombat || recentlyChanged;
 }
 
 export function getVisibleHudItemIds(
   itemLayouts: Record<string, WidgetItemLayout>,
   stats: CombatStats,
   settingsOpen: boolean,
+  presence?: ItemPresenceContext,
 ): string[] {
   return WIDGET_ITEM_IDS.filter(itemId => {
     const layout = itemLayouts[itemId];
@@ -158,7 +189,19 @@ export function getVisibleHudItemIds(
       return settingsOpen || stats.timedEffects.length > 0;
     }
 
+    if (presence && !settingsOpen) {
+      return isItemPresent(itemId, layout, stats, presence);
+    }
+
     return true;
+  });
+}
+
+export function hasChangeDrivenItems(itemLayouts: Record<string, WidgetItemLayout>, hudStyle: HudStyle): boolean {
+  return Object.entries(itemLayouts).some(([itemId, layout]) => {
+    if (!layout.visible) return false;
+    const showWhen = resolveItemShowWhen(itemId, layout, hudStyle);
+    return showWhen === 'change' || showWhen === 'combatOrChange';
   });
 }
 

@@ -18,6 +18,7 @@ import {
   getLowResourceTone,
   getVisibleHudItemIds,
   hasMeaningfulDifference,
+  type ItemPresenceContext,
   resolveExperienceProgress,
 } from '../utils/hudPresentation';
 import {
@@ -118,6 +119,7 @@ interface HudWidgetItemsProps {
   settingsOpen: boolean;
   lang: Language;
   itemLayouts: Record<string, WidgetItemLayout>;
+  itemPresence?: ItemPresenceContext;
   accentColor: string;
   editable?: boolean;
   selectedItemId?: string | null;
@@ -207,6 +209,7 @@ export function HudWidgetItems({
   settingsOpen,
   lang,
   itemLayouts,
+  itemPresence,
   accentColor,
   editable = false,
   selectedItemId = null,
@@ -229,9 +232,9 @@ export function HudWidgetItems({
   const visibleItemIds = useMemo(() => {
     return sortItemIdsByZIndex(
       itemLayouts,
-      getVisibleHudItemIds(itemLayouts, stats, settingsOpen),
+      getVisibleHudItemIds(itemLayouts, stats, settingsOpen, itemPresence),
     );
-  }, [itemLayouts, settingsOpen, stats]);
+  }, [itemLayouts, itemPresence, settingsOpen, stats]);
 
   if (!shouldShow) {
     return null;

@@ -6,7 +6,9 @@ import {
   buildItemLayoutsFromLegacySettings,
   buildNordicDefaultItemLayouts,
   getWidgetItemRegistryEntry,
+  resolveItemShowWhen,
   resolveWidgetItemLayouts,
+  sanitizeWidgetItemLayouts,
 } from './widgetItemRegistry';
 
 describe('widgetItemRegistry', () => {
@@ -124,6 +126,18 @@ describe('widgetItemRegistry', () => {
     expect(fhdItemLayouts['player.gold'].scale).toBeLessThan(uhdItemLayouts['player.gold'].scale);
     expect(fhdItemLayouts['player.gold'].x / 1920).toBeCloseTo(uhdItemLayouts['player.gold'].x / 3840, 2);
     expect(fhdItemLayouts['player.gold'].y / 1080).toBeCloseTo(uhdItemLayouts['player.gold'].y / 2160, 2);
+  });
+
+  it('keeps valid per-item showWhen values and drops unknown ones', () => {
+    const sanitized = sanitizeWidgetItemLayouts({
+      'player.gold': { visible: true, x: 1, y: 2, scale: 1, showWhen: 'combat' },
+      'player.carryWeight': { visible: true, x: 1, y: 2, scale: 1, showWhen: 'sometimes' },
+    });
+    expect(sanitized['player.gold'].showWhen).toBe('combat');
+    expect(sanitized['player.carryWeight'].showWhen).toBeUndefined();
+    expect(resolveItemShowWhen('resistance.fire', undefined, 'compact')).toBe('combatOrChange');
+    expect(resolveItemShowWhen('resistance.fire', undefined, 'classic')).toBe('always');
+    expect(resolveItemShowWhen('player.gold', sanitized['player.gold'], 'compact')).toBe('combat');
   });
 
   it('places fresh compact defaults as a bottom-left cluster above the resource bars', () => {

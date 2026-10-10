@@ -297,7 +297,7 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
       data-widget-item-id={itemId}
       data-widget-independent="true"
       data-widget-surface={bare ? 'bare' : showBg ? 'framed' : 'transparent'}
-      className={bare ? 'tw-compact' : undefined}
+      className={bare ? 'tw-compact tw-compact-enter' : undefined}
       onMouseDown={handleMouseDown}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}

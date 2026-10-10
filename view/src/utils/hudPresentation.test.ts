@@ -3,8 +3,10 @@ import { defaultSettings } from '../data/defaultSettings';
 import { mockStats } from '../data/mockStats';
 import { resolveWidgetItemLayouts } from '../hooks/useWidgetItemLayouts';
 import {
+  buildItemChangeSignatures,
   buildTrackedChangeSignature,
   getVisibleHudItemIds,
+  hasChangeDrivenItems,
   getRuntimeWarningText,
   getSettingsSyncWarningText,
   resolveExperienceProgress,
@@ -66,6 +68,55 @@ describe('hudPresentation', () => {
 
     stats.timedEffects = stats.timedEffects.slice(1);
     expect(buildTrackedChangeSignature(stats, itemLayouts)).not.toBe(afterVoice);
+  });
+
+  it('hides combat-or-change items while exploring in the compact style until they change', () => {
+    const settings = cloneSettings();
+    const stats = cloneStats();
+    stats.isInCombat = false;
+    const itemLayouts = resolveWidgetItemLayouts({ settings, viewportWidth: 1920, viewportHeight: 1080 });
+    const presence = { hudStyle: 'compact' as const, nowMs: 10_000, lastChangeAtByItem: {}, changeWindowMs: 4000 };
+
+    const exploring = getVisibleHudItemIds(itemLayouts, stats, false, presence);
+    expect(exploring).toContain('player.gold');
+    expect(exploring).toContain('equipped.rightHand');
+    expect(exploring).not.toContain('resistance.fire');
+
+    const changed = getVisibleHudItemIds(itemLayouts, stats, false, {
+      ...presence,
+      lastChangeAtByItem: { 'resistance.fire': 8000 },
+    });
+    expect(changed).toContain('resistance.fire');
+    expect(changed).not.toContain('resistance.frost');
+
+    stats.isInCombat = true;
+    expect(getVisibleHudItemIds(itemLayouts, stats, false, presence)).toContain('resistance.frost');
+    expect(getVisibleHudItemIds(itemLayouts, { ...stats, isInCombat: false }, true, presence)).toContain('resistance.frost');
+  });
+
+  it('keeps the classic style always visible and honors explicit per-item overrides', () => {
+    const settings = cloneSettings();
+    const stats = cloneStats();
+    stats.isInCombat = false;
+    const itemLayouts = resolveWidgetItemLayouts({ settings, viewportWidth: 1920, viewportHeight: 1080 });
+    const presence = { hudStyle: 'classic' as const, nowMs: 10_000, lastChangeAtByItem: {}, changeWindowMs: 4000 };
+    expect(getVisibleHudItemIds(itemLayouts, stats, false, presence)).toContain('resistance.fire');
+    expect(hasChangeDrivenItems(itemLayouts, 'classic')).toBe(false);
+
+    itemLayouts['player.gold'] = { ...itemLayouts['player.gold'], showWhen: 'combat' };
+    expect(getVisibleHudItemIds(itemLayouts, stats, false, presence)).not.toContain('player.gold');
+    expect(hasChangeDrivenItems(itemLayouts, 'compact')).toBe(true);
+  });
+
+  it('builds one change signature per visible item', () => {
+    const settings = cloneSettings();
+    const stats = cloneStats();
+    const itemLayouts = resolveWidgetItemLayouts({ settings, viewportWidth: 1920, viewportHeight: 1080 });
+    const before = buildItemChangeSignatures(stats, itemLayouts);
+    stats.resistances.fire += 10;
+    const after = buildItemChangeSignatures(stats, itemLayouts);
+    const changed = Object.keys(after).filter(itemId => after[itemId] !== before[itemId]);
+    expect(changed).toEqual(['resistance.fire']);
   });
 
   it('tracks raw resistance changes when the visible widget presentation includes raw values', () => {

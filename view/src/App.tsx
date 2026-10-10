@@ -13,6 +13,7 @@ import { useLocalization } from './i18n/useLocalization';
 import { useWidgetItemLayouts } from './hooks/useWidgetItemLayouts';
 import type { WidgetItemLayout } from './types/settings';
 import {
+  buildItemChangeSignatures,
   buildTrackedChangeSignature,
   getRuntimeWarningText,
   getSettingsSyncWarningText,
@@ -148,6 +149,49 @@ export function App() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [trackedChangeSignature]);
+
+  // Per-item change times drive items whose visibility follows combat or value changes.
+  const itemSignatures = useMemo(() => buildItemChangeSignatures(stats, itemLayouts), [itemLayouts, stats]);
+  const previousItemSignaturesRef = useRef<Record<string, string> | null>(null);
+  const [lastChangeAtByItem, setLastChangeAtByItem] = useState<Record<string, number>>({});
+  const changeWindowMs = settings.general.changeDisplaySeconds * 1000;
+
+  useEffect(() => {
+    const previous = previousItemSignaturesRef.current;
+    previousItemSignaturesRef.current = itemSignatures;
+    if (!hasLiveStats) return;
+    const changed = Object.keys(itemSignatures).filter(itemId => !previous || previous[itemId] !== itemSignatures[itemId]);
+    if (changed.length === 0) return;
+    const changedAt = Date.now();
+    const timer = window.setTimeout(() => {
+      setLastChangeAtByItem(prev => {
+        const next = { ...prev };
+        for (const itemId of changed) next[itemId] = changedAt;
+        return next;
+      });
+      setNowMs(changedAt);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [hasLiveStats, itemSignatures]);
+
+  useEffect(() => {
+    const now = Date.now();
+    let nextExpiry = Number.POSITIVE_INFINITY;
+    for (const changedAt of Object.values(lastChangeAtByItem)) {
+      const expiry = changedAt + changeWindowMs;
+      if (expiry > now && expiry < nextExpiry) nextExpiry = expiry;
+    }
+    if (!Number.isFinite(nextExpiry)) return;
+    const timer = window.setTimeout(() => setNowMs(Date.now()), nextExpiry - now + 30);
+    return () => window.clearTimeout(timer);
+  }, [changeWindowMs, lastChangeAtByItem, nowMs]);
+
+  const itemPresence = useMemo(() => ({
+    hudStyle: settings.general.hudStyle,
+    nowMs,
+    lastChangeAtByItem,
+    changeWindowMs,
+  }), [changeWindowMs, lastChangeAtByItem, nowMs, settings.general.hudStyle]);
 
   useEffect(() => {
     if (!settings.general.showOnChangeOnly) return;
@@ -334,6 +378,7 @@ export function App() {
         settingsOpen={settingsOpen}
         lang={lang}
         itemLayouts={itemLayouts}
+        itemPresence={itemPresence}
         accentColor={accentColor}
         editable={settingsOpen}
         selectedItemId={selectedItemId}
