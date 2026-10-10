@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Language, UpdateSettingFn, WidgetSettings } from '../../types/settings';
 import { t, type LocalizationLanguageEntry } from '../../i18n/translations';
 import { AccordionSection, CustomSelect, Toggle } from './SettingsControls';
@@ -801,6 +802,7 @@ export function PresetsTabSections({
   toggleSection,
   panelScale = 1,
 }: PresetsTabSectionsProps) {
+  const [pendingSlotLoad, setPendingSlotLoad] = useState<number | null>(null);
   return (
     <>
       <AccordionSection
@@ -874,7 +876,7 @@ export function PresetsTabSections({
                 data-layout-slot-save={index}
                 onClick={() => {
                   const next = [...settings.layoutSlots];
-                  next[index] = captureLayoutSlot(settings, Date.now());
+                  next[index] = captureLayoutSlot(settings, Date.now(), { width: window.innerWidth, height: window.innerHeight });
                   onUpdate('layoutSlots', next);
                 }}
                 style={slotButtonStyle(panelScale, true)}
@@ -887,16 +889,22 @@ export function PresetsTabSections({
                 disabled={!slot}
                 onClick={() => {
                   if (!slot) return;
+                  // Loading replaces the current arrangement and cannot be undone: ask once more.
+                  if (pendingSlotLoad !== index) {
+                    setPendingSlotLoad(index);
+                    return;
+                  }
+                  setPendingSlotLoad(null);
                   onUpdate('positions', {}, { persist: false });
                   onUpdate('layouts', {}, { persist: false });
                   onUpdate('groupScales', {}, { persist: false });
                   onUpdate('general.hudStyle', slot.hudStyle, { persist: false });
                   onUpdate('general.compactAnchor', slot.compactAnchor, { persist: false });
-                  onUpdate('itemLayouts', slot.itemLayouts);
+                  onUpdate('itemLayouts', { ...slot.itemLayouts });
                 }}
                 style={slotButtonStyle(panelScale, Boolean(slot))}
               >
-                {t(lang, 'layoutSlotLoad')}
+                {t(lang, pendingSlotLoad === index ? 'layoutSlotConfirm' : 'layoutSlotLoad')}
               </button>
             </div>
           ))}

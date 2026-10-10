@@ -191,6 +191,7 @@ export const bundledTranslations = {
     layoutSlotLoad: '불러오기',
     layoutSlotsHint: '현재 배치(스타일·위치·표시 여부)를 저장해 두고 언제든 되돌릴 수 있습니다.',
     compactSurfaceOpacity: '슬롯 배경 진하기',
+    layoutSlotConfirm: '한 번 더 눌러 불러오기',
   },
   en: {
     title: 'Tullius Widgets',
@@ -381,6 +382,7 @@ export const bundledTranslations = {
     layoutSlotLoad: 'Load',
     layoutSlotsHint: 'Save the current arrangement (style, positions, visibility) and switch back any time.',
     compactSurfaceOpacity: 'Slot background',
+    layoutSlotConfirm: 'Click again to load',
   },
 } as const;
 

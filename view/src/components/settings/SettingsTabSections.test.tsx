@@ -189,7 +189,7 @@ describe('SettingsTabSections', () => {
     const saveCall = onUpdate.mock.calls.find(call => call[0] === 'layoutSlots');
     const savedSlots = saveCall?.[1];
     expect(savedSlots[0]).toMatchObject({ hudStyle: 'compact', compactAnchor: 'bottomLeft' });
-    expect(savedSlots[0].itemLayouts['experience.progress']).toMatchObject({ x: 34, viewportWidth: 1920, viewportHeight: 1080 });
+    expect(savedSlots[0].itemLayouts['experience.progress']).toMatchObject({ viewportWidth: window.innerWidth, viewportHeight: window.innerHeight });
 
     onUpdate.mockClear();
     const withSlot = { ...settings, layoutSlots: savedSlots };
@@ -207,8 +207,16 @@ describe('SettingsTabSections', () => {
     await act(async () => {
       (container.querySelector('[data-layout-slot-load="0"]') as HTMLButtonElement).click();
     });
+    // The first click only asks for confirmation.
+    expect(onUpdate).not.toHaveBeenCalled();
+    expect(container.querySelector('[data-layout-slot-load="0"]')?.textContent).toContain('한 번 더');
+    await act(async () => {
+      (container.querySelector('[data-layout-slot-load="0"]') as HTMLButtonElement).click();
+    });
     expect(onUpdate).toHaveBeenCalledWith('general.hudStyle', 'compact', { persist: false });
     expect(onUpdate).toHaveBeenCalledWith('itemLayouts', savedSlots[0].itemLayouts);
+    const loadedLayouts = onUpdate.mock.calls.find(call => call[0] === 'itemLayouts')?.[1];
+    expect(loadedLayouts).not.toBe(savedSlots[0].itemLayouts);
   });
 
   it('updates the icon theme and exposes the badge toggle for Dororong icons', async () => {

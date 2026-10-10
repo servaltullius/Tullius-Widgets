@@ -135,17 +135,24 @@ const COMPACT_DEFAULT_SHOW_WHEN: Record<string, ItemShowWhen> = {
 };
 
 const COMPACT_CLUSTER_ANCHOR = { x: 34 } as const;
-// The bottom-left preset spans roughly x 34..830 and y 790..975 at 1080p (incl. the effect column).
-const COMPACT_CLUSTER_WIDTH = 800;
-const COMPACT_CLUSTER_TOP = 790;
+// Widest compact element: the timed-effect column (fixed 250px in compact-theme.css).
+const COMPACT_EFFECT_COLUMN_WIDTH = 250;
 const COMPACT_TOP_MARGIN = 72;
 
-function getCompactAnchorOffset(anchor: CompactAnchor | undefined): GroupPosition {
+// Corner presets move the whole cluster, using its real bounds (hidden items included) at the
+// current size scale so no item can land off-screen.
+function getCompactAnchorOffset(anchor: CompactAnchor | undefined, scale: number): GroupPosition {
   const right = anchor === 'bottomRight' || anchor === 'topRight';
   const top = anchor === 'topLeft' || anchor === 'topRight';
+  const { width, height } = NORDIC_DEFAULT_BASELINE_VIEWPORT;
+  const positions = Object.values(COMPACT_DEFAULT_ITEM_POSITIONS);
+  const rightEdge = Math.max(...positions.map(position => position.x)) + COMPACT_EFFECT_COLUMN_WIDTH;
+  const topEdge = Math.min(...positions.map(position => position.y));
+  const scaledRight = COMPACT_CLUSTER_ANCHOR.x + (rightEdge - COMPACT_CLUSTER_ANCHOR.x) * scale;
+  const scaledTop = height - (height - topEdge) * scale;
   return {
-    x: right ? NORDIC_DEFAULT_BASELINE_VIEWPORT.width - COMPACT_CLUSTER_ANCHOR.x * 2 - COMPACT_CLUSTER_WIDTH : 0,
-    y: top ? COMPACT_TOP_MARGIN - COMPACT_CLUSTER_TOP : 0,
+    x: right ? width - COMPACT_CLUSTER_ANCHOR.x - scaledRight : 0,
+    y: top ? COMPACT_TOP_MARGIN - scaledTop : 0,
   };
 }
 
@@ -569,7 +576,7 @@ export function buildCompactDefaultItemLayouts(
   source: LegacyWidgetLayoutSource,
 ): Record<string, WidgetItemLayout> {
   const scale = NORDIC_DEFAULT_SIZE_SCALE_MAP[source.general.size];
-  const offset = getCompactAnchorOffset(source.general.compactAnchor);
+  const offset = getCompactAnchorOffset(source.general.compactAnchor, scale);
 
   return Object.fromEntries(
     WIDGET_ITEM_IDS.map(itemId => {
@@ -824,11 +831,13 @@ export function resolveWidgetItemLayouts(params: {
     : settings.general.hudStyle === 'compact'
       ? buildCompactDefaultItemLayouts(settings)
       : buildNordicDefaultItemLayouts(settings);
-  const fallbackAnchor = resolveLayoutAnchor(Object.values(baselineLayouts));
+  // The anchor comes from the style's default arrangement only, so dragging a widget can
+  // never re-anchor (and visibly shift) the rest of the HUD.
+  const layoutAnchor = resolveLayoutAnchor(Object.values(baselineLayouts));
   const fallbackLayouts = Object.fromEntries(
     Object.entries(baselineLayouts).map(([itemId, layout]) => [
       itemId,
-      resolveCanonicalLayoutForViewport(itemId, layout, viewportWidth, viewportHeight, fallbackAnchor),
+      resolveCanonicalLayoutForViewport(itemId, layout, viewportWidth, viewportHeight, layoutAnchor),
     ]),
   ) as Record<string, WidgetItemLayout>;
 
@@ -836,17 +845,10 @@ export function resolveWidgetItemLayouts(params: {
     return fallbackLayouts;
   }
 
-  // Anchor saved items together with the defaults they sit among, as one layout.
-  const canonicalAnchor = resolveLayoutAnchor([
-    ...Object.values(canonicalLayouts),
-    ...Object.entries(baselineLayouts)
-      .filter(([itemId]) => !(itemId in canonicalLayouts))
-      .map(([, layout]) => layout),
-  ]);
   const resolvedCanonicalLayouts = Object.fromEntries(
     Object.entries(canonicalLayouts).map(([itemId, layout]) => [
       itemId,
-      resolveCanonicalLayoutForViewport(itemId, layout, viewportWidth, viewportHeight, canonicalAnchor),
+      resolveCanonicalLayoutForViewport(itemId, layout, viewportWidth, viewportHeight, layoutAnchor),
     ]),
   ) as Record<string, WidgetItemLayout>;
 

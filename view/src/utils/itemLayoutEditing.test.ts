@@ -5,6 +5,7 @@ import type { WidgetSettings } from '../types/settings';
 import {
   bringVisibleItemForward,
   buildItemLayoutsForHudStyle,
+  captureLayoutSlot,
   normalizeItemLayoutZIndices,
   nudgeItemLayout,
   resetItemToDefaultPlacement,
@@ -30,6 +31,20 @@ describe('itemLayoutEditing', () => {
     const classic = buildItemLayoutsForHudStyle({ ...settings, general: { ...settings.general, hudStyle: 'compact' }, itemLayouts: compact }, 'classic');
     expect(classic['player.gold'].visible).toBe(false);
     expect(classic['experience.progress']).toMatchObject({ x: 1530, y: 60 });
+  });
+
+  it('captures a layout slot at the current screen so it round-trips on non-16:9 screens', () => {
+    const settings = cloneSettings();
+    settings.itemLayouts = {
+      'player.gold': { visible: true, x: 900, y: 300, scale: 1.2, locked: false, zIndex: 3, viewportWidth: 2560, viewportHeight: 1080 },
+    };
+    const slot = captureLayoutSlot(settings, 1, { width: 2560, height: 1080 });
+    const restored = resolveWidgetItemLayouts({
+      settings: { ...settings, itemLayouts: slot.itemLayouts },
+      viewportWidth: 2560,
+      viewportHeight: 1080,
+    });
+    expect(restored['player.gold']).toMatchObject({ x: 900, y: 300, scale: 1.2 });
   });
 
   it('normalizes zIndex into contiguous order while preserving hidden item relative order', () => {

@@ -234,9 +234,14 @@ export function buildItemLayoutsForHudStyle(
   );
 }
 
-// Snapshot of the arrangement the player currently sees, at the 1080p baseline.
-export function captureLayoutSlot(settings: WidgetSettings, savedAt: number): LayoutSlot {
-  const baseline = { width: 1920, height: 1080 };
+// Snapshot of the arrangement the player currently sees, stamped with the current screen size
+// so loading it on the same screen restores it exactly (any resolution or aspect ratio).
+export function captureLayoutSlot(
+  settings: WidgetSettings,
+  savedAt: number,
+  viewport: { width: number; height: number },
+): LayoutSlot {
+  const baseline = { width: Math.round(viewport.width), height: Math.round(viewport.height) };
   const resolved = resolveWidgetItemLayouts({ settings, viewportWidth: baseline.width, viewportHeight: baseline.height });
   return {
     savedAt,

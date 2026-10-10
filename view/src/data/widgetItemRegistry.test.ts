@@ -175,6 +175,35 @@ describe('widgetItemRegistry', () => {
     expect(toggled['experience.progress']).toMatchObject({ x: original['experience.progress'].x, y: original['experience.progress'].y });
   });
 
+  it('does not move other widgets when one is dragged across the screen centre', () => {
+    const before = resolveWidgetItemLayouts({ settings: structuredClone(defaultSettings), viewportWidth: 2560, viewportHeight: 1080 });
+    const moved = structuredClone(defaultSettings);
+    moved.itemLayouts = {
+      'player.gold': { visible: true, x: 1900, y: 300, scale: 1, locked: false, zIndex: 3, viewportWidth: 2560, viewportHeight: 1080 },
+    };
+    const after = resolveWidgetItemLayouts({ settings: moved, viewportWidth: 2560, viewportHeight: 1080 });
+    expect(after['player.gold']).toMatchObject({ x: 1900, y: 300 });
+    expect(after['player.carryWeight']).toMatchObject({ x: before['player.carryWeight'].x, y: before['player.carryWeight'].y });
+    expect(after['timedEffects.list'].x).toBe(before['timedEffects.list'].x);
+  });
+
+  it('keeps every compact item on screen for all corner presets and sizes', () => {
+    for (const compactAnchor of ['bottomLeft', 'bottomRight', 'topLeft', 'topRight'] as const) {
+      for (const size of ['xsmall', 'small', 'medium', 'large'] as const) {
+        const settings = structuredClone(defaultSettings);
+        settings.general.compactAnchor = compactAnchor;
+        settings.general.size = size;
+        const layouts = resolveWidgetItemLayouts({ settings, viewportWidth: 1920, viewportHeight: 1080 });
+        for (const [itemId, layout] of Object.entries(layouts)) {
+          const width = itemId === 'timedEffects.list' ? 250 * layout.scale : 0;
+          expect(layout.x, `${compactAnchor}/${size}/${itemId}`).toBeGreaterThanOrEqual(0);
+          expect(layout.y, `${compactAnchor}/${size}/${itemId}`).toBeGreaterThanOrEqual(0);
+          expect(layout.x + width, `${compactAnchor}/${size}/${itemId}`).toBeLessThanOrEqual(1920);
+        }
+      }
+    }
+  });
+
   it('keeps clusters anchored to their screen edge on ultrawide viewports', () => {
     const compact = resolveWidgetItemLayouts({ settings: structuredClone(defaultSettings), viewportWidth: 2560, viewportHeight: 1080 });
     expect(compact['experience.progress']).toMatchObject({ x: 34, y: 898, scale: 1 });

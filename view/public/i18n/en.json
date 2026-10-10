@@ -156,5 +156,6 @@
   "layoutSlotSave": "Save",
   "layoutSlotLoad": "Load",
   "layoutSlotsHint": "Save the current arrangement (style, positions, visibility) and switch back any time.",
-  "compactSurfaceOpacity": "Slot background"
+  "compactSurfaceOpacity": "Slot background",
+  "layoutSlotConfirm": "Click again to load"
 }
