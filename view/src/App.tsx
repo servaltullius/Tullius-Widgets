@@ -15,7 +15,7 @@ import { useWidgetItemLayouts } from './hooks/useWidgetItemLayouts';
 import type { WidgetItemLayout } from './types/settings';
 import {
   buildItemChangeSignatures,
-  buildTrackedChangeSignature,
+  joinTrackedChangeSignature,
   getRuntimeWarningText,
   getSettingsSyncWarningText,
   resolveHudVisibility,
@@ -145,9 +145,13 @@ export function App() {
     });
   }, [clearPreviewState, interactionResetToken]);
 
-  const trackedChangeSignature = useMemo(() => {
-    return buildTrackedChangeSignature(stats, itemLayouts);
-  }, [itemLayouts, stats]);
+  // Per-item change times drive items whose visibility follows combat or value changes; the
+  // joined signature drives the HUD-wide show-on-change timer. Both come from one pass.
+  const itemSignatures = useMemo(() => buildItemChangeSignatures(stats, itemLayouts), [itemLayouts, stats]);
+  const trackedChangeSignature = useMemo(
+    () => joinTrackedChangeSignature(stats.isInCombat, itemSignatures),
+    [itemSignatures, stats.isInCombat],
+  );
 
   useEffect(() => {
     const changedAt = Date.now();
@@ -157,8 +161,6 @@ export function App() {
     return () => window.clearTimeout(timer);
   }, [trackedChangeSignature]);
 
-  // Per-item change times drive items whose visibility follows combat or value changes.
-  const itemSignatures = useMemo(() => buildItemChangeSignatures(stats, itemLayouts), [itemLayouts, stats]);
   const previousItemSignaturesRef = useRef<Record<string, string> | null>(null);
   const [lastChangeAtByItem, setLastChangeAtByItem] = useState<Record<string, number>>({});
   const changeWindowMs = settings.general.changeDisplaySeconds * 1000;

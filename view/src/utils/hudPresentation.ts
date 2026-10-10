@@ -155,11 +155,15 @@ export function buildItemChangeSignatures(
   return out;
 }
 
+export function joinTrackedChangeSignature(isInCombat: boolean, itemSignatures: Record<string, string>): string {
+  return [`combat:${isInCombat ? 1 : 0}`, ...Object.values(itemSignatures)].join('|');
+}
+
 export function buildTrackedChangeSignature(
   stats: CombatStats,
   itemLayouts: Record<string, WidgetItemLayout>,
 ): string {
-  return [`combat:${stats.isInCombat ? 1 : 0}`, ...Object.values(buildItemChangeSignatures(stats, itemLayouts))].join('|');
+  return joinTrackedChangeSignature(stats.isInCombat, buildItemChangeSignatures(stats, itemLayouts));
 }
 
 export interface ItemPresenceContext {
