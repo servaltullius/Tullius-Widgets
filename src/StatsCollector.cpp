@@ -548,13 +548,19 @@ static std::int32_t GetEquippedPoisonCount(RE::PlayerCharacter* player, bool lef
     if (!player) return 0;
     auto* entry = player->GetEquippedEntryData(leftHand);
     if (!entry || !entry->object || !entry->object->As<RE::TESObjectWEAP>() || !entry->extraLists) return 0;
+    // With two copies of a weapon each hand has its own worn list; prefer the one for this hand.
+    std::int32_t fallback = 0;
     for (auto* extraList : *entry->extraLists) {
         if (!extraList) continue;
-        if (const auto* poison = extraList->GetByType<RE::ExtraPoison>(); poison && poison->poison && poison->count > 0) {
-            return static_cast<std::int32_t>((std::min)(poison->count, 9999u));
-        }
+        const auto* poison = extraList->GetByType<RE::ExtraPoison>();
+        const std::int32_t count = poison && poison->poison && poison->count > 0
+            ? static_cast<std::int32_t>((std::min)(poison->count, 9999u))
+            : 0;
+        const bool wornHere = leftHand ? extraList->HasType<RE::ExtraWornLeft>() : extraList->HasType<RE::ExtraWorn>();
+        if (wornHere) return count;
+        if (fallback == 0) fallback = count;
     }
-    return 0;
+    return fallback;
 }
 
 static EquippedSnapshot CollectEquippedSnapshot(RE::PlayerCharacter* player)

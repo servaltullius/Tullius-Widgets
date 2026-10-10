@@ -50,14 +50,33 @@ bool IsBindableScanCode(std::uint32_t code)
     }
 }
 
+// F1-F12, Pause and Scroll Lock never produce text, so only the console blocks them.
+bool CanTypeText(std::uint32_t code)
+{
+    const bool functionKey = (code >= 0x3B && code <= 0x44) || code == 0x57 || code == 0x58;
+    return !(functionKey || code == 0x46 || code == 0xC5);
+}
+
 // Keys pressed while the console or another text field takes typing are not hotkeys.
-bool IsTypingIntoGame()
+bool IsTypingIntoGame(std::uint32_t code)
 {
     if (auto* ui = RE::UI::GetSingleton(); ui && ui->IsMenuOpen(RE::Console::MENU_NAME)) {
         return true;
     }
+    if (!CanTypeText(code)) {
+        return false;
+    }
     auto* controlMap = RE::ControlMap::GetSingleton();
-    return controlMap && controlMap->GetRuntimeData().textEntryCount > 0;
+    if (!controlMap || controlMap->GetRuntimeData().textEntryCount <= 0) {
+        return false;
+    }
+    // A leaked text-entry count (some menus forget to release it) would make the key look dead.
+    static bool logged = false;
+    if (!logged) {
+        logged = true;
+        logger::info("Hotkey 0x{:X} ignored while a text field takes typing (textEntryCount > 0)", code);
+    }
+    return true;
 }
 
 template <class Fn>
@@ -106,6 +125,18 @@ bool InvokeScript(const char* script)
     return false;
 }
 
+std::uint32_t CurrentSettingsKey()
+{
+    std::scoped_lock lock(g_bindingMutex);
+    return g_settingsKey;
+}
+
+std::uint32_t CurrentVisibilityKey()
+{
+    std::scoped_lock lock(g_bindingMutex);
+    return g_visibilityKey;
+}
+
 void OnSettingsKey()
 {
     DispatchToGameThread([]() {
@@ -113,7 +144,7 @@ void OnSettingsKey()
             return;
         }
         // Our own panel may hold text focus, so only opening is blocked while typing.
-        if (!IsSettingsPanelOpen() && IsTypingIntoGame()) {
+        if (!IsSettingsPanelOpen() && IsTypingIntoGame(CurrentSettingsKey())) {
             return;
         }
 
@@ -141,7 +172,7 @@ void OnSettingsKey()
 void OnVisibilityKey()
 {
     DispatchToGameThread([]() {
-        if (IsViewReady() && IsGameLoaded() && (IsSettingsPanelOpen() || !IsTypingIntoGame())) {
+        if (IsViewReady() && IsGameLoaded() && (IsSettingsPanelOpen() || !IsTypingIntoGame(CurrentVisibilityKey()))) {
             InvokeScript(TulliusWidgets::WidgetInteropContracts::kToggleWidgetsVisibilityScript);
         }
     });

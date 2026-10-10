@@ -236,6 +236,15 @@ describe('widgetItemRegistry', () => {
     }
   });
 
+  it('keeps a widget dragged from a right cluster into the left half on the left', () => {
+    const settings = structuredClone(defaultSettings);
+    settings.general.compactAnchor = 'bottomRight';
+    settings.itemLayouts = buildItemLayoutsForHudStyle(settings, 'compact');
+    settings.itemLayouts['experience.progress'] = { ...settings.itemLayouts['experience.progress'], x: 672 };
+    const wide = resolveWidgetItemLayouts({ settings, viewportWidth: 2560, viewportHeight: 1080 });
+    expect(wide['experience.progress'].x).toBe(672);
+  });
+
   it('keeps widgets dragged to the far side of the screen near their own edge on ultrawide', () => {
     const classic = structuredClone(defaultSettings);
     classic.general.hudStyle = 'classic';

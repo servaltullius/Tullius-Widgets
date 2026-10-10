@@ -259,9 +259,10 @@ export function captureLayoutSlot(
 }
 
 // In a right-hand compact corner the effect list hugs the right edge; switching between the
-// column (250px) and row (532px) layouts moves the whole saved arrangement by the width
-// difference, as the corner defaults do, so the wider row neither runs off-screen nor lands on
-// the cluster. Returns null when nothing needs to move.
+// column (250px) and row (532px) layouts moves the cluster by the width difference, as the
+// corner defaults do, so the wider row neither runs off-screen nor lands on the cluster. Only
+// items still inside the default cluster move; widgets dragged elsewhere stay put. Returns
+// null when nothing needs to move.
 export function shiftEffectListForLayout(
   settings: WidgetSettings,
   nextLayout: WidgetSettings['timedEffects']['listLayout'],
@@ -276,15 +277,40 @@ export function shiftEffectListForLayout(
   ) {
     return null;
   }
+
+  // The default cluster's box (both list layouts) in screen fractions, with a little slack.
+  const baseline = { width: 1920, height: 1080 };
+  const boxes = (['vertical', 'horizontal'] as const).map(layout => {
+    const defaults = resolveWidgetItemLayouts({
+      settings: { ...settings, timedEffects: { ...settings.timedEffects, listLayout: layout }, positions: {}, layouts: {}, groupScales: {}, itemLayouts: {} },
+      viewportWidth: baseline.width,
+      viewportHeight: baseline.height,
+    });
+    const items = Object.values(defaults);
+    return {
+      minX: Math.min(...items.map(item => item.x)) / baseline.width,
+      minY: Math.min(...items.map(item => item.y)) / baseline.height,
+      maxY: Math.max(...items.map(item => item.y)) / baseline.height,
+    };
+  });
+  const slack = 0.03;
+  const minX = Math.min(...boxes.map(box => box.minX)) - slack;
+  const minY = Math.min(...boxes.map(box => box.minY)) - slack;
+  const maxY = Math.max(...boxes.map(box => box.maxY)) + slack;
+
+  const listWidth = listLayout.viewportWidth ?? baseline.width;
+  const listHeight = listLayout.viewportHeight ?? baseline.height;
   const widthDelta = (COMPACT_EFFECT_ROW_WIDTH - COMPACT_EFFECT_COLUMN_WIDTH) * listLayout.scale;
   const direction = nextLayout === 'horizontal' ? -1 : 1;
-  const listViewportWidth = listLayout.viewportWidth ?? 0;
   return Object.fromEntries(
     Object.entries(settings.itemLayouts).map(([itemId, layout]) => {
-      // Items saved against another viewport move by the same on-screen distance.
-      const ratio = listViewportWidth > 0 && layout.viewportWidth ? layout.viewportWidth / listViewportWidth : 1;
-      const x = layout.x + direction * widthDelta * ratio;
-      return [itemId, { ...layout, x: Number(Math.max(0, x).toFixed(3)) }];
+      const width = layout.viewportWidth ?? baseline.width;
+      const height = layout.viewportHeight ?? baseline.height;
+      const inCluster = layout.x / width >= minX && layout.y / height >= minY && layout.y / height <= maxY;
+      if (!inCluster) return [itemId, layout];
+      // Same on-screen distance for items saved against another viewport (resolve-time scale).
+      const scale = Math.min(width / listWidth, height / listHeight);
+      return [itemId, { ...layout, x: Number((layout.x + direction * widthDelta * scale).toFixed(3)) }];
     }),
   );
 }

@@ -798,16 +798,14 @@ function resolveCompactCornerAnchor(anchor: CompactAnchor | undefined): LayoutAn
 }
 
 // Items the player dragged clearly onto the other half of the screen keep the distance to
-// their own edge. Only real moves count: an item still near its default spot stays on the
-// layout anchor even when a wide cluster reaches past the centre, so the cluster never tears
-// apart; the dead zone around the centre does the same for anything near the midline.
+// their own edge. "Clearly" is measured from the screen centre or, when the item's default
+// spot already lies past it (a wide cluster reaching over the midline), from that default, so
+// the cluster's own items never tear away from it.
 const OWN_EDGE_MARGIN = 0.1;
-const OWN_EDGE_MIN_MOVE = 0.25;
 
 function resolveItemAxisAnchor(anchor: AxisAnchor, ratio: number, defaultRatio: number | undefined): AxisAnchor {
-  if (defaultRatio !== undefined && Math.abs(ratio - defaultRatio) < OWN_EDGE_MIN_MOVE) return anchor;
-  if (anchor === 'start' && ratio >= 0.5 + OWN_EDGE_MARGIN) return 'end';
-  if (anchor === 'end' && ratio < 0.5 - OWN_EDGE_MARGIN) return 'start';
+  if (anchor === 'start' && ratio >= Math.max(defaultRatio ?? 0, 0.5) + OWN_EDGE_MARGIN) return 'end';
+  if (anchor === 'end' && ratio < Math.min(defaultRatio ?? 1, 0.5) - OWN_EDGE_MARGIN) return 'start';
   return anchor;
 }
 

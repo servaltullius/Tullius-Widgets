@@ -275,6 +275,14 @@ describe('itemLayoutEditing', () => {
       expect(shifted![itemId].x - settings.itemLayouts[itemId].x, itemId).toBeCloseTo(-282 * before.scale, 3);
     }
 
+    // Widgets dragged away from the cluster stay put, and a round trip is exact.
+    settings.itemLayouts = { ...settings.itemLayouts, 'player.gold': { ...settings.itemLayouts['player.gold'], x: 40, y: 30 } };
+    const there = shiftEffectListForLayout(settings, 'horizontal')!;
+    expect(there['player.gold'].x).toBe(40);
+    const back = shiftEffectListForLayout({ ...settings, itemLayouts: there, timedEffects: { ...settings.timedEffects, listLayout: 'horizontal' } }, 'vertical')!;
+    expect(back['timedEffects.list'].x).toBeCloseTo(settings.itemLayouts['timedEffects.list'].x, 3);
+    expect(back['player.gold'].x).toBe(40);
+
     settings.general.compactAnchor = 'bottomLeft';
     expect(shiftEffectListForLayout(settings, 'horizontal')).toBeNull();
   });

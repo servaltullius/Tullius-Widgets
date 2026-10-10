@@ -52,7 +52,8 @@ test('saved hotkey bindings apply at startup and on every settings save', () => 
   assert.match(hotkeysText, /TryReadUIntField\(settingsJson, "visibilityHotkey"\)/);
   assert.match(hotkeysText, /case 0xD2:  \/\/ Insert/);
   assert.match(hotkeysText, /IsMenuOpen\(RE::Console::MENU_NAME\)/);
-  assert.match(hotkeysText, /textEntryCount > 0/);
+  assert.match(hotkeysText, /GetRuntimeData\(\).textEntryCount <= 0/);
+  assert.match(hotkeysText, /bool CanTypeText\(std::uint32_t code\)/);
   assert.match(jsListenersText, /WidgetHotkeys::ApplyHotkeysFromSettingsJson\(payload\)/);
   assert.match(mainText, /WidgetHotkeys::ApplyHotkeysFromSettingsJson\(savedSettings\)/);
 });
