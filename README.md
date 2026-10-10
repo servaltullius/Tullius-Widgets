@@ -42,10 +42,10 @@ Skyrim SE용 전투 스탯 HUD 모드. [Prisma UI](https://www.nexusmods.com/sky
 
 ## Requirements
 
-- Skyrim SE (1.5.97 / 1.6.x)
+- Skyrim SE (1.5.97 / 1.6.x / 1.7.x)
 - [SKSE64](https://skse.silverlock.org/)
-- [Prisma UI](https://www.nexusmods.com/skyrimspecialedition/mods/148718)
-- [Address Library for SKSE Plugins](https://www.nexusmods.com/skyrimspecialedition/mods/32444)
+- [Prisma UI](https://www.nexusmods.com/skyrimspecialedition/mods/148718) (1.7.x는 1.5.0 이상 필요)
+- [Address Library for SKSE Plugins](https://www.nexusmods.com/skyrimspecialedition/mods/32444) (1.7.x는 최신 버전 필요)
 
 ## Installation
 

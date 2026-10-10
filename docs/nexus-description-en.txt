@@ -64,10 +64,10 @@ Standard, widely recognizable icons are used by default. The original Dororong i
 
 [size=3][b]Requirements[/b][/size]
 [list]
-[*]Skyrim Special Edition 1.5.97 / Anniversary Edition 1.6.x
+[*]Skyrim Special Edition 1.5.97 / Anniversary Edition 1.6.x / 1.7.x
 [*][url=https://skse.silverlock.org/]SKSE64[/url]
-[*][url=https://www.nexusmods.com/skyrimspecialedition/mods/148718]Prisma UI[/url]
-[*][url=https://www.nexusmods.com/skyrimspecialedition/mods/32444]Address Library for SKSE Plugins[/url]
+[*][url=https://www.nexusmods.com/skyrimspecialedition/mods/148718]Prisma UI[/url] (1.5.0 or newer for 1.7.x)
+[*][url=https://www.nexusmods.com/skyrimspecialedition/mods/32444]Address Library for SKSE Plugins[/url] (latest version for 1.7.x)
 [/list]
 
 [line]

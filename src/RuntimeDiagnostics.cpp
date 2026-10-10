@@ -12,7 +12,7 @@ namespace TulliusWidgets::RuntimeDiagnostics {
 
 bool IsLikelySupportedRuntime(REL::Version runtimeVersion)
 {
-    return runtimeVersion.major() == 1 && (runtimeVersion.minor() == 5 || runtimeVersion.minor() == 6);
+    return runtimeVersion.major() == 1 && runtimeVersion.minor() >= 5 && runtimeVersion.minor() <= 7;
 }
 
 std::filesystem::path ResolveGameRootPath()

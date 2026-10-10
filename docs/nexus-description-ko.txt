@@ -64,10 +64,10 @@
 
 [size=3][b]필수 요구 사항[/b][/size]
 [list]
-[*]Skyrim Special Edition 1.5.97 / Anniversary Edition 1.6.x
+[*]Skyrim Special Edition 1.5.97 / Anniversary Edition 1.6.x / 1.7.x
 [*][url=https://skse.silverlock.org/]SKSE64[/url]
-[*][url=https://www.nexusmods.com/skyrimspecialedition/mods/148718]Prisma UI[/url]
-[*][url=https://www.nexusmods.com/skyrimspecialedition/mods/32444]Address Library for SKSE Plugins[/url]
+[*][url=https://www.nexusmods.com/skyrimspecialedition/mods/148718]Prisma UI[/url] (1.7.x는 1.5.0 이상 필요)
+[*][url=https://www.nexusmods.com/skyrimspecialedition/mods/32444]Address Library for SKSE Plugins[/url] (1.7.x는 최신 버전 필요)
 [/list]
 
 [line]
