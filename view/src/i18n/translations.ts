@@ -177,6 +177,7 @@ export const bundledTranslations = {
     equippedPotion: '최근 마신 물약',
     layoutUndoHint: 'Ctrl+Z 되돌리기 · Ctrl+Y 다시 실행',
     experienceShowNumbers: '경험치 숫자 표시',
+    onboardingLine4: '일반 탭에서 HUD 스타일(컴팩트/클래식 카드)을 바꿀 수 있고, 배치 편집은 Ctrl+Z로 되돌릴 수 있습니다.',
   },
   en: {
     title: 'Tullius Widgets',
@@ -353,6 +354,7 @@ export const bundledTranslations = {
     equippedPotion: 'Last potion',
     layoutUndoHint: 'Ctrl+Z undo · Ctrl+Y redo',
     experienceShowNumbers: 'Show XP numbers',
+    onboardingLine4: 'Switch the HUD style (Compact / Classic cards) in the General tab; Ctrl+Z undoes layout edits.',
   },
 } as const;
 

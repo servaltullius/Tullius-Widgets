@@ -107,6 +107,7 @@ export function OnboardingPanel({
         <div>{t(lang, 'onboardingLine1')}</div>
         <div>{t(lang, 'onboardingLine2')}</div>
         <div>{t(lang, 'onboardingLine3')}</div>
+        <div>{t(lang, 'onboardingLine4')}</div>
       </div>
       <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
         <button

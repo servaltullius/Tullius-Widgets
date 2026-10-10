@@ -142,5 +142,6 @@
   "weatherUnknown": "-",
   "equippedPotion": "Last potion",
   "layoutUndoHint": "Ctrl+Z undo · Ctrl+Y redo",
-  "experienceShowNumbers": "Show XP numbers"
+  "experienceShowNumbers": "Show XP numbers",
+  "onboardingLine4": "Switch the HUD style (Compact / Classic cards) in the General tab; Ctrl+Z undoes layout edits."
 }
