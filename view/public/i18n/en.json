@@ -149,7 +149,7 @@
   "compactAnchorBottomRight": "Bottom right",
   "compactAnchorTopLeft": "Top left",
   "compactAnchorTopRight": "Top right",
-  "compactAnchorHint": "Moves every widget to that corner's default layout (visibility is kept).",
+  "compactAnchorHint": "Choosing a position or size moves every widget to that default layout (visibility is kept).",
   "layoutSlotsLabel": "Layout slots",
   "layoutSlotName": "Slot",
   "layoutSlotEmpty": "Empty",
@@ -179,5 +179,11 @@
   "equipDetailPoison": "Poison ×{n}",
   "equipDetailAmmo": "Ammo {n}",
   "hotkeyReset": "Defaults",
-  "equipDetailCooldown": "Ready in {n}s"
+  "equipDetailCooldown": "Ready in {n}s",
+  "compactSizeLabel": "Compact size",
+  "compactSizeXSmall": "Extra small",
+  "compactSizeSmall": "Small",
+  "compactSizeMedium": "Medium",
+  "compactSizeLarge": "Large",
+  "compactSizeSmallScreenHint": "Your screen is small, so text may look tiny. 'Large' is recommended."
 }

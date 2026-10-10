@@ -219,6 +219,26 @@ describe('SettingsTabSections', () => {
     expect(loadedLayouts).not.toBe(savedSlots[0].itemLayouts);
   });
 
+  it('rebuilds the compact cluster at the chosen size', async () => {
+    const settings = cloneSettings();
+    const onUpdate = vi.fn();
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <PresetsTabSections lang="ko" settings={settings} onUpdate={onUpdate} isSectionExpanded={() => true} toggleSection={() => {}} />,
+      );
+    });
+    await act(async () => {
+      getByTestId(container, 'compact-size-select')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      getByTestIdFromDocument('compact-size-select-option-large')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(onUpdate).toHaveBeenCalledWith('general.size', 'large', { persist: false });
+    const itemLayoutsCall = onUpdate.mock.calls.find(call => call[0] === 'itemLayouts');
+    expect(itemLayoutsCall?.[1]['experience.progress'].scale).toBe(1.18);
+  });
+
   it('lets an unanswered slot load confirmation lapse', async () => {
     vi.useFakeTimers();
     try {

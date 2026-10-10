@@ -309,7 +309,7 @@ export function App() {
     enabled: settingsOpen,
     itemLayouts: settings.itemLayouts,
     onRestore: restoreItemLayouts,
-    resetKey: `${settings.general.hudStyle}:${settings.general.compactAnchor}`,
+    resetKey: `${settings.general.hudStyle}:${settings.general.compactAnchor}:${settings.general.size}`,
   });
 
   useWidgetKeyboardNudge({

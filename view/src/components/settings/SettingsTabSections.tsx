@@ -889,6 +889,35 @@ export function PresetsTabSections({
               panelScale={panelScale}
               testId="compact-anchor-select"
             />
+            <SelectRow
+              label={t(lang, 'compactSizeLabel')}
+              value={settings.general.size}
+              options={[
+                { value: 'xsmall', label: t(lang, 'compactSizeXSmall') },
+                { value: 'small', label: t(lang, 'compactSizeSmall') },
+                { value: 'medium', label: t(lang, 'compactSizeMedium') },
+                { value: 'large', label: t(lang, 'compactSizeLarge') },
+              ]}
+              onChange={nextValue => {
+                const size = nextValue as WidgetSettings['general']['size'];
+                const nextItemLayouts = buildItemLayoutsForHudStyle(
+                  { ...settings, general: { ...settings.general, size } },
+                  'compact',
+                );
+                onUpdate('positions', {}, { persist: false });
+                onUpdate('layouts', {}, { persist: false });
+                onUpdate('groupScales', {}, { persist: false });
+                onUpdate('general.size', size, { persist: false });
+                onUpdate('itemLayouts', nextItemLayouts);
+              }}
+              panelScale={panelScale}
+              testId="compact-size-select"
+            />
+            {typeof window !== 'undefined' && window.innerHeight < 900 && settings.general.size !== 'large' && (
+              <p data-compact-size-hint style={{ color: '#e4c07d', fontSize: scalePanelPixels(18, panelScale), margin: `0 0 ${scalePanelPixels(6, panelScale)} 0` }}>
+                {t(lang, 'compactSizeSmallScreenHint')}
+              </p>
+            )}
             <p style={{ color: '#88a4c4', fontSize: scalePanelPixels(18, panelScale), margin: `0 0 ${scalePanelPixels(10, panelScale)} 0` }}>
               {t(lang, 'compactAnchorHint')}
             </p>
