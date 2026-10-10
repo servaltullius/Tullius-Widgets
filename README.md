@@ -2,7 +2,9 @@
 
 Skyrim SE용 전투 스탯 HUD 모드. [Prisma UI](https://www.nexusmods.com/skyrimspecialedition/mods/148718) 기반의 현대적인 웹 UI와 항목별 독립 배치를 제공하며, STB Widgets를 대체할 수 있는 확장형 HUD를 목표로 합니다.
 
-![Tullius Widgets v1.6 HUD](docs/screenshot-widgets.png)
+![Tullius Widgets 컴팩트 HUD (전투 중)](docs/design/compact-hud/combat-1080p-closeup.jpg)
+
+<sub>컴팩트 HUD 전투 화면(1080p). 기존 카드형은 [클래식 스타일](docs/design/compact-hud/classic-unchanged-1080p.jpg)로 계속 쓸 수 있습니다.</sub>
 
 ## Features
 
