@@ -444,17 +444,39 @@ static const char* GetEquippedKind(RE::PlayerCharacter* player, bool leftHand)
     return "other";
 }
 
+static float GetEquippedChargePct(RE::PlayerCharacter* player, bool leftHand)
+{
+    if (!player) return -1.0f;
+    auto* entry = player->GetEquippedEntryData(leftHand);
+    if (!entry || !entry->object || !entry->object->As<RE::TESObjectWEAP>()) return -1.0f;
+    const auto charge = entry->GetEnchantmentCharge();
+    if (!charge || !std::isfinite(*charge)) return -1.0f;
+    return static_cast<float>(std::clamp(*charge, 0.0, 100.0));
+}
+
 static EquippedSnapshot CollectEquippedSnapshot(RE::PlayerCharacter* player)
 {
     auto* selectedVoice = GetSelectedVoiceForm(player);
-    return EquippedSnapshot{
+    EquippedSnapshot snapshot{
         GetEquippedName(player, false),
         GetEquippedName(player, true),
         GetEquippedKind(player, false),
-        GetEquippedKind(player, true),
-        GetSelectedVoiceName(player),
-        GetSelectedVoiceType(selectedVoice)
+        GetEquippedKind(player, true)
     };
+    snapshot.voice = GetSelectedVoiceName(player);
+    snapshot.voiceType = GetSelectedVoiceType(selectedVoice);
+    if (!player) return snapshot;
+
+    snapshot.rightHandChargePct = GetEquippedChargePct(player, false);
+    snapshot.leftHandChargePct = GetEquippedChargePct(player, true);
+    if (auto* ammo = player->GetCurrentAmmo()) {
+        const char* name = ammo->GetName();
+        snapshot.ammoName = name ? name : "";
+        snapshot.ammoCount = (std::max)(0, player->GetItemCount(ammo));
+    }
+    const float cooldown = player->GetVoiceRecoveryTime();
+    snapshot.voiceCooldownSec = std::isfinite(cooldown) && cooldown > 0.0f ? cooldown : 0.0f;
+    return snapshot;
 }
 
 static MovementSnapshot CollectMovementSnapshot(RE::PlayerCharacter* player)

@@ -204,6 +204,8 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs }: Compact
           kind={stats.equipped.rightHandKind}
           value={stats.offense.rightHandDamage}
           nameDisplay={settings.equipped.nameDisplay}
+          chargePct={stats.equipped.rightHandChargePct}
+          ammoCount={stats.equipped.ammoCount}
         />
       );
     case 'equipped.leftHand':
@@ -215,6 +217,8 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs }: Compact
           kind={stats.equipped.leftHandKind}
           value={stats.offense.leftHandDamage}
           nameDisplay={settings.equipped.nameDisplay}
+          chargePct={stats.equipped.leftHandChargePct}
+          ammoCount={stats.equipped.ammoCount}
         />
       );
     case 'equipped.voice':
@@ -226,6 +230,7 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs }: Compact
           kind={stats.equipped.voice ? 'other' : 'empty'}
           nameDisplay={settings.equipped.nameDisplay}
           accent={stats.equipped.voiceType === 'power' ? '#9cc8e8' : COLORS.gold}
+          cooldownSec={stats.equipped.voiceCooldownSec}
         />
       );
     case 'time.game':

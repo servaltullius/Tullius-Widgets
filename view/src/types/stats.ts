@@ -33,6 +33,14 @@ export interface Equipped {
   leftHand: string;
   rightHandKind: EquippedItemKind;
   leftHandKind: EquippedItemKind;
+  /** Enchantment charge in percent, or null when the hand item is not enchanted. */
+  rightHandChargePct: number | null;
+  leftHandChargePct: number | null;
+  ammoName: string;
+  /** Equipped arrows/bolts in the inventory, or null when no ammo is equipped. */
+  ammoCount: number | null;
+  /** Seconds until the selected shout can be used again. */
+  voiceCooldownSec: number;
   voice: string;
   voiceType: EquippedVoiceType;
 }

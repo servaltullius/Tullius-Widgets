@@ -242,9 +242,42 @@ interface CompactEquipSlotProps {
   value?: number;
   nameDisplay: EquipNameDisplay;
   accent?: string;
+  chargePct?: number | null;
+  ammoCount?: number | null;
+  cooldownSec?: number;
 }
 
 const NAME_FLASH_MS = 3000;
+const LOW_CHARGE_PCT = 20;
+
+// The plugin reports the remaining shout cooldown with each stats push; count down locally
+// between pushes and remember the starting value to draw the recovery fill.
+function useCooldown(cooldownSec: number): { remaining: number; fraction: number } {
+  const [state, setState] = useState(() => ({ receivedAt: Date.now(), value: cooldownSec, total: cooldownSec }));
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setState(prev => {
+        if (prev.value === cooldownSec) return prev;
+        const now = Date.now();
+        const started = cooldownSec > prev.value - (now - prev.receivedAt) / 1000 + 0.5;
+        return { receivedAt: now, value: cooldownSec, total: started || prev.total <= 0 ? cooldownSec : prev.total };
+      });
+      setNowMs(Date.now());
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [cooldownSec]);
+
+  const remaining = Math.max(0, state.value - (nowMs - state.receivedAt) / 1000);
+  useEffect(() => {
+    if (remaining <= 0) return;
+    const timer = window.setTimeout(() => setNowMs(Date.now()), 250);
+    return () => window.clearTimeout(timer);
+  }, [nowMs, remaining]);
+
+  return { remaining, fraction: state.total > 0 ? Math.min(1, remaining / state.total) : 0 };
+}
 
 export const CompactEquipSlot = memo(function CompactEquipSlot({
   slotKey,
@@ -254,7 +287,12 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
   value,
   nameDisplay,
   accent,
+  chargePct = null,
+  ammoCount = null,
+  cooldownSec = 0,
 }: CompactEquipSlotProps) {
+  const cooldown = useCooldown(cooldownSec);
+  const coolingDown = cooldown.remaining > 0.05;
   const [flashName, setFlashName] = useState<string | null>(null);
   const previousNameRef = useRef(name);
 
@@ -275,6 +313,8 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
   const visibleName = nameDisplay === 'always' ? (name || emptyLabel) : nameDisplay === 'onChange' ? flashName : null;
   const highlighted = nameDisplay === 'onChange' && flashName !== null;
   const showValue = value !== undefined && value > 0 && !isEmpty;
+  const showCharge = chargePct !== null && !isEmpty;
+  const showAmmo = ammoCount !== null && (kind === 'bow' || kind === 'crossbow');
 
   return (
     <div data-compact-item="equip-slot" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, width: 54 }}>
@@ -303,14 +343,35 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
           <Icon
             size={26}
             strokeWidth={1.7}
-            color={isEmpty ? 'rgba(236, 231, 219, 0.35)' : 'var(--c-text)'}
+            color={isEmpty || coolingDown ? 'rgba(236, 231, 219, 0.35)' : 'var(--c-text)'}
             aria-hidden="true"
           />
         )}
+        {coolingDown && (
+          <>
+            <div
+              data-compact-cooldown
+              style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: `${cooldown.fraction * 100}%`, background: 'rgba(8, 8, 8, 0.5)', borderRadius: '0 0 3px 3px' }}
+            />
+            <span className="tw-compact-value" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700 }}>
+              {Math.ceil(cooldown.remaining)}
+            </span>
+          </>
+        )}
+        {showAmmo && (
+          <span className="tw-compact-value" data-compact-ammo style={{ position: 'absolute', right: 5, top: 3, fontSize: 10, fontWeight: 700, color: ammoCount === 0 ? 'var(--c-danger)' : 'var(--c-text-2)' }}>
+            {ammoCount}
+          </span>
+        )}
         {showValue && (
-          <span className="tw-compact-value" style={{ position: 'absolute', right: 5, bottom: 3, fontSize: 12, fontWeight: 700 }}>
+          <span className="tw-compact-value" style={{ position: 'absolute', right: 5, bottom: showCharge ? 6 : 3, fontSize: 12, fontWeight: 700 }}>
             {Math.round(value)}
           </span>
+        )}
+        {showCharge && (
+          <div data-compact-charge style={{ position: 'absolute', left: 4, right: 4, bottom: 3, height: 2, background: 'rgba(236, 231, 219, 0.16)' }}>
+            <div style={{ width: `${chargePct}%`, height: 2, background: chargePct < LOW_CHARGE_PCT ? 'var(--c-warn)' : '#a991e8' }} />
+          </div>
         )}
       </div>
       <span

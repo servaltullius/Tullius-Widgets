@@ -75,6 +75,11 @@ struct EquippedSnapshot {
     std::string leftHand{};
     std::string rightHandKind{"empty"};
     std::string leftHandKind{"empty"};
+    float rightHandChargePct{-1.0f};  // -1: not enchanted
+    float leftHandChargePct{-1.0f};
+    std::string ammoName{};
+    std::int32_t ammoCount{-1};  // -1: no ammo equipped
+    float voiceCooldownSec{0.0f};
     std::string voice{};
     std::string voiceType{"empty"};
 };

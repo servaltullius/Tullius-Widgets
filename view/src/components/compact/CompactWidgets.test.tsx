@@ -74,6 +74,31 @@ describe('CompactWidgets', () => {
     expect(nameEl().style.visibility).toBe('hidden');
   });
 
+  it('shows enchantment charge, ammo for ranged weapons and the shout cooldown', () => {
+    vi.useFakeTimers();
+    render(<CompactEquipSlot slotKey="R" name="황혼의 활" emptyLabel="-" kind="bow" value={40} nameDisplay="never" chargePct={15} ammoCount={39} />);
+    expect(container.querySelector('[data-compact-ammo]')?.textContent).toBe('39');
+    const fill = container.querySelector('[data-compact-charge] > div') as HTMLElement;
+    expect(fill.style.width).toBe('15%');
+
+    render(<CompactEquipSlot slotKey="R" name="철 검" emptyLabel="-" kind="sword" value={9} nameDisplay="never" chargePct={null} ammoCount={39} />);
+    expect(container.querySelector('[data-compact-ammo]')).toBeNull();
+    expect(container.querySelector('[data-compact-charge]')).toBeNull();
+
+    act(() => root?.unmount());
+    root = null;
+    render(<CompactEquipSlot slotKey="Z" name="불사의 외침" emptyLabel="-" kind="other" nameDisplay="never" cooldownSec={0} />);
+    expect(container.querySelector('[data-compact-cooldown]')).toBeNull();
+    render(<CompactEquipSlot slotKey="Z" name="불사의 외침" emptyLabel="-" kind="other" nameDisplay="never" cooldownSec={20} />);
+    act(() => { vi.advanceTimersByTime(10); });
+    expect(container.querySelector('[data-compact-cooldown]')).not.toBeNull();
+    expect(container.textContent).toContain('20');
+    for (let step = 0; step < 84; step++) {
+      act(() => { vi.advanceTimersByTime(250); });
+    }
+    expect(container.querySelector('[data-compact-cooldown]')).toBeNull();
+  });
+
   it('always shows names in always mode and the empty label for empty hands', () => {
     render(<CompactEquipSlot slotKey="L" name="" emptyLabel="(비어 있음)" kind="empty" nameDisplay="always" />);
     expect(container.textContent).toContain('(비어 있음)');

@@ -113,6 +113,40 @@ describe('useGameStats', () => {
     });
   });
 
+  it('normalizes hand kinds, enchantment charge, ammo and shout cooldown', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onStats={stats => { latest = stats; }} />);
+    });
+
+    await act(async () => {
+      window.updateStats?.(JSON.stringify(createStatsPayload({
+        equipped: {
+          rightHand: 'Dawnguard Rune Axe', leftHand: '', rightHandKind: 'waraxe', leftHandKind: 'bogus',
+          rightHandChargePct: 37.5, leftHandChargePct: -1, ammoName: '', ammoCount: -1, voiceCooldownSec: 12.5,
+          voice: 'Fire Breath', voiceType: 'shout',
+        },
+      })));
+    });
+
+    expect(latest!.equipped).toMatchObject({
+      rightHandKind: 'waraxe',
+      leftHandKind: 'empty',
+      rightHandChargePct: 37.5,
+      leftHandChargePct: null,
+      ammoCount: null,
+      voiceCooldownSec: 12.5,
+    });
+
+    await act(async () => {
+      window.updateStats?.(JSON.stringify(createStatsPayload({
+        seq: 999,
+        equipped: { rightHand: 'Old Bow', leftHand: 'Mystery', voice: '', voiceType: 'empty' },
+      })));
+    });
+    expect(latest!.equipped).toMatchObject({ rightHandKind: 'other', leftHandKind: 'other', ammoCount: null, voiceCooldownSec: 0 });
+  });
+
   it('ignores out-of-order stats payload by sequence number', async () => {
     await act(async () => {
       root = createRoot(container);

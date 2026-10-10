@@ -51,6 +51,12 @@ function readSchemaVersion(value: unknown): number | null {
   return schemaVersion;
 }
 
+// Negative or missing means "not applicable" (e.g. an unenchanted weapon).
+function readOptionalPercent(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return null;
+  return Math.min(100, value);
+}
+
 // Older plugins do not send a hand kind; fall back to what the item name alone can tell us.
 function readEquippedItemKind(value: unknown, name: string): EquippedItemKind {
   if (typeof value === 'string' && (EQUIPPED_ITEM_KINDS as readonly string[]).includes(value)) {
@@ -333,6 +339,13 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
         leftHand,
         rightHandKind: readEquippedItemKind(rawEquipped?.rightHandKind, rightHand),
         leftHandKind: readEquippedItemKind(rawEquipped?.leftHandKind, leftHand),
+        rightHandChargePct: readOptionalPercent(rawEquipped?.rightHandChargePct),
+        leftHandChargePct: readOptionalPercent(rawEquipped?.leftHandChargePct),
+        ammoName: readText(rawEquipped?.ammoName, '', true),
+        ammoCount: typeof rawEquipped?.ammoCount === 'number' && Number.isFinite(rawEquipped.ammoCount) && rawEquipped.ammoCount >= 0
+          ? Math.trunc(rawEquipped.ammoCount)
+          : null,
+        voiceCooldownSec: readNumber(rawEquipped?.voiceCooldownSec, 0, 0, 100000),
         voice: readText(rawEquipped?.voice, fallback.equipped.voice, true),
         voiceType: readEquippedVoiceType(rawEquipped?.voiceType, fallback.equipped.voiceType),
       };
