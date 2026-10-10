@@ -126,5 +126,6 @@
   "equipNameDisplayLabel": "Equipment names",
   "equipNameAlways": "Always",
   "equipNameOnChange": "On change (3s)",
-  "equipNameNever": "Hidden"
+  "equipNameNever": "Hidden",
+  "compactXpLabel": "XP"
 }

@@ -161,6 +161,7 @@ export const bundledTranslations = {
     equipNameAlways: '항상',
     equipNameOnChange: '바꿀 때만 (3초)',
     equipNameNever: '숨김',
+    compactXpLabel: '경험치',
   },
   en: {
     title: 'Tullius Widgets',
@@ -321,6 +322,7 @@ export const bundledTranslations = {
     equipNameAlways: 'Always',
     equipNameOnChange: 'On change (3s)',
     equipNameNever: 'Hidden',
+    compactXpLabel: 'XP',
   },
 } as const;
 

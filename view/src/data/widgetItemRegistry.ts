@@ -82,7 +82,7 @@ const NORDIC_DEFAULT_ITEM_POSITIONS: Record<string, GroupPosition> = {
 
 // Compact HUD: a bottom-left cluster that sits just above the vanilla/TrueHUD resource bars.
 const COMPACT_DEFAULT_ITEM_POSITIONS: Record<string, GroupPosition> = {
-  'timedEffects.list': { x: 34, y: 668 },
+  'timedEffects.list': { x: 482, y: 828 },
   'player.gold': { x: 34, y: 830 },
   'player.carryWeight': { x: 112, y: 830 },
   'time.game': { x: 232, y: 830 },
@@ -93,12 +93,12 @@ const COMPACT_DEFAULT_ITEM_POSITIONS: Record<string, GroupPosition> = {
   'resistance.shock': { x: 226, y: 860 },
   'resistance.poison': { x: 290, y: 860 },
   'resistance.disease': { x: 354, y: 860 },
-  'defense.armorRating': { x: 34, y: 893 },
-  'defense.damageReduction': { x: 96, y: 893 },
-  'offense.rightHandDamage': { x: 162, y: 893 },
-  'offense.leftHandDamage': { x: 216, y: 893 },
-  'offense.critChance': { x: 270, y: 893 },
-  'movement.speedMult': { x: 334, y: 893 },
+  'defense.armorRating': { x: 34, y: 895 },
+  'defense.damageReduction': { x: 98, y: 895 },
+  'offense.critChance': { x: 162, y: 895 },
+  'movement.speedMult': { x: 226, y: 895 },
+  'offense.rightHandDamage': { x: 290, y: 895 },
+  'offense.leftHandDamage': { x: 354, y: 895 },
   'experience.progress': { x: 34, y: 932 },
   'equipped.rightHand': { x: 186, y: 926 },
   'equipped.leftHand': { x: 270, y: 926 },

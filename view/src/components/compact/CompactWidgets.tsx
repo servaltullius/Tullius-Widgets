@@ -50,11 +50,13 @@ export const CompactStat = memo(function CompactStat({
     <div title={title} data-compact-item="stat" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
       {Icon && <Icon size={iconSize} strokeWidth={2.1} color={iconColor} aria-hidden="true" style={{ flex: 'none' }} />}
       {label && <span className="tw-compact-label">{label}</span>}
-      <span className="tw-compact-value" data-tone={tone}>
-        {value}
-        {unit && <span className="tw-compact-unit">{unit}</span>}
-      </span>
-      {sub && <span className="tw-compact-sub">{sub}</span>}
+      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+        <span className="tw-compact-value" data-tone={tone}>
+          {value}
+          {unit && <span className="tw-compact-unit">{unit}</span>}
+        </span>
+        {sub && <span className="tw-compact-sub" style={{ marginTop: 2 }}>{sub}</span>}
+      </div>
     </div>
   );
 });
@@ -141,7 +143,7 @@ interface CompactExperienceRingProps {
   level: number;
   currentXp: number;
   totalXp: number;
-  levelLabel: string;
+  xpLabel: string;
 }
 
 const RING_SIZE = 50;
@@ -152,7 +154,7 @@ export const CompactExperienceRing = memo(function CompactExperienceRing({
   level,
   currentXp,
   totalXp,
-  levelLabel,
+  xpLabel,
 }: CompactExperienceRingProps) {
   const pct = totalXp > 0 ? Math.max(0, Math.min(1, currentXp / totalXp)) : 0;
   const dash = Math.max(0.001, RING_CIRCUMFERENCE * pct);
@@ -181,7 +183,7 @@ export const CompactExperienceRing = memo(function CompactExperienceRing({
         </span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span className="tw-compact-label">{levelLabel} {level}</span>
+        <span className="tw-compact-label">{xpLabel} {Math.floor(pct * 100)}%</span>
         <span className="tw-compact-value" style={{ fontSize: 13 }}>
           {Math.round(currentXp).toLocaleString('en-US')}
           <span className="tw-compact-unit"> / {Math.round(totalXp).toLocaleString('en-US')}</span>
@@ -216,6 +218,18 @@ const EQUIP_KIND_ICONS: Record<EquippedItemKind, LucideIcon> = {
 };
 
 const VOICE_ICON = standardStatIconMap.voice;
+
+// lucide has no dagger; a short blade with a cross guard keeps it distinct from the sword.
+function DaggerIcon({ size, color, strokeWidth }: { size: number; color: string; strokeWidth: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M17.5 3.5l3 3-8 8-3-3z" />
+      <path d="M8 11l5 5" />
+      <path d="M10.5 13.5l-5 5" />
+      <path d="M4 20l1.5-1.5" />
+    </svg>
+  );
+}
 
 export type EquipSlotKey = 'R' | 'L' | 'Z';
 export type EquipNameDisplay = 'always' | 'onChange' | 'never';
@@ -283,13 +297,14 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
         <span className="tw-compact-label" style={{ position: 'absolute', left: 5, top: 3, fontSize: 10, fontWeight: 700, color: accent ?? 'var(--c-text-2)' }}>
           {slotKey}
         </span>
-        {Icon && (
+        {slotKey !== 'Z' && kind === 'dagger' ? (
+          <DaggerIcon size={26} strokeWidth={1.7} color="var(--c-text)" />
+        ) : Icon && (
           <Icon
             size={26}
             strokeWidth={1.7}
             color={isEmpty ? 'rgba(236, 231, 219, 0.35)' : 'var(--c-text)'}
             aria-hidden="true"
-            style={kind === 'dagger' ? { transform: 'scale(0.82)' } : undefined}
           />
         )}
         {showValue && (

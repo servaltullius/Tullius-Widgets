@@ -97,7 +97,7 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs }: Compact
           level={stats.playerInfo.level}
           currentXp={currentXp}
           totalXp={totalXpForNextLevel}
-          levelLabel={t(lang, 'level')}
+          xpLabel={t(lang, 'compactXpLabel')}
         />
       );
     }

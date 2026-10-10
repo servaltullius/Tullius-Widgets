@@ -32,8 +32,9 @@ export const defaultSettings: WidgetSettings = {
     damageReduction: true,
   },
   offense: {
-    rightHandDamage: true,
-    leftHandDamage: true,
+    // The compact equipment slots already show per-hand damage.
+    rightHandDamage: false,
+    leftHandDamage: false,
     critChance: true,
   },
   equipped: {
