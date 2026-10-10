@@ -68,6 +68,7 @@ export interface WidgetSettings {
     rightHand: boolean;
     leftHand: boolean;
     voice: boolean;
+    potion: boolean;
     nameDisplay: EquipNameDisplay;
   };
   timedEffects: {

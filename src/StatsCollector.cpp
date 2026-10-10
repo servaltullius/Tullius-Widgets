@@ -511,6 +511,27 @@ static const char* GetEquippedKind(RE::PlayerCharacter* player, bool leftHand)
     return "other";
 }
 
+static std::atomic<std::uint32_t> g_lastPotionFormId{0};
+
+static const char* GetPotionKind(const RE::AlchemyItem* potion)
+{
+    const auto* effect = potion ? potion->GetCostliestEffectItem() : nullptr;
+    const auto* base = effect ? effect->baseEffect : nullptr;
+    if (!base) return "other";
+    switch (base->data.primaryAV) {
+    case RE::ActorValue::kHealth:
+    case RE::ActorValue::kHealRate:
+    case RE::ActorValue::kHealRateMult: return "health";
+    case RE::ActorValue::kMagicka:
+    case RE::ActorValue::kMagickaRate:
+    case RE::ActorValue::kMagickaRateMult: return "magicka";
+    case RE::ActorValue::kStamina:
+    case RE::ActorValue::kStaminaRate:
+    case RE::ActorValue::kStaminaRateMult: return "stamina";
+    default: return "other";
+    }
+}
+
 static float GetEquippedChargePct(RE::PlayerCharacter* player, bool leftHand)
 {
     if (!player) return -1.0f;
@@ -540,6 +561,14 @@ static EquippedSnapshot CollectEquippedSnapshot(RE::PlayerCharacter* player)
         const char* name = ammo->GetName();
         snapshot.ammoName = name ? name : "";
         snapshot.ammoCount = (std::max)(0, player->GetItemCount(ammo));
+    }
+    if (const auto potionId = g_lastPotionFormId.load(std::memory_order_acquire); potionId != 0) {
+        if (auto* potion = RE::TESForm::LookupByID<RE::AlchemyItem>(potionId)) {
+            const char* name = potion->GetName();
+            snapshot.potionName = name ? name : "";
+            snapshot.potionCount = (std::max)(0, player->GetItemCount(potion));
+            snapshot.potionKind = GetPotionKind(potion);
+        }
     }
     const float cooldown = player->GetVoiceRecoveryTime();
     snapshot.voiceCooldownSec = std::isfinite(cooldown) && cooldown > 0.0f ? cooldown : 0.0f;
@@ -655,6 +684,11 @@ StatsPayload CollectStatsPayload(RE::PlayerCharacter* player)
 }  // namespace TulliusWidgets::StatsCollectorInternal
 
 namespace TulliusWidgets {
+
+void StatsCollector::NoteConsumedPotion(std::uint32_t formId)
+{
+    StatsCollectorInternal::g_lastPotionFormId.store(formId, std::memory_order_release);
+}
 
 std::string StatsCollector::CollectStats()
 {

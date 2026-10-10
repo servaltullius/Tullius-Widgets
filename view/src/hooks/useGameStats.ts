@@ -362,6 +362,13 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
           ? Math.trunc(rawEquipped.ammoCount)
           : null,
         voiceCooldownSec: readNumber(rawEquipped?.voiceCooldownSec, 0, 0, 100000),
+        potionName: readText(rawEquipped?.potionName, '', true),
+        potionCount: typeof rawEquipped?.potionCount === 'number' && Number.isFinite(rawEquipped.potionCount) && rawEquipped.potionCount >= 0
+          ? Math.trunc(rawEquipped.potionCount)
+          : null,
+        potionKind: rawEquipped?.potionKind === 'health' || rawEquipped?.potionKind === 'magicka' || rawEquipped?.potionKind === 'stamina'
+          ? rawEquipped.potionKind
+          : 'other',
         voice: readText(rawEquipped?.voice, fallback.equipped.voice, true),
         voiceType: readEquippedVoiceType(rawEquipped?.voiceType, fallback.equipped.voiceType),
       };

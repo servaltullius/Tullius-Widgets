@@ -402,6 +402,11 @@ export function CombatTabSections({
       fallback: settings.equipped.voice,
       label: t(lang, 'voiceEquipped'),
     },
+    {
+      itemId: 'equipped.potion',
+      fallback: settings.equipped.potion,
+      label: t(lang, 'equippedPotion'),
+    },
   ];
   const movementToggles: ItemVisibilityToggleConfig[] = [
     {

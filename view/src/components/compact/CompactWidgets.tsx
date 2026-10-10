@@ -3,6 +3,7 @@ import {
   Axe,
   BowArrow,
   Crosshair,
+  FlaskConical,
   Flame,
   Hammer,
   Hand,
@@ -18,7 +19,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { standardStatIconMap } from '../../data/standardStatIcons';
-import type { EquippedItemKind } from '../../types/stats';
+import type { EquippedItemKind, PotionKind } from '../../types/stats';
 
 export type CompactTone = 'default' | 'warning' | 'danger' | 'capped' | 'muted';
 
@@ -285,7 +286,14 @@ function DaggerIcon({ size, color, strokeWidth }: { size: number; color: string;
   );
 }
 
-export type EquipSlotKey = 'R' | 'L' | 'Z';
+export type EquipSlotKey = 'R' | 'L' | 'Z' | 'P';
+
+const POTION_COLORS: Record<PotionKind, string> = {
+  health: '#d8675d',
+  magicka: '#6f9be0',
+  stamina: '#7fbf74',
+  other: '#c3bdb0',
+};
 export type EquipNameDisplay = 'always' | 'onChange' | 'never';
 
 interface CompactEquipSlotProps {
@@ -299,6 +307,8 @@ interface CompactEquipSlotProps {
   chargePct?: number | null;
   ammoCount?: number | null;
   cooldownSec?: number;
+  /** Potion slot: tints the flask and always shows the remaining count (even 0). */
+  potionKind?: PotionKind;
 }
 
 const NAME_FLASH_MS = 3000;
@@ -344,6 +354,7 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
   chargePct = null,
   ammoCount = null,
   cooldownSec = 0,
+  potionKind,
 }: CompactEquipSlotProps) {
   const cooldown = useCooldown(cooldownSec);
   const coolingDown = cooldown.remaining > 0.05;
@@ -366,7 +377,8 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
   const Icon = slotKey === 'Z' ? VOICE_ICON : EQUIP_KIND_ICONS[kind] ?? EQUIP_KIND_ICONS.other;
   const visibleName = nameDisplay === 'always' ? (name || emptyLabel) : nameDisplay === 'onChange' ? flashName : null;
   const highlighted = nameDisplay === 'onChange' && flashName !== null;
-  const showValue = value !== undefined && value > 0 && !isEmpty;
+  const isPotion = slotKey === 'P';
+  const showValue = value !== undefined && !isEmpty && (value > 0 || isPotion);
   const showCharge = chargePct !== null && !isEmpty;
   const showAmmo = ammoCount !== null && (kind === 'bow' || kind === 'crossbow');
 
@@ -391,7 +403,14 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
         <span className="tw-compact-label" style={{ position: 'absolute', left: 5, top: 3, fontSize: 10, fontWeight: 700, color: accent ?? 'var(--c-text-2)' }}>
           {slotKey}
         </span>
-        {slotKey !== 'Z' && kind === 'dagger' ? (
+        {isPotion ? (
+          <FlaskConical
+            size={24}
+            strokeWidth={1.8}
+            color={isEmpty ? 'rgba(236, 231, 219, 0.35)' : POTION_COLORS[potionKind ?? 'other']}
+            aria-hidden="true"
+          />
+        ) : slotKey !== 'Z' && kind === 'dagger' ? (
           <DaggerIcon size={26} strokeWidth={1.7} color="var(--c-text)" />
         ) : Icon && (
           <Icon
@@ -418,8 +437,12 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
           </span>
         )}
         {showValue && (
-          <span className="tw-compact-value" style={{ position: 'absolute', right: 5, bottom: showCharge ? 6 : 3, fontSize: 12, fontWeight: 700 }}>
-            {Math.round(value)}
+          <span
+            className="tw-compact-value"
+            data-tone={isPotion && value === 0 ? 'danger' : 'default'}
+            style={{ position: 'absolute', right: 5, bottom: showCharge ? 6 : 3, fontSize: 12, fontWeight: 700 }}
+          >
+            {isPotion ? `\u00d7${Math.round(value)}` : Math.round(value)}
           </span>
         )}
         {showCharge && (

@@ -83,6 +83,9 @@ struct EquippedSnapshot {
     std::string ammoName{};
     std::int32_t ammoCount{-1};  // -1: no ammo equipped
     float voiceCooldownSec{0.0f};
+    std::string potionName{};
+    std::int32_t potionCount{-1};  // -1: no potion used yet this session
+    std::string potionKind{"other"};  // health | magicka | stamina | other
     std::string voice{};
     std::string voiceType{"empty"};
 };

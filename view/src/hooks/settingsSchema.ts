@@ -327,6 +327,7 @@ export function mergeWithDefaults(
     // Fields missing from pre-compact saves keep the defaults those versions shipped with.
     merged.resistances.disease = false;
     merged.equipped.voice = false;
+    merged.equipped.potion = false;
     merged.offense.rightHandDamage = true;
     merged.offense.leftHandDamage = true;
     merged.time.gameDisplay = 'dateTime';

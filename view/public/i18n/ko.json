@@ -139,5 +139,6 @@
   "weatherRain": "비",
   "weatherSnow": "눈",
   "weatherIndoor": "실내",
-  "weatherUnknown": "-"
+  "weatherUnknown": "-",
+  "equippedPotion": "최근 마신 물약"
 }

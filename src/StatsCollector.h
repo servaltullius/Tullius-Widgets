@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 namespace TulliusWidgets {
@@ -7,6 +8,8 @@ namespace TulliusWidgets {
 class StatsCollector {
 public:
     static std::string CollectStats();
+    // Remembers the last potion the player drank so the HUD can show how many are left.
+    static void NoteConsumedPotion(std::uint32_t formId);
 };
 
 }  // namespace TulliusWidgets

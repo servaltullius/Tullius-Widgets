@@ -661,6 +661,20 @@ export function HudWidgetItems({
                 remountValueOnChange
               />
             ));
+          case 'equipped.potion':
+            return renderEditableItem((
+              <StatWidget
+                {...statIconProps}
+                icon="potion"
+                iconColor={stats.equipped.potionKind === 'magicka' ? '#4090e8' : stats.equipped.potionKind === 'stamina' ? '#40c840' : '#e86060'}
+                value={stats.equipped.potionCount === null
+                  ? t(lang, 'equippedEmpty')
+                  : `${stats.equipped.potionName} \u00d7${stats.equipped.potionCount}`}
+                visible
+                prominence="secondary"
+                valueTone={stats.equipped.potionCount === 0 ? 'danger' : 'default'}
+              />
+            ));
           case 'time.game':
             return renderEditableItem((
               <StatWidget

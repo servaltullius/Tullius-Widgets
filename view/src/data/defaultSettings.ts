@@ -41,6 +41,7 @@ export const defaultSettings: WidgetSettings = {
     rightHand: true,
     leftHand: true,
     voice: true,
+    potion: true,
     nameDisplay: 'always',
   },
   timedEffects: {

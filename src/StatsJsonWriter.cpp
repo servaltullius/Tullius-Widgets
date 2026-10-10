@@ -230,6 +230,15 @@ void StatsJsonWriter::AppendEquipped(const StatsPayload& payload)
     json_ += "\"voiceCooldownSec\":";
     AppendFloat(payload.equipped.voiceCooldownSec);
     json_ += ',';
+    json_ += "\"potionName\":";
+    AppendEscapedString(payload.equipped.potionName);
+    json_ += ',';
+    json_ += "\"potionCount\":";
+    json_ += std::to_string(payload.equipped.potionCount);
+    json_ += ',';
+    json_ += "\"potionKind\":";
+    AppendEscapedString(payload.equipped.potionKind);
+    json_ += ',';
     json_ += "\"voice\":";
     AppendEscapedString(payload.equipped.voice);
     json_ += ',';

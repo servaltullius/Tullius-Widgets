@@ -27,6 +27,7 @@ export const EQUIPPED_ITEM_KINDS = [
 ] as const;
 
 export type EquippedItemKind = typeof EQUIPPED_ITEM_KINDS[number];
+export type PotionKind = 'health' | 'magicka' | 'stamina' | 'other';
 
 export interface Equipped {
   rightHand: string;
@@ -41,6 +42,10 @@ export interface Equipped {
   ammoCount: number | null;
   /** Seconds until the selected shout can be used again. */
   voiceCooldownSec: number;
+  /** Last potion the player drank this session and how many are left (null: none yet). */
+  potionName: string;
+  potionCount: number | null;
+  potionKind: PotionKind;
   voice: string;
   voiceType: EquippedVoiceType;
 }

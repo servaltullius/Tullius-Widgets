@@ -174,6 +174,7 @@ export const bundledTranslations = {
     weatherSnow: '눈',
     weatherIndoor: '실내',
     weatherUnknown: '-',
+    equippedPotion: '최근 마신 물약',
   },
   en: {
     title: 'Tullius Widgets',
@@ -347,6 +348,7 @@ export const bundledTranslations = {
     weatherSnow: 'Snow',
     weatherIndoor: 'Indoors',
     weatherUnknown: '-',
+    equippedPotion: 'Last potion',
   },
 } as const;
 

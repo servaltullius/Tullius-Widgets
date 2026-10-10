@@ -242,6 +242,18 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs }: Compact
           cooldownSec={stats.equipped.voiceCooldownSec}
         />
       );
+    case 'equipped.potion':
+      return (
+        <CompactEquipSlot
+          slotKey="P"
+          name={stats.equipped.potionCount === null ? '' : stats.equipped.potionName}
+          emptyLabel={t(lang, 'equippedEmpty')}
+          kind={stats.equipped.potionCount === null ? 'empty' : 'other'}
+          value={stats.equipped.potionCount ?? undefined}
+          nameDisplay={settings.equipped.nameDisplay}
+          potionKind={stats.equipped.potionKind}
+        />
+      );
     case 'time.game':
       return (
         <CompactStat

@@ -121,6 +121,12 @@ describe('CompactWidgets', () => {
     expect(container.querySelector('[data-compact-delta]')?.textContent).toBe('+1.3M');
   });
 
+  it('shows the remaining count on the potion slot, including zero', () => {
+    render(<CompactEquipSlot slotKey="P" name="체력 회복 물약" emptyLabel="-" kind="other" value={0} nameDisplay="always" potionKind="health" />);
+    expect(container.textContent).toContain('\u00d70');
+    expect(container.querySelector('[data-tone="danger"]')).not.toBeNull();
+  });
+
   it('always shows names in always mode and the empty label for empty hands', () => {
     render(<CompactEquipSlot slotKey="L" name="" emptyLabel="(비어 있음)" kind="empty" nameDisplay="always" />);
     expect(container.textContent).toContain('(비어 있음)');

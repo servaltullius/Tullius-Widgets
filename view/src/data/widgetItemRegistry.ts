@@ -76,6 +76,7 @@ const NORDIC_DEFAULT_ITEM_POSITIONS: Record<string, GroupPosition> = {
   'equipped.rightHand': { x: 1480, y: 510 },
   'equipped.leftHand': { x: 1700, y: 510 },
   'equipped.voice': { x: 1480, y: 570 },
+  'equipped.potion': { x: 1700, y: 570 },
   'time.game': { x: 1480, y: 205 },
   'time.real': { x: 1700, y: 205 },
   'time.weather': { x: 1760, y: 145 },
@@ -108,6 +109,7 @@ const COMPACT_DEFAULT_ITEM_POSITIONS: Record<string, GroupPosition> = {
   'equipped.rightHand': { x: 222, y: 892 },
   'equipped.leftHand': { x: 306, y: 892 },
   'equipped.voice': { x: 390, y: 892 },
+  'equipped.potion': { x: 474, y: 892 },
   'timedEffects.list': { x: 576, y: 790 },
   'player.level': { x: 576, y: 724 },
   'player.health': { x: 34, y: 724 },
@@ -417,6 +419,16 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'time', order: 2 },
+  },
+  {
+    id: 'equipped.potion',
+    rendererKind: 'stat',
+    legacyGroupId: 'equipped',
+    visibilityPath: 'equipped.potion',
+    labelKey: 'equippedPotion',
+    minScale: DEFAULT_MIN_SCALE,
+    maxScale: DEFAULT_MAX_SCALE,
+    defaultPlacementHint: { groupId: 'equipped', order: 3 },
   },
 ];
 
