@@ -81,6 +81,7 @@ const NORDIC_DEFAULT_ITEM_POSITIONS: Record<string, GroupPosition> = {
   'time.game': { x: 1480, y: 205 },
   'time.real': { x: 1700, y: 205 },
   'time.weather': { x: 1760, y: 145 },
+  'time.playtime': { x: 1480, y: 690 },
   'movement.speedMult': { x: 1760, y: 390 },
   'timedEffects.list': { x: 1100, y: 60 },
 };
@@ -106,6 +107,7 @@ const COMPACT_DEFAULT_ITEM_POSITIONS: Record<string, GroupPosition> = {
   'time.game': { x: 272, y: 858 },
   'time.real': { x: 378, y: 858 },
   'time.weather': { x: 484, y: 858 },
+  'time.playtime': { x: 272, y: 760 },
   'experience.progress': { x: 34, y: 898 },
   'equipped.rightHand': { x: 222, y: 892 },
   'equipped.leftHand': { x: 306, y: 892 },
@@ -159,7 +161,7 @@ function getCompactAnchorOffset(anchor: CompactAnchor | undefined, scale: number
 export const ITEM_SHOW_WHEN_VALUES: readonly ItemShowWhen[] = ['always', 'combat', 'change', 'combatOrChange'];
 
 // Clocks tick constantly and never count as a change, so change-driven policies make no sense.
-const CHANGELESS_ITEMS = new Set(['time.game', 'time.real']);
+const CHANGELESS_ITEMS = new Set(['time.game', 'time.real', 'time.playtime']);
 
 export function getItemShowWhenOptions(itemId: string): readonly ItemShowWhen[] {
   return CHANGELESS_ITEMS.has(itemId) ? ['always', 'combat'] : ITEM_SHOW_WHEN_VALUES;
@@ -464,6 +466,16 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'equipped', order: 3 },
+  },
+  {
+    id: 'time.playtime',
+    rendererKind: 'stat',
+    legacyGroupId: 'time',
+    visibilityPath: 'time.playtime',
+    labelKey: 'playtime',
+    minScale: DEFAULT_MIN_SCALE,
+    maxScale: DEFAULT_MAX_SCALE,
+    defaultPlacementHint: { groupId: 'time', order: 3 },
   },
 ];
 

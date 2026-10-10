@@ -71,6 +71,10 @@ describe('CompactHudItem', () => {
     })).toContain('8/28');
   });
 
+  it('formats the time played in hours and minutes', () => {
+    expect(render('time.playtime', stats => { stats.playerInfo.playtimeHours = 137.4; })).toContain('137시간 24분');
+  });
+
   it('marks a capped damage reduction with its raw value', () => {
     const text = render('defense.damageReduction', stats => {
       stats.defense.damageReduction = 80;

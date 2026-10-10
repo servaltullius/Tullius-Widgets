@@ -8,7 +8,7 @@ import {
   getLowResourceTone,
   resolveExperienceProgress,
 } from '../../utils/hudPresentation';
-import { formatGameCompact, formatRealCompact } from '../../utils/timeWidgetShared';
+import { formatGameCompact, formatPlaytime, formatRealCompact } from '../../utils/timeWidgetShared';
 import { TimedEffectList } from '../TimedEffectList';
 import {
   CompactEquipSlot,
@@ -273,6 +273,16 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs }: Compact
           iconColor={COLORS.text2}
           label={t(lang, 'compactRealTime')}
           value={formatRealCompact(nowMs, settings.time.realDisplay === 'dateTime')}
+          iconSize={14}
+        />
+      );
+    case 'time.playtime':
+      return (
+        <CompactStat
+          icon="playtime"
+          iconColor={COLORS.text2}
+          label={t(lang, 'compactPlaytime')}
+          value={formatPlaytime(stats.playerInfo.playtimeHours, t(lang, 'playtimeFormat'))}
           iconSize={14}
         />
       );

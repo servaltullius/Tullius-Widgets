@@ -393,6 +393,7 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
       health: readNumber(rawPlayerInfo?.health, fallback.playerInfo.health, 0, 100000),
       magicka: readNumber(rawPlayerInfo?.magicka, fallback.playerInfo.magicka, 0, 100000),
       stamina: readNumber(rawPlayerInfo?.stamina, fallback.playerInfo.stamina, 0, 100000),
+      playtimeHours: readNumber(rawPlayerInfo?.playtimeHours, fallback.playerInfo.playtimeHours ?? 0, 0, 1_000_000),
     },
     alertData: {
       healthPct: readNumber(rawAlertData?.healthPct, fallback.alertData.healthPct, 0, 1000),

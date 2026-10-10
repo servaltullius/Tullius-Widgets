@@ -108,6 +108,7 @@ struct PlayerInfoSnapshot {
     float health{0.0f};
     float magicka{0.0f};
     float stamina{0.0f};
+    double playtimeHours{0.0};  // total time played on this character
 };
 
 struct AlertDataSnapshot {

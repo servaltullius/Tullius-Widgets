@@ -181,6 +181,13 @@ export function formatRealTimeOnly(nowMs: number, lang: Language): string {
   return getCachedTimeOnlyFormatter(lang).format(new Date(nowMs));
 }
 
+export function formatPlaytime(hours: number, template: string): string {
+  const totalMinutes = Math.max(0, Math.floor(hours * 60));
+  return template
+    .replace('{h}', Math.floor(totalMinutes / 60).toLocaleString('en-US'))
+    .replace('{m}', String(totalMinutes % 60).padStart(2, '0'));
+}
+
 // Compact HUD formats: short enough to sit in a single HUD line.
 export function formatGameCompact(gameTime: GameTimeInfo, nowMs: number, withDate: boolean): string {
   const current = advanceGameTime(gameTime, nowMs);

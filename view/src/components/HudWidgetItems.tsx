@@ -25,6 +25,7 @@ import {
   formatGameDateTime,
   formatGameTimeOnly,
   formatRealDateTime,
+  formatPlaytime,
   formatRealTimeOnly,
   TIME_WIDGET_VALUE_MAX_WIDTH,
   useSharedTimeWidgetClock,
@@ -698,6 +699,17 @@ export function HudWidgetItems({
                 visible
                 prominence="secondary"
                 valueMaxWidth={TIME_WIDGET_VALUE_MAX_WIDTH}
+              />
+            ));
+          case 'time.playtime':
+            return renderEditableItem((
+              <StatWidget
+                {...statIconProps}
+                icon="playtime"
+                iconColor="#c3bdb0"
+                value={formatPlaytime(stats.playerInfo.playtimeHours, t(lang, 'playtimeFormat'))}
+                visible
+                prominence="secondary"
               />
             ));
           case 'time.weather': {

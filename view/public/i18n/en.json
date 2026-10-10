@@ -157,5 +157,8 @@
   "layoutSlotLoad": "Load",
   "layoutSlotsHint": "Save the current arrangement (style, positions, visibility) and switch back any time.",
   "compactSurfaceOpacity": "Slot background",
-  "layoutSlotConfirm": "Click again to load"
+  "layoutSlotConfirm": "Click again to load",
+  "playtime": "Time played",
+  "compactPlaytime": "Played",
+  "playtimeFormat": "{h}h {m}m"
 }

@@ -325,6 +325,9 @@ void StatsJsonWriter::AppendPlayerInfo(const PlayerInfoSnapshot& playerInfo)
     json_ += ',';
     json_ += "\"stamina\":";
     AppendFloat(playerInfo.stamina);
+    json_ += ',';
+    json_ += "\"playtimeHours\":";
+    AppendFloat(static_cast<float>(playerInfo.playtimeHours));
     json_ += '}';
 }
 

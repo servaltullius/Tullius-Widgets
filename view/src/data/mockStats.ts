@@ -62,6 +62,7 @@ export const mockStats: CombatStats = {
     health: 320,
     magicka: 200,
     stamina: 250,
+    playtimeHours: 137.4,
   },
   alertData: {
     healthPct: 100,

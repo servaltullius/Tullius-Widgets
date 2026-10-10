@@ -96,6 +96,7 @@ export interface WidgetSettings {
     realDateTime: boolean;
     realDisplay: TimeDisplayMode;
     weather: boolean;
+    playtime: boolean;
   };
   experience: {
     enabled: boolean;

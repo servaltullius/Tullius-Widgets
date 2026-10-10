@@ -664,6 +664,9 @@ static PlayerStateSnapshot CollectPlayerStateSnapshot(RE::PlayerCharacter* playe
         curMP,
         curSP
     };
+    // Engine counter of real milliseconds played on this character (what STB shows).
+    const auto playedMs = infoRuntime.totalPlayingTime;
+    snapshot.playerInfo.playtimeHours = playedMs > 0 ? static_cast<double>(playedMs) / 3'600'000.0 : 0.0;
     snapshot.alertData = AlertDataSnapshot{
         maxHP > 0 ? (curHP / maxHP) * 100.0f : 100.0f,
         maxMP > 0 ? (curMP / maxMP) * 100.0f : 100.0f,

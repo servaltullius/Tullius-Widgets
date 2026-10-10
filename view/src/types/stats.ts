@@ -83,6 +83,8 @@ export interface PlayerInfo {
   health: number;
   magicka: number;
   stamina: number;
+  /** Real hours played on this character. */
+  playtimeHours: number;
 }
 
 export interface AlertData {
