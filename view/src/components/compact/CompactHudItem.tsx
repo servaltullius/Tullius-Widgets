@@ -104,7 +104,7 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs }: Compact
     case 'player.level':
       return <CompactStat icon="level" iconColor={COLORS.gold} value={String(stats.playerInfo.level)} label={t(lang, 'level')} />;
     case 'player.gold':
-      return <CompactStat icon="gold" iconColor={COLORS.gold} value={formatGold(stats.playerInfo.gold)} />;
+      return <CompactStat icon="gold" iconColor={COLORS.gold} value={formatGold(stats.playerInfo.gold)} trackValue={stats.playerInfo.gold} />;
     case 'player.carryWeight': {
       const tone = getCarryTone(stats.alertData.carryPct);
       return (

@@ -22,6 +22,44 @@ import type { EquippedItemKind } from '../../types/stats';
 
 export type CompactTone = 'default' | 'warning' | 'danger' | 'capped' | 'muted';
 
+const DELTA_VISIBLE_MS = 1600;
+
+// Briefly reports how much a counter moved (gold looted, XP gained). Mount does not count.
+function useValueDelta(value: number | undefined): { delta: number; key: number } | null {
+  const previousRef = useRef(value);
+  const [state, setState] = useState<{ delta: number; key: number } | null>(null);
+
+  useEffect(() => {
+    const previous = previousRef.current;
+    previousRef.current = value;
+    if (value === undefined || previous === undefined) return;
+    const delta = Math.round(value - previous);
+    if (delta === 0) return;
+    const show = window.setTimeout(() => setState(prev => ({ delta, key: (prev?.key ?? 0) + 1 })), 0);
+    const hide = window.setTimeout(() => setState(null), DELTA_VISIBLE_MS);
+    return () => {
+      window.clearTimeout(show);
+      window.clearTimeout(hide);
+    };
+  }, [value]);
+
+  return state;
+}
+
+function DeltaBadge({ delta }: { delta: { delta: number; key: number } | null }) {
+  if (!delta) return null;
+  return (
+    <span
+      key={delta.key}
+      className="tw-compact-delta"
+      data-compact-delta
+      data-direction={delta.delta > 0 ? 'up' : 'down'}
+    >
+      {delta.delta > 0 ? '+' : '\u2212'}{Math.abs(delta.delta).toLocaleString('en-US')}
+    </span>
+  );
+}
+
 interface CompactStatProps {
   icon: string;
   iconColor: string;
@@ -32,6 +70,8 @@ interface CompactStatProps {
   sub?: string;
   iconSize?: number;
   title?: string;
+  /** Raw numeric value; when set, changes flash a short +/- delta. */
+  trackValue?: number;
 }
 
 export const CompactStat = memo(function CompactStat({
@@ -44,8 +84,10 @@ export const CompactStat = memo(function CompactStat({
   sub,
   iconSize = 15,
   title,
+  trackValue,
 }: CompactStatProps) {
   const Icon = standardStatIconMap[icon];
+  const delta = useValueDelta(trackValue);
   return (
     <div title={title} data-compact-item="stat" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
       {Icon && <Icon size={iconSize} strokeWidth={2.1} color={iconColor} aria-hidden="true" style={{ flex: 'none' }} />}
@@ -57,6 +99,7 @@ export const CompactStat = memo(function CompactStat({
         </span>
         {sub && <span className="tw-compact-sub" style={{ marginTop: 2 }}>{sub}</span>}
       </div>
+      <DeltaBadge delta={delta} />
     </div>
   );
 });
@@ -157,6 +200,8 @@ export const CompactExperienceRing = memo(function CompactExperienceRing({
   xpLabel,
 }: CompactExperienceRingProps) {
   const pct = totalXp > 0 ? Math.max(0, Math.min(1, currentXp / totalXp)) : 0;
+  const delta = useValueDelta(currentXp + level * 1e9);
+  const xpDelta = delta && Math.abs(delta.delta) < 1e8 ? delta : null;
   const dash = Math.max(0.001, RING_CIRCUMFERENCE * pct);
   return (
     <div data-compact-item="experience" style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
@@ -184,9 +229,12 @@ export const CompactExperienceRing = memo(function CompactExperienceRing({
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <span className="tw-compact-label">{xpLabel} {Math.floor(pct * 100)}%</span>
-        <span className="tw-compact-value" style={{ fontSize: 13 }}>
-          {Math.round(currentXp).toLocaleString('en-US')}
-          <span className="tw-compact-unit"> / {Math.round(totalXp).toLocaleString('en-US')}</span>
+        <span className="tw-compact-value" style={{ fontSize: 13, display: 'flex', alignItems: 'baseline', gap: 6 }}>
+          <span>
+            {Math.round(currentXp).toLocaleString('en-US')}
+            <span className="tw-compact-unit"> / {Math.round(totalXp).toLocaleString('en-US')}</span>
+          </span>
+          <DeltaBadge delta={xpDelta} />
         </span>
       </div>
     </div>

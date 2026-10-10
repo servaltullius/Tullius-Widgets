@@ -2,7 +2,7 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CompactEquipSlot, CompactExperienceRing, CompactResistance } from './CompactWidgets';
+import { CompactEquipSlot, CompactExperienceRing, CompactResistance, CompactStat } from './CompactWidgets';
 
 describe('CompactWidgets', () => {
   let container: HTMLDivElement;
@@ -97,6 +97,24 @@ describe('CompactWidgets', () => {
       act(() => { vi.advanceTimersByTime(250); });
     }
     expect(container.querySelector('[data-compact-cooldown]')).toBeNull();
+  });
+
+  it('flashes a short delta when a tracked counter changes, but not on mount', () => {
+    vi.useFakeTimers();
+    render(<CompactStat icon="gold" iconColor="#fff" value="100" trackValue={100} />);
+    act(() => { vi.advanceTimersByTime(10); });
+    expect(container.querySelector('[data-compact-delta]')).toBeNull();
+
+    render(<CompactStat icon="gold" iconColor="#fff" value="220" trackValue={220} />);
+    act(() => { vi.advanceTimersByTime(10); });
+    expect(container.querySelector('[data-compact-delta]')?.textContent).toBe('+120');
+
+    act(() => { vi.advanceTimersByTime(1700); });
+    expect(container.querySelector('[data-compact-delta]')).toBeNull();
+
+    render(<CompactStat icon="gold" iconColor="#fff" value="20" trackValue={20} />);
+    act(() => { vi.advanceTimersByTime(10); });
+    expect(container.querySelector('[data-compact-delta]')?.getAttribute('data-direction')).toBe('down');
   });
 
   it('always shows names in always mode and the empty label for empty hands', () => {
