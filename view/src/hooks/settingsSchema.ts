@@ -1,6 +1,7 @@
 import type {
   CarryWeightDisplayMode,
   FontPreset,
+  CompactAnchor,
   EquipNameDisplay,
   HudStyle,
   GroupPosition,
@@ -158,6 +159,11 @@ function mergeGeneralSettings(
   if (isLegacyHudStyle && !hasExplicitHudStyle) {
     target.hudStyle = 'classic';
   }
+  target.compactAnchor = readEnum<CompactAnchor>(
+    incoming.compactAnchor,
+    target.compactAnchor,
+    ['bottomLeft', 'bottomRight', 'topLeft', 'topRight'],
+  );
   target.accentColor = readAccentColor(incoming.accentColor, target.accentColor);
   target.transparentBg = readBoolean(incoming.transparentBg, target.transparentBg);
 }

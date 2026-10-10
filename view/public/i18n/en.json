@@ -143,5 +143,11 @@
   "equippedPotion": "Last potion",
   "layoutUndoHint": "Ctrl+Z undo · Ctrl+Y redo",
   "experienceShowNumbers": "Show XP numbers",
-  "onboardingLine4": "Switch the HUD style (Compact / Classic cards) in the General tab; Ctrl+Z undoes layout edits."
+  "onboardingLine4": "Switch the HUD style (Compact / Classic cards) in the General tab; Ctrl+Z undoes layout edits.",
+  "compactAnchorLabel": "Compact cluster position",
+  "compactAnchorBottomLeft": "Bottom left",
+  "compactAnchorBottomRight": "Bottom right",
+  "compactAnchorTopLeft": "Top left",
+  "compactAnchorTopRight": "Top right",
+  "compactAnchorHint": "Moves every widget to that corner's default layout (visibility is kept)."
 }

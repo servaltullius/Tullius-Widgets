@@ -803,6 +803,37 @@ export function PresetsTabSections({
         onToggle={toggleSection}
         panelScale={panelScale}
       >
+        {settings.general.hudStyle === 'compact' && (
+          <>
+            <SelectRow
+              label={t(lang, 'compactAnchorLabel')}
+              value={settings.general.compactAnchor}
+              options={[
+                { value: 'bottomLeft', label: t(lang, 'compactAnchorBottomLeft') },
+                { value: 'bottomRight', label: t(lang, 'compactAnchorBottomRight') },
+                { value: 'topLeft', label: t(lang, 'compactAnchorTopLeft') },
+                { value: 'topRight', label: t(lang, 'compactAnchorTopRight') },
+              ]}
+              onChange={nextValue => {
+                const compactAnchor = nextValue as WidgetSettings['general']['compactAnchor'];
+                const nextItemLayouts = buildItemLayoutsForHudStyle(
+                  { ...settings, general: { ...settings.general, compactAnchor } },
+                  'compact',
+                );
+                onUpdate('positions', {}, { persist: false });
+                onUpdate('layouts', {}, { persist: false });
+                onUpdate('groupScales', {}, { persist: false });
+                onUpdate('general.compactAnchor', compactAnchor, { persist: false });
+                onUpdate('itemLayouts', nextItemLayouts);
+              }}
+              panelScale={panelScale}
+              testId="compact-anchor-select"
+            />
+            <p style={{ color: '#88a4c4', fontSize: scalePanelPixels(18, panelScale), margin: `0 0 ${scalePanelPixels(10, panelScale)} 0` }}>
+              {t(lang, 'compactAnchorHint')}
+            </p>
+          </>
+        )}
         <button
           onClick={() => {
             onUpdate('positions', {}, { persist: false });

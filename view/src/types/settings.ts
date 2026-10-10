@@ -7,6 +7,7 @@ export type TimeDisplayMode = 'dateTime' | 'timeOnly';
 export type FontPreset = 'default' | 'readable' | 'compact' | 'classic';
 export type IconTheme = 'standard' | 'dororong';
 export type HudStyle = 'compact' | 'classic';
+export type CompactAnchor = 'bottomLeft' | 'bottomRight' | 'topLeft' | 'topRight';
 export type EquipNameDisplay = 'always' | 'onChange' | 'never';
 export type ItemShowWhen = 'always' | 'combat' | 'change' | 'combatOrChange';
 export type Language = string;
@@ -42,6 +43,7 @@ export interface WidgetSettings {
     fontPreset: FontPreset;
     iconTheme: IconTheme;
     hudStyle: HudStyle;
+    compactAnchor: CompactAnchor;
     showIconBadges: boolean;
     accentColor: string;  // '' = auto from HUD, otherwise hex color
     transparentBg: boolean;  // hide widget group background

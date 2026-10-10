@@ -178,6 +178,12 @@ export const bundledTranslations = {
     layoutUndoHint: 'Ctrl+Z 되돌리기 · Ctrl+Y 다시 실행',
     experienceShowNumbers: '경험치 숫자 표시',
     onboardingLine4: '일반 탭에서 HUD 스타일(컴팩트/클래식 카드)을 바꿀 수 있고, 배치 편집은 Ctrl+Z로 되돌릴 수 있습니다.',
+    compactAnchorLabel: '컴팩트 묶음 위치',
+    compactAnchorBottomLeft: '왼쪽 아래',
+    compactAnchorBottomRight: '오른쪽 아래',
+    compactAnchorTopLeft: '왼쪽 위',
+    compactAnchorTopRight: '오른쪽 위',
+    compactAnchorHint: '선택하면 모든 위젯이 해당 위치의 기본 배치로 이동합니다(표시 여부는 유지).',
   },
   en: {
     title: 'Tullius Widgets',
@@ -355,6 +361,12 @@ export const bundledTranslations = {
     layoutUndoHint: 'Ctrl+Z undo · Ctrl+Y redo',
     experienceShowNumbers: 'Show XP numbers',
     onboardingLine4: 'Switch the HUD style (Compact / Classic cards) in the General tab; Ctrl+Z undoes layout edits.',
+    compactAnchorLabel: 'Compact cluster position',
+    compactAnchorBottomLeft: 'Bottom left',
+    compactAnchorBottomRight: 'Bottom right',
+    compactAnchorTopLeft: 'Top left',
+    compactAnchorTopRight: 'Top right',
+    compactAnchorHint: 'Moves every widget to that corner\'s default layout (visibility is kept).',
   },
 } as const;
 

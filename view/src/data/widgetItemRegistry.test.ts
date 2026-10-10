@@ -142,6 +142,24 @@ describe('widgetItemRegistry', () => {
     expect(1080 - large['experience.progress'].y).toBeCloseTo((1080 - medium['experience.progress'].y) * 1.18, 1);
   });
 
+  it('moves the whole compact cluster to the chosen corner without changing its shape', () => {
+    const base = resolveWidgetItemLayouts({ settings: structuredClone(defaultSettings), viewportWidth: 1920, viewportHeight: 1080 });
+    const topRightSettings = structuredClone(defaultSettings);
+    topRightSettings.general.compactAnchor = 'topRight';
+    const topRight = resolveWidgetItemLayouts({ settings: topRightSettings, viewportWidth: 1920, viewportHeight: 1080 });
+
+    const dx = topRight['experience.progress'].x - base['experience.progress'].x;
+    const dy = topRight['experience.progress'].y - base['experience.progress'].y;
+    expect(dx).toBeGreaterThan(900);
+    expect(dy).toBeLessThan(-600);
+    for (const itemId of ['resistance.fire', 'equipped.voice', 'timedEffects.list', 'player.gold']) {
+      expect(topRight[itemId].x - base[itemId].x).toBeCloseTo(dx, 3);
+      expect(topRight[itemId].y - base[itemId].y).toBeCloseTo(dy, 3);
+    }
+    expect(topRight['timedEffects.list'].x + 250).toBeLessThanOrEqual(1920);
+    expect(topRight['resistance.magic'].y).toBeGreaterThanOrEqual(60);
+  });
+
   it('keeps clusters anchored to their screen edge on ultrawide viewports', () => {
     const compact = resolveWidgetItemLayouts({ settings: structuredClone(defaultSettings), viewportWidth: 2560, viewportHeight: 1080 });
     expect(compact['experience.progress']).toMatchObject({ x: 34, y: 898, scale: 1 });

@@ -1,6 +1,7 @@
 import { getWidgetDefaultPositions, type WidgetGroupId } from './widgetRegistry';
 import type {
   GroupPosition,
+  CompactAnchor,
   HudStyle,
   ItemShowWhen,
   WidgetItemLayout,
@@ -30,7 +31,7 @@ export interface WidgetItemRegistryEntry {
 }
 
 export interface LegacyWidgetLayoutSource {
-  general: Pick<WidgetSettings['general'], 'size'>;
+  general: Pick<WidgetSettings['general'], 'size'> & Partial<Pick<WidgetSettings['general'], 'compactAnchor'>>;
   resistances: WidgetSettings['resistances'];
   defense: WidgetSettings['defense'];
   offense: WidgetSettings['offense'];
@@ -134,6 +135,19 @@ const COMPACT_DEFAULT_SHOW_WHEN: Record<string, ItemShowWhen> = {
 };
 
 const COMPACT_CLUSTER_ANCHOR = { x: 34 } as const;
+// The bottom-left preset spans roughly x 34..830 and y 790..975 at 1080p (incl. the effect column).
+const COMPACT_CLUSTER_WIDTH = 800;
+const COMPACT_CLUSTER_TOP = 790;
+const COMPACT_TOP_MARGIN = 72;
+
+function getCompactAnchorOffset(anchor: CompactAnchor | undefined): GroupPosition {
+  const right = anchor === 'bottomRight' || anchor === 'topRight';
+  const top = anchor === 'topLeft' || anchor === 'topRight';
+  return {
+    x: right ? NORDIC_DEFAULT_BASELINE_VIEWPORT.width - COMPACT_CLUSTER_ANCHOR.x * 2 - COMPACT_CLUSTER_WIDTH : 0,
+    y: top ? COMPACT_TOP_MARGIN - COMPACT_CLUSTER_TOP : 0,
+  };
+}
 
 export const ITEM_SHOW_WHEN_VALUES: readonly ItemShowWhen[] = ['always', 'combat', 'change', 'combatOrChange'];
 
@@ -543,20 +557,22 @@ export function buildCompactDefaultItemLayouts(
   source: LegacyWidgetLayoutSource,
 ): Record<string, WidgetItemLayout> {
   const scale = NORDIC_DEFAULT_SIZE_SCALE_MAP[source.general.size];
+  const offset = getCompactAnchorOffset(source.general.compactAnchor);
 
   return Object.fromEntries(
     WIDGET_ITEM_IDS.map(itemId => {
       const entry = getWidgetItemRegistryEntry(itemId);
       const position = COMPACT_DEFAULT_ITEM_POSITIONS[itemId] ?? { x: 0, y: 0 };
-      // Grow the cluster around its bottom-left anchor so larger sizes never overlap.
+      // Grow the cluster around its bottom-left anchor so larger sizes never overlap, then
+      // move the whole cluster to the chosen corner.
       const anchorX = COMPACT_CLUSTER_ANCHOR.x;
       const anchorBottom = NORDIC_DEFAULT_BASELINE_VIEWPORT.height;
       return [
         itemId,
         {
           visible: readVisibilityByPath(source, entry.visibilityPath),
-          x: Number((anchorX + (position.x - anchorX) * scale).toFixed(3)),
-          y: Number((anchorBottom - (anchorBottom - position.y) * scale).toFixed(3)),
+          x: Number((anchorX + (position.x - anchorX) * scale + offset.x).toFixed(3)),
+          y: Number((anchorBottom - (anchorBottom - position.y) * scale + offset.y).toFixed(3)),
           scale,
           locked: false,
           zIndex: getWidgetItemDefaultZIndex(itemId),
