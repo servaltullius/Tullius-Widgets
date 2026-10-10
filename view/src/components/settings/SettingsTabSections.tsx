@@ -823,6 +823,9 @@ export function PresetsTabSections({
         <p style={{ color: '#88a4c4', fontSize: scalePanelPixels(18, panelScale), margin: `${scalePanelPixels(6, panelScale)} 0 0 0`, textAlign: 'center' }}>
           {t(lang, 'editVisibilityHint')}
         </p>
+        <p style={{ color: '#88a4c4', fontSize: scalePanelPixels(18, panelScale), margin: `${scalePanelPixels(6, panelScale)} 0 0 0`, textAlign: 'center' }}>
+          {t(lang, 'layoutUndoHint')}
+        </p>
       </AccordionSection>
     </>
   );

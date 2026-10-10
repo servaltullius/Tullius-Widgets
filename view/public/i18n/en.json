@@ -140,5 +140,6 @@
   "weatherSnow": "Snow",
   "weatherIndoor": "Indoors",
   "weatherUnknown": "-",
-  "equippedPotion": "Last potion"
+  "equippedPotion": "Last potion",
+  "layoutUndoHint": "Ctrl+Z undo · Ctrl+Y redo"
 }

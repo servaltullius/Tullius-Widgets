@@ -175,6 +175,7 @@ export const bundledTranslations = {
     weatherIndoor: '실내',
     weatherUnknown: '-',
     equippedPotion: '최근 마신 물약',
+    layoutUndoHint: 'Ctrl+Z 되돌리기 · Ctrl+Y 다시 실행',
   },
   en: {
     title: 'Tullius Widgets',
@@ -349,6 +350,7 @@ export const bundledTranslations = {
     weatherIndoor: 'Indoors',
     weatherUnknown: '-',
     equippedPotion: 'Last potion',
+    layoutUndoHint: 'Ctrl+Z undo · Ctrl+Y redo',
   },
 } as const;
 

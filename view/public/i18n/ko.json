@@ -140,5 +140,6 @@
   "weatherSnow": "눈",
   "weatherIndoor": "실내",
   "weatherUnknown": "-",
-  "equippedPotion": "최근 마신 물약"
+  "equippedPotion": "최근 마신 물약",
+  "layoutUndoHint": "Ctrl+Z 되돌리기 · Ctrl+Y 다시 실행"
 }

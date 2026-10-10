@@ -9,6 +9,7 @@ import { useSettings } from './hooks/useSettings';
 import { useWidgetEditSelection } from './hooks/useWidgetEditSelection';
 import { createSelectedItemLayoutActions } from './hooks/useSelectedItemLayoutActions';
 import { useWidgetKeyboardNudge } from './hooks/useWidgetKeyboardNudge';
+import { useLayoutHistory } from './hooks/useLayoutHistory';
 import { useLocalization } from './i18n/useLocalization';
 import { useWidgetItemLayouts } from './hooks/useWidgetItemLayouts';
 import type { WidgetItemLayout } from './types/settings';
@@ -284,6 +285,11 @@ export function App() {
       setActiveGuides(previous => (previous.length === 0 ? previous : []));
     }, 300);
   }, [canonicalItemLayouts, clearKeyboardGuideTimeout, computeMovePreview, selectedItemId]);
+
+  const restoreItemLayouts = useCallback((layouts: Record<string, WidgetItemLayout>) => {
+    updateSetting('itemLayouts', layouts);
+  }, [updateSetting]);
+  useLayoutHistory({ enabled: settingsOpen, itemLayouts: settings.itemLayouts, onRestore: restoreItemLayouts });
 
   useWidgetKeyboardNudge({
     enabled: settingsOpen && selectedItemId !== null,
