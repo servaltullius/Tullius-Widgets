@@ -199,7 +199,7 @@ export const bundledTranslations = {
     hotkeyVisibility: '위젯 전체 표시/숨김 키',
     hotkeyPress: '새 키를 누르세요…',
     hotkeyHint: '버튼을 누른 뒤 새 키를 누르세요(다시 누르면 취소). Esc는 설정 닫기용으로 고정입니다.',
-    hotkeyUnsupported: '이 키는 지정할 수 없습니다(Esc·Tab·Enter·Space·조합키 제외).',
+    hotkeyUnsupported: 'F1~F12, Insert·Delete·Home·End·Page Up/Down, Pause·Scroll Lock, 숫자패드 키만 지정할 수 있습니다.',
     hotkeyInUse: '다른 단축키가 이미 쓰는 키입니다.',
   },
   en: {
@@ -399,7 +399,7 @@ export const bundledTranslations = {
     hotkeyVisibility: 'Show/hide all widgets key',
     hotkeyPress: 'Press a key…',
     hotkeyHint: 'Click a button, then press the new key (click again to cancel). Esc always closes the settings.',
-    hotkeyUnsupported: 'That key can\'t be used (Esc, Tab, Enter, Space and modifiers are reserved).',
+    hotkeyUnsupported: 'Only F1–F12, Insert/Delete/Home/End/Page Up/Down, Pause/Scroll Lock and numpad keys can be used.',
     hotkeyInUse: 'That key is already used by the other hotkey.',
   },
 } as const;

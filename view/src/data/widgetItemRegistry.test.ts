@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { defaultSettings } from './defaultSettings';
+import { buildItemLayoutsForHudStyle } from '../utils/itemLayoutEditing';
 import {
   WIDGET_ITEM_IDS,
   WIDGET_ITEM_REGISTRY,
@@ -217,6 +218,21 @@ describe('widgetItemRegistry', () => {
     const wide = resolveWidgetItemLayouts({ settings, viewportWidth: 2560, viewportHeight: 1080 });
     for (const itemId of ['player.gold', 'timedEffects.list', 'experience.progress']) {
       expect(wide[itemId].x - fhd[itemId].x, itemId).toBeCloseTo(640, 3);
+    }
+  });
+
+  it('keeps a saved large right-corner cluster together on ultrawide screens', () => {
+    for (const compactAnchor of ['bottomRight', 'topRight'] as const) {
+      const settings = structuredClone(defaultSettings);
+      settings.general.compactAnchor = compactAnchor;
+      settings.general.size = 'large';
+      settings.timedEffects.listLayout = 'horizontal';
+      settings.itemLayouts = buildItemLayoutsForHudStyle(settings, 'compact');
+      const fhd = resolveWidgetItemLayouts({ settings, viewportWidth: 1920, viewportHeight: 1080 });
+      const wide = resolveWidgetItemLayouts({ settings, viewportWidth: 2560, viewportHeight: 1080 });
+      for (const itemId of ['experience.progress', 'player.gold', 'player.health', 'timedEffects.list']) {
+        expect(wide[itemId].x - fhd[itemId].x, `${compactAnchor}/${itemId}`).toBeCloseTo(640, 3);
+      }
     }
   });
 

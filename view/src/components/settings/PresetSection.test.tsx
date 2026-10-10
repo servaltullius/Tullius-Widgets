@@ -64,5 +64,9 @@ describe('PresetSection', () => {
     expect(payload.positions).toBeUndefined();
     expect(payload.layouts).toBeUndefined();
     expect(payload.groupScales).toBeUndefined();
+    // Key bindings stay with the player.
+    expect(payload.general).not.toHaveProperty('settingsHotkey');
+    expect(payload.general).not.toHaveProperty('visibilityHotkey');
+    expect(payload.general).toHaveProperty('hudStyle');
   });
 });

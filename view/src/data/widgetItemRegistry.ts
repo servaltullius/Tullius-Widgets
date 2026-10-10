@@ -798,21 +798,37 @@ function resolveCompactCornerAnchor(anchor: CompactAnchor | undefined): LayoutAn
 }
 
 // Items the player dragged clearly onto the other half of the screen keep the distance to
-// their own edge. The dead zone around the centre keeps the cluster's own edge items (and
-// anything near the midline) on the layout anchor so the cluster never tears apart.
+// their own edge. Only real moves count: an item still near its default spot stays on the
+// layout anchor even when a wide cluster reaches past the centre, so the cluster never tears
+// apart; the dead zone around the centre does the same for anything near the midline.
 const OWN_EDGE_MARGIN = 0.1;
+const OWN_EDGE_MIN_MOVE = 0.25;
 
-function resolveItemAxisAnchor(anchor: AxisAnchor, ratio: number): AxisAnchor {
+function resolveItemAxisAnchor(anchor: AxisAnchor, ratio: number, defaultRatio: number | undefined): AxisAnchor {
+  if (defaultRatio !== undefined && Math.abs(ratio - defaultRatio) < OWN_EDGE_MIN_MOVE) return anchor;
   if (anchor === 'start' && ratio >= 0.5 + OWN_EDGE_MARGIN) return 'end';
   if (anchor === 'end' && ratio < 0.5 - OWN_EDGE_MARGIN) return 'start';
   return anchor;
 }
 
-function resolveItemAnchor(layout: WidgetItemLayout, anchor: LayoutAnchor): LayoutAnchor {
+function resolveItemAnchor(
+  layout: WidgetItemLayout,
+  anchor: LayoutAnchor,
+  defaultLayout: WidgetItemLayout | undefined,
+): LayoutAnchor {
   if (!layout.viewportWidth || !layout.viewportHeight) return anchor;
+  const hasDefault = Boolean(defaultLayout?.viewportWidth && defaultLayout.viewportHeight);
   return {
-    x: resolveItemAxisAnchor(anchor.x, layout.x / layout.viewportWidth),
-    y: resolveItemAxisAnchor(anchor.y, layout.y / layout.viewportHeight),
+    x: resolveItemAxisAnchor(
+      anchor.x,
+      layout.x / layout.viewportWidth,
+      hasDefault ? defaultLayout!.x / defaultLayout!.viewportWidth! : undefined,
+    ),
+    y: resolveItemAxisAnchor(
+      anchor.y,
+      layout.y / layout.viewportHeight,
+      hasDefault ? defaultLayout!.y / defaultLayout!.viewportHeight! : undefined,
+    ),
   };
 }
 
@@ -900,7 +916,7 @@ export function resolveWidgetItemLayouts(params: {
         layout,
         viewportWidth,
         viewportHeight,
-        resolveItemAnchor(layout, layoutAnchor),
+        resolveItemAnchor(layout, layoutAnchor, baselineLayouts[itemId]),
       ),
     ]),
   ) as Record<string, WidgetItemLayout>;

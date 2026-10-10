@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { WidgetItemLayout } from '../types/settings';
+import { isHotkeyCaptureActive } from '../utils/hotkeys';
 
 type ItemLayouts = Record<string, WidgetItemLayout>;
 
@@ -79,7 +80,7 @@ export function useLayoutHistory({ enabled, itemLayouts, onRestore, resetKey = '
   useEffect(() => {
     if (!enabled) return;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!(event.ctrlKey || event.metaKey) || isTextEntryTarget(event.target)) return;
+      if (!(event.ctrlKey || event.metaKey) || isTextEntryTarget(event.target) || isHotkeyCaptureActive()) return;
       const key = event.key.toLowerCase();
       const handled = key === 'z' && !event.shiftKey
         ? undo()

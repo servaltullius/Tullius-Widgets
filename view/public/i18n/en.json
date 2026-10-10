@@ -165,6 +165,6 @@
   "hotkeyVisibility": "Show/hide all widgets key",
   "hotkeyPress": "Press a key…",
   "hotkeyHint": "Click a button, then press the new key (click again to cancel). Esc always closes the settings.",
-  "hotkeyUnsupported": "That key can't be used (Esc, Tab, Enter, Space and modifiers are reserved).",
+  "hotkeyUnsupported": "Only F1–F12, Insert/Delete/Home/End/Page Up/Down, Pause/Scroll Lock and numpad keys can be used.",
   "hotkeyInUse": "That key is already used by the other hotkey."
 }

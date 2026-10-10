@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import type { SelectedItemLayoutActions } from './useSelectedItemLayoutActions';
+import { isHotkeyCaptureActive } from '../utils/hotkeys';
 
 interface UseWidgetKeyboardNudgeParams {
   enabled: boolean;
@@ -33,7 +34,7 @@ export function useWidgetKeyboardNudge({
         return;
       }
 
-      if (isFormControlElement(document.activeElement)) {
+      if (isFormControlElement(document.activeElement) || isHotkeyCaptureActive()) {
         return;
       }
 

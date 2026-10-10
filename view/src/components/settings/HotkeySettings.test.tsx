@@ -3,6 +3,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultSettings } from '../../data/defaultSettings';
+import { isHotkeyCaptureActive } from '../../utils/hotkeys';
 import { HotkeySettings } from './HotkeySettings';
 
 describe('HotkeySettings', () => {
@@ -36,8 +37,11 @@ describe('HotkeySettings', () => {
     expect(button().textContent).toBe('Insert');
     act(() => button().click());
     expect(button().textContent).toContain('누르세요');
-    press('KeyK', 75);
-    expect(onUpdate).toHaveBeenCalledWith('general.settingsHotkey', 0x25);
+    // Other panel key handlers (arrow nudges, Esc deselect, undo) check this and stand aside.
+    expect(isHotkeyCaptureActive()).toBe(true);
+    press('Home', 36);
+    expect(onUpdate).toHaveBeenCalledWith('general.settingsHotkey', 0xC7);
+    expect(isHotkeyCaptureActive()).toBe(false);
   });
 
   it('refuses reserved keys and the key the other hotkey uses', () => {
@@ -45,7 +49,7 @@ describe('HotkeySettings', () => {
     act(() => root!.render(<HotkeySettings lang="ko" settings={structuredClone(defaultSettings)} onUpdate={onUpdate} />));
     act(() => (container.querySelector('[data-hotkey-field="visibilityHotkey"]') as HTMLButtonElement).click());
     press('Space');
-    expect(container.textContent).toContain('지정할 수 없습니다');
+    expect(container.textContent).toContain('지정할 수 있습니다');
     press('Insert', 45);
     expect(container.textContent).toContain('이미 쓰는 키');
     expect(onUpdate).not.toHaveBeenCalled();

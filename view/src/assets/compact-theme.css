@@ -163,7 +163,7 @@
 }
 
 /* Short-lived +/- readout next to counters (gold, XP). Animates opacity only. */
-/* Floats just above its value so it never pushes neighbours around. */
+/* Floats under (or beside) its value so it never pushes neighbours around. */
 .tw-compact-delta {
   position: absolute;
   font-size: 11px;

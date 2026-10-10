@@ -20,32 +20,44 @@ std::uint32_t g_visibilityKey = 0;
 KeyHandlerEvent g_settingsHandle = INVALID_REGISTRATION_HANDLE;
 KeyHandlerEvent g_visibilityHandle = INVALID_REGISTRATION_HANDLE;
 
-// Mirrors view/src/utils/hotkeys.ts: Escape, Tab, Enter, Space, Caps Lock and modifiers stay
-// with the game and the settings panel.
+// Mirrors view/src/utils/hotkeys.ts: function keys, the navigation block, Pause/Scroll Lock
+// and the numpad. Letters, digits and arrows are typed into the console or drive the
+// settings panel itself.
 bool IsBindableScanCode(std::uint32_t code)
 {
-    if (code == 0 || code > 0xDD) {
-        return false;
-    }
-    switch (code) {
-    case 0x01:  // Escape
-    case 0x0F:  // Tab
-    case 0x1C:  // Enter
-    case 0x1D:  // Left Ctrl
-    case 0x2A:  // Left Shift
-    case 0x36:  // Right Shift
-    case 0x38:  // Left Alt
-    case 0x39:  // Space
-    case 0x3A:  // Caps Lock
-    case 0x9C:  // Numpad Enter
-    case 0x9D:  // Right Ctrl
-    case 0xB8:  // Right Alt
-    case 0xDB:  // Left Windows
-    case 0xDC:  // Right Windows
-        return false;
-    default:
+    if (code >= 0x3B && code <= 0x44) {  // F1-F10
         return true;
     }
+    if (code >= 0x47 && code <= 0x53) {  // Numpad 7-9, -, 4-6, +, 1-3, 0, .
+        return true;
+    }
+    switch (code) {
+    case 0x37:  // Numpad *
+    case 0x46:  // Scroll Lock
+    case 0x57:  // F11
+    case 0x58:  // F12
+    case 0xB5:  // Numpad /
+    case 0xC5:  // Pause
+    case 0xC7:  // Home
+    case 0xC9:  // Page Up
+    case 0xCF:  // End
+    case 0xD1:  // Page Down
+    case 0xD2:  // Insert
+    case 0xD3:  // Delete
+        return true;
+    default:
+        return false;
+    }
+}
+
+// Keys pressed while the console or another text field takes typing are not hotkeys.
+bool IsTypingIntoGame()
+{
+    if (auto* ui = RE::UI::GetSingleton(); ui && ui->IsMenuOpen(RE::Console::MENU_NAME)) {
+        return true;
+    }
+    auto* controlMap = RE::ControlMap::GetSingleton();
+    return controlMap && controlMap->GetRuntimeData().textEntryCount > 0;
 }
 
 template <class Fn>
@@ -100,6 +112,10 @@ void OnSettingsKey()
         if (!IsViewReady() || !IsGameLoaded()) {
             return;
         }
+        // Our own panel may hold text focus, so only opening is blocked while typing.
+        if (!IsSettingsPanelOpen() && IsTypingIntoGame()) {
+            return;
+        }
 
         if (IsSettingsPanelOpen()) {
             InvokeScript(TulliusWidgets::WidgetInteropContracts::kCloseSettingsScript);
@@ -125,7 +141,7 @@ void OnSettingsKey()
 void OnVisibilityKey()
 {
     DispatchToGameThread([]() {
-        if (IsViewReady() && IsGameLoaded()) {
+        if (IsViewReady() && IsGameLoaded() && (IsSettingsPanelOpen() || !IsTypingIntoGame())) {
             InvokeScript(TulliusWidgets::WidgetInteropContracts::kToggleWidgetsVisibilityScript);
         }
     });

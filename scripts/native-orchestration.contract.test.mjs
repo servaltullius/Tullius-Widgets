@@ -50,7 +50,9 @@ test('default hotkeys include F11 widget visibility toggle', () => {
 test('saved hotkey bindings apply at startup and on every settings save', () => {
   assert.match(hotkeysText, /TryReadUIntField\(settingsJson, "settingsHotkey"\)/);
   assert.match(hotkeysText, /TryReadUIntField\(settingsJson, "visibilityHotkey"\)/);
-  assert.match(hotkeysText, /case 0x01:  \/\/ Escape/);
+  assert.match(hotkeysText, /case 0xD2:  \/\/ Insert/);
+  assert.match(hotkeysText, /IsMenuOpen\(RE::Console::MENU_NAME\)/);
+  assert.match(hotkeysText, /textEntryCount > 0/);
   assert.match(jsListenersText, /WidgetHotkeys::ApplyHotkeysFromSettingsJson\(payload\)/);
   assert.match(mainText, /WidgetHotkeys::ApplyHotkeysFromSettingsJson\(savedSettings\)/);
 });

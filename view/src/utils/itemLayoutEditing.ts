@@ -259,8 +259,9 @@ export function captureLayoutSlot(
 }
 
 // In a right-hand compact corner the effect list hugs the right edge; switching between the
-// column (250px) and row (532px) layouts keeps its right edge in place instead of letting the
-// wider row run off-screen. Returns null when nothing needs to move.
+// column (250px) and row (532px) layouts moves the whole saved arrangement by the width
+// difference, as the corner defaults do, so the wider row neither runs off-screen nor lands on
+// the cluster. Returns null when nothing needs to move.
 export function shiftEffectListForLayout(
   settings: WidgetSettings,
   nextLayout: WidgetSettings['timedEffects']['listLayout'],
@@ -276,9 +277,14 @@ export function shiftEffectListForLayout(
     return null;
   }
   const widthDelta = (COMPACT_EFFECT_ROW_WIDTH - COMPACT_EFFECT_COLUMN_WIDTH) * listLayout.scale;
-  const x = nextLayout === 'horizontal' ? listLayout.x - widthDelta : listLayout.x + widthDelta;
-  return {
-    ...settings.itemLayouts,
-    'timedEffects.list': { ...listLayout, x: Number(Math.max(0, x).toFixed(3)) },
-  };
+  const direction = nextLayout === 'horizontal' ? -1 : 1;
+  const listViewportWidth = listLayout.viewportWidth ?? 0;
+  return Object.fromEntries(
+    Object.entries(settings.itemLayouts).map(([itemId, layout]) => {
+      // Items saved against another viewport move by the same on-screen distance.
+      const ratio = listViewportWidth > 0 && layout.viewportWidth ? layout.viewportWidth / listViewportWidth : 1;
+      const x = layout.x + direction * widthDelta * ratio;
+      return [itemId, { ...layout, x: Number(Math.max(0, x).toFixed(3)) }];
+    }),
+  );
 }

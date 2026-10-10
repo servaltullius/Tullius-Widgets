@@ -270,6 +270,10 @@ describe('itemLayoutEditing', () => {
     const shifted = shiftEffectListForLayout(settings, 'horizontal');
     expect(shifted?.['timedEffects.list'].x).toBeCloseTo(before.x - 282 * before.scale, 3);
     expect(shifted!['timedEffects.list'].x + 532 * before.scale).toBeLessThanOrEqual(1920);
+    // The whole cluster moves with it, so the row never lands on the resistances.
+    for (const itemId of ['resistance.disease', 'player.gold', 'equipped.potion']) {
+      expect(shifted![itemId].x - settings.itemLayouts[itemId].x, itemId).toBeCloseTo(-282 * before.scale, 3);
+    }
 
     settings.general.compactAnchor = 'bottomLeft';
     expect(shiftEffectListForLayout(settings, 'horizontal')).toBeNull();

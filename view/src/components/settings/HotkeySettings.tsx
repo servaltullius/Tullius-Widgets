@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Language, UpdateSettingFn, WidgetSettings } from '../../types/settings';
 import { t } from '../../i18n/translations';
-import { formatHotkey, keyboardEventToHotkey } from '../../utils/hotkeys';
+import { formatHotkey, keyboardEventToHotkey, setHotkeyCaptureActive } from '../../utils/hotkeys';
 import { scalePanelPixels } from './panelScale';
 
 type HotkeyField = 'settingsHotkey' | 'visibilityHotkey';
@@ -18,14 +18,15 @@ const FIELDS: Array<{ field: HotkeyField; labelKey: 'hotkeySettingsPanel' | 'hot
   { field: 'visibilityHotkey', labelKey: 'hotkeyVisibility' },
 ];
 
-// Click a key button, then press the new key. Escape cancels; keys already in use or kept
-// for the game (Tab, Enter, Space, modifiers) are refused with a short note.
+// Click a key button, then press the new key; clicking again cancels. Keys already in use or
+// outside the bindable set are refused with a short note.
 export function HotkeySettings({ lang, settings, onUpdate, panelScale = 1 }: HotkeySettingsProps) {
   const [capturing, setCapturing] = useState<HotkeyField | null>(null);
   const [notice, setNotice] = useState<'hotkeyUnsupported' | 'hotkeyInUse' | null>(null);
 
   useEffect(() => {
     if (!capturing) return;
+    setHotkeyCaptureActive(true);
     const handleKeyDown = (event: KeyboardEvent) => {
       event.preventDefault();
       event.stopPropagation();
@@ -49,7 +50,10 @@ export function HotkeySettings({ lang, settings, onUpdate, panelScale = 1 }: Hot
       onUpdate(`general.${capturing}`, hotkey);
     };
     window.addEventListener('keydown', handleKeyDown, true);
-    return () => window.removeEventListener('keydown', handleKeyDown, true);
+    return () => {
+      setHotkeyCaptureActive(false);
+      window.removeEventListener('keydown', handleKeyDown, true);
+    };
   }, [capturing, onUpdate, settings.general]);
 
   return (

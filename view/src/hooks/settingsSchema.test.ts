@@ -20,8 +20,8 @@ describe('settingsSchema', () => {
 
   it('keeps valid hotkeys and repairs invalid or clashing ones', () => {
     expect(mergeWithDefaults({ schemaVersion: 7 }).general).toMatchObject({ settingsHotkey: 0xD2, visibilityHotkey: 0x57 });
-    expect(mergeWithDefaults({ schemaVersion: 7, general: { settingsHotkey: 0x22, visibilityHotkey: 0x23 } }).general)
-      .toMatchObject({ settingsHotkey: 0x22, visibilityHotkey: 0x23 });
+    expect(mergeWithDefaults({ schemaVersion: 7, general: { settingsHotkey: 0xC7, visibilityHotkey: 0xCF } }).general)
+      .toMatchObject({ settingsHotkey: 0xC7, visibilityHotkey: 0xCF });
     expect(mergeWithDefaults({ schemaVersion: 7, general: { settingsHotkey: 1, visibilityHotkey: 0xD2 } }).general)
       .toMatchObject({ settingsHotkey: 0xD2, visibilityHotkey: 0x57 });
   });
