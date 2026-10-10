@@ -43,7 +43,7 @@
 - [x] 10. 설정 UI·i18n(ko/en) 갱신
 - [x] 11. 렌더링 비용 정리: backdrop-filter blur 제거, 저자원 비네트의 큰 inset shadow 단순화
 - [ ] 12. 시각 QA 반복: Playwright 1080p/4K 캡처 → 품질 기준 1~8 점검 → 다듬기 (최소 3회 반복, 매번 개선점 기록)
-- [ ] 13. 문서: README 기능 설명, `docs/release-notes/1.8.0.ko.md` 초안(게시하지 않음)
+- [x] 13. 문서: README 기능 설명, `docs/release-notes/1.8.0.ko.md` 초안(게시하지 않음)
 - [ ] 14. 마무리 보고서: 이 파일 끝에 "아침 보고"(한 일, 남은 일, 스크린샷 경로, 확인 필요 사항) 작성
 
 ## 진행 로그
@@ -70,3 +70,4 @@
 - 04:00 추가(STB 격차): Z 슬롯에 포효 단어 표시(점 3개 — 해금=채움, 배움=테두리, 미습득=흐림). 네이티브 `voiceWordsKnown/voiceWordsUnlocked`(`TESWordOfPower` known/unlocked 플래그). 로컬 Windows 빌드 성공, QA 16회차, 213 tests
 - 04:01 추가(편집기, 우선순위 8): 위젯 배치 편집 되돌리기/다시 실행(Ctrl+Z / Ctrl+Y·Ctrl+Shift+Z, 설정 패널 열린 동안, 400ms 이내 연속 편집은 한 단계, 최대 40단계, 입력칸에서는 무시) + 배치 도구 안내 문구. 215 tests
 - 04:02 추가: 경험치 숫자 숨김 옵션(`experience.showNumbers`, 컴팩트·클래식 공통, 기본 표시) — STB 요청 기능
+- 04:04 13단계: README(컴팩트 HUD·장비 슬롯·새 위젯·표시 조건·되돌리기·울트라와이드·피해 감소 공식·조작키) 갱신, `docs/release-notes/1.8.0.ko.md` 초안 작성(게시하지 않음, 버전 번호는 그대로)
