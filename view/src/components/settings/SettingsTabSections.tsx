@@ -251,50 +251,55 @@ export function GeneralTabSections({
         testId="font-preset-select"
       />
 
-      <SelectRow
-        label={t(lang, 'iconTheme')}
-        value={settings.general.iconTheme}
-        options={iconThemeOptions}
-        onChange={nextValue => onUpdate('general.iconTheme', nextValue)}
-        panelScale={panelScale}
-        testId="icon-theme-select"
-      />
-      {settings.general.iconTheme === 'dororong' && (
-        <Toggle
-          label={t(lang, 'showIconBadges')}
-          checked={settings.general.showIconBadges}
-          onChange={value => onUpdate('general.showIconBadges', value)}
+      {/* Icon style, accent tone and card transparency only apply to the classic card style. */}
+      {settings.general.hudStyle === 'classic' && (
+        <>
+        <SelectRow
+          label={t(lang, 'iconTheme')}
+          value={settings.general.iconTheme}
+          options={iconThemeOptions}
+          onChange={nextValue => onUpdate('general.iconTheme', nextValue)}
           panelScale={panelScale}
+          testId="icon-theme-select"
         />
-      )}
-
-      <div style={{ padding: `${scalePanelPixels(8, panelScale)} 0` }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: scalePanelPixels(8, panelScale) }}>
-          <span style={{ color: '#ddd', fontSize: scalePanelPixels(24, panelScale) }}>{t(lang, 'accentColor')}</span>
-          <span style={{ color: '#888', fontSize: scalePanelPixels(18, panelScale) }}>
-            {settings.general.accentColor ? settings.general.accentColor : t(lang, 'accentAuto')}
-          </span>
-        </div>
-        <div style={{ display: 'flex', gap: scalePanelPixels(8, panelScale), flexWrap: 'wrap', alignItems: 'center' }}>
-          {PRESET_COLORS.map(color => (
-            <div key={color || 'auto'} onClick={() => onUpdate('general.accentColor', color)}
-              style={{
-                width: scalePanelPixels(36, panelScale), height: scalePanelPixels(36, panelScale), borderRadius: scalePanelPixels(6, panelScale), cursor: 'pointer',
-                background: color || 'linear-gradient(135deg, #6699cc, #cc6666, #66cc99)',
-                border: settings.general.accentColor === color
-                  ? '3px solid #ffd700' : '2px solid rgba(255,255,255,0.2)',
-                boxSizing: 'border-box',
-              }} title={color || t(lang, 'accentAuto')} />
-          ))}
-          <input
-            type="color"
-            value={accentColor}
-            onChange={event => onUpdate('general.accentColor', event.target.value)}
-            style={{ width: scalePanelPixels(36, panelScale), height: scalePanelPixels(36, panelScale), border: 'none', cursor: 'pointer', background: 'transparent' }}
+        {settings.general.iconTheme === 'dororong' && (
+          <Toggle
+            label={t(lang, 'showIconBadges')}
+            checked={settings.general.showIconBadges}
+            onChange={value => onUpdate('general.showIconBadges', value)}
+            panelScale={panelScale}
           />
+        )}
+
+        <div style={{ padding: `${scalePanelPixels(8, panelScale)} 0` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: scalePanelPixels(8, panelScale) }}>
+            <span style={{ color: '#ddd', fontSize: scalePanelPixels(24, panelScale) }}>{t(lang, 'accentColor')}</span>
+            <span style={{ color: '#888', fontSize: scalePanelPixels(18, panelScale) }}>
+              {settings.general.accentColor ? settings.general.accentColor : t(lang, 'accentAuto')}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: scalePanelPixels(8, panelScale), flexWrap: 'wrap', alignItems: 'center' }}>
+            {PRESET_COLORS.map(color => (
+              <div key={color || 'auto'} onClick={() => onUpdate('general.accentColor', color)}
+                style={{
+                  width: scalePanelPixels(36, panelScale), height: scalePanelPixels(36, panelScale), borderRadius: scalePanelPixels(6, panelScale), cursor: 'pointer',
+                  background: color || 'linear-gradient(135deg, #6699cc, #cc6666, #66cc99)',
+                  border: settings.general.accentColor === color
+                    ? '3px solid #ffd700' : '2px solid rgba(255,255,255,0.2)',
+                  boxSizing: 'border-box',
+                }} title={color || t(lang, 'accentAuto')} />
+            ))}
+            <input
+              type="color"
+              value={accentColor}
+              onChange={event => onUpdate('general.accentColor', event.target.value)}
+              style={{ width: scalePanelPixels(36, panelScale), height: scalePanelPixels(36, panelScale), border: 'none', cursor: 'pointer', background: 'transparent' }}
+            />
+          </div>
         </div>
-      </div>
-      <Toggle label={t(lang, 'transparentBg')} checked={settings.general.transparentBg} onChange={value => onUpdate('general.transparentBg', value)} panelScale={panelScale} />
+        <Toggle label={t(lang, 'transparentBg')} checked={settings.general.transparentBg} onChange={value => onUpdate('general.transparentBg', value)} panelScale={panelScale} />
+        </>
+      )}
     </AccordionSection>
   );
 }

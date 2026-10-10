@@ -157,6 +157,7 @@ describe('SettingsTabSections', () => {
       getByTestIdFromDocument('hud-style-select-option-classic')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
+    expect(getByTestId(container, 'icon-theme-select')).toBeNull();
     expect(onUpdate).toHaveBeenCalledWith('general.hudStyle', 'classic', { persist: false });
     const itemLayoutsCall = onUpdate.mock.calls.find(call => call[0] === 'itemLayouts');
     expect(itemLayoutsCall?.[1]['experience.progress']).toMatchObject({ x: 1530, y: 60 });
@@ -164,6 +165,7 @@ describe('SettingsTabSections', () => {
 
   it('updates the icon theme and exposes the badge toggle for Dororong icons', async () => {
     const settings = cloneSettings();
+    settings.general.hudStyle = 'classic';
     const onUpdate = vi.fn();
 
     await act(async () => {
