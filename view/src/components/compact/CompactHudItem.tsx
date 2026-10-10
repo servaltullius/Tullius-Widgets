@@ -1,10 +1,11 @@
 import { t } from '../../i18n/translations';
-import type { Language, WidgetSettings } from '../../types/settings';
+import type { Language, WidgetItemLayout, WidgetSettings } from '../../types/settings';
 import type { CombatStats } from '../../types/stats';
 import {
   formatGold,
   formatWeight,
   getCarryTone,
+  getCompactEffectRowLimit,
   getLowResourceTone,
   resolveExperienceProgress,
 } from '../../utils/hudPresentation';
@@ -67,9 +68,11 @@ interface CompactHudItemProps {
   settings: WidgetSettings;
   lang: Language;
   nowMs: number;
+  /** Resolved on-screen layout; lets the effect list stop above the resource bars. */
+  layout?: WidgetItemLayout;
 }
 
-export function CompactHudItem({ itemId, stats, settings, lang, nowMs }: CompactHudItemProps) {
+export function CompactHudItem({ itemId, stats, settings, lang, nowMs, layout }: CompactHudItemProps) {
   const rawShort = t(lang, 'compactRawShort');
   const capLabel = t(lang, 'capLimitLabel');
   const rawLabel = t(lang, 'capRawLabel');
@@ -296,7 +299,10 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs }: Compact
       return (
         <TimedEffectList
           effects={stats.timedEffects}
-          maxVisible={settings.timedEffects.maxVisible}
+          maxVisible={Math.min(
+            settings.timedEffects.maxVisible,
+            getCompactEffectRowLimit(layout, settings.timedEffects.listLayout, window.innerHeight),
+          )}
           emptyLabel={t(lang, 'timedEffectsEmpty')}
           layout={settings.timedEffects.listLayout}
           variant="compact"

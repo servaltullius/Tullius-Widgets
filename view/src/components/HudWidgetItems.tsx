@@ -322,7 +322,7 @@ export function HudWidgetItems({
 
         if (compact) {
           return renderEditableItem((
-            <CompactHudItem itemId={itemId} stats={stats} settings={settings} lang={lang} nowMs={nowMs} />
+            <CompactHudItem itemId={itemId} stats={stats} settings={settings} lang={lang} nowMs={nowMs} layout={layout} />
           ));
         }
 

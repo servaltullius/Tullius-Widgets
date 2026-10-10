@@ -13,6 +13,7 @@ import {
   resolveHudVisibility,
   buildClassicEquipDetail,
   formatThousands,
+  getCompactEffectRowLimit,
 } from './hudPresentation';
 import type { CombatStats, PlayerInfo } from '../types/stats';
 import type { WidgetSettings } from '../types/settings';
@@ -37,6 +38,17 @@ describe('hudPresentation', () => {
     stats.equipped.leftHandChargePct = null;
     stats.equipped.leftHandPoisonCount = 0;
     expect(buildClassicEquipDetail(stats, 'left', 'ko')).toBeUndefined();
+  });
+
+  it('stops the compact effect list above the resource bars', () => {
+    // Default bottom-left list at y=790 on 1080p: rows down to ~983, minus one for "+N".
+    expect(getCompactEffectRowLimit({ y: 790, scale: 1, viewportHeight: 1080 }, 'vertical', 1080)).toBe(7);
+    expect(getCompactEffectRowLimit({ y: 790, scale: 1, viewportHeight: 1080 }, 'horizontal', 1080)).toBe(14);
+    // Top-corner lists have plenty of room.
+    expect(getCompactEffectRowLimit({ y: 80, scale: 1, viewportHeight: 1080 }, 'vertical', 1080)).toBeGreaterThan(12);
+    // Placed inside the bar zone: use the screen edge, but always keep one row.
+    expect(getCompactEffectRowLimit({ y: 1060, scale: 1, viewportHeight: 1080 }, 'vertical', 1080)).toBe(1);
+    expect(getCompactEffectRowLimit(undefined, 'vertical', 1080)).toBe(Number.POSITIVE_INFINITY);
   });
 
   it('groups thousands like the en-US locale without calling it', () => {

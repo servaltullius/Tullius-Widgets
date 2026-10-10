@@ -155,6 +155,25 @@ export function buildItemChangeSignatures(
   return out;
 }
 
+// The compact effect list grows downward from its top edge. Cap the rows so it stops above the
+// resource-bar zone at the bottom of the screen (or the screen edge when it was placed lower);
+// the list's own "+N" line, which needs one more row, reports the rest.
+const COMPACT_EFFECT_ROW_PITCH = 24;
+const RESOURCE_BAR_ZONE = 0.91;
+
+export function getCompactEffectRowLimit(
+  layout: Pick<WidgetItemLayout, 'y' | 'scale' | 'viewportHeight'> | undefined,
+  listLayout: WidgetSettings['timedEffects']['listLayout'],
+  fallbackViewportHeight: number,
+): number {
+  if (!layout) return Number.POSITIVE_INFINITY;
+  const viewportHeight = layout.viewportHeight ?? fallbackViewportHeight;
+  const barZoneTop = viewportHeight * RESOURCE_BAR_ZONE;
+  const bottom = layout.y < barZoneTop ? barZoneTop : viewportHeight;
+  const rows = Math.floor((bottom - layout.y) / (COMPACT_EFFECT_ROW_PITCH * Math.max(0.1, layout.scale))) - 1;
+  return Math.max(1, rows) * (listLayout === 'horizontal' ? 2 : 1);
+}
+
 // Classic cards show the extra weapon facts as one small line under the name.
 export function buildClassicEquipDetail(stats: CombatStats, hand: 'right' | 'left', lang: Language): string | undefined {
   const equipped = stats.equipped;
