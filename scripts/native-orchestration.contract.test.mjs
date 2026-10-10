@@ -42,8 +42,17 @@ test('default hotkeys include F11 widget visibility toggle', () => {
   );
   assert.match(
     hotkeysText,
-    /Register\(kF11ScanCode, KeyEventType::KEY_DOWN, \[\]\(\) \{[\s\S]*InvokeScript\(TulliusWidgets::WidgetInteropContracts::kToggleWidgetsVisibilityScript\);[\s\S]*\}\);/,
+    /void OnVisibilityKey\(\)\s*\{[\s\S]*InvokeScript\(TulliusWidgets::WidgetInteropContracts::kToggleWidgetsVisibilityScript\);/,
   );
+  assert.match(hotkeysText, /BindKeys\(kInsertScanCode, kF11ScanCode\);/);
+});
+
+test('saved hotkey bindings apply at startup and on every settings save', () => {
+  assert.match(hotkeysText, /TryReadUIntField\(settingsJson, "settingsHotkey"\)/);
+  assert.match(hotkeysText, /TryReadUIntField\(settingsJson, "visibilityHotkey"\)/);
+  assert.match(hotkeysText, /case 0x01:  \/\/ Escape/);
+  assert.match(jsListenersText, /WidgetHotkeys::ApplyHotkeysFromSettingsJson\(payload\)/);
+  assert.match(mainText, /WidgetHotkeys::ApplyHotkeysFromSettingsJson\(savedSettings\)/);
 });
 
 test('settings hotkey uses tracked settings-panel state and closes explicitly', () => {

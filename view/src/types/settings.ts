@@ -53,6 +53,9 @@ export interface WidgetSettings {
     iconTheme: IconTheme;
     hudStyle: HudStyle;
     compactAnchor: CompactAnchor;
+    /** DirectInput scan codes for the settings panel and show/hide-all hotkeys. */
+    settingsHotkey: number;
+    visibilityHotkey: number;
     showIconBadges: boolean;
     accentColor: string;  // '' = auto from HUD, otherwise hex color
     transparentBg: boolean;  // hide widget group background

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string_view>
+
 namespace TulliusWidgets::WidgetHotkeys {
 
 struct Callbacks {
@@ -12,5 +14,10 @@ struct Callbacks {
 };
 
 void RegisterDefaultHotkeys(const Callbacks& callbacks);
+
+// Rebinds the settings-panel and show/hide-all keys from a settings JSON payload
+// (general.settingsHotkey / general.visibilityHotkey, DirectInput scan codes).
+// Missing, reserved or clashing codes fall back to Insert / F11.
+void ApplyHotkeysFromSettingsJson(std::string_view settingsJson);
 
 }  // namespace TulliusWidgets::WidgetHotkeys

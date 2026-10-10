@@ -3,6 +3,8 @@ import type { Language, UpdateSettingFn, WidgetSettings } from '../../types/sett
 import { t, type LocalizationLanguageEntry } from '../../i18n/translations';
 import { AccordionSection, CustomSelect, Toggle } from './SettingsControls';
 import { PresetSection } from './PresetSection';
+import { HotkeySettings } from './HotkeySettings';
+import { formatHotkey } from '../../utils/hotkeys';
 import { scalePanelPixels } from './panelScale';
 import { FONT_PRESET_OPTIONS } from '../../utils/fontPresets';
 import { buildItemLayoutsForHudStyle, captureLayoutSlot, shiftEffectListForLayout } from '../../utils/itemLayoutEditing';
@@ -194,7 +196,7 @@ export function GeneralTabSections({
       <Toggle label={t(lang, 'showWidgets')} checked={effectiveVisible} onChange={value => onUpdate('general.visible', value)} panelScale={panelScale} />
       {effectiveVisible !== settings.general.visible && (
         <p style={{ color: '#a8bbd8', fontSize: scalePanelPixels(16, panelScale), margin: `0 0 ${scalePanelPixels(8, panelScale)} 0` }}>
-          {t(lang, 'sessionVisibilityHint')}
+          {t(lang, 'sessionVisibilityHint').replace('{key}', formatHotkey(settings.general.visibilityHotkey))}
         </p>
       )}
       <Toggle label={t(lang, 'combatOnly')} checked={settings.general.combatOnly} onChange={value => onUpdate('general.combatOnly', value)} panelScale={panelScale} />
@@ -315,6 +317,7 @@ export function GeneralTabSections({
         <Toggle label={t(lang, 'transparentBg')} checked={settings.general.transparentBg} onChange={value => onUpdate('general.transparentBg', value)} panelScale={panelScale} />
         </>
       )}
+      <HotkeySettings lang={lang} settings={settings} onUpdate={onUpdate} panelScale={panelScale} />
     </AccordionSection>
   );
 }

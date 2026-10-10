@@ -15,6 +15,8 @@ export const defaultSettings: WidgetSettings = {
     iconTheme: 'standard',
     hudStyle: 'compact',
     compactAnchor: 'bottomLeft',
+    settingsHotkey: 0xD2,
+    visibilityHotkey: 0x57,
     showIconBadges: false,
     accentColor: '',
     transparentBg: false,

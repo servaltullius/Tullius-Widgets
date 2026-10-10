@@ -18,6 +18,14 @@ describe('settingsSchema', () => {
     expect(mergeWithDefaults({ schemaVersion: 7, general: { hudStyle: 'bogus' } }).general.hudStyle).toBe('compact');
   });
 
+  it('keeps valid hotkeys and repairs invalid or clashing ones', () => {
+    expect(mergeWithDefaults({ schemaVersion: 7 }).general).toMatchObject({ settingsHotkey: 0xD2, visibilityHotkey: 0x57 });
+    expect(mergeWithDefaults({ schemaVersion: 7, general: { settingsHotkey: 0x22, visibilityHotkey: 0x23 } }).general)
+      .toMatchObject({ settingsHotkey: 0x22, visibilityHotkey: 0x23 });
+    expect(mergeWithDefaults({ schemaVersion: 7, general: { settingsHotkey: 1, visibilityHotkey: 0xD2 } }).general)
+      .toMatchObject({ settingsHotkey: 0xD2, visibilityHotkey: 0x57 });
+  });
+
   it('keeps pre-compact defaults for fields missing from older saves', () => {
     const legacy = mergeWithDefaults({ schemaVersion: 6, general: { opacity: 80 } });
     expect(legacy.resistances.disease).toBe(false);

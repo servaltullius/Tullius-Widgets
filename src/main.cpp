@@ -208,6 +208,11 @@ static void RegisterWidgetHotkeys() {
     hotkeyCallbacks.unfocusView = &TryUnfocusView;
     hotkeyCallbacks.invokeScript = &TryInvoke;
     TulliusWidgets::WidgetHotkeys::RegisterDefaultHotkeys(hotkeyCallbacks);
+    // Saved key bindings apply from startup, before the view is ready.
+    const auto savedSettings = TulliusWidgets::NativeStorage::LoadSettings(ResolveStorageBasePath());
+    if (!savedSettings.empty()) {
+        TulliusWidgets::WidgetHotkeys::ApplyHotkeysFromSettingsJson(savedSettings);
+    }
 }
 
 static void QueueGameTask(std::function<void()> task) {

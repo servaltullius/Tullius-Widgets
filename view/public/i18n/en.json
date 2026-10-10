@@ -2,7 +2,7 @@
   "title": "Tullius Widgets",
   "general": "General",
   "showWidgets": "Show Widgets",
-  "sessionVisibilityHint": "F11 temporary visibility is active. It may differ from the saved default.",
+  "sessionVisibilityHint": "{key} temporary visibility is active. It may differ from the saved default.",
   "combatOnly": "Combat Only",
   "showOnChangeOnly": "Show Only When Values Change",
   "changeDisplaySeconds": "Display Duration (sec)",
@@ -102,8 +102,8 @@
   "collapseAll": "Collapse All",
   "layoutTools": "Layout Tools",
   "onboardingTitle": "Tullius Widgets Quick Guide",
-  "onboardingLine1": "Insert: Open/close settings panel",
-  "onboardingLine2": "F11: Toggle all widgets on/off",
+  "onboardingLine1": "{key}: Open/close settings panel",
+  "onboardingLine2": "{key}: Toggle all widgets on/off",
   "onboardingLine3": "You can enable \"Show only when values change\" in General tab.",
   "onboardingOpenSettings": "Open Settings",
   "onboardingDismiss": "Don't show again",
@@ -160,5 +160,11 @@
   "layoutSlotConfirm": "Click again to load",
   "playtime": "Time played",
   "compactPlaytime": "Played",
-  "playtimeFormat": "{h}h {m}m"
+  "playtimeFormat": "{h}h {m}m",
+  "hotkeySettingsPanel": "Settings panel key",
+  "hotkeyVisibility": "Show/hide all widgets key",
+  "hotkeyPress": "Press a key…",
+  "hotkeyHint": "Click a button, then press the new key (click again to cancel). Esc always closes the settings.",
+  "hotkeyUnsupported": "That key can't be used (Esc, Tab, Enter, Space and modifiers are reserved).",
+  "hotkeyInUse": "That key is already used by the other hotkey."
 }

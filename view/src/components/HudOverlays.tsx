@@ -76,12 +76,16 @@ export function SettingsSyncWarningBanner({
 
 interface OnboardingPanelProps {
   lang: Language;
+  settingsKeyLabel: string;
+  visibilityKeyLabel: string;
   onOpenSettings: () => void;
   onDismiss: () => void;
 }
 
 export function OnboardingPanel({
   lang,
+  settingsKeyLabel,
+  visibilityKeyLabel,
   onOpenSettings,
   onDismiss,
 }: OnboardingPanelProps) {
@@ -104,8 +108,8 @@ export function OnboardingPanel({
         {t(lang, 'onboardingTitle')}
       </div>
       <div style={{ fontSize: '15px', lineHeight: 1.55, opacity: 0.96 }}>
-        <div>{t(lang, 'onboardingLine1')}</div>
-        <div>{t(lang, 'onboardingLine2')}</div>
+        <div>{t(lang, 'onboardingLine1').replace('{key}', settingsKeyLabel)}</div>
+        <div>{t(lang, 'onboardingLine2').replace('{key}', visibilityKeyLabel)}</div>
         <div>{t(lang, 'onboardingLine3')}</div>
         <div>{t(lang, 'onboardingLine4')}</div>
       </div>

@@ -20,6 +20,7 @@ import {
   getSettingsSyncWarningText,
   resolveHudVisibility,
 } from './utils/hudPresentation';
+import { formatHotkey } from './utils/hotkeys';
 import { measureWidgetBoundsMap } from './utils/widgetBounds';
 import { snapWidgetMove, type AlignmentGuide } from './utils/widgetSnap';
 import { resolveFontPresetVariables } from './utils/fontPresets';
@@ -385,6 +386,8 @@ export function App() {
       {!settings.general.onboardingSeen && (
         <OnboardingPanel
           lang={lang}
+          settingsKeyLabel={formatHotkey(settings.general.settingsHotkey)}
+          visibilityKeyLabel={formatHotkey(settings.general.visibilityHotkey)}
           onOpenSettings={handleOnboardingOpenSettings}
           onDismiss={handleOnboardingDismiss}
         />

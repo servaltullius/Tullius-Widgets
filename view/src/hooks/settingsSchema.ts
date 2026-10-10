@@ -18,6 +18,7 @@ import { LAYOUT_SLOT_COUNT } from '../types/settings';
 import { defaultSettings } from '../data/defaultSettings';
 import { sanitizeWidgetItemLayouts } from '../data/widgetItemRegistry';
 import { isPlainObject, readBoolean, readNumber } from '../utils/normalize';
+import { sanitizeHotkeys } from '../utils/hotkeys';
 import { readRevision, SETTINGS_SCHEMA_VERSION } from './settingsShared';
 
 function readEnum<T extends string>(value: unknown, fallback: T, allowed: readonly T[]): T {
@@ -183,6 +184,12 @@ function mergeGeneralSettings(
     target.compactAnchor,
     ['bottomLeft', 'bottomRight', 'topLeft', 'topRight'],
   );
+  const hotkeys = sanitizeHotkeys(
+    incoming.settingsHotkey ?? target.settingsHotkey,
+    incoming.visibilityHotkey ?? target.visibilityHotkey,
+  );
+  target.settingsHotkey = hotkeys.settingsHotkey;
+  target.visibilityHotkey = hotkeys.visibilityHotkey;
   target.accentColor = readAccentColor(incoming.accentColor, target.accentColor);
   target.transparentBg = readBoolean(incoming.transparentBg, target.transparentBg);
 }
