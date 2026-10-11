@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { HudWidgetItems } from './components/HudWidgetItems';
 import { OnboardingPanel, RuntimeWarningBanner, SettingsSyncWarningBanner } from './components/HudOverlays';
 import { SettingsPanel } from './components/SettingsPanel';
-import { ScreenEffects } from './components/ScreenEffects';
 import { WidgetEditGuides } from './components/WidgetEditGuides';
 import { useGameStatsState } from './hooks/useGameStats';
 import { useSettings } from './hooks/useSettings';
@@ -27,7 +26,6 @@ import { snapWidgetMove, type AlignmentGuide } from './utils/widgetSnap';
 import { resolveFontPresetVariables } from './utils/fontPresets';
 import './assets/ui-theme.css';
 import './assets/compact-theme.css';
-import './assets/screen-effects.css';
 
 const SNAP_THRESHOLD = 15;
 const GRID = 10;
@@ -423,7 +421,6 @@ export function App() {
 
       <WidgetEditGuides visible={settingsOpen} guides={activeGuides} />
 
-      {hasLiveStats && <ScreenEffects alertData={stats.alertData} settings={settings} />}
 
       <SettingsPanel
         settings={settings}

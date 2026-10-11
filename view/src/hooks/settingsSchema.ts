@@ -342,21 +342,6 @@ function reconcileStandaloneLevelVisibility(
   }
 }
 
-function mergeVisualAlertsSettings(target: WidgetSettings['visualAlerts'], incoming: unknown): void {
-  if (!isPlainObject(incoming)) {
-    return;
-  }
-
-  target.enabled = readBoolean(incoming.enabled, target.enabled);
-  target.lowHealth = readBoolean(incoming.lowHealth, target.lowHealth);
-  target.lowHealthThreshold = readNumber(incoming.lowHealthThreshold, target.lowHealthThreshold, 10, 60);
-  target.lowStamina = readBoolean(incoming.lowStamina, target.lowStamina);
-  target.lowStaminaThreshold = readNumber(incoming.lowStaminaThreshold, target.lowStaminaThreshold, 10, 60);
-  target.lowMagicka = readBoolean(incoming.lowMagicka, target.lowMagicka);
-  target.lowMagickaThreshold = readNumber(incoming.lowMagickaThreshold, target.lowMagickaThreshold, 10, 60);
-  target.overencumbered = readBoolean(incoming.overencumbered, target.overencumbered);
-}
-
 export function mergeWithDefaults(
   saved: Record<string, unknown>,
   options: MergeSettingsOptions = {},
@@ -395,7 +380,6 @@ export function mergeWithDefaults(
 
   migrateLegacyExperienceToggle(merged.experience, saved.experience, saved.playerInfo);
   mergeTimedEffectsSettings(merged.timedEffects, saved.timedEffects);
-  mergeVisualAlertsSettings(merged.visualAlerts, saved.visualAlerts);
   merged.positions = sanitizePositions(saved.positions);
   merged.layouts = sanitizeLayouts(saved.layouts);
   merged.groupScales = sanitizeGroupScales(saved.groupScales);

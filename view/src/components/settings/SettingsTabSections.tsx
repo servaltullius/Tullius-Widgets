@@ -678,6 +678,15 @@ export function EffectsTabSections({
             testId="time-real-display-select"
           />
         )}
+        {timeToggles.slice(2).map(config => (
+          <ItemVisibilityToggle
+            key={config.itemId}
+            settings={settings}
+            onUpdate={onUpdate}
+            config={config}
+            panelScale={panelScale}
+          />
+        ))}
       </AccordionSection>
 
       <AccordionSection
@@ -748,79 +757,6 @@ export function EffectsTabSections({
         </label>
       </AccordionSection>
     </>
-  );
-}
-
-interface AlertsTabSectionsProps extends SectionControlProps {
-  settings: WidgetSettings;
-  onUpdate: UpdateSettingFn;
-}
-
-export function AlertsTabSections({
-  lang,
-  settings,
-  onUpdate,
-  isSectionExpanded,
-  toggleSection,
-  panelScale = 1,
-}: AlertsTabSectionsProps) {
-  return (
-    <AccordionSection
-      id="visualAlerts"
-      title={t(lang, 'visualAlerts')}
-      expanded={isSectionExpanded('visualAlerts')}
-      onToggle={toggleSection}
-      panelScale={panelScale}
-    >
-      <Toggle label={t(lang, 'visualAlertsEnabled')} checked={settings.visualAlerts.enabled} onChange={value => onUpdate('visualAlerts.enabled', value)} panelScale={panelScale} />
-      {settings.visualAlerts.enabled && (
-        <>
-          <Toggle label={t(lang, 'lowHealth')} checked={settings.visualAlerts.lowHealth} onChange={value => onUpdate('visualAlerts.lowHealth', value)} panelScale={panelScale} />
-          {settings.visualAlerts.lowHealth && (
-            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${scalePanelPixels(4, panelScale)} 0 ${scalePanelPixels(8, panelScale)} ${scalePanelPixels(20, panelScale)}` }}>
-              <span style={{ color: '#aaa', fontSize: scalePanelPixels(20, panelScale) }}>{t(lang, 'threshold')}: {settings.visualAlerts.lowHealthThreshold}%</span>
-              <input
-                type="range"
-                min={10}
-                max={60}
-                value={settings.visualAlerts.lowHealthThreshold}
-                onChange={event => onUpdate('visualAlerts.lowHealthThreshold', Number(event.target.value))}
-                style={{ width: scalePanelPixels(180, panelScale) }}
-              />
-            </label>
-          )}
-          <Toggle label={t(lang, 'lowStamina')} checked={settings.visualAlerts.lowStamina} onChange={value => onUpdate('visualAlerts.lowStamina', value)} panelScale={panelScale} />
-          {settings.visualAlerts.lowStamina && (
-            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${scalePanelPixels(4, panelScale)} 0 ${scalePanelPixels(8, panelScale)} ${scalePanelPixels(20, panelScale)}` }}>
-              <span style={{ color: '#aaa', fontSize: scalePanelPixels(20, panelScale) }}>{t(lang, 'threshold')}: {settings.visualAlerts.lowStaminaThreshold}%</span>
-              <input
-                type="range"
-                min={10}
-                max={60}
-                value={settings.visualAlerts.lowStaminaThreshold}
-                onChange={event => onUpdate('visualAlerts.lowStaminaThreshold', Number(event.target.value))}
-                style={{ width: scalePanelPixels(180, panelScale) }}
-              />
-            </label>
-          )}
-          <Toggle label={t(lang, 'lowMagicka')} checked={settings.visualAlerts.lowMagicka} onChange={value => onUpdate('visualAlerts.lowMagicka', value)} panelScale={panelScale} />
-          {settings.visualAlerts.lowMagicka && (
-            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${scalePanelPixels(4, panelScale)} 0 ${scalePanelPixels(8, panelScale)} ${scalePanelPixels(20, panelScale)}` }}>
-              <span style={{ color: '#aaa', fontSize: scalePanelPixels(20, panelScale) }}>{t(lang, 'threshold')}: {settings.visualAlerts.lowMagickaThreshold}%</span>
-              <input
-                type="range"
-                min={10}
-                max={60}
-                value={settings.visualAlerts.lowMagickaThreshold}
-                onChange={event => onUpdate('visualAlerts.lowMagickaThreshold', Number(event.target.value))}
-                style={{ width: scalePanelPixels(180, panelScale) }}
-              />
-            </label>
-          )}
-          <Toggle label={t(lang, 'overencumbered')} checked={settings.visualAlerts.overencumbered} onChange={value => onUpdate('visualAlerts.overencumbered', value)} panelScale={panelScale} />
-        </>
-      )}
-    </AccordionSection>
   );
 }
 

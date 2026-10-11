@@ -88,6 +88,24 @@ describe('SettingsTabSections', () => {
     expect(container.textContent).not.toContain('크기');
   });
 
+  it('offers the weather and time-played toggles in the time section', async () => {
+    const settings = cloneSettings();
+    const onUpdate = vi.fn();
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <EffectsTabSections lang="ko" settings={settings} onUpdate={onUpdate} isSectionExpanded={() => true} toggleSection={() => {}} />,
+      );
+    });
+    const playtime = getToggleInputByLabel(container, '누적 플레이 시간');
+    expect(getToggleInputByLabel(container, '날씨')).not.toBeNull();
+    expect(playtime).not.toBeNull();
+    await act(async () => {
+      playtime!.click();
+    });
+    expect(onUpdate.mock.calls.some(call => String(call[0]).includes('playtime'))).toBe(true);
+  });
+
   it('renders the font preset selector and updates the general fontPreset path', async () => {
     const settings = cloneSettings();
     const onUpdate = vi.fn();

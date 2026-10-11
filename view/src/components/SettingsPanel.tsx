@@ -15,7 +15,6 @@ import {
   writeStoredPanelTab,
 } from './settings/settingsPanelState';
 import {
-  AlertsTabSections,
   CombatTabSections,
   EffectsTabSections,
   GeneralTabSections,
@@ -45,12 +44,11 @@ interface SettingsPanelProps {
   selectedItemLayoutActions?: SelectedItemLayoutActions;
 }
 
-const TAB_ORDER: PanelTab[] = ['general', 'combat', 'effects', 'alerts', 'presets'];
+const TAB_ORDER: PanelTab[] = ['general', 'combat', 'effects', 'presets'];
 const TAB_SECTION_IDS: Record<PanelTab, string[]> = {
   general: ['generalMain'],
   combat: [...COMBAT_WIDGET_GROUP_IDS],
   effects: [...EFFECT_WIDGET_GROUP_IDS],
-  alerts: ['visualAlerts'],
   presets: ['presets', 'layoutTools'],
 };
 
@@ -65,7 +63,6 @@ const DEFAULT_EXPANDED_SECTIONS: Record<string, boolean> = {
   movement: false,
   time: true,
   timedEffects: true,
-  visualAlerts: true,
   presets: true,
   layoutTools: true,
 };
@@ -208,7 +205,6 @@ export function SettingsPanel({
     general: t(lang, 'tabGeneral'),
     combat: t(lang, 'tabCombat'),
     effects: t(lang, 'tabEffects'),
-    alerts: t(lang, 'tabAlerts'),
     presets: t(lang, 'tabPresets'),
   };
 
@@ -443,16 +439,6 @@ export function SettingsPanel({
         />
       )}
 
-      {activeTab === 'alerts' && (
-        <AlertsTabSections
-          lang={lang}
-          settings={settings}
-          onUpdate={onUpdate}
-          isSectionExpanded={isSectionExpanded}
-          toggleSection={toggleSection}
-          panelScale={panelScale}
-        />
-      )}
 
       {activeTab === 'presets' && (
         <PresetsTabSections

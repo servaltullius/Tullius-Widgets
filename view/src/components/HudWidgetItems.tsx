@@ -18,6 +18,7 @@ import {
   formatWeight,
   getCarryTone,
   getLowResourceTone,
+  LOW_RESOURCE_THRESHOLDS,
   getVisibleHudItemIds,
   hasMeaningfulDifference,
   isLeftHandHeldByTwoHanded,
@@ -278,9 +279,9 @@ export function HudWidgetItems({
   const armorHelper = stats.defense.armorRating > armorCapForMaxReduction + 0.5
     ? `${armorLimitLabel} ${Math.round(armorCapForMaxReduction)}`
     : undefined;
-  const healthTone = getLowResourceTone(stats.alertData.healthPct, settings.visualAlerts.lowHealthThreshold);
-  const magickaTone = getLowResourceTone(stats.alertData.magickaPct, settings.visualAlerts.lowMagickaThreshold);
-  const staminaTone = getLowResourceTone(stats.alertData.staminaPct, settings.visualAlerts.lowStaminaThreshold);
+  const healthTone = getLowResourceTone(stats.alertData.healthPct, LOW_RESOURCE_THRESHOLDS.health);
+  const magickaTone = getLowResourceTone(stats.alertData.magickaPct, LOW_RESOURCE_THRESHOLDS.magicka);
+  const staminaTone = getLowResourceTone(stats.alertData.staminaPct, LOW_RESOURCE_THRESHOLDS.stamina);
   const carryTone = getCarryTone(stats.alertData.carryPct);
   const carryWeightDisplay = resolveCarryWeightDisplay(settings.playerInfo.carryWeightDisplay, stats.alertData.carryPct);
   const gameTimeValue = settings.time.gameDisplay === 'timeOnly'

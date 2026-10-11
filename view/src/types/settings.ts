@@ -120,16 +120,6 @@ export interface WidgetSettings {
     magicka: boolean;
     stamina: boolean;
   };
-  visualAlerts: {
-    enabled: boolean;
-    lowHealth: boolean;
-    lowHealthThreshold: number;
-    lowStamina: boolean;
-    lowStaminaThreshold: number;
-    lowMagicka: boolean;
-    lowMagickaThreshold: number;
-    overencumbered: boolean;
-  };
   positions: Record<string, GroupPosition>;
   layouts: Record<string, WidgetLayout>;
   groupScales: Record<string, number>;

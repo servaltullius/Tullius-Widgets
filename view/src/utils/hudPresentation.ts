@@ -34,6 +34,9 @@ export function formatPercent(value: number): string {
   return `${Math.round(clampPercent(value))}%`;
 }
 
+// Resource values turn amber, then red, below these percentages.
+export const LOW_RESOURCE_THRESHOLDS = { health: 30, magicka: 25, stamina: 25 } as const;
+
 export function getLowResourceTone(
   percent: number,
   warningThreshold: number,

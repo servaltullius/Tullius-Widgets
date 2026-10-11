@@ -8,6 +8,7 @@ import {
   getCompactEffectRowLimit,
   isLeftHandHeldByTwoHanded,
   getLowResourceTone,
+  LOW_RESOURCE_THRESHOLDS,
   resolveExperienceProgress,
 } from '../../utils/hudPresentation';
 import { formatGameCompact, formatPlaytime, formatRealCompact } from '../../utils/timeWidgetShared';
@@ -138,7 +139,7 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs, layout }:
           color={COLORS.health}
           value={stats.playerInfo.health}
           pct={stats.alertData.healthPct}
-          tone={getLowResourceTone(stats.alertData.healthPct, settings.visualAlerts.lowHealthThreshold) as 'default' | 'warning' | 'danger'}
+          tone={getLowResourceTone(stats.alertData.healthPct, LOW_RESOURCE_THRESHOLDS.health) as 'default' | 'warning' | 'danger'}
         />
       );
     case 'player.magicka':
@@ -148,7 +149,7 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs, layout }:
           color={COLORS.magicka}
           value={stats.playerInfo.magicka}
           pct={stats.alertData.magickaPct}
-          tone={getLowResourceTone(stats.alertData.magickaPct, settings.visualAlerts.lowMagickaThreshold) as 'default' | 'warning' | 'danger'}
+          tone={getLowResourceTone(stats.alertData.magickaPct, LOW_RESOURCE_THRESHOLDS.magicka) as 'default' | 'warning' | 'danger'}
         />
       );
     case 'player.stamina':
@@ -158,7 +159,7 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs, layout }:
           color={COLORS.stamina}
           value={stats.playerInfo.stamina}
           pct={stats.alertData.staminaPct}
-          tone={getLowResourceTone(stats.alertData.staminaPct, settings.visualAlerts.lowStaminaThreshold) as 'default' | 'warning' | 'danger'}
+          tone={getLowResourceTone(stats.alertData.staminaPct, LOW_RESOURCE_THRESHOLDS.stamina) as 'default' | 'warning' | 'danger'}
         />
       );
     case 'defense.armorRating': {
