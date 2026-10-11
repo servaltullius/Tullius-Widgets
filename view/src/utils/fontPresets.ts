@@ -17,7 +17,7 @@ export interface FontPresetVariables extends CSSProperties {
   '--tw-font-compact': string;
 }
 
-const COMPACT_HUD_FONT_STACK = '"Pretendard Variable", "Pretendard", "Malgun Gothic", "Segoe UI", sans-serif';
+const COMPACT_HUD_FONT_STACK = '"Tullius Pretendard", "Pretendard", "Malgun Gothic", "Segoe UI", sans-serif';
 
 const UNIVERSAL_FALLBACK_STACK = [
   '"Noto Sans KR"',

@@ -1,6 +1,43 @@
-/* Compact HUD design tokens. The font ships with the view (OFL-1.1) because the game
-   overlay cannot reach web font services. */
-@import 'pretendard/dist/web/variable/pretendardvariable.css';
+/* Compact HUD design tokens. The font ships with the view (OFL-1.1, licence in
+   fonts/Pretendard-OFL.txt) because the game overlay cannot reach web font services.
+   Prisma UI (Ultralight) showed the variable font at a single weight in game, so each weight
+   is a separate static face, with WOFF as a fallback where WOFF2 is not supported. The Korean
+   subset covers KS X 1001; rarer syllables fall back to the next font in the stack. */
+@font-face {
+  font-family: 'Tullius Pretendard';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../node_modules/pretendard/dist/web/static/woff2-subset/Pretendard-Regular.subset.woff2') format('woff2'),
+    url('../../node_modules/pretendard/dist/web/static/woff-subset/Pretendard-Regular.subset.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Tullius Pretendard';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../../node_modules/pretendard/dist/web/static/woff2-subset/Pretendard-Medium.subset.woff2') format('woff2'),
+    url('../../node_modules/pretendard/dist/web/static/woff-subset/Pretendard-Medium.subset.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Tullius Pretendard';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../../node_modules/pretendard/dist/web/static/woff2-subset/Pretendard-SemiBold.subset.woff2') format('woff2'),
+    url('../../node_modules/pretendard/dist/web/static/woff-subset/Pretendard-SemiBold.subset.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Tullius Pretendard';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../../node_modules/pretendard/dist/web/static/woff2-subset/Pretendard-Bold.subset.woff2') format('woff2'),
+    url('../../node_modules/pretendard/dist/web/static/woff-subset/Pretendard-Bold.subset.woff') format('woff');
+}
 
 .tw-compact {
   --c-text: #ece7db;
@@ -46,7 +83,7 @@
 
 .tw-compact-value {
   font-size: 15px;
-  font-weight: 640;
+  font-weight: 600;
   color: var(--c-text);
 }
 
@@ -111,7 +148,7 @@
   gap: 5px;
   min-width: 0;
   font-size: 12px;
-  font-weight: 560;
+  font-weight: 500;
   max-width: 240px;
 }
 
@@ -124,7 +161,7 @@
 .tw-ceffect-magnitude {
   flex: none;
   font-size: 10px;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--c-text-2);
 }
 
@@ -134,7 +171,7 @@
 
 .tw-ceffect-time {
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--c-text-2);
   text-align: right;
 }
