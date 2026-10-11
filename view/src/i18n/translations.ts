@@ -220,6 +220,7 @@ export const bundledTranslations = {
     compactSizeMedium: '보통',
     compactSizeLarge: '크게',
     compactSizeSmallScreenHint: '화면이 작아 글자가 작게 보일 수 있습니다. \'크게\'를 권장합니다.',
+    equippedTwoHanded: '(양손)',
   },
   en: {
     title: 'Tullius Widgets',
@@ -439,6 +440,7 @@ export const bundledTranslations = {
     compactSizeMedium: 'Medium',
     compactSizeLarge: 'Large',
     compactSizeSmallScreenHint: 'Your screen is small, so text may look tiny. \'Large\' is recommended.',
+    equippedTwoHanded: '(two-handed)',
   },
 } as const;
 

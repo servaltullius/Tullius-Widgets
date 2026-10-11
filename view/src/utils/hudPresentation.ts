@@ -174,6 +174,15 @@ export function getCompactEffectRowLimit(
   return Math.max(1, rows) * (listLayout === 'horizontal' ? 2 : 1);
 }
 
+// The engine reports a two-handed weapon (bow, crossbow, greatsword, battleaxe/warhammer) in
+// both hands. Staffs are one-handed and can be dual-wielded, so they are not included.
+const TWO_HANDED_KINDS = new Set(['greatsword', 'battleaxe', 'warhammer', 'bow', 'crossbow']);
+
+export function isLeftHandHeldByTwoHanded(stats: CombatStats): boolean {
+  const { rightHand, leftHand, rightHandKind } = stats.equipped;
+  return TWO_HANDED_KINDS.has(rightHandKind) && rightHand !== '' && leftHand === rightHand;
+}
+
 // Classic cards show the extra weapon facts as one small line under the name.
 export function buildClassicEquipDetail(stats: CombatStats, hand: 'right' | 'left', lang: Language): string | undefined {
   const equipped = stats.equipped;

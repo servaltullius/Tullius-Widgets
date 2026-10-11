@@ -75,6 +75,26 @@ describe('CompactHudItem', () => {
     expect(render('time.playtime', stats => { stats.playerInfo.playtimeHours = 137.4; })).toContain('137시간 24분');
   });
 
+  it('shows the left slot as taken while a two-handed weapon fills both hands', () => {
+    const text = render('equipped.leftHand', stats => {
+      stats.equipped.rightHand = '긴 활';
+      stats.equipped.leftHand = '긴 활';
+      stats.equipped.rightHandKind = 'bow';
+      stats.equipped.leftHandKind = 'bow';
+      stats.equipped.ammoCount = 12;
+    });
+    expect(text).toContain('(양손)');
+    expect(text).not.toContain('긴 활');
+    expect(text).not.toContain('12');
+    // Two identical one-handed weapons stay separate.
+    expect(render('equipped.leftHand', stats => {
+      stats.equipped.rightHand = '강철 검';
+      stats.equipped.leftHand = '강철 검';
+      stats.equipped.rightHandKind = 'sword';
+      stats.equipped.leftHandKind = 'sword';
+    })).toContain('강철 검');
+  });
+
   it('marks a capped damage reduction with its raw value', () => {
     const text = render('defense.damageReduction', stats => {
       stats.defense.damageReduction = 80;

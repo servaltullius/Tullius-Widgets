@@ -20,6 +20,7 @@ import {
   getLowResourceTone,
   getVisibleHudItemIds,
   hasMeaningfulDifference,
+  isLeftHandHeldByTwoHanded,
   type ItemPresenceContext,
   resolveExperienceProgress,
 } from '../utils/hudPresentation';
@@ -648,8 +649,10 @@ export function HudWidgetItems({
                 icon="leftHand"
                 standardIcon="leftHandEquipped"
                 iconColor="#4090e8"
-                value={stats.equipped.leftHand || t(lang, 'equippedEmpty')}
-                helperText={buildClassicEquipDetail(stats, 'left', lang)}
+                value={isLeftHandHeldByTwoHanded(stats)
+                  ? t(lang, 'equippedTwoHanded')
+                  : stats.equipped.leftHand || t(lang, 'equippedEmpty')}
+                helperText={isLeftHandHeldByTwoHanded(stats) ? undefined : buildClassicEquipDetail(stats, 'left', lang)}
                 visible
                 prominence="secondary"
                 remountValueOnChange

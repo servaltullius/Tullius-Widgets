@@ -317,6 +317,8 @@ interface CompactEquipSlotProps {
   ammoCount?: number | null;
   /** Doses left of a poison applied to this weapon (0: none). */
   poisonCount?: number;
+  /** Left slot while a two-handed weapon (bow, greatsword, ...) fills both hands. */
+  heldByOtherHand?: boolean;
   cooldownSec?: number;
   /** Potion slot: tints the flask and always shows the remaining count (even 0). */
   potionKind?: PotionKind;
@@ -338,6 +340,7 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
   chargePct = null,
   ammoCount = null,
   poisonCount = 0,
+  heldByOtherHand = false,
   cooldownSec = 0,
   potionKind,
   wordsKnown = 0,
@@ -360,14 +363,14 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
     };
   }, [name, nameDisplay]);
 
-  const isEmpty = kind === 'empty' || !name;
+  const isEmpty = kind === 'empty' || !name || heldByOtherHand;
   const Icon = slotKey === 'Z' ? VOICE_ICON : EQUIP_KIND_ICONS[kind] ?? EQUIP_KIND_ICONS.other;
   const visibleName = nameDisplay === 'always' ? (name || emptyLabel) : nameDisplay === 'onChange' ? flashName : null;
   const highlighted = nameDisplay === 'onChange' && flashName !== null;
   const isPotion = slotKey === 'P';
   const showValue = value !== undefined && !isEmpty && (value > 0 || isPotion);
   const showCharge = chargePct !== null && !isEmpty;
-  const showAmmo = ammoCount !== null && (kind === 'bow' || kind === 'crossbow');
+  const showAmmo = ammoCount !== null && (kind === 'bow' || kind === 'crossbow') && !heldByOtherHand;
   const showPoison = poisonCount > 0 && !isEmpty;
   // A staff (or any weapon without a damage figure) running low shows the charge as a number,
   // since a short bar alone is easy to miss in combat.

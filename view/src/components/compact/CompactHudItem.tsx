@@ -6,6 +6,7 @@ import {
   formatWeight,
   getCarryTone,
   getCompactEffectRowLimit,
+  isLeftHandHeldByTwoHanded,
   getLowResourceTone,
   resolveExperienceProgress,
 } from '../../utils/hudPresentation';
@@ -222,11 +223,14 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs, layout }:
           ammoCount={stats.equipped.ammoCount}
         />
       );
-    case 'equipped.leftHand':
+    case 'equipped.leftHand': {
+      // The engine reports a two-handed weapon in both hands; show the left slot as taken.
+      const heldByRight = isLeftHandHeldByTwoHanded(stats);
       return (
         <CompactEquipSlot
           slotKey="L"
-          name={stats.equipped.leftHand}
+          name={heldByRight ? t(lang, 'equippedTwoHanded') : stats.equipped.leftHand}
+          heldByOtherHand={heldByRight}
           emptyLabel={t(lang, 'equippedEmpty')}
           kind={stats.equipped.leftHandKind}
           value={stats.offense.leftHandDamage}
@@ -236,6 +240,7 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs, layout }:
           ammoCount={stats.equipped.ammoCount}
         />
       );
+    }
     case 'equipped.voice':
       return (
         <CompactEquipSlot

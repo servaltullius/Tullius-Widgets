@@ -2,12 +2,15 @@
    fonts/Pretendard-OFL.txt) because the game overlay cannot reach web font services.
    Prisma UI (Ultralight) showed the variable font at a single weight in game, so each weight
    is a separate static face, with WOFF as a fallback where WOFF2 is not supported. The Korean
-   subset covers KS X 1001; rarer syllables fall back to the next font in the stack. */
+   subset covers KS X 1001; rarer syllables fall back to the next font in the stack.
+   The fonts are local files, so `block` costs nothing and avoids a first layout with the
+   fallback font: in game, text laid out before the swap kept the old (narrower) box and the
+   end of wider lines was cut off. */
 @font-face {
   font-family: 'Tullius Pretendard';
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url('../../node_modules/pretendard/dist/web/static/woff2-subset/Pretendard-Regular.subset.woff2') format('woff2'),
     url('../../node_modules/pretendard/dist/web/static/woff-subset/Pretendard-Regular.subset.woff') format('woff');
 }
@@ -16,7 +19,7 @@
   font-family: 'Tullius Pretendard';
   font-style: normal;
   font-weight: 500;
-  font-display: swap;
+  font-display: block;
   src: url('../../node_modules/pretendard/dist/web/static/woff2-subset/Pretendard-Medium.subset.woff2') format('woff2'),
     url('../../node_modules/pretendard/dist/web/static/woff-subset/Pretendard-Medium.subset.woff') format('woff');
 }
@@ -25,7 +28,7 @@
   font-family: 'Tullius Pretendard';
   font-style: normal;
   font-weight: 600;
-  font-display: swap;
+  font-display: block;
   src: url('../../node_modules/pretendard/dist/web/static/woff2-subset/Pretendard-SemiBold.subset.woff2') format('woff2'),
     url('../../node_modules/pretendard/dist/web/static/woff-subset/Pretendard-SemiBold.subset.woff') format('woff');
 }
@@ -34,7 +37,7 @@
   font-family: 'Tullius Pretendard';
   font-style: normal;
   font-weight: 700;
-  font-display: swap;
+  font-display: block;
   src: url('../../node_modules/pretendard/dist/web/static/woff2-subset/Pretendard-Bold.subset.woff2') format('woff2'),
     url('../../node_modules/pretendard/dist/web/static/woff-subset/Pretendard-Bold.subset.woff') format('woff');
 }
@@ -229,4 +232,10 @@
   12% { opacity: 1; }
   70% { opacity: 1; }
   100% { opacity: 0; }
+}
+
+/* Set once the bundled fonts are ready: changing a text property forces one relayout, so any
+   line measured with the fallback font is measured again with Pretendard. */
+html.tw-fonts-ready .tw-compact {
+  font-kerning: normal;
 }

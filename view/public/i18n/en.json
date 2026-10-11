@@ -185,5 +185,6 @@
   "compactSizeSmall": "Small",
   "compactSizeMedium": "Medium",
   "compactSizeLarge": "Large",
-  "compactSizeSmallScreenHint": "Your screen is small, so text may look tiny. 'Large' is recommended."
+  "compactSizeSmallScreenHint": "Your screen is small, so text may look tiny. 'Large' is recommended.",
+  "equippedTwoHanded": "(two-handed)"
 }
