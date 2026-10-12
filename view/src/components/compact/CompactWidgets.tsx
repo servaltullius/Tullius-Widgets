@@ -89,15 +89,14 @@ interface CompactStatProps {
 }
 
 // One icon in the compact HUD: the line icon, or the mini Dororong art when that theme is on.
-// The art is drawn a little larger than the line icon but keeps the same layout footprint, so
-// switching themes never moves the widgets around.
-const DORORONG_EXTRA_PX = 4;
+// The art needs about 1.5x the size to read; the Dororong layout gives the widgets that room.
+const DORORONG_ICON_SCALE = 1.5;
 
 export function CompactIcon({ name, size, color }: { name: string; size: number; color: string }) {
   const theme = useContext(CompactIconThemeContext);
   const art = getDororongStatIcon(theme, name);
   if (art) {
-    const drawn = size + DORORONG_EXTRA_PX;
+    const drawn = Math.round(size * DORORONG_ICON_SCALE);
     return (
       <img
         src={art}
@@ -106,7 +105,7 @@ export function CompactIcon({ name, size, color }: { name: string; size: number;
         data-compact-icon-art={name}
         width={drawn}
         height={drawn}
-        style={{ flex: 'none', display: 'block', margin: -DORORONG_EXTRA_PX / 2 }}
+        style={{ flex: 'none', display: 'block' }}
       />
     );
   }
@@ -395,6 +394,11 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
   const isEmpty = kind === 'empty' || !name || heldByOtherHand;
   const Icon = slotKey === 'Z' ? VOICE_ICON : EQUIP_KIND_ICONS[kind] ?? EQUIP_KIND_ICONS.other;
   const iconTheme = useContext(CompactIconThemeContext);
+  // Dororong slots are larger so the character holding the item is easy to read.
+  const dororong = iconTheme === 'dororong';
+  const slotWidth = dororong ? 64 : 54;
+  const slotHeight = dororong ? 70 : 60;
+  const artSize = dororong ? 56 : 36;
   const visibleName = nameDisplay === 'always' ? (name || emptyLabel) : nameDisplay === 'onChange' ? flashName : null;
   const highlighted = nameDisplay === 'onChange' && flashName !== null;
   const isPotion = slotKey === 'P';
@@ -408,12 +412,12 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
   const potionSpent = isPotion && !isEmpty && value === 0;
 
   return (
-    <div data-compact-item="equip-slot" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, width: 54 }}>
+    <div data-compact-item="equip-slot" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, width: slotWidth }}>
       <div
         style={{
           position: 'relative',
-          width: 54,
-          height: 60,
+          width: slotWidth,
+          height: slotHeight,
           boxSizing: 'border-box',
           background: 'var(--c-surface)',
           borderRadius: 3,
@@ -441,8 +445,8 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
               alt=""
               aria-hidden="true"
               data-compact-slot-art={artName}
-              width={36}
-              height={36}
+              width={artSize}
+              height={artSize}
               // Sits a little high so the damage / count figure in the bottom corner stays clear.
               style={{ display: 'block', marginTop: -8, opacity: heldByOtherHand || coolingDown || potionSpent ? 0.4 : 1 }}
             />

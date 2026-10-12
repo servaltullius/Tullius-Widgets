@@ -274,10 +274,31 @@ export function GeneralTabSections({
         label={t(lang, 'iconTheme')}
         value={settings.general.iconTheme}
         options={iconThemeOptions}
-        onChange={nextValue => onUpdate('general.iconTheme', nextValue)}
+        onChange={nextValue => {
+          const iconTheme = nextValue as WidgetSettings['general']['iconTheme'];
+          if (settings.general.hudStyle !== 'compact') {
+            onUpdate('general.iconTheme', iconTheme);
+            return;
+          }
+          // The compact Dororong icons are larger and use their own, roomier arrangement.
+          const nextItemLayouts = buildItemLayoutsForHudStyle(
+            { ...settings, general: { ...settings.general, iconTheme } },
+            'compact',
+          );
+          onUpdate('positions', {}, { persist: false });
+          onUpdate('layouts', {}, { persist: false });
+          onUpdate('groupScales', {}, { persist: false });
+          onUpdate('general.iconTheme', iconTheme, { persist: false });
+          onUpdate('itemLayouts', nextItemLayouts);
+        }}
         panelScale={panelScale}
         testId="icon-theme-select"
       />
+      {settings.general.hudStyle === 'compact' && (
+        <p style={{ color: '#88a4c4', fontSize: scalePanelPixels(18, panelScale), margin: `0 0 ${scalePanelPixels(8, panelScale)} 0` }}>
+          {t(lang, 'iconThemeCompactHint')}
+        </p>
+      )}
       {settings.general.hudStyle === 'classic' && (
         <>
         {settings.general.iconTheme === 'dororong' && (

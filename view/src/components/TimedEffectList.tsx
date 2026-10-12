@@ -198,7 +198,8 @@ export function TimedEffectList({
               {(() => {
                 const art = getDororongStatIcon(iconTheme, effect.category);
                 if (art) {
-                  return <img src={art} alt="" aria-hidden="true" width={16} height={16} style={{ flex: 'none', display: 'block', margin: -2 }} />;
+                  // Drawn at 20 px over the line icon's 12 px footprint so rows keep their pitch.
+                  return <img src={art} alt="" aria-hidden="true" width={20} height={20} style={{ flex: 'none', display: 'block', margin: -4 }} />;
                 }
                 const CategoryIcon = EFFECT_CATEGORY_ICONS[effect.category] ?? CircleDot;
                 return (

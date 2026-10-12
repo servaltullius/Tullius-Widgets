@@ -186,5 +186,6 @@
   "compactSizeMedium": "Medium",
   "compactSizeLarge": "Large",
   "compactSizeSmallScreenHint": "Your screen is small, so text may look tiny. 'Large' is recommended.",
-  "equippedTwoHanded": "(two-handed)"
+  "equippedTwoHanded": "(two-handed)",
+  "iconThemeCompactHint": "Changing the icon style moves widgets to that style's default layout (Dororong icons are larger and spaced wider)."
 }

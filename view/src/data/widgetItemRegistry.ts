@@ -31,7 +31,7 @@ export interface WidgetItemRegistryEntry {
 }
 
 export interface LegacyWidgetLayoutSource {
-  general: Pick<WidgetSettings['general'], 'size'> & Partial<Pick<WidgetSettings['general'], 'compactAnchor'>>;
+  general: Pick<WidgetSettings['general'], 'size'> & Partial<Pick<WidgetSettings['general'], 'compactAnchor' | 'iconTheme'>>;
   resistances: WidgetSettings['resistances'];
   defense: WidgetSettings['defense'];
   offense: WidgetSettings['offense'];
@@ -121,6 +121,44 @@ const COMPACT_DEFAULT_ITEM_POSITIONS: Record<string, GroupPosition> = {
   'player.stamina': { x: 34, y: 764 },
 };
 
+// Compact HUD with the mini Dororong icons: the art is drawn about 1.5x the line icons and
+// the equipment slots are larger, so columns and rows get more room.
+const COMPACT_DORORONG_ITEM_POSITIONS: Record<string, GroupPosition> = {
+  ...COMPACT_DEFAULT_ITEM_POSITIONS,
+  'resistance.magic': { x: 34, y: 786 },
+  'resistance.fire': { x: 112, y: 786 },
+  'resistance.frost': { x: 190, y: 786 },
+  'resistance.shock': { x: 268, y: 786 },
+  'resistance.poison': { x: 346, y: 786 },
+  'resistance.disease': { x: 424, y: 786 },
+  'defense.armorRating': { x: 34, y: 824 },
+  'defense.damageReduction': { x: 112, y: 824 },
+  'offense.critChance': { x: 190, y: 824 },
+  'movement.speedMult': { x: 268, y: 824 },
+  'offense.rightHandDamage': { x: 364, y: 824 },
+  'offense.leftHandDamage': { x: 446, y: 824 },
+  'player.gold': { x: 34, y: 862 },
+  'player.carryWeight': { x: 160, y: 862 },
+  'time.game': { x: 300, y: 862 },
+  'time.real': { x: 414, y: 862 },
+  'time.weather': { x: 536, y: 862 },
+  'time.playtime': { x: 300, y: 750 },
+  'experience.progress': { x: 34, y: 904 },
+  'equipped.rightHand': { x: 214, y: 900 },
+  'equipped.leftHand': { x: 300, y: 900 },
+  'equipped.voice': { x: 386, y: 900 },
+  'equipped.potion': { x: 472, y: 900 },
+  'timedEffects.list': { x: 620, y: 786 },
+  'player.level': { x: 620, y: 716 },
+  'player.health': { x: 34, y: 716 },
+  'player.magicka': { x: 34, y: 738 },
+  'player.stamina': { x: 34, y: 760 },
+};
+
+function getCompactPositions(iconTheme: WidgetSettings['general']['iconTheme'] | undefined): Record<string, GroupPosition> {
+  return iconTheme === 'dororong' ? COMPACT_DORORONG_ITEM_POSITIONS : COMPACT_DEFAULT_ITEM_POSITIONS;
+}
+
 // Per-style show-when defaults for items without an explicit choice. Every widget is shown
 // always by default (players found widgets that come and go distracting); hiding in exploration
 // is opt-in per widget.
@@ -141,11 +179,12 @@ function getCompactAnchorOffset(
   anchor: CompactAnchor | undefined,
   scale: number,
   effectListLayout: WidgetSettings['timedEffects']['listLayout'] | undefined,
+  table: Record<string, GroupPosition> = COMPACT_DEFAULT_ITEM_POSITIONS,
 ): GroupPosition {
   const right = anchor === 'bottomRight' || anchor === 'topRight';
   const top = anchor === 'topLeft' || anchor === 'topRight';
   const { width, height } = NORDIC_DEFAULT_BASELINE_VIEWPORT;
-  const positions = Object.values(COMPACT_DEFAULT_ITEM_POSITIONS);
+  const positions = Object.values(table);
   const effectWidth = effectListLayout === 'horizontal' ? COMPACT_EFFECT_ROW_WIDTH : COMPACT_EFFECT_COLUMN_WIDTH;
   const rightEdge = Math.max(...positions.map(position => position.x)) + effectWidth;
   const topEdge = Math.min(...positions.map(position => position.y));
@@ -588,12 +627,13 @@ export function buildCompactDefaultItemLayouts(
   source: LegacyWidgetLayoutSource,
 ): Record<string, WidgetItemLayout> {
   const scale = NORDIC_DEFAULT_SIZE_SCALE_MAP[source.general.size];
-  const offset = getCompactAnchorOffset(source.general.compactAnchor, scale, source.timedEffects.listLayout);
+  const table = getCompactPositions(source.general.iconTheme);
+  const offset = getCompactAnchorOffset(source.general.compactAnchor, scale, source.timedEffects.listLayout, table);
 
   return Object.fromEntries(
     WIDGET_ITEM_IDS.map(itemId => {
       const entry = getWidgetItemRegistryEntry(itemId);
-      const position = COMPACT_DEFAULT_ITEM_POSITIONS[itemId] ?? { x: 0, y: 0 };
+      const position = table[itemId] ?? { x: 0, y: 0 };
       // Grow the cluster around its bottom-left anchor so larger sizes never overlap, then
       // move the whole cluster to the chosen corner.
       const anchorX = COMPACT_CLUSTER_ANCHOR.x;

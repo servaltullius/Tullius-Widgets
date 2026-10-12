@@ -239,6 +239,36 @@ describe('SettingsTabSections', () => {
     expect(loadedLayouts).not.toBe(savedSlots[0].itemLayouts);
   });
 
+  it('moves compact widgets to the roomier layout when the Dororong icons are chosen', async () => {
+    const settings = cloneSettings();
+    const onUpdate = vi.fn();
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <GeneralTabSections
+          lang="ko"
+          settings={settings}
+          selectedLanguage="ko"
+          effectiveVisible={settings.general.visible}
+          onUpdate={onUpdate}
+          accentColor="#ffffff"
+          availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json' }]}
+          isSectionExpanded={() => true}
+          toggleSection={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      getByTestId(container, 'icon-theme-select')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      getByTestIdFromDocument('icon-theme-select-option-dororong')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(onUpdate).toHaveBeenCalledWith('general.iconTheme', 'dororong', { persist: false });
+    const layouts = onUpdate.mock.calls.find(call => call[0] === 'itemLayouts')?.[1];
+    expect(layouts['resistance.fire'].x - layouts['resistance.magic'].x).toBe(78);
+  });
+
   it('rebuilds the compact cluster at the chosen size', async () => {
     const settings = cloneSettings();
     const onUpdate = vi.fn();

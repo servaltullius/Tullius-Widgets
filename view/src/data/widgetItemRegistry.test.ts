@@ -189,12 +189,24 @@ describe('widgetItemRegistry', () => {
     expect(after['timedEffects.list'].x).toBe(before['timedEffects.list'].x);
   });
 
+  it('gives the larger mini Dororong icons a roomier compact layout', () => {
+    const settings = structuredClone(defaultSettings);
+    settings.general.iconTheme = 'dororong';
+    const layouts = resolveWidgetItemLayouts({ settings, viewportWidth: 1920, viewportHeight: 1080 });
+    expect(layouts['resistance.fire'].x - layouts['resistance.magic'].x).toBe(78);
+    expect(layouts['timedEffects.list'].x).toBe(620);
+    const standard = resolveWidgetItemLayouts({ settings: structuredClone(defaultSettings), viewportWidth: 1920, viewportHeight: 1080 });
+    expect(standard['resistance.fire'].x - standard['resistance.magic'].x).toBe(64);
+  });
+
   it('keeps every compact item on screen for all corner presets and sizes', () => {
     for (const compactAnchor of ['bottomLeft', 'bottomRight', 'topLeft', 'topRight'] as const) {
       for (const size of ['xsmall', 'small', 'medium', 'large'] as const) {
+       for (const iconTheme of ['standard', 'dororong'] as const) {
         const settings = structuredClone(defaultSettings);
         settings.general.compactAnchor = compactAnchor;
         settings.general.size = size;
+        settings.general.iconTheme = iconTheme;
         for (const listLayout of ['vertical', 'horizontal'] as const) {
           settings.timedEffects.listLayout = listLayout;
           const layouts = resolveWidgetItemLayouts({ settings, viewportWidth: 1920, viewportHeight: 1080 });
@@ -206,6 +218,7 @@ describe('widgetItemRegistry', () => {
             expect(layout.x + width, label).toBeLessThanOrEqual(1920);
           }
         }
+       }
       }
     }
   });
