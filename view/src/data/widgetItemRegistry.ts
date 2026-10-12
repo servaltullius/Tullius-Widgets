@@ -106,7 +106,7 @@ const COMPACT_DEFAULT_ITEM_POSITIONS: Record<string, GroupPosition> = {
   'player.carryWeight': { x: 150, y: 858 },
   'time.game': { x: 272, y: 858 },
   'time.real': { x: 378, y: 858 },
-  'time.weather': { x: 484, y: 858 },
+  'time.weather': { x: 504, y: 858 },
   'time.playtime': { x: 272, y: 760 },
   'experience.progress': { x: 34, y: 898 },
   'equipped.rightHand': { x: 222, y: 892 },
