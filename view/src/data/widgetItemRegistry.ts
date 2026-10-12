@@ -121,20 +121,12 @@ const COMPACT_DEFAULT_ITEM_POSITIONS: Record<string, GroupPosition> = {
   'player.stamina': { x: 34, y: 764 },
 };
 
-// Compact HUD: combat numbers step back while exploring and return in combat or on change.
-const COMPACT_DEFAULT_SHOW_WHEN: Record<string, ItemShowWhen> = {
-  'resistance.magic': 'combatOrChange',
-  'resistance.fire': 'combatOrChange',
-  'resistance.frost': 'combatOrChange',
-  'resistance.shock': 'combatOrChange',
-  'resistance.poison': 'combatOrChange',
-  'resistance.disease': 'combatOrChange',
-  'defense.armorRating': 'combatOrChange',
-  'defense.damageReduction': 'combatOrChange',
-  'offense.rightHandDamage': 'combatOrChange',
-  'offense.leftHandDamage': 'combatOrChange',
-  'offense.critChance': 'combatOrChange',
-  'movement.speedMult': 'combatOrChange',
+// Per-style show-when defaults for items without an explicit choice. Every widget is shown
+// always by default (players found widgets that come and go distracting); hiding in exploration
+// is opt-in per widget.
+const STYLE_DEFAULT_SHOW_WHEN: Record<HudStyle, Partial<Record<string, ItemShowWhen>>> = {
+  compact: {},
+  classic: {},
 };
 
 const COMPACT_CLUSTER_ANCHOR = { x: 34 } as const;
@@ -176,7 +168,8 @@ export function getItemShowWhenOptions(itemId: string): readonly ItemShowWhen[] 
 
 export function resolveItemShowWhen(itemId: string, layout: WidgetItemLayout | undefined, hudStyle: HudStyle): ItemShowWhen {
   const requested = layout?.showWhen
-    ?? (hudStyle === 'compact' ? COMPACT_DEFAULT_SHOW_WHEN[itemId] ?? 'always' : 'always');
+    ?? STYLE_DEFAULT_SHOW_WHEN[hudStyle][itemId]
+    ?? 'always';
   if (CHANGELESS_ITEMS.has(itemId)) {
     if (requested === 'change') return 'always';
     if (requested === 'combatOrChange') return 'combat';

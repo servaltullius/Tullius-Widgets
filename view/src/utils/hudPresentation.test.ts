@@ -103,12 +103,16 @@ describe('hudPresentation', () => {
     expect(buildTrackedChangeSignature(stats, itemLayouts)).not.toBe(afterVoice);
   });
 
-  it('hides combat-or-change items while exploring in the compact style until they change', () => {
+  it('shows every compact widget by default and hides combat-or-change ones while exploring', () => {
     const settings = cloneSettings();
     const stats = cloneStats();
     stats.isInCombat = false;
     const itemLayouts = resolveWidgetItemLayouts({ settings, viewportWidth: 1920, viewportHeight: 1080 });
     const presence = { hudStyle: 'compact' as const, nowMs: 10_000, lastChangeAtByItem: {}, changeWindowMs: 4000 };
+    expect(getVisibleHudItemIds(itemLayouts, stats, false, presence)).toContain('resistance.fire');
+    for (const itemId of Object.keys(itemLayouts).filter(id => id.startsWith('resistance.'))) {
+      itemLayouts[itemId] = { ...itemLayouts[itemId], showWhen: 'combatOrChange' };
+    }
 
     const exploring = getVisibleHudItemIds(itemLayouts, stats, false, presence);
     expect(exploring).toContain('player.gold');
@@ -136,8 +140,11 @@ describe('hudPresentation', () => {
     expect(getVisibleHudItemIds(itemLayouts, stats, false, presence)).toContain('resistance.fire');
     expect(hasChangeDrivenItems(itemLayouts, 'classic')).toBe(false);
 
+    expect(hasChangeDrivenItems(itemLayouts, 'compact')).toBe(false);
+
     itemLayouts['player.gold'] = { ...itemLayouts['player.gold'], showWhen: 'combat' };
     expect(getVisibleHudItemIds(itemLayouts, stats, false, presence)).not.toContain('player.gold');
+    itemLayouts['player.carryWeight'] = { ...itemLayouts['player.carryWeight'], showWhen: 'change' };
     expect(hasChangeDrivenItems(itemLayouts, 'compact')).toBe(true);
   });
 

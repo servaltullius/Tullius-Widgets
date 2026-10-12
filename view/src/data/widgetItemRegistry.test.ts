@@ -286,7 +286,8 @@ describe('widgetItemRegistry', () => {
     });
     expect(sanitized['player.gold'].showWhen).toBe('combat');
     expect(sanitized['player.carryWeight'].showWhen).toBeUndefined();
-    expect(resolveItemShowWhen('resistance.fire', undefined, 'compact')).toBe('combatOrChange');
+    // Every widget defaults to always; hiding in exploration is opt-in.
+    expect(resolveItemShowWhen('resistance.fire', undefined, 'compact')).toBe('always');
     expect(resolveItemShowWhen('resistance.fire', undefined, 'classic')).toBe('always');
     expect(resolveItemShowWhen('player.gold', sanitized['player.gold'], 'compact')).toBe('combat');
     const clock = { visible: true, x: 0, y: 0, scale: 1, locked: false, zIndex: 0 };
