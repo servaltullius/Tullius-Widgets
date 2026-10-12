@@ -296,6 +296,7 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message) {
         if (message->type == SKSE::MessagingInterface::kNewGame) {
             TulliusWidgets::StatsCollector::NoteConsumedPotion(0);
         }
+        TulliusWidgets::StatsCollector::ResetPlaytimeTracking();
         TulliusWidgets::WidgetBootstrap::SyncOnGameLoaded(bootstrapCallbacks);
         break;
     }

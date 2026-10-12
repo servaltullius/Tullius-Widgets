@@ -211,7 +211,9 @@ export function TimedEffectList({
                 </span>
               )}
             </span>
-            <span className="tw-ceffect-time">{formatCompactRemaining(displayedRemainingSec)}</span>
+            {/* Keyed so each new value is a fresh node: Prisma UI does not repaint a text run that
+                grew wider in place. */}
+            <span key={formatCompactRemaining(displayedRemainingSec)} className="tw-ceffect-time">{formatCompactRemaining(displayedRemainingSec)}</span>
             <span className="tw-ceffect-track" aria-hidden="true">
               <span className="tw-ceffect-fill" style={{ width: `${progressPct}%` }} />
             </span>

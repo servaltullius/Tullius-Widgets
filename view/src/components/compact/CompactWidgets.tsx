@@ -86,6 +86,9 @@ interface CompactStatProps {
   trackValue?: number;
 }
 
+// Changing text is keyed by its content throughout the compact widgets so every new value is a
+// fresh DOM node: in game, Prisma UI (Ultralight) did not repaint a text run that grew wider in
+// place, cutting off its end (a clock's last digit after the minute changed).
 export const CompactStat = memo(function CompactStat({
   icon,
   iconColor,
@@ -103,8 +106,8 @@ export const CompactStat = memo(function CompactStat({
   return (
     <div title={title} data-compact-item="stat" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 5 }}>
       {Icon && <Icon size={iconSize} strokeWidth={1.9} color={iconColor} aria-hidden="true" style={{ flex: 'none' }} />}
-      {label && <span className="tw-compact-label">{label}</span>}
-      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+      {label && <span key={label} className="tw-compact-label">{label}</span>}
+      <div key={`${value}|${unit ?? ''}|${sub ?? ''}`} style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
         <span className="tw-compact-value" data-tone={tone}>
           {value}
           {unit && <span className="tw-compact-unit">{unit}</span>}
@@ -155,7 +158,7 @@ export const CompactResistance = memo(function CompactResistance({
   return (
     <div title={title} data-compact-item="resistance" style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 54 }}>
       {Icon && <Icon size={16} strokeWidth={1.9} color={iconColor} aria-hidden="true" style={{ flex: 'none' }} />}
-      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+      <div key={`${Math.round(value)}|${rawVisible ? Math.round(raw) : ''}`} style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
         <span className="tw-compact-value" data-tone={tone}>
           {formatSignedPercent(value)}
           <span className="tw-compact-unit">%</span>
@@ -187,7 +190,7 @@ export const CompactResource = memo(function CompactResource({ icon, color, valu
       <div style={{ width: 96, height: 6, background: 'rgba(8, 8, 8, 0.55)', boxShadow: '0 0 0 1px var(--c-line)' }}>
         <div style={{ width: `${clamped}%`, height: 6, background: color }} />
       </div>
-      <span className="tw-compact-value" data-tone={tone === 'default' ? 'default' : tone} style={{ fontSize: 13 }}>
+      <span key={Math.round(value)} className="tw-compact-value" data-tone={tone === 'default' ? 'default' : tone} style={{ fontSize: 13 }}>
         {Math.round(value)}
       </span>
     </div>
@@ -235,6 +238,7 @@ export const CompactExperienceRing = memo(function CompactExperienceRing({
           />
         </svg>
         <span
+          key={level}
           className="tw-compact-value"
           style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 700 }}
         >
@@ -242,12 +246,12 @@ export const CompactExperienceRing = memo(function CompactExperienceRing({
         </span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span className="tw-compact-label" style={{ position: 'relative' }}>
+        <span key={Math.floor(pct * 100)} className="tw-compact-label" style={{ position: 'relative' }}>
           {xpLabel} {Math.floor(pct * 100)}%
           <DeltaBadge delta={xpDelta} placement="right" />
         </span>
         {showNumbers && (
-          <span className="tw-compact-value" data-compact-xp-numbers style={{ fontSize: 13 }}>
+          <span key={`${Math.round(currentXp)}/${Math.round(totalXp)}`} className="tw-compact-value" data-compact-xp-numbers style={{ fontSize: 13 }}>
             {formatThousands(currentXp)}
             <span className="tw-compact-unit"> / {formatThousands(totalXp)}</span>
           </span>
@@ -422,7 +426,7 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
               data-compact-cooldown
               style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: `${cooldown.fraction * 100}%`, background: 'rgba(8, 8, 8, 0.5)', borderRadius: '0 0 3px 3px' }}
             />
-            <span className="tw-compact-value" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'baseline', justifyContent: 'center', paddingTop: 20, fontSize: 16, fontWeight: 700 }}>
+            <span key={Math.ceil(cooldown.remaining)} className="tw-compact-value" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'baseline', justifyContent: 'center', paddingTop: 20, fontSize: 16, fontWeight: 700 }}>
               {Math.ceil(cooldown.remaining)}
               <span className="tw-compact-unit">s</span>
             </span>
@@ -448,7 +452,7 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
           </span>
         )}
         {showAmmo && (
-          <span className="tw-compact-value" style={{ position: 'absolute', right: 5, top: 3, display: 'flex', alignItems: 'center', gap: 2, fontSize: 10, fontWeight: 700, color: ammoCount === 0 ? 'var(--c-danger)' : 'var(--c-text-2)' }}>
+          <span key={ammoCount} className="tw-compact-value" style={{ position: 'absolute', right: 5, top: 3, display: 'flex', alignItems: 'center', gap: 2, fontSize: 10, fontWeight: 700, color: ammoCount === 0 ? 'var(--c-danger)' : 'var(--c-text-2)' }}>
             <svg width={8} height={8} viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" aria-hidden="true" style={{ filter: 'none' }}>
               <path d="M1 7L7 1M4 1h3v3M1 5.5L2.5 7" />
             </svg>
@@ -457,6 +461,7 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
         )}
         {showPoison && (
           <span
+            key={poisonCount}
             className="tw-compact-value"
             data-compact-poison
             style={{ position: 'absolute', left: 5, bottom: showCharge ? 6 : 3, display: 'flex', alignItems: 'center', gap: 1, fontSize: 10, fontWeight: 700, color: POISON_COLOR }}
@@ -467,6 +472,7 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
         )}
         {showValue && (
           <span
+            key={Math.round(value)}
             className="tw-compact-value"
             data-tone={isPotion && value === 0 ? 'danger' : 'default'}
             style={{ position: 'absolute', right: 5, bottom: showCharge ? 6 : 3, fontSize: 12, fontWeight: 700 }}
@@ -476,6 +482,7 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
         )}
         {showChargeNumber && chargePct !== null && (
           <span
+            key={Math.round(chargePct)}
             className="tw-compact-value"
             data-compact-charge-number
             style={{ position: 'absolute', right: 5, bottom: 6, fontSize: 11, fontWeight: 600, color: 'var(--c-warn)' }}
@@ -490,6 +497,7 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
         )}
       </div>
       <span
+        key={visibleName ?? ''}
         className="tw-compact-label"
         data-compact-equip-name
         style={{ fontSize: 11, color: potionSpent ? '#aaa69b' : 'var(--c-text)', height: 14, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', visibility: visibleName ? 'visible' : 'hidden' }}

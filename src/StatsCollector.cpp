@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <string_view>
 #include <utility>
@@ -513,6 +514,35 @@ static const char* GetEquippedKind(RE::PlayerCharacter* player, bool leftHand)
 
 static std::atomic<std::uint32_t> g_lastPotionFormId{0};
 
+// The engine's play-time counter only moves when the game is saved, so the HUD adds the time
+// played since the counter last changed. Collection only runs during gameplay (never behind a
+// blocking menu); gaps longer than a few seconds between two collections (menus, loading)
+// are not counted.
+struct PlaytimeTracker {
+    std::int64_t engineMs{-1};
+    double extraSec{0.0};
+    std::chrono::steady_clock::time_point lastTick{};
+};
+static PlaytimeTracker g_playtime;
+static std::atomic<bool> g_playtimeResetRequested{true};
+constexpr double kPlaytimeMaxGapSec = 5.0;
+
+static double ResolvePlaytimeHours(std::int64_t engineMs)
+{
+    const auto now = std::chrono::steady_clock::now();
+    if (g_playtimeResetRequested.exchange(false) || engineMs != g_playtime.engineMs) {
+        g_playtime = PlaytimeTracker{engineMs, 0.0, now};
+    } else {
+        const double gapSec = std::chrono::duration<double>(now - g_playtime.lastTick).count();
+        if (gapSec > 0.0 && gapSec <= kPlaytimeMaxGapSec) {
+            g_playtime.extraSec += gapSec;
+        }
+        g_playtime.lastTick = now;
+    }
+    const double totalSec = (engineMs > 0 ? static_cast<double>(engineMs) / 1000.0 : 0.0) + g_playtime.extraSec;
+    return totalSec / 3600.0;
+}
+
 static const char* GetPotionKind(const RE::AlchemyItem* potion)
 {
     const auto* effect = potion ? potion->GetCostliestEffectItem() : nullptr;
@@ -688,8 +718,7 @@ static PlayerStateSnapshot CollectPlayerStateSnapshot(RE::PlayerCharacter* playe
         curSP
     };
     // Engine counter of real milliseconds played on this character (what STB shows).
-    const auto playedMs = infoRuntime.totalPlayingTime;
-    snapshot.playerInfo.playtimeHours = playedMs > 0 ? static_cast<double>(playedMs) / 3'600'000.0 : 0.0;
+    snapshot.playerInfo.playtimeHours = ResolvePlaytimeHours(infoRuntime.totalPlayingTime);
     snapshot.alertData = AlertDataSnapshot{
         maxHP > 0 ? (curHP / maxHP) * 100.0f : 100.0f,
         maxMP > 0 ? (curMP / maxMP) * 100.0f : 100.0f,
@@ -720,6 +749,11 @@ StatsPayload CollectStatsPayload(RE::PlayerCharacter* player)
 }  // namespace TulliusWidgets::StatsCollectorInternal
 
 namespace TulliusWidgets {
+
+void StatsCollector::ResetPlaytimeTracking()
+{
+    StatsCollectorInternal::g_playtimeResetRequested.store(true);
+}
 
 void StatsCollector::NoteConsumedPotion(std::uint32_t formId)
 {
