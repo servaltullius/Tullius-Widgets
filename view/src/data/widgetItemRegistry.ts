@@ -100,8 +100,9 @@ const COMPACT_DEFAULT_ITEM_POSITIONS: Record<string, GroupPosition> = {
   'defense.damageReduction': { x: 98, y: 825 },
   'offense.critChance': { x: 162, y: 825 },
   'movement.speedMult': { x: 226, y: 825 },
-  'offense.rightHandDamage': { x: 290, y: 825 },
-  'offense.leftHandDamage': { x: 354, y: 825 },
+  // Move speed reads "100%" (wider than a 64px column), so the hand damages start further out.
+  'offense.rightHandDamage': { x: 304, y: 825 },
+  'offense.leftHandDamage': { x: 376, y: 825 },
   'player.gold': { x: 34, y: 858 },
   'player.carryWeight': { x: 150, y: 858 },
   'time.game': { x: 272, y: 858 },
