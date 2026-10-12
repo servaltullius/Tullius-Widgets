@@ -437,7 +437,7 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
           const artName = isPotion
             ? (isEmpty ? undefined : `potion-${potionKind ?? 'other'}`)
             : slotKey === 'Z' ? (isEmpty ? undefined : 'voice') : isEmpty && !heldByOtherHand ? 'empty' : kind;
-          const art = artName ? getDororongSlotIcon(iconTheme, artName) : undefined;
+          const art = artName ? getDororongSlotIcon(iconTheme, artName, slotKey === 'L' ? 'left' : 'right') : undefined;
           if (!art) return null;
           return (
             <img

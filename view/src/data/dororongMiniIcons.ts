@@ -22,7 +22,8 @@ export function getDororongStatIcon(theme: IconTheme, name: string): string | un
   return ICONS[STAT_ALIASES[name] ?? name];
 }
 
-export function getDororongSlotIcon(theme: IconTheme, name: string): string | undefined {
+// The left-hand slot prefers art with the item in Doro's left paw ("slot-<kind>-left").
+export function getDororongSlotIcon(theme: IconTheme, name: string, hand: 'right' | 'left' = 'right'): string | undefined {
   if (theme !== 'dororong') return undefined;
-  return ICONS[`slot-${name}`];
+  return (hand === 'left' ? ICONS[`slot-${name}-left`] : undefined) ?? ICONS[`slot-${name}`];
 }
