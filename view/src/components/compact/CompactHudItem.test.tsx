@@ -68,7 +68,7 @@ describe('CompactHudItem', () => {
       stats.time.month = 7;
       stats.time.day = 28;
       stats.time.snapshotAtMs = NOW_MS;
-    })).toContain('8/28');
+    })).toMatch(/^8\/28\s*\d{2}:\d{2}$/);
   });
 
   it('formats the time played in hours and minutes', () => {

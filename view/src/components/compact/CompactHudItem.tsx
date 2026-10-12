@@ -74,6 +74,13 @@ interface CompactHudItemProps {
   layout?: WidgetItemLayout;
 }
 
+// "8/28 14:30" -> ["8/28", "14:30"]; without a date the label stays the default word.
+function splitDateTime(text: string, withDate: boolean): [string | null, string] {
+  if (!withDate) return [null, text];
+  const space = text.lastIndexOf(' ');
+  return space > 0 ? [text.slice(0, space), text.slice(space + 1)] : [null, text];
+}
+
 export function CompactHudItem({ itemId, stats, settings, lang, nowMs, layout }: CompactHudItemProps) {
   const rawShort = t(lang, 'compactRawShort');
   const capLabel = t(lang, 'capLimitLabel');
@@ -267,26 +274,36 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs, layout }:
           potionKind={stats.equipped.potionKind}
         />
       );
-    case 'time.game':
+    // With the date on, the date takes the place of the "game"/"real" word so the clock still
+    // fits its slot in the row; the calendar and clock icons tell the two apart.
+    case 'time.game': {
+      const withDate = settings.time.gameDisplay === 'dateTime';
+      const [date, time] = splitDateTime(formatGameCompact(stats.time, nowMs, withDate), withDate);
       return (
         <CompactStat
           icon="gameTime"
           iconColor={COLORS.gold}
-          label={t(lang, 'compactGameTime')}
-          value={formatGameCompact(stats.time, nowMs, settings.time.gameDisplay === 'dateTime')}
+          label={date ?? t(lang, 'compactGameTime')}
+          value={time}
           iconSize={14}
+          title={t(lang, 'gameDateTime')}
         />
       );
-    case 'time.real':
+    }
+    case 'time.real': {
+      const withDate = settings.time.realDisplay === 'dateTime';
+      const [date, time] = splitDateTime(formatRealCompact(nowMs, withDate), withDate);
       return (
         <CompactStat
           icon="realTime"
           iconColor={COLORS.text2}
-          label={t(lang, 'compactRealTime')}
-          value={formatRealCompact(nowMs, settings.time.realDisplay === 'dateTime')}
+          label={date ?? t(lang, 'compactRealTime')}
+          value={time}
           iconSize={14}
+          title={t(lang, 'realDateTime')}
         />
       );
+    }
     case 'time.playtime':
       return (
         <CompactStat
