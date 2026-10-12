@@ -266,7 +266,7 @@ describe('SettingsTabSections', () => {
     });
     expect(onUpdate).toHaveBeenCalledWith('general.iconTheme', 'dororong', { persist: false });
     const layouts = onUpdate.mock.calls.find(call => call[0] === 'itemLayouts')?.[1];
-    expect(layouts['resistance.fire'].x - layouts['resistance.magic'].x).toBe(78);
+    expect(layouts['resistance.fire'].x - layouts['resistance.magic'].x).toBe(90);
   });
 
   it('rebuilds the compact cluster at the chosen size', async () => {

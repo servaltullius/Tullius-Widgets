@@ -89,8 +89,8 @@ interface CompactStatProps {
 }
 
 // One icon in the compact HUD: the line icon, or the mini Dororong art when that theme is on.
-// The art needs about 1.5x the size to read; the Dororong layout gives the widgets that room.
-const DORORONG_ICON_SCALE = 1.5;
+// The art needs about 2x the size to read; the Dororong layout gives the widgets that room.
+const DORORONG_ICON_SCALE = 2;
 
 export function CompactIcon({ name, size, color }: { name: string; size: number; color: string }) {
   const theme = useContext(CompactIconThemeContext);

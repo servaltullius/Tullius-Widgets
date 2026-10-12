@@ -193,8 +193,8 @@ describe('widgetItemRegistry', () => {
     const settings = structuredClone(defaultSettings);
     settings.general.iconTheme = 'dororong';
     const layouts = resolveWidgetItemLayouts({ settings, viewportWidth: 1920, viewportHeight: 1080 });
-    expect(layouts['resistance.fire'].x - layouts['resistance.magic'].x).toBe(78);
-    expect(layouts['timedEffects.list'].x).toBe(620);
+    expect(layouts['resistance.fire'].x - layouts['resistance.magic'].x).toBe(90);
+    expect(layouts['timedEffects.list'].x).toBe(660);
     const standard = resolveWidgetItemLayouts({ settings: structuredClone(defaultSettings), viewportWidth: 1920, viewportHeight: 1080 });
     expect(standard['resistance.fire'].x - standard['resistance.magic'].x).toBe(64);
   });
