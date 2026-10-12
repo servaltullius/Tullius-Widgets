@@ -9,6 +9,7 @@ Background research: `docs/plans/2026-10-12-dororong-research.ko.md` — Dororon
 - **Eyes**: big oval **lavender/violet** eyes with a thick dark outline and white highlights, straight brows, calm/deadpan look. The thick outline is **not glasses** — no frames, no bridge.
 - **Mouth**: small cat mouth **":3" (ω shape)**, light pink blush on the cheeks.
 - **Body**: a small **white round body with four short, rounded stubby legs** (no paws, claws, snout or animal ears), standing/crawling low. Head is much bigger than the body.
+- **Exactly four legs, never more.** When the two front legs hold or hug an item, only the two back legs touch the ground. When nothing is held, at most four feet are visible (often only the two front ones peek out under the head). Never add extra bumps that read as additional feet.
 
 Working palette (not official colours): hair #F2A0C5, eyes #AC87D0, ribbon #8963A6, body #FFFFFF, outline #29212C.
 

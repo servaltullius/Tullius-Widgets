@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useContext, useEffect, useRef, useState } from 'react';
 import {
   Axe,
   BowArrow,
@@ -20,6 +20,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { standardStatIconMap } from '../../data/standardStatIcons';
+import { getDororongSlotIcon, getDororongStatIcon } from '../../data/dororongMiniIcons';
+import { CompactIconThemeContext } from './compactIconTheme';
 import type { EquippedItemKind, PotionKind } from '../../types/stats';
 import { formatThousands } from '../../utils/hudPresentation';
 import { useCooldown } from '../../hooks/useCooldown';
@@ -86,6 +88,32 @@ interface CompactStatProps {
   trackValue?: number;
 }
 
+// One icon in the compact HUD: the line icon, or the mini Dororong art when that theme is on.
+// The art is drawn a little larger than the line icon but keeps the same layout footprint, so
+// switching themes never moves the widgets around.
+const DORORONG_EXTRA_PX = 4;
+
+export function CompactIcon({ name, size, color }: { name: string; size: number; color: string }) {
+  const theme = useContext(CompactIconThemeContext);
+  const art = getDororongStatIcon(theme, name);
+  if (art) {
+    const drawn = size + DORORONG_EXTRA_PX;
+    return (
+      <img
+        src={art}
+        alt=""
+        aria-hidden="true"
+        data-compact-icon-art={name}
+        width={drawn}
+        height={drawn}
+        style={{ flex: 'none', display: 'block', margin: -DORORONG_EXTRA_PX / 2 }}
+      />
+    );
+  }
+  const Icon = standardStatIconMap[name];
+  return Icon ? <Icon size={size} strokeWidth={1.9} color={color} aria-hidden="true" style={{ flex: 'none' }} /> : null;
+}
+
 // Changing text is keyed by its content throughout the compact widgets so every new value is a
 // fresh DOM node: in game, Prisma UI (Ultralight) did not repaint a text run that grew wider in
 // place, cutting off its end (a clock's last digit after the minute changed).
@@ -101,11 +129,10 @@ export const CompactStat = memo(function CompactStat({
   title,
   trackValue,
 }: CompactStatProps) {
-  const Icon = standardStatIconMap[icon];
   const delta = useValueDelta(trackValue);
   return (
     <div title={title} data-compact-item="stat" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 5 }}>
-      {Icon && <Icon size={iconSize} strokeWidth={1.9} color={iconColor} aria-hidden="true" style={{ flex: 'none' }} />}
+      <CompactIcon name={icon} size={iconSize} color={iconColor} />
       {label && <span key={label} className="tw-compact-label">{label}</span>}
       <div key={`${value}|${unit ?? ''}|${sub ?? ''}`} style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
         <span className="tw-compact-value" data-tone={tone}>
@@ -146,7 +173,6 @@ export const CompactResistance = memo(function CompactResistance({
   showRaw,
   title,
 }: CompactResistanceProps) {
-  const Icon = standardStatIconMap[icon];
   const rounded = Math.round(value);
   const differs = Math.abs(raw - value) > 0.5;
   const capped = cap !== undefined && raw > cap + 0.05;
@@ -157,7 +183,7 @@ export const CompactResistance = memo(function CompactResistance({
 
   return (
     <div title={title} data-compact-item="resistance" style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 54 }}>
-      {Icon && <Icon size={16} strokeWidth={1.9} color={iconColor} aria-hidden="true" style={{ flex: 'none' }} />}
+      <CompactIcon name={icon} size={16} color={iconColor} />
       <div key={`${Math.round(value)}|${rawVisible ? Math.round(raw) : ''}`} style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
         <span className="tw-compact-value" data-tone={tone}>
           {formatSignedPercent(value)}
@@ -182,11 +208,10 @@ interface CompactResourceProps {
 }
 
 export const CompactResource = memo(function CompactResource({ icon, color, value, pct, tone }: CompactResourceProps) {
-  const Icon = standardStatIconMap[icon];
   const clamped = Math.max(0, Math.min(100, pct));
   return (
     <div data-compact-item="resource" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      {Icon && <Icon size={14} strokeWidth={1.9} color={color} aria-hidden="true" style={{ flex: 'none' }} />}
+      <CompactIcon name={icon} size={14} color={color} />
       <div style={{ width: 96, height: 6, background: 'rgba(8, 8, 8, 0.55)', boxShadow: '0 0 0 1px var(--c-line)' }}>
         <div style={{ width: `${clamped}%`, height: 6, background: color }} />
       </div>
@@ -369,6 +394,7 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
 
   const isEmpty = kind === 'empty' || !name || heldByOtherHand;
   const Icon = slotKey === 'Z' ? VOICE_ICON : EQUIP_KIND_ICONS[kind] ?? EQUIP_KIND_ICONS.other;
+  const iconTheme = useContext(CompactIconThemeContext);
   const visibleName = nameDisplay === 'always' ? (name || emptyLabel) : nameDisplay === 'onChange' ? flashName : null;
   const highlighted = nameDisplay === 'onChange' && flashName !== null;
   const isPotion = slotKey === 'P';
@@ -402,7 +428,26 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
         <span className="tw-compact-label" style={{ position: 'absolute', left: 5, top: 3, fontSize: 10, fontWeight: 700, color: 'var(--c-text-2)' }}>
           {slotKey}
         </span>
-        {isPotion ? (
+        {(() => {
+          // Mini Dororong art for the slot when that theme is on (empty slots keep the line icon).
+          const artName = isPotion
+            ? (isEmpty ? undefined : `potion-${potionKind ?? 'other'}`)
+            : slotKey === 'Z' ? (isEmpty ? undefined : 'voice') : isEmpty && !heldByOtherHand ? 'empty' : kind;
+          const art = artName ? getDororongSlotIcon(iconTheme, artName) : undefined;
+          if (!art) return null;
+          return (
+            <img
+              src={art}
+              alt=""
+              aria-hidden="true"
+              data-compact-slot-art={artName}
+              width={36}
+              height={36}
+              // Sits a little high so the damage / count figure in the bottom corner stays clear.
+              style={{ display: 'block', marginTop: -8, opacity: heldByOtherHand || coolingDown || potionSpent ? 0.4 : 1 }}
+            />
+          );
+        })() ?? (isPotion ? (
           <FlaskConical
             size={24}
             strokeWidth={1.8}
@@ -419,7 +464,7 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
             color={isEmpty || coolingDown ? 'rgba(236, 231, 219, 0.35)' : 'var(--c-text)'}
             aria-hidden="true"
           />
-        )}
+        ))}
         {coolingDown && (
           <>
             <div

@@ -6,6 +6,7 @@ import { StatWidget } from './StatWidget';
 import { ClassicVoiceWidget } from './ClassicVoiceWidget';
 import { TimedEffectList } from './TimedEffectList';
 import { CompactHudItem } from './compact/CompactHudItem';
+import { CompactIconThemeContext } from './compact/compactIconTheme';
 import { t } from '../i18n/translations';
 import { getWidgetItemRegistryEntry } from '../data/widgetItemRegistry';
 import type { WidgetInteractionMode } from '../hooks/useWidgetEditSelection';
@@ -325,7 +326,9 @@ export function HudWidgetItems({
 
         if (compact) {
           return renderEditableItem((
-            <CompactHudItem itemId={itemId} stats={stats} settings={settings} lang={lang} nowMs={nowMs} layout={layout} />
+            <CompactIconThemeContext.Provider value={settings.general.iconTheme}>
+              <CompactHudItem itemId={itemId} stats={stats} settings={settings} lang={lang} nowMs={nowMs} layout={layout} />
+            </CompactIconThemeContext.Provider>
           ));
         }
 

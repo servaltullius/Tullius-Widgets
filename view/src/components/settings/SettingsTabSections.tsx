@@ -268,17 +268,18 @@ export function GeneralTabSections({
         testId="font-preset-select"
       />
 
-      {/* Icon style, accent tone and card transparency only apply to the classic card style. */}
+      {/* Both styles have a Dororong icon set; badges, accent tone and card transparency only
+          apply to the classic card style. */}
+      <SelectRow
+        label={t(lang, 'iconTheme')}
+        value={settings.general.iconTheme}
+        options={iconThemeOptions}
+        onChange={nextValue => onUpdate('general.iconTheme', nextValue)}
+        panelScale={panelScale}
+        testId="icon-theme-select"
+      />
       {settings.general.hudStyle === 'classic' && (
         <>
-        <SelectRow
-          label={t(lang, 'iconTheme')}
-          value={settings.general.iconTheme}
-          options={iconThemeOptions}
-          onChange={nextValue => onUpdate('general.iconTheme', nextValue)}
-          panelScale={panelScale}
-          testId="icon-theme-select"
-        />
         {settings.general.iconTheme === 'dororong' && (
           <Toggle
             label={t(lang, 'showIconBadges')}

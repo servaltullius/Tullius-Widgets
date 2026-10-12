@@ -3,6 +3,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CompactEquipSlot, CompactExperienceRing, CompactResistance, CompactStat } from './CompactWidgets';
+import { CompactIconThemeContext } from './compactIconTheme';
 
 describe('CompactWidgets', () => {
   let container: HTMLDivElement;
@@ -136,6 +137,19 @@ describe('CompactWidgets', () => {
     expect(container.querySelector('[data-compact-charge-number]')?.textContent).toBe('15%');
     render(<CompactEquipSlot slotKey="L" name="마법 지팡이" emptyLabel="-" kind="staff" value={0} nameDisplay="never" chargePct={60} />);
     expect(container.querySelector('[data-compact-charge-number]')).toBeNull();
+  });
+
+  it('draws mini Dororong art when that icon theme is on and line icons otherwise', () => {
+    render(<CompactStat icon="gold" iconColor="#fff" value="8,876" />);
+    expect(container.querySelector('[data-compact-icon-art]')).toBeNull();
+    render(
+      <CompactIconThemeContext.Provider value="dororong">
+        <CompactStat icon="gold" iconColor="#fff" value="8,876" />
+        <CompactEquipSlot slotKey="R" name="긴 활" emptyLabel="-" kind="bow" value={8} nameDisplay="never" />
+      </CompactIconThemeContext.Provider>,
+    );
+    expect(container.querySelector('[data-compact-icon-art="gold"]')).not.toBeNull();
+    expect(container.querySelector('[data-compact-slot-art="bow"]')).not.toBeNull();
   });
 
   it('shows the doses left of an applied weapon poison', () => {

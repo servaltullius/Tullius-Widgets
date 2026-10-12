@@ -175,7 +175,8 @@ describe('SettingsTabSections', () => {
       getByTestIdFromDocument('hud-style-select-option-classic')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    expect(getByTestId(container, 'icon-theme-select')).toBeNull();
+    // The icon style applies to both styles (compact has its own Dororong set).
+    expect(getByTestId(container, 'icon-theme-select')).not.toBeNull();
     expect(onUpdate).toHaveBeenCalledWith('general.hudStyle', 'classic', { persist: false });
     const itemLayoutsCall = onUpdate.mock.calls.find(call => call[0] === 'itemLayouts');
     expect(itemLayoutsCall?.[1]['experience.progress']).toMatchObject({ x: 1530, y: 60 });

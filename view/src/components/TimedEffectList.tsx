@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import {
   Battery,
   BookOpen,
@@ -24,6 +24,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { EffectCategory, TimedEffect } from '../types/stats';
+import { getDororongStatIcon } from '../data/dororongMiniIcons';
+import { CompactIconThemeContext } from './compact/compactIconTheme';
 
 const EFFECT_CATEGORY_ICONS: Record<EffectCategory, LucideIcon> = {
   health: Heart,
@@ -135,6 +137,7 @@ export function TimedEffectList({
   variant = 'card',
 }: TimedEffectListProps) {
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const iconTheme = useContext(CompactIconThemeContext);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -193,6 +196,10 @@ export function TimedEffectList({
           >
             <span className="tw-ceffect-name">
               {(() => {
+                const art = getDororongStatIcon(iconTheme, effect.category);
+                if (art) {
+                  return <img src={art} alt="" aria-hidden="true" width={16} height={16} style={{ flex: 'none', display: 'block', margin: -2 }} />;
+                }
                 const CategoryIcon = EFFECT_CATEGORY_ICONS[effect.category] ?? CircleDot;
                 return (
                   <CategoryIcon
