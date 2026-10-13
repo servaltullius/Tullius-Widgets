@@ -69,6 +69,24 @@ describe('useGameStats', () => {
     expect(playerInfo.expectedLevelThreshold).toBeCloseTo(1900.0, 2);
   });
 
+  it('keeps the threshold as the total for a pending level-up', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onStats={stats => { latest = stats; }} />);
+    });
+
+    // 2026-10-13 in-game: 565 XP of a 495 threshold read as 565/565.
+    await act(async () => {
+      window.updateStats?.(JSON.stringify(createStatsPayload({
+        playerInfo: { level: 13, experience: 565, expToNextLevel: 0, nextLevelTotalXp: 495, expectedLevelThreshold: 495 },
+      })));
+    });
+
+    const playerInfo = readPlayerInfo(latest!);
+    expect(playerInfo.experience).toBe(565);
+    expect(playerInfo.nextLevelTotalXp).toBe(495);
+  });
+
   it('accepts updateStats from namespaced bridge handler', async () => {
     await act(async () => {
       root = createRoot(container);

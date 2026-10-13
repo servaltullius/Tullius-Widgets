@@ -324,10 +324,11 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
     0,
     999999999,
   ));
-  const normalizedNextLevelTotalXp = quantize2(Math.max(
-    normalizedExperience + normalizedExpToNextLevel,
-    parsedNextLevelTotalXp,
-  ));
+  // The plugin sends the engine threshold. XP past it is a pending level-up, so the total
+  // must not be raised to the XP (565/495 would read 565/565).
+  const normalizedNextLevelTotalXp = parsedNextLevelTotalXp > 0
+    ? parsedNextLevelTotalXp
+    : quantize2(normalizedExperience + normalizedExpToNextLevel);
 
   return {
     resistances: {
