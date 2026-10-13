@@ -15,7 +15,6 @@ import {
   writeStoredPanelTab,
 } from './settings/settingsPanelState';
 import {
-  AlertsTabSections,
   CombatTabSections,
   EffectsTabSections,
   GeneralTabSections,
@@ -26,6 +25,8 @@ import { resolvePanelScale, scalePanelPixels } from './settings/panelScale';
 import {
   getWidgetItemDefaultZIndex,
   getWidgetItemRegistryEntry,
+  getItemShowWhenOptions,
+  resolveItemShowWhen,
 } from '../data/widgetItemRegistry';
 import type { WidgetItemLayout } from '../types/settings';
 
@@ -43,12 +44,11 @@ interface SettingsPanelProps {
   selectedItemLayoutActions?: SelectedItemLayoutActions;
 }
 
-const TAB_ORDER: PanelTab[] = ['general', 'combat', 'effects', 'alerts', 'presets'];
+const TAB_ORDER: PanelTab[] = ['general', 'combat', 'effects', 'presets'];
 const TAB_SECTION_IDS: Record<PanelTab, string[]> = {
   general: ['generalMain'],
   combat: [...COMBAT_WIDGET_GROUP_IDS],
   effects: [...EFFECT_WIDGET_GROUP_IDS],
-  alerts: ['visualAlerts'],
   presets: ['presets', 'layoutTools'],
 };
 
@@ -63,7 +63,6 @@ const DEFAULT_EXPANDED_SECTIONS: Record<string, boolean> = {
   movement: false,
   time: true,
   timedEffects: true,
-  visualAlerts: true,
   presets: true,
   layoutTools: true,
 };
@@ -206,7 +205,6 @@ export function SettingsPanel({
     general: t(lang, 'tabGeneral'),
     combat: t(lang, 'tabCombat'),
     effects: t(lang, 'tabEffects'),
-    alerts: t(lang, 'tabAlerts'),
     presets: t(lang, 'tabPresets'),
   };
 
@@ -323,6 +321,11 @@ export function SettingsPanel({
           onToggleLocked={selectedItemLayoutActions?.setSelectedItemLocked}
           onBringForward={selectedItemLayoutActions?.bringSelectedItemForward}
           onSendBackward={selectedItemLayoutActions?.sendSelectedItemBackward}
+          showWhen={selectedItemId ? resolveItemShowWhen(selectedItemId, resolvedSelectedItemLayout, settings.general.hudStyle) : undefined}
+          showWhenOptions={selectedItemId ? getItemShowWhenOptions(selectedItemId) : undefined}
+          onShowWhenChange={next => {
+            if (selectedItemId) onUpdate(`itemLayouts.${selectedItemId}.showWhen`, next);
+          }}
           panelScale={panelScale}
         />
       )}
@@ -436,16 +439,6 @@ export function SettingsPanel({
         />
       )}
 
-      {activeTab === 'alerts' && (
-        <AlertsTabSections
-          lang={lang}
-          settings={settings}
-          onUpdate={onUpdate}
-          isSectionExpanded={isSectionExpanded}
-          toggleSection={toggleSection}
-          panelScale={panelScale}
-        />
-      )}
 
       {activeTab === 'presets' && (
         <PresetsTabSections

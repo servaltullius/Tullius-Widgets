@@ -4,9 +4,12 @@ import { resolveWidgetItemLayouts } from '../hooks/useWidgetItemLayouts';
 import type { WidgetSettings } from '../types/settings';
 import {
   bringVisibleItemForward,
+  buildItemLayoutsForHudStyle,
+  captureLayoutSlot,
   normalizeItemLayoutZIndices,
   nudgeItemLayout,
   resetItemToDefaultPlacement,
+  shiftEffectListForLayout,
 } from './itemLayoutEditing';
 
 function cloneSettings(): WidgetSettings {
@@ -14,6 +17,37 @@ function cloneSettings(): WidgetSettings {
 }
 
 describe('itemLayoutEditing', () => {
+  it('moves items to the target style defaults while keeping the chosen visibility', () => {
+    const settings = cloneSettings();
+    settings.general.hudStyle = 'classic';
+    settings.positions = { playerInfo: { x: 10, y: 10 } };
+    settings.itemLayouts = {
+      'player.gold': { visible: false, x: 5, y: 5, scale: 1, locked: false, zIndex: 3, viewportWidth: 1920, viewportHeight: 1080 },
+    };
+
+    const compact = buildItemLayoutsForHudStyle(settings, 'compact');
+    expect(compact['player.gold']).toMatchObject({ visible: false, x: 34, y: 858 });
+    expect(compact['experience.progress']).toMatchObject({ x: 34, y: 898, viewportWidth: 1920, viewportHeight: 1080 });
+
+    const classic = buildItemLayoutsForHudStyle({ ...settings, general: { ...settings.general, hudStyle: 'compact' }, itemLayouts: compact }, 'classic');
+    expect(classic['player.gold'].visible).toBe(false);
+    expect(classic['experience.progress']).toMatchObject({ x: 1530, y: 60 });
+  });
+
+  it('captures a layout slot at the current screen so it round-trips on non-16:9 screens', () => {
+    const settings = cloneSettings();
+    settings.itemLayouts = {
+      'player.gold': { visible: true, x: 900, y: 300, scale: 1.2, locked: false, zIndex: 3, viewportWidth: 2560, viewportHeight: 1080 },
+    };
+    const slot = captureLayoutSlot(settings, 1, { width: 2560, height: 1080 });
+    const restored = resolveWidgetItemLayouts({
+      settings: { ...settings, itemLayouts: slot.itemLayouts },
+      viewportWidth: 2560,
+      viewportHeight: 1080,
+    });
+    expect(restored['player.gold']).toMatchObject({ x: 900, y: 300, scale: 1.2 });
+  });
+
   it('normalizes zIndex into contiguous order while preserving hidden item relative order', () => {
     const settings = cloneSettings();
     const itemLayouts = resolveWidgetItemLayouts({
@@ -226,5 +260,30 @@ describe('itemLayoutEditing', () => {
 
     expect(resetOnFhd[itemId].x / 1920).toBeCloseTo(resetOnUhd[itemId].x / 3840, 2);
     expect(resetOnFhd[itemId].y / 1080).toBeCloseTo(resetOnUhd[itemId].y / 2160, 2);
+  });
+
+  it('keeps the effect list right edge in place when its layout changes in a right corner', () => {
+    const settings = structuredClone(defaultSettings);
+    settings.general.compactAnchor = 'bottomRight';
+    settings.itemLayouts = buildItemLayoutsForHudStyle(settings, 'compact');
+    const before = settings.itemLayouts['timedEffects.list'];
+    const shifted = shiftEffectListForLayout(settings, 'horizontal');
+    expect(shifted?.['timedEffects.list'].x).toBeCloseTo(before.x - 282 * before.scale, 3);
+    expect(shifted!['timedEffects.list'].x + 532 * before.scale).toBeLessThanOrEqual(1920);
+    // The whole cluster moves with it, so the row never lands on the resistances.
+    for (const itemId of ['resistance.disease', 'player.gold', 'equipped.potion']) {
+      expect(shifted![itemId].x - settings.itemLayouts[itemId].x, itemId).toBeCloseTo(-282 * before.scale, 3);
+    }
+
+    // Widgets dragged away from the cluster stay put, and a round trip is exact.
+    settings.itemLayouts = { ...settings.itemLayouts, 'player.gold': { ...settings.itemLayouts['player.gold'], x: 40, y: 30 } };
+    const there = shiftEffectListForLayout(settings, 'horizontal')!;
+    expect(there['player.gold'].x).toBe(40);
+    const back = shiftEffectListForLayout({ ...settings, itemLayouts: there, timedEffects: { ...settings.timedEffects, listLayout: 'horizontal' } }, 'vertical')!;
+    expect(back['timedEffects.list'].x).toBeCloseTo(settings.itemLayouts['timedEffects.list'].x, 3);
+    expect(back['player.gold'].x).toBe(40);
+
+    settings.general.compactAnchor = 'bottomLeft';
+    expect(shiftEffectListForLayout(settings, 'horizontal')).toBeNull();
   });
 });

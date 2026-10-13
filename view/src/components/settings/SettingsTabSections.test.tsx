@@ -88,6 +88,24 @@ describe('SettingsTabSections', () => {
     expect(container.textContent).not.toContain('크기');
   });
 
+  it('offers the weather and time-played toggles in the time section', async () => {
+    const settings = cloneSettings();
+    const onUpdate = vi.fn();
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <EffectsTabSections lang="ko" settings={settings} onUpdate={onUpdate} isSectionExpanded={() => true} toggleSection={() => {}} />,
+      );
+    });
+    const playtime = getToggleInputByLabel(container, '누적 플레이 시간');
+    expect(getToggleInputByLabel(container, '날씨')).not.toBeNull();
+    expect(playtime).not.toBeNull();
+    await act(async () => {
+      playtime!.click();
+    });
+    expect(onUpdate.mock.calls.some(call => String(call[0]).includes('playtime'))).toBe(true);
+  });
+
   it('renders the font preset selector and updates the general fontPreset path', async () => {
     const settings = cloneSettings();
     const onUpdate = vi.fn();
@@ -126,8 +144,182 @@ describe('SettingsTabSections', () => {
     expect(onUpdate).toHaveBeenCalledWith('general.fontPreset', 'readable');
   });
 
+  it('switches the HUD style and moves widgets to that style\'s default layout', async () => {
+    const settings = cloneSettings();
+    const onUpdate = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <GeneralTabSections
+          lang="ko"
+          settings={settings}
+          selectedLanguage="ko"
+          effectiveVisible={settings.general.visible}
+          onUpdate={onUpdate}
+          accentColor="#ffffff"
+          availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json' }]}
+          isSectionExpanded={() => true}
+          toggleSection={() => {}}
+        />,
+      );
+    });
+
+    const hudStyleSelect = getByTestId(container, 'hud-style-select');
+    expect(hudStyleSelect?.textContent).toContain('컴팩트');
+
+    await act(async () => {
+      hudStyleSelect?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      getByTestIdFromDocument('hud-style-select-option-classic')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    // The icon style applies to both styles (compact has its own Dororong set).
+    expect(getByTestId(container, 'icon-theme-select')).not.toBeNull();
+    expect(onUpdate).toHaveBeenCalledWith('general.hudStyle', 'classic', { persist: false });
+    const itemLayoutsCall = onUpdate.mock.calls.find(call => call[0] === 'itemLayouts');
+    expect(itemLayoutsCall?.[1]['experience.progress']).toMatchObject({ x: 1530, y: 60 });
+  });
+
+  it('saves the current arrangement to a layout slot and loads it back', async () => {
+    const settings = cloneSettings();
+    const onUpdate = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <PresetsTabSections
+          lang="ko"
+          settings={settings}
+          onUpdate={onUpdate}
+          isSectionExpanded={() => true}
+          toggleSection={() => {}}
+        />,
+      );
+    });
+
+    const load = container.querySelector('[data-layout-slot-load="0"]') as HTMLButtonElement;
+    expect(load.disabled).toBe(true);
+
+    await act(async () => {
+      (container.querySelector('[data-layout-slot-save="0"]') as HTMLButtonElement).click();
+    });
+    const saveCall = onUpdate.mock.calls.find(call => call[0] === 'layoutSlots');
+    const savedSlots = saveCall?.[1];
+    expect(savedSlots[0]).toMatchObject({ hudStyle: 'compact', compactAnchor: 'bottomLeft', size: 'medium' });
+    expect(savedSlots[0].itemLayouts['experience.progress']).toMatchObject({ viewportWidth: window.innerWidth, viewportHeight: window.innerHeight });
+
+    onUpdate.mockClear();
+    const withSlot = { ...settings, layoutSlots: savedSlots };
+    await act(async () => {
+      root!.render(
+        <PresetsTabSections
+          lang="ko"
+          settings={withSlot}
+          onUpdate={onUpdate}
+          isSectionExpanded={() => true}
+          toggleSection={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      (container.querySelector('[data-layout-slot-load="0"]') as HTMLButtonElement).click();
+    });
+    // The first click only asks for confirmation.
+    expect(onUpdate).not.toHaveBeenCalled();
+    expect(container.querySelector('[data-layout-slot-load="0"]')?.textContent).toContain('한 번 더');
+    await act(async () => {
+      (container.querySelector('[data-layout-slot-load="0"]') as HTMLButtonElement).click();
+    });
+    expect(onUpdate).toHaveBeenCalledWith('general.hudStyle', 'compact', { persist: false });
+    expect(onUpdate).toHaveBeenCalledWith('general.size', 'medium', { persist: false });
+    expect(onUpdate).toHaveBeenCalledWith('itemLayouts', savedSlots[0].itemLayouts);
+    const loadedLayouts = onUpdate.mock.calls.find(call => call[0] === 'itemLayouts')?.[1];
+    expect(loadedLayouts).not.toBe(savedSlots[0].itemLayouts);
+  });
+
+  it('moves compact widgets to the roomier layout when the Dororong icons are chosen', async () => {
+    const settings = cloneSettings();
+    const onUpdate = vi.fn();
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <GeneralTabSections
+          lang="ko"
+          settings={settings}
+          selectedLanguage="ko"
+          effectiveVisible={settings.general.visible}
+          onUpdate={onUpdate}
+          accentColor="#ffffff"
+          availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json' }]}
+          isSectionExpanded={() => true}
+          toggleSection={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      getByTestId(container, 'icon-theme-select')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      getByTestIdFromDocument('icon-theme-select-option-dororong')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(onUpdate).toHaveBeenCalledWith('general.iconTheme', 'dororong', { persist: false });
+    const layouts = onUpdate.mock.calls.find(call => call[0] === 'itemLayouts')?.[1];
+    expect(layouts['resistance.fire'].x - layouts['resistance.magic'].x).toBe(90);
+  });
+
+  it('rebuilds the compact cluster at the chosen size', async () => {
+    const settings = cloneSettings();
+    const onUpdate = vi.fn();
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <PresetsTabSections lang="ko" settings={settings} onUpdate={onUpdate} isSectionExpanded={() => true} toggleSection={() => {}} />,
+      );
+    });
+    await act(async () => {
+      getByTestId(container, 'compact-size-select')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      getByTestIdFromDocument('compact-size-select-option-large')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(onUpdate).toHaveBeenCalledWith('general.size', 'large', { persist: false });
+    const itemLayoutsCall = onUpdate.mock.calls.find(call => call[0] === 'itemLayouts');
+    expect(itemLayoutsCall?.[1]['experience.progress'].scale).toBe(1.18);
+  });
+
+  it('lets an unanswered slot load confirmation lapse', async () => {
+    vi.useFakeTimers();
+    try {
+      const settings = cloneSettings();
+      settings.layoutSlots = [
+        { savedAt: 0, hudStyle: 'compact', compactAnchor: 'bottomLeft', itemLayouts: {} },
+        null,
+        null,
+      ];
+      const onUpdate = vi.fn();
+      await act(async () => {
+        root = createRoot(container);
+        root.render(
+          <PresetsTabSections lang="ko" settings={settings} onUpdate={onUpdate} isSectionExpanded={() => true} toggleSection={() => {}} />,
+        );
+      });
+      const load = () => container.querySelector('[data-layout-slot-load="0"]') as HTMLButtonElement;
+      await act(async () => { load().click(); });
+      expect(load().textContent).toContain('한 번 더');
+      await act(async () => { vi.advanceTimersByTime(5000); });
+      expect(load().textContent).not.toContain('한 번 더');
+      await act(async () => { load().click(); });
+      expect(onUpdate).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('updates the icon theme and exposes the badge toggle for Dororong icons', async () => {
     const settings = cloneSettings();
+    settings.general.hudStyle = 'classic';
     const onUpdate = vi.fn();
 
     await act(async () => {
@@ -353,6 +545,7 @@ describe('SettingsTabSections', () => {
 
   it('renders the voice equipped toggle and updates the canonical item visibility path', async () => {
     const settings = cloneSettings();
+    settings.equipped.voice = false;
     const onUpdate = vi.fn();
 
     await act(async () => {

@@ -3,6 +3,7 @@ import { iconMap } from '../assets/icons';
 import { t } from '../i18n/translations';
 import type { IconTheme, Language } from '../types/settings';
 import { getExperienceProgressPresentation } from './experiencePresentation';
+import { formatThousands } from '../utils/hudPresentation';
 
 interface ExperienceWidgetProps {
   currentXp: number;
@@ -11,10 +12,11 @@ interface ExperienceWidgetProps {
   visible: boolean;
   lang: Language;
   iconTheme?: IconTheme;
+  showNumbers?: boolean;
 }
 
 function formatInteger(value: number): string {
-  return Math.round(value).toLocaleString();
+  return formatThousands(value);
 }
 
 export const ExperienceWidget = memo(function ExperienceWidget({
@@ -24,6 +26,7 @@ export const ExperienceWidget = memo(function ExperienceWidget({
   visible,
   lang,
   iconTheme = 'standard',
+  showNumbers = true,
 }: ExperienceWidgetProps) {
   if (!visible) return null;
 
@@ -63,9 +66,11 @@ export const ExperienceWidget = memo(function ExperienceWidget({
           <span className="tw-experience-level-label">
             {t(lang, 'level')} {safeLevel}
           </span>
-          <span className="tw-experience-value" data-experience-value="true">
-            {currentDisplay}<small> / {totalDisplay}</small>
-          </span>
+          {showNumbers && (
+            <span className="tw-experience-value" data-experience-value="true">
+              {currentDisplay}<small> / {totalDisplay}</small>
+            </span>
+          )}
         </div>
         <div
           className="tw-experience-track"

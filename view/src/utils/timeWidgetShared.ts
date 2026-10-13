@@ -3,6 +3,7 @@ import { DAYS_IN_MONTH } from '../data/constants';
 import { formatSkyrimDateTime, getLanguageLocale } from '../i18n/translations';
 import type { Language } from '../types/settings';
 import type { GameTimeInfo } from '../types/stats';
+import { formatThousands } from './hudPresentation';
 
 export const TIME_WIDGET_VALUE_MAX_WIDTH = 320;
 
@@ -179,4 +180,24 @@ export function formatRealDateTime(nowMs: number, lang: Language): string {
 
 export function formatRealTimeOnly(nowMs: number, lang: Language): string {
   return getCachedTimeOnlyFormatter(lang).format(new Date(nowMs));
+}
+
+export function formatPlaytime(hours: number, template: string): string {
+  const totalMinutes = Math.max(0, Math.floor(hours * 60));
+  return template
+    .replace('{h}', formatThousands(Math.floor(totalMinutes / 60)))
+    .replace('{m}', String(totalMinutes % 60).padStart(2, '0'));
+}
+
+// Compact HUD formats: short enough to sit in a single HUD line.
+export function formatGameCompact(gameTime: GameTimeInfo, nowMs: number, withDate: boolean): string {
+  const current = advanceGameTime(gameTime, nowMs);
+  const hhmm = `${pad2(current.hour)}:${pad2(current.minute)}`;
+  return withDate ? `${current.month + 1}/${current.day} ${hhmm}` : hhmm;
+}
+
+export function formatRealCompact(nowMs: number, withDate: boolean): string {
+  const date = new Date(nowMs);
+  const hhmm = `${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+  return withDate ? `${date.getMonth() + 1}/${date.getDate()} ${hhmm}` : hhmm;
 }

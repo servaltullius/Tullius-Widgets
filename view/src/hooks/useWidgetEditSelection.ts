@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { isHotkeyCaptureActive } from '../utils/hotkeys';
 
 export type WidgetInteractionMode = 'drag' | 'resize';
 
@@ -42,7 +43,7 @@ export function useWidgetEditSelection({
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || !rawSelectedItemId) {
+      if (event.key !== 'Escape' || !rawSelectedItemId || isHotkeyCaptureActive()) {
         return;
       }
 

@@ -1,11 +1,89 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { TimedEffect } from '../types/stats';
+import { useContext, useEffect, useMemo, useState } from 'react';
+import {
+  Battery,
+  BookOpen,
+  Bug,
+  CircleDot,
+  Droplets,
+  Eye,
+  EyeOff,
+  Flame,
+  Ghost,
+  Heart,
+  Hourglass,
+  Orbit,
+  Shield,
+  ShieldOff,
+  Skull,
+  Snowflake,
+  Sparkles,
+  Waves,
+  Weight,
+  Wind,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react';
+import type { EffectCategory, TimedEffect } from '../types/stats';
+import { getDororongStatIcon } from '../data/dororongMiniIcons';
+import { CompactIconThemeContext } from './compact/compactIconTheme';
+
+const EFFECT_CATEGORY_ICONS: Record<EffectCategory, LucideIcon> = {
+  health: Heart,
+  magicka: Droplets,
+  stamina: Battery,
+  fire: Flame,
+  frost: Snowflake,
+  shock: Zap,
+  magic: Sparkles,
+  poison: Skull,
+  disease: Bug,
+  armor: Shield,
+  speed: Wind,
+  weight: Weight,
+  water: Waves,
+  invisibility: EyeOff,
+  paralysis: ShieldOff,
+  vision: Eye,
+  cloak: Orbit,
+  time: Hourglass,
+  ethereal: Ghost,
+  skill: BookOpen,
+  other: CircleDot,
+};
+
+const EFFECT_CATEGORY_COLORS: Partial<Record<EffectCategory, string>> = {
+  health: '#d87a70',
+  magicka: '#7fa6dc',
+  stamina: '#8fbf86',
+  fire: '#e08a6c',
+  frost: '#98c6dc',
+  shock: '#d9c96f',
+  magic: '#b9a0d6',
+  poison: '#9cbf90',
+  disease: '#b6ad93',
+  armor: '#c9c2b3',
+  skill: '#d2bb83',
+};
+
+// Magnitudes are only meaningful as a number for stat-like effects.
+const MAGNITUDE_CATEGORIES = new Set<EffectCategory>([
+  'health', 'magicka', 'stamina', 'fire', 'frost', 'shock', 'magic', 'poison', 'disease', 'armor', 'speed', 'weight', 'skill',
+]);
 
 interface TimedEffectListProps {
   effects: TimedEffect[];
   maxVisible: number;
   emptyLabel: string;
   layout?: 'vertical' | 'horizontal';
+  variant?: 'card' | 'compact';
+}
+
+function formatCompactRemaining(value: number): string {
+  const total = Math.max(0, Math.round(value));
+  if (total < 60) return `${total}s`;
+  const minutes = Math.floor(total / 60);
+  if (minutes < 60) return `${minutes}:${String(total % 60).padStart(2, '0')}`;
+  return `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`;
 }
 
 function formatRemainingSec(value: number): string {
@@ -56,8 +134,10 @@ export function TimedEffectList({
   maxVisible,
   emptyLabel,
   layout = 'vertical',
+  variant = 'card',
 }: TimedEffectListProps) {
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const iconTheme = useContext(CompactIconThemeContext);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -101,7 +181,55 @@ export function TimedEffectList({
   const hiddenCount = Math.max(0, sorted.length - visible.length);
 
   if (visible.length === 0) {
-    return <div className="tw-effect-empty">{emptyLabel}</div>;
+    return <div className={variant === 'compact' ? 'tw-ceffect-empty' : 'tw-effect-empty'}>{emptyLabel}</div>;
+  }
+
+  if (variant === 'compact') {
+    return (
+      <div className="tw-ceffect-list" data-layout={layout}>
+        {visible.map(({ effect, displayedRemainingSec, progressPct, urgent }) => (
+          <div
+            className="tw-ceffect-row"
+            data-debuff={effect.isDebuff ? 'true' : 'false'}
+            data-urgent={urgent ? 'true' : 'false'}
+            key={effect.stableKey}
+          >
+            <span className="tw-ceffect-name">
+              {(() => {
+                const art = getDororongStatIcon(iconTheme, effect.category);
+                if (art) {
+                  // Drawn at 20 px over the line icon's 12 px footprint so rows keep their pitch.
+                  return <img src={art} alt="" aria-hidden="true" width={20} height={20} style={{ flex: 'none', display: 'block', margin: -4 }} />;
+                }
+                const CategoryIcon = EFFECT_CATEGORY_ICONS[effect.category] ?? CircleDot;
+                return (
+                  <CategoryIcon
+                    size={12}
+                    strokeWidth={2.2}
+                    color={effect.isDebuff ? '#e8786d' : EFFECT_CATEGORY_COLORS[effect.category] ?? '#c3bdb0'}
+                    aria-hidden="true"
+                    style={{ flex: 'none' }}
+                  />
+                );
+              })()}
+              <span className="tw-ceffect-label">{getPrimaryLabel(effect)}</span>
+              {MAGNITUDE_CATEGORIES.has(effect.category) && Math.round(effect.magnitude) > 0 && (
+                <span className="tw-ceffect-magnitude">
+                  {effect.isDebuff ? '\u2212' : '+'}{Math.round(effect.magnitude)}
+                </span>
+              )}
+            </span>
+            {/* Keyed so each new value is a fresh node: Prisma UI does not repaint a text run that
+                grew wider in place. */}
+            <span key={formatCompactRemaining(displayedRemainingSec)} className="tw-ceffect-time">{formatCompactRemaining(displayedRemainingSec)}</span>
+            <span className="tw-ceffect-track" aria-hidden="true">
+              <span className="tw-ceffect-fill" style={{ width: `${progressPct}%` }} />
+            </span>
+          </div>
+        ))}
+        {hiddenCount > 0 && <div className="tw-ceffect-more">+{hiddenCount}</div>}
+      </div>
+    );
   }
 
   return (

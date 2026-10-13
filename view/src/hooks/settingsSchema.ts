@@ -1,6 +1,9 @@
 import type {
   CarryWeightDisplayMode,
   FontPreset,
+  CompactAnchor,
+  EquipNameDisplay,
+  HudStyle,
   GroupPosition,
   IconTheme,
   Language,
@@ -11,9 +14,12 @@ import type {
   WidgetSettings,
   WidgetSize,
 } from '../types/settings';
+import { LAYOUT_SLOT_COUNT } from '../types/settings';
 import { defaultSettings } from '../data/defaultSettings';
 import { sanitizeWidgetItemLayouts } from '../data/widgetItemRegistry';
 import { isPlainObject, readBoolean, readNumber } from '../utils/normalize';
+import { sanitizeHotkeys } from '../utils/hotkeys';
+import { TIMED_EFFECT_FILTERS, TIMED_EFFECT_LONG_LIMITS, type TimedEffectFilter } from '../utils/timedEffectFilter';
 import { readRevision, SETTINGS_SCHEMA_VERSION } from './settingsShared';
 
 function readEnum<T extends string>(value: unknown, fallback: T, allowed: readonly T[]): T {
@@ -44,6 +50,10 @@ const FONT_PRESETS = ['default', 'readable', 'compact', 'classic'] as const;
 const ICON_THEMES = ['standard', 'dororong'] as const;
 const STAGE2_STANDALONE_LEVEL_SCHEMA_VERSION = 4;
 const ICON_PRESENTATION_SCHEMA_VERSION = 6;
+// Settings saved before the compact HUD existed keep the classic card look and layout.
+const HUD_STYLE_SCHEMA_VERSION = 7;
+const HUD_STYLES: readonly HudStyle[] = ['compact', 'classic'];
+const WIDGET_SIZES: readonly WidgetSize[] = ['xsmall', 'small', 'medium', 'large'];
 
 interface MergeSettingsOptions {
   allowLegacyStandaloneLevelFallback?: boolean;
@@ -98,6 +108,25 @@ function sanitizeGroupScales(incoming: unknown): Record<string, number> {
   return out;
 }
 
+function sanitizeLayoutSlots(incoming: unknown): WidgetSettings['layoutSlots'] {
+  const slots: WidgetSettings['layoutSlots'] = Array.from({ length: LAYOUT_SLOT_COUNT }, () => null);
+  if (!Array.isArray(incoming)) return slots;
+  for (let index = 0; index < LAYOUT_SLOT_COUNT; index++) {
+    const raw = incoming[index];
+    if (!isPlainObject(raw)) continue;
+    const itemLayouts = sanitizeWidgetItemLayouts(raw.itemLayouts);
+    if (Object.keys(itemLayouts).length === 0) continue;
+    slots[index] = {
+      savedAt: readNumber(raw.savedAt, 0, 0, Number.MAX_SAFE_INTEGER),
+      hudStyle: readEnum<HudStyle>(raw.hudStyle, 'compact', HUD_STYLES),
+      compactAnchor: readEnum<CompactAnchor>(raw.compactAnchor, 'bottomLeft', ['bottomLeft', 'bottomRight', 'topLeft', 'topRight']),
+      ...(typeof raw.size === 'string' && WIDGET_SIZES.includes(raw.size as WidgetSize) ? { size: raw.size as WidgetSize } : {}),
+      itemLayouts,
+    };
+  }
+  return slots;
+}
+
 function cloneDefaultSettings(): WidgetSettings {
   if (typeof structuredClone === 'function') {
     return structuredClone(defaultSettings);
@@ -112,7 +141,12 @@ function mergeGeneralSettings(
 ): void {
   const isLegacyIconPresentation = savedSchemaVersion === null
     || savedSchemaVersion < ICON_PRESENTATION_SCHEMA_VERSION;
+  const isLegacyHudStyle = savedSchemaVersion === null
+    || savedSchemaVersion < HUD_STYLE_SCHEMA_VERSION;
   if (!isPlainObject(incoming)) {
+    if (isLegacyHudStyle) {
+      target.hudStyle = 'classic';
+    }
     if (isLegacyIconPresentation) {
       target.iconTheme = 'dororong';
       target.showIconBadges = true;
@@ -126,7 +160,7 @@ function mergeGeneralSettings(
   target.changeDisplaySeconds = readNumber(incoming.changeDisplaySeconds, target.changeDisplaySeconds, 1, 15);
   target.onboardingSeen = readBoolean(incoming.onboardingSeen, target.onboardingSeen);
   target.opacity = readNumber(incoming.opacity, target.opacity, 10, 100);
-  target.size = readEnum<WidgetSize>(incoming.size, target.size, ['xsmall', 'small', 'medium', 'large']);
+  target.size = readEnum<WidgetSize>(incoming.size, target.size, WIDGET_SIZES);
   target.language = readLanguageCode(incoming.language, target.language);
   target.fontPreset = readEnum<FontPreset>(incoming.fontPreset, target.fontPreset, FONT_PRESETS);
   const hasExplicitIconTheme = typeof incoming.iconTheme === 'string'
@@ -142,6 +176,23 @@ function mergeGeneralSettings(
       target.showIconBadges = true;
     }
   }
+  const hasExplicitHudStyle = typeof incoming.hudStyle === 'string'
+    && HUD_STYLES.includes(incoming.hudStyle as HudStyle);
+  target.hudStyle = readEnum<HudStyle>(incoming.hudStyle, target.hudStyle, HUD_STYLES);
+  if (isLegacyHudStyle && !hasExplicitHudStyle) {
+    target.hudStyle = 'classic';
+  }
+  target.compactAnchor = readEnum<CompactAnchor>(
+    incoming.compactAnchor,
+    target.compactAnchor,
+    ['bottomLeft', 'bottomRight', 'topLeft', 'topRight'],
+  );
+  const hotkeys = sanitizeHotkeys(
+    incoming.settingsHotkey ?? target.settingsHotkey,
+    incoming.visibilityHotkey ?? target.visibilityHotkey,
+  );
+  target.settingsHotkey = hotkeys.settingsHotkey;
+  target.visibilityHotkey = hotkeys.visibilityHotkey;
   target.accentColor = readAccentColor(incoming.accentColor, target.accentColor);
   target.transparentBg = readBoolean(incoming.transparentBg, target.transparentBg);
 }
@@ -179,6 +230,10 @@ function mergeTimedEffectsSettings(target: WidgetSettings['timedEffects'], incom
     target.listLayout,
     TIMED_EFFECT_LIST_LAYOUTS,
   );
+  target.filter = readEnum<TimedEffectFilter>(incoming.filter, target.filter, TIMED_EFFECT_FILTERS);
+  target.hideLongerThanMin = TIMED_EFFECT_LONG_LIMITS.includes(incoming.hideLongerThanMin as number)
+    ? incoming.hideLongerThanMin as number
+    : target.hideLongerThanMin;
 }
 
 function mergeResistancesSettings(target: WidgetSettings['resistances'], incoming: unknown): void {
@@ -216,6 +271,8 @@ function mergeTimeSettings(target: WidgetSettings['time'], incoming: unknown): v
     target.realDisplay,
     TIME_DISPLAY_MODES,
   );
+  target.weather = readBoolean(incoming.weather, target.weather);
+  target.playtime = readBoolean(incoming.playtime, target.playtime);
 }
 
 function mergePlayerInfoSettings(target: WidgetSettings['playerInfo'], incoming: unknown): void {
@@ -285,33 +342,37 @@ function reconcileStandaloneLevelVisibility(
   }
 }
 
-function mergeVisualAlertsSettings(target: WidgetSettings['visualAlerts'], incoming: unknown): void {
-  if (!isPlainObject(incoming)) {
-    return;
-  }
-
-  target.enabled = readBoolean(incoming.enabled, target.enabled);
-  target.lowHealth = readBoolean(incoming.lowHealth, target.lowHealth);
-  target.lowHealthThreshold = readNumber(incoming.lowHealthThreshold, target.lowHealthThreshold, 10, 60);
-  target.lowStamina = readBoolean(incoming.lowStamina, target.lowStamina);
-  target.lowStaminaThreshold = readNumber(incoming.lowStaminaThreshold, target.lowStaminaThreshold, 10, 60);
-  target.lowMagicka = readBoolean(incoming.lowMagicka, target.lowMagicka);
-  target.lowMagickaThreshold = readNumber(incoming.lowMagickaThreshold, target.lowMagickaThreshold, 10, 60);
-  target.overencumbered = readBoolean(incoming.overencumbered, target.overencumbered);
-}
-
 export function mergeWithDefaults(
   saved: Record<string, unknown>,
   options: MergeSettingsOptions = {},
 ): WidgetSettings {
   const merged = cloneDefaultSettings();
   const savedSchemaVersion = readRevision(saved.schemaVersion);
+  if (savedSchemaVersion === null || savedSchemaVersion < HUD_STYLE_SCHEMA_VERSION) {
+    // Fields missing from pre-compact saves keep the defaults those versions shipped with.
+    merged.resistances.disease = false;
+    merged.equipped.voice = false;
+    merged.equipped.potion = false;
+    merged.offense.rightHandDamage = true;
+    merged.offense.leftHandDamage = true;
+    merged.time.gameDisplay = 'dateTime';
+    merged.time.realDisplay = 'dateTime';
+    merged.time.weather = false;
+  }
 
   mergeGeneralSettings(merged.general, saved.general, savedSchemaVersion);
   mergeResistancesSettings(merged.resistances, saved.resistances);
   merged.defense = mergeBooleanSection(merged.defense, saved.defense);
   merged.offense = mergeBooleanSection(merged.offense, saved.offense);
-  merged.equipped = mergeBooleanSection(merged.equipped, saved.equipped);
+  const { nameDisplay: defaultNameDisplay, ...equippedVisibility } = merged.equipped;
+  merged.equipped = {
+    ...mergeBooleanSection(equippedVisibility, saved.equipped),
+    nameDisplay: readEnum<EquipNameDisplay>(
+      isPlainObject(saved.equipped) ? saved.equipped.nameDisplay : undefined,
+      defaultNameDisplay,
+      ['always', 'onChange', 'never'],
+    ),
+  };
   merged.movement = mergeBooleanSection(merged.movement, saved.movement);
   mergeTimeSettings(merged.time, saved.time);
   merged.experience = mergeBooleanSection(merged.experience, saved.experience);
@@ -319,11 +380,11 @@ export function mergeWithDefaults(
 
   migrateLegacyExperienceToggle(merged.experience, saved.experience, saved.playerInfo);
   mergeTimedEffectsSettings(merged.timedEffects, saved.timedEffects);
-  mergeVisualAlertsSettings(merged.visualAlerts, saved.visualAlerts);
   merged.positions = sanitizePositions(saved.positions);
   merged.layouts = sanitizeLayouts(saved.layouts);
   merged.groupScales = sanitizeGroupScales(saved.groupScales);
   merged.itemLayouts = sanitizeWidgetItemLayouts(saved.itemLayouts);
+  merged.layoutSlots = sanitizeLayoutSlots(saved.layoutSlots);
   reconcileStandaloneLevelVisibility(
     merged.playerInfo,
     saved.playerInfo,

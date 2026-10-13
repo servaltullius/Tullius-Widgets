@@ -235,6 +235,12 @@ export function useSettings() {
       const mergedWithDefaults = mergeWithDefaults(parsed, {
         allowLegacyStandaloneLevelFallback: persist,
       });
+      if (persist) {
+        // Imported presets never rebind the player's keys or replace their saved layout slots.
+        mergedWithDefaults.general.settingsHotkey = settingsRef.current.general.settingsHotkey;
+        mergedWithDefaults.general.visibilityHotkey = settingsRef.current.general.visibilityHotkey;
+        mergedWithDefaults.layoutSlots = settingsRef.current.layoutSlots;
+      }
       const seededLegacyLayouts = seedVisibleLegacyItemLayouts(mergedWithDefaults);
       const merged = stampMissingItemLayoutViewportMetadata(seededLegacyLayouts);
       const shouldPersistStampedLayouts = !persist && merged !== mergedWithDefaults;

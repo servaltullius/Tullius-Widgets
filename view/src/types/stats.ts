@@ -20,9 +20,38 @@ export interface Offense {
 
 export type EquippedVoiceType = 'empty' | 'shout' | 'power';
 
+export const EQUIPPED_ITEM_KINDS = [
+  'empty', 'unarmed', 'sword', 'dagger', 'waraxe', 'mace', 'greatsword', 'battleaxe', 'warhammer',
+  'bow', 'crossbow', 'staff', 'spell', 'destruction', 'restoration', 'alteration', 'illusion',
+  'conjuration', 'shield', 'torch', 'other',
+] as const;
+
+export type EquippedItemKind = typeof EQUIPPED_ITEM_KINDS[number];
+export type PotionKind = 'health' | 'magicka' | 'stamina' | 'other';
+
 export interface Equipped {
   rightHand: string;
   leftHand: string;
+  rightHandKind: EquippedItemKind;
+  leftHandKind: EquippedItemKind;
+  /** Enchantment charge in percent, or null when the hand item is not enchanted. */
+  rightHandChargePct: number | null;
+  leftHandChargePct: number | null;
+  /** Doses left of a poison applied to the hand's weapon (0: none). */
+  rightHandPoisonCount: number;
+  leftHandPoisonCount: number;
+  ammoName: string;
+  /** Equipped arrows/bolts in the inventory, or null when no ammo is equipped. */
+  ammoCount: number | null;
+  /** Seconds until the selected shout can be used again. */
+  voiceCooldownSec: number;
+  /** Shouts only: words learned and words unlocked with dragon souls (0-3). */
+  voiceWordsKnown: number;
+  voiceWordsUnlocked: number;
+  /** Last potion the player drank this session and how many are left (null: none yet). */
+  potionName: string;
+  potionCount: number | null;
+  potionKind: PotionKind;
   voice: string;
   voiceType: EquippedVoiceType;
 }
@@ -30,6 +59,8 @@ export interface Equipped {
 export interface Movement {
   speedMult: number;
 }
+
+export type WeatherKind = 'clear' | 'cloudy' | 'rain' | 'snow' | 'indoor' | 'unknown';
 
 export interface GameTimeInfo {
   year: number;
@@ -39,6 +70,7 @@ export interface GameTimeInfo {
   minute: number;
   monthName: string;
   timeScale: number;
+  weather: WeatherKind;
   snapshotAtMs: number;
 }
 
@@ -54,6 +86,8 @@ export interface PlayerInfo {
   health: number;
   magicka: number;
   stamina: number;
+  /** Real hours played on this character. */
+  playtimeHours: number;
 }
 
 export interface AlertData {
@@ -62,6 +96,13 @@ export interface AlertData {
   staminaPct: number;
   carryPct: number;
 }
+
+export const EFFECT_CATEGORIES = [
+  'health', 'magicka', 'stamina', 'fire', 'frost', 'shock', 'magic', 'poison', 'disease', 'armor',
+  'speed', 'weight', 'water', 'invisibility', 'paralysis', 'vision', 'cloak', 'time', 'ethereal', 'skill', 'other',
+] as const;
+
+export type EffectCategory = typeof EFFECT_CATEGORIES[number];
 
 export interface TimedEffect {
   instanceId: number;
@@ -75,6 +116,8 @@ export interface TimedEffect {
   sourceFormId: number;
   effectFormId: number;
   spellFormId: number;
+  category: EffectCategory;
+  magnitude: number;
 }
 
 export interface CalculationCaps {

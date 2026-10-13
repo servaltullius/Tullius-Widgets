@@ -77,8 +77,10 @@ async function waitForFrame() {
 }
 
 function getDefaultPlayerLevelLayout() {
+  const settings = structuredClone(defaultSettings);
+  settings.general.hudStyle = 'classic';
   return resolveWidgetItemLayouts({
-    settings: structuredClone(defaultSettings),
+    settings,
     viewportWidth: window.innerWidth,
     viewportHeight: window.innerHeight,
   })['player.level'];
@@ -574,7 +576,9 @@ describe('App quick-edit integration', () => {
     )?.closest('label');
     const diseaseToggle = diseaseToggleLabel?.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
     expect(diseaseToggle).toBeTruthy();
+    // Disease resistance is hidden by default.
     expect(diseaseToggle?.checked).toBe(false);
+    expect(getWidget(container, 'resistance.disease')).toBeNull();
 
     await act(async () => {
       diseaseToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }));

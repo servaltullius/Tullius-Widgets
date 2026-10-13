@@ -1,12 +1,11 @@
-import { WIDGET_ITEM_IDS } from '../data/widgetItemRegistry';
+import { resolveItemShowWhen, WIDGET_ITEM_IDS } from '../data/widgetItemRegistry';
 import { t } from '../i18n/translations';
-import type { Language, WidgetItemLayout, WidgetSettings } from '../types/settings';
+import type { HudStyle, Language, WidgetItemLayout, WidgetSettings } from '../types/settings';
 import type { RuntimeDiagnostics } from '../types/runtime';
 import type { CombatStats, PlayerInfo } from '../types/stats';
 
 const CARRY_WARNING_THRESHOLD = 85;
 const CARRY_DANGER_THRESHOLD = 100;
-const XP_STALE_TOLERANCE = 1;
 
 export type HudValueTone = 'default' | 'warning' | 'danger';
 export type HudSettingsSyncState = 'idle' | 'retrying' | 'failed' | 'saved';
@@ -34,6 +33,9 @@ export function formatPercent(value: number): string {
   return `${Math.round(clampPercent(value))}%`;
 }
 
+// Resource values turn amber, then red, below these percentages.
+export const LOW_RESOURCE_THRESHOLDS = { health: 30, magicka: 25, stamina: 25 } as const;
+
 export function getLowResourceTone(
   percent: number,
   warningThreshold: number,
@@ -55,30 +57,32 @@ export function formatWeight(value: number): string {
   return value.toFixed(1);
 }
 
+// Thousands separators without toLocaleString: these run on every stats update, and locale
+// formatting is by far the slowest part of a HUD render (more so in Ultralight).
+export function formatThousands(value: number): string {
+  const rounded = Math.round(value);
+  const digits = String(Math.abs(rounded)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return rounded < 0 ? `-${digits}` : digits;
+}
+
 export function formatGold(value: number): string {
-  return value.toLocaleString();
+  return formatThousands(value);
 }
 
 export function hasMeaningfulDifference(a: number, b: number): boolean {
   return Math.abs(a - b) > 0.05;
 }
 
+// The plugin corrects a threshold left over from the previous level. XP at or past the
+// threshold is a level-up the player has not taken yet: progress shows full, like the
+// vanilla bar, instead of being guessed down to the next level (2026-10-13: 565/495 shown
+// as 0/495 on a load order with its own leveling curve).
 export function resolveExperienceProgress(playerInfo: PlayerInfo): ExperienceProgress {
-  let currentXp = Math.max(0, Math.round(playerInfo.experience));
-  const rawNextLevelXp = Math.max(0, Math.round(playerInfo.expToNextLevel));
+  const currentXp = Math.max(0, Math.round(playerInfo.experience));
   const providedTotalXp = Math.max(0, Math.round(playerInfo.nextLevelTotalXp));
-  const expectedThreshold = Math.max(0, Math.round(playerInfo.expectedLevelThreshold));
-  let totalXpForNextLevel = Math.max(currentXp + rawNextLevelXp, providedTotalXp);
-
-  if (
-    currentXp >= totalXpForNextLevel
-    && totalXpForNextLevel > 0
-    && expectedThreshold > 0
-    && Math.abs(totalXpForNextLevel - expectedThreshold) > XP_STALE_TOLERANCE
-  ) {
-    currentXp = Math.max(0, currentXp - totalXpForNextLevel);
-    totalXpForNextLevel = expectedThreshold;
-  }
+  const totalXpForNextLevel = providedTotalXp > 0
+    ? providedTotalXp
+    : currentXp + Math.max(0, Math.round(playerInfo.expToNextLevel));
 
   return {
     currentXp,
@@ -86,76 +90,148 @@ export function resolveExperienceProgress(playerInfo: PlayerInfo): ExperiencePro
   };
 }
 
+const RESISTANCE_SIGNATURE_KEYS = ['magic', 'fire', 'frost', 'shock', 'poison', 'disease'] as const;
+
+// Per-item change signature. Clocks and effect countdowns tick on their own, so they are
+// deliberately left out: only changes the player should notice (values, equipment, effects
+// gained or lost) count.
+function collectItemSignature(itemId: string, stats: CombatStats): string | null {
+  for (const key of RESISTANCE_SIGNATURE_KEYS) {
+    if (itemId === `resistance.${key}`) {
+      return `res.${key}:${stats.resistances[key]}|res.${key}.raw:${stats.calcMeta.rawResistances[key]}`;
+    }
+  }
+
+  switch (itemId) {
+    case 'defense.armorRating': return `def.armor:${stats.defense.armorRating}`;
+    case 'defense.damageReduction': return `def.reduction:${stats.defense.damageReduction}`;
+    case 'offense.rightHandDamage': return `off.right:${stats.offense.rightHandDamage}`;
+    case 'offense.leftHandDamage': return `off.left:${stats.offense.leftHandDamage}`;
+    case 'offense.critChance': return `off.crit:${stats.offense.critChance}`;
+    // Applying a poison (or running out) wakes the slot; single doses used in combat do not.
+    case 'equipped.rightHand': return `eq.right:${stats.equipped.rightHand}:${stats.equipped.rightHandPoisonCount > 0}`;
+    case 'equipped.leftHand': return `eq.left:${stats.equipped.leftHand}:${stats.equipped.leftHandPoisonCount > 0}`;
+    case 'equipped.voice': return `eq.voice:${stats.equipped.voiceType}:${stats.equipped.voice}`;
+    case 'equipped.potion': return `eq.potion:${stats.equipped.potionName}:${stats.equipped.potionCount ?? -1}`;
+    case 'movement.speedMult': return `move.speed:${stats.movement.speedMult}`;
+    case 'time.weather': return `weather:${stats.time.weather}`;
+    case 'player.level': return `pi.level:${stats.playerInfo.level}`;
+    case 'player.gold': return `pi.gold:${stats.playerInfo.gold}`;
+    case 'player.carryWeight': return `pi.carry:${stats.playerInfo.carryWeight}|pi.maxCarry:${stats.playerInfo.maxCarryWeight}`;
+    case 'player.health': return `pi.health:${stats.playerInfo.health}`;
+    case 'player.magicka': return `pi.magicka:${stats.playerInfo.magicka}`;
+    case 'player.stamina': return `pi.stamina:${stats.playerInfo.stamina}`;
+    case 'experience.progress':
+      return [
+        `pi.level:${stats.playerInfo.level}`,
+        `xp.current:${stats.playerInfo.experience}`,
+        `xp.toNext:${stats.playerInfo.expToNextLevel}`,
+        `xp.total:${stats.playerInfo.nextLevelTotalXp}`,
+      ].join('|');
+    case 'timedEffects.list':
+      return `effects:${stats.timedEffects
+        .map(effect => `${effect.stableKey}:${Math.trunc(effect.totalSec)}:${effect.isDebuff ? 1 : 0}`)
+        .join(';')}`;
+    default:
+      return null;
+  }
+}
+
+export function buildItemChangeSignatures(
+  stats: CombatStats,
+  itemLayouts: Record<string, WidgetItemLayout>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const itemId of getVisibleHudItemIds(itemLayouts, stats, false)) {
+    const signature = collectItemSignature(itemId, stats);
+    if (signature !== null) {
+      out[itemId] = signature;
+    }
+  }
+  return out;
+}
+
+// The compact effect list grows downward from its top edge. Cap the rows so it stops above the
+// resource-bar zone at the bottom of the screen (or the screen edge when it was placed lower);
+// the list's own "+N" line, which needs one more row, reports the rest.
+const COMPACT_EFFECT_ROW_PITCH = 24;
+const RESOURCE_BAR_ZONE = 0.91;
+
+export function getCompactEffectRowLimit(
+  layout: Pick<WidgetItemLayout, 'y' | 'scale' | 'viewportHeight'> | undefined,
+  listLayout: WidgetSettings['timedEffects']['listLayout'],
+  fallbackViewportHeight: number,
+): number {
+  if (!layout) return Number.POSITIVE_INFINITY;
+  const viewportHeight = layout.viewportHeight ?? fallbackViewportHeight;
+  const barZoneTop = viewportHeight * RESOURCE_BAR_ZONE;
+  const bottom = layout.y < barZoneTop ? barZoneTop : viewportHeight;
+  const rows = Math.floor((bottom - layout.y) / (COMPACT_EFFECT_ROW_PITCH * Math.max(0.1, layout.scale))) - 1;
+  return Math.max(1, rows) * (listLayout === 'horizontal' ? 2 : 1);
+}
+
+// The engine reports a two-handed weapon (bow, crossbow, greatsword, battleaxe/warhammer) in
+// both hands. Staffs are one-handed and can be dual-wielded, so they are not included.
+const TWO_HANDED_KINDS = new Set(['greatsword', 'battleaxe', 'warhammer', 'bow', 'crossbow']);
+
+export function isLeftHandHeldByTwoHanded(stats: CombatStats): boolean {
+  const { rightHand, leftHand, rightHandKind } = stats.equipped;
+  return TWO_HANDED_KINDS.has(rightHandKind) && rightHand !== '' && leftHand === rightHand;
+}
+
+// Classic cards show the extra weapon facts as one small line under the name.
+export function buildClassicEquipDetail(stats: CombatStats, hand: 'right' | 'left', lang: Language): string | undefined {
+  const equipped = stats.equipped;
+  const kind = hand === 'right' ? equipped.rightHandKind : equipped.leftHandKind;
+  const chargePct = hand === 'right' ? equipped.rightHandChargePct : equipped.leftHandChargePct;
+  const poisonCount = hand === 'right' ? equipped.rightHandPoisonCount : equipped.leftHandPoisonCount;
+  const parts: string[] = [];
+  if (chargePct !== null) parts.push(t(lang, 'equipDetailCharge').replace('{n}', String(Math.round(chargePct))));
+  if (poisonCount > 0) parts.push(t(lang, 'equipDetailPoison').replace('{n}', String(poisonCount)));
+  if (equipped.ammoCount !== null && (kind === 'bow' || kind === 'crossbow')) {
+    parts.push(t(lang, 'equipDetailAmmo').replace('{n}', formatThousands(equipped.ammoCount)));
+  }
+  return parts.length > 0 ? parts.join(' · ') : undefined;
+}
+
+export function joinTrackedChangeSignature(isInCombat: boolean, itemSignatures: Record<string, string>): string {
+  return [`combat:${isInCombat ? 1 : 0}`, ...Object.values(itemSignatures)].join('|');
+}
+
 export function buildTrackedChangeSignature(
   stats: CombatStats,
   itemLayouts: Record<string, WidgetItemLayout>,
-  nowMs: number,
 ): string {
-  const parts: string[] = [`combat:${stats.isInCombat ? 1 : 0}`];
-  const visibleItemIds = new Set(getVisibleHudItemIds(itemLayouts, stats, false));
+  return joinTrackedChangeSignature(stats.isInCombat, buildItemChangeSignatures(stats, itemLayouts));
+}
 
-  if (visibleItemIds.has('resistance.magic')) parts.push(`res.magic:${stats.resistances.magic}`);
-  if (visibleItemIds.has('resistance.magic')) parts.push(`res.magic.raw:${stats.calcMeta.rawResistances.magic}`);
-  if (visibleItemIds.has('resistance.fire')) parts.push(`res.fire:${stats.resistances.fire}`);
-  if (visibleItemIds.has('resistance.fire')) parts.push(`res.fire.raw:${stats.calcMeta.rawResistances.fire}`);
-  if (visibleItemIds.has('resistance.frost')) parts.push(`res.frost:${stats.resistances.frost}`);
-  if (visibleItemIds.has('resistance.frost')) parts.push(`res.frost.raw:${stats.calcMeta.rawResistances.frost}`);
-  if (visibleItemIds.has('resistance.shock')) parts.push(`res.shock:${stats.resistances.shock}`);
-  if (visibleItemIds.has('resistance.shock')) parts.push(`res.shock.raw:${stats.calcMeta.rawResistances.shock}`);
-  if (visibleItemIds.has('resistance.poison')) parts.push(`res.poison:${stats.resistances.poison}`);
-  if (visibleItemIds.has('resistance.poison')) parts.push(`res.poison.raw:${stats.calcMeta.rawResistances.poison}`);
-  if (visibleItemIds.has('resistance.disease')) parts.push(`res.disease:${stats.resistances.disease}`);
-  if (visibleItemIds.has('resistance.disease')) parts.push(`res.disease.raw:${stats.calcMeta.rawResistances.disease}`);
-  if (visibleItemIds.has('defense.armorRating')) parts.push(`def.armor:${stats.defense.armorRating}`);
-  if (visibleItemIds.has('defense.damageReduction')) parts.push(`def.reduction:${stats.defense.damageReduction}`);
-  if (visibleItemIds.has('offense.rightHandDamage')) parts.push(`off.right:${stats.offense.rightHandDamage}`);
-  if (visibleItemIds.has('offense.leftHandDamage')) parts.push(`off.left:${stats.offense.leftHandDamage}`);
-  if (visibleItemIds.has('offense.critChance')) parts.push(`off.crit:${stats.offense.critChance}`);
-  if (visibleItemIds.has('equipped.rightHand')) parts.push(`eq.right:${stats.equipped.rightHand}`);
-  if (visibleItemIds.has('equipped.leftHand')) parts.push(`eq.left:${stats.equipped.leftHand}`);
-  if (visibleItemIds.has('movement.speedMult')) parts.push(`move.speed:${stats.movement.speedMult}`);
-  if (visibleItemIds.has('player.level')) parts.push(`pi.level:${stats.playerInfo.level}`);
-  if (visibleItemIds.has('player.gold')) parts.push(`pi.gold:${stats.playerInfo.gold}`);
-  if (visibleItemIds.has('player.carryWeight')) {
-    parts.push(`pi.carry:${stats.playerInfo.carryWeight}`);
-    parts.push(`pi.maxCarry:${stats.playerInfo.maxCarryWeight}`);
-  }
-  if (visibleItemIds.has('player.health')) parts.push(`pi.health:${stats.playerInfo.health}`);
-  if (visibleItemIds.has('player.magicka')) parts.push(`pi.magicka:${stats.playerInfo.magicka}`);
-  if (visibleItemIds.has('player.stamina')) parts.push(`pi.stamina:${stats.playerInfo.stamina}`);
+export interface ItemPresenceContext {
+  hudStyle: HudStyle;
+  nowMs: number;
+  lastChangeAtByItem: Record<string, number>;
+  changeWindowMs: number;
+}
 
-  if (visibleItemIds.has('experience.progress')) {
-    parts.push(`pi.level:${stats.playerInfo.level}`);
-    parts.push(`xp.current:${stats.playerInfo.experience}`);
-    parts.push(`xp.toNext:${stats.playerInfo.expToNextLevel}`);
-    parts.push(`xp.total:${stats.playerInfo.nextLevelTotalXp}`);
-  }
-
-  if (visibleItemIds.has('time.game')) {
-    parts.push(`time.year:${stats.time.year}`);
-    parts.push(`time.month:${stats.time.month}`);
-    parts.push(`time.day:${stats.time.day}`);
-    parts.push(`time.hour:${stats.time.hour}`);
-    parts.push(`time.minute:${stats.time.minute}`);
-  }
-  if (visibleItemIds.has('time.real')) {
-    parts.push(`time.real:${Math.floor(nowMs / 1000)}`);
-  }
-
-  if (visibleItemIds.has('timedEffects.list')) {
-    const timedEffectSignature = stats.timedEffects
-      .map(effect => `${effect.stableKey}:${Math.trunc(effect.remainingSec)}:${Math.trunc(effect.totalSec)}:${effect.isDebuff ? 1 : 0}`)
-      .join(';');
-    parts.push(`effects:${timedEffectSignature}`);
-  }
-
-  return parts.join('|');
+export function isItemPresent(
+  itemId: string,
+  layout: WidgetItemLayout | undefined,
+  stats: CombatStats,
+  context: ItemPresenceContext,
+): boolean {
+  const showWhen = resolveItemShowWhen(itemId, layout, context.hudStyle);
+  if (showWhen === 'always') return true;
+  const changedAt = context.lastChangeAtByItem[itemId];
+  const recentlyChanged = changedAt !== undefined && context.nowMs - changedAt <= context.changeWindowMs;
+  if (showWhen === 'combat') return stats.isInCombat;
+  if (showWhen === 'change') return recentlyChanged;
+  return stats.isInCombat || recentlyChanged;
 }
 
 export function getVisibleHudItemIds(
   itemLayouts: Record<string, WidgetItemLayout>,
   stats: CombatStats,
   settingsOpen: boolean,
+  presence?: ItemPresenceContext,
 ): string[] {
   return WIDGET_ITEM_IDS.filter(itemId => {
     const layout = itemLayouts[itemId];
@@ -167,7 +243,19 @@ export function getVisibleHudItemIds(
       return settingsOpen || stats.timedEffects.length > 0;
     }
 
+    if (presence && !settingsOpen) {
+      return isItemPresent(itemId, layout, stats, presence);
+    }
+
     return true;
+  });
+}
+
+export function hasChangeDrivenItems(itemLayouts: Record<string, WidgetItemLayout>, hudStyle: HudStyle): boolean {
+  return Object.entries(itemLayouts).some(([itemId, layout]) => {
+    if (!layout.visible) return false;
+    const showWhen = resolveItemShowWhen(itemId, layout, hudStyle);
+    return showWhen === 'change' || showWhen === 'combatOrChange';
   });
 }
 

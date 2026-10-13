@@ -33,6 +33,8 @@ struct TimedEffectEntry {
     std::uint32_t sourceFormId;
     std::uint32_t effectFormId;
     std::uint32_t spellFormId;
+    std::string category{"other"};  // icon category for the HUD, see GetEffectCategory
+    float magnitude{0.0f};
 };
 
 struct GameTimeEntry {
@@ -43,6 +45,7 @@ struct GameTimeEntry {
     std::uint32_t minute{0};
     float timeScale{0.0f};
     std::string monthName{};
+    std::string weather{"unknown"};  // clear | cloudy | rain | snow | indoor | unknown
 };
 
 struct ResistanceSnapshot {
@@ -73,6 +76,20 @@ struct OffenseSnapshot {
 struct EquippedSnapshot {
     std::string rightHand{};
     std::string leftHand{};
+    std::string rightHandKind{"empty"};
+    std::string leftHandKind{"empty"};
+    float rightHandChargePct{-1.0f};  // -1: not enchanted
+    float leftHandChargePct{-1.0f};
+    std::int32_t rightHandPoisonCount{0};  // applied poison doses left (0: none)
+    std::int32_t leftHandPoisonCount{0};
+    std::string ammoName{};
+    std::int32_t ammoCount{-1};  // -1: no ammo equipped
+    float voiceCooldownSec{0.0f};
+    std::int32_t voiceWordsKnown{0};     // shouts only: words learned (0-3)
+    std::int32_t voiceWordsUnlocked{0};  // shouts only: words unlocked with dragon souls (0-3)
+    std::string potionName{};
+    std::int32_t potionCount{-1};  // -1: no potion used yet this session
+    std::string potionKind{"other"};  // health | magicka | stamina | other
     std::string voice{};
     std::string voiceType{"empty"};
 };
@@ -93,6 +110,7 @@ struct PlayerInfoSnapshot {
     float health{0.0f};
     float magicka{0.0f};
     float stamina{0.0f};
+    double playtimeHours{0.0};  // total time played on this character
 };
 
 struct AlertDataSnapshot {

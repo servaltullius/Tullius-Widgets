@@ -33,6 +33,12 @@ describe('fontPresets', () => {
     }
   });
 
+  it('uses the bundled compact font only for the compact HUD with the default preset', () => {
+    expect(resolveFontPresetVariables('default', 'compact')['--tw-font-compact']).toContain('Pretendard');
+    expect(resolveFontPresetVariables('readable', 'compact')['--tw-font-compact']).toContain('Noto Sans KR');
+    expect(resolveFontPresetVariables('default', 'classic')['--tw-font-compact']).not.toContain('Pretendard');
+  });
+
   it('falls back to the default stack for unknown values', () => {
     const fallback = resolveFontPresetStacks('default');
     const unknown = resolveFontPresetStacks('something-else');

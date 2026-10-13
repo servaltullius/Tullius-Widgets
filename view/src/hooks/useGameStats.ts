@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { BRIDGE_HANDLERS } from '../constants/bridge';
-import type { CombatStats, EquippedVoiceType, GameTimeInfo, TimedEffect } from '../types/stats';
+import { EFFECT_CATEGORIES, EQUIPPED_ITEM_KINDS, type CombatStats, type EffectCategory, type EquippedItemKind, type EquippedVoiceType, type GameTimeInfo, type TimedEffect, type WeatherKind } from '../types/stats';
 import { mockStats } from '../data/mockStats';
 import { isPlainObject, readBoolean, readNumber, readText } from '../utils/normalize';
 import { registerDualBridgeHandler } from '../utils/bridge';
@@ -49,6 +49,20 @@ function readSchemaVersion(value: unknown): number | null {
   const schemaVersion = Math.trunc(value);
   if (schemaVersion < 0) return null;
   return schemaVersion;
+}
+
+// Negative or missing means "not applicable" (e.g. an unenchanted weapon).
+function readOptionalPercent(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return null;
+  return Math.min(100, value);
+}
+
+// Older plugins do not send a hand kind; fall back to what the item name alone can tell us.
+function readEquippedItemKind(value: unknown, name: string): EquippedItemKind {
+  if (typeof value === 'string' && (EQUIPPED_ITEM_KINDS as readonly string[]).includes(value)) {
+    return value as EquippedItemKind;
+  }
+  return name ? 'other' : 'empty';
 }
 
 function readEquippedVoiceType(value: unknown, fallback: EquippedVoiceType): EquippedVoiceType {
@@ -124,6 +138,12 @@ function warnInvalidStatsContract(
   );
 }
 
+const WEATHER_KINDS: readonly WeatherKind[] = ['clear', 'cloudy', 'rain', 'snow', 'indoor', 'unknown'];
+
+function readWeatherKind(value: unknown, fallback: WeatherKind): WeatherKind {
+  return typeof value === 'string' && (WEATHER_KINDS as readonly string[]).includes(value) ? value as WeatherKind : fallback;
+}
+
 function normalizeGameTime(value: unknown, fallback?: GameTimeInfo): GameTimeInfo {
   const snapshotAtMs = Date.now();
   const fallbackMonth = fallback ? Math.trunc(readNumber(fallback.month, 0, 0, 11)) : 0;
@@ -143,6 +163,7 @@ function normalizeGameTime(value: unknown, fallback?: GameTimeInfo): GameTimeInf
       minute: Math.trunc(readNumber(fallbackMinute, 0, 0, 59)),
       monthName: fallbackMonthName,
       timeScale: readNumber(fallbackTimeScale, 20, 0, 2000),
+      weather: fallback?.weather ?? 'unknown',
       snapshotAtMs,
     };
   }
@@ -158,6 +179,7 @@ function normalizeGameTime(value: unknown, fallback?: GameTimeInfo): GameTimeInf
     minute: Math.trunc(readNumber(value.minute, fallbackMinute, 0, 59)),
     monthName,
     timeScale: readNumber(value.timeScale, fallbackTimeScale, 0, 2000),
+    weather: readWeatherKind(value.weather, fallback?.weather ?? 'unknown'),
     snapshotAtMs,
   };
 }
@@ -194,6 +216,10 @@ function normalizeTimedEffects(value: unknown): TimedEffect[] {
       ? Math.trunc(item.instanceId)
       : null;
     const instanceId = rawInstanceId ?? -1;
+    const category: EffectCategory = typeof item.category === 'string' && (EFFECT_CATEGORIES as readonly string[]).includes(item.category)
+      ? item.category as EffectCategory
+      : 'other';
+    const magnitude = typeof item.magnitude === 'number' && Number.isFinite(item.magnitude) ? item.magnitude : 0;
     const sourceFormId = readFormId(item.sourceFormId);
     const effectFormId = readFormId(item.effectFormId);
     const spellFormId = readFormId(item.spellFormId);
@@ -228,6 +254,8 @@ function normalizeTimedEffects(value: unknown): TimedEffect[] {
       sourceFormId,
       effectFormId,
       spellFormId,
+      category,
+      magnitude,
     });
   }
 
@@ -264,6 +292,8 @@ function normalizeTimedEffects(value: unknown): TimedEffect[] {
       sourceFormId: merged.sourceFormId,
       effectFormId: merged.effectFormId,
       spellFormId: merged.spellFormId,
+      category: merged.category,
+      magnitude: merged.magnitude,
     });
   }
 
@@ -294,10 +324,11 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
     0,
     999999999,
   ));
-  const normalizedNextLevelTotalXp = quantize2(Math.max(
-    normalizedExperience + normalizedExpToNextLevel,
-    parsedNextLevelTotalXp,
-  ));
+  // The plugin sends the engine threshold. XP past it is a pending level-up, so the total
+  // must not be raised to the XP (565/495 would read 565/565).
+  const normalizedNextLevelTotalXp = parsedNextLevelTotalXp > 0
+    ? parsedNextLevelTotalXp
+    : quantize2(normalizedExperience + normalizedExpToNextLevel);
 
   return {
     resistances: {
@@ -317,12 +348,36 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
       leftHandDamage: readNumber(rawOffense?.leftHandDamage, fallback.offense.leftHandDamage, -100000, 100000),
       critChance: readNumber(rawOffense?.critChance, fallback.offense.critChance, -1000, 1000),
     },
-    equipped: {
-      rightHand: readText(rawEquipped?.rightHand, fallback.equipped.rightHand, true),
-      leftHand: readText(rawEquipped?.leftHand, fallback.equipped.leftHand, true),
-      voice: readText(rawEquipped?.voice, fallback.equipped.voice, true),
-      voiceType: readEquippedVoiceType(rawEquipped?.voiceType, fallback.equipped.voiceType),
-    },
+    equipped: (() => {
+      const rightHand = readText(rawEquipped?.rightHand, fallback.equipped.rightHand, true);
+      const leftHand = readText(rawEquipped?.leftHand, fallback.equipped.leftHand, true);
+      return {
+        rightHand,
+        leftHand,
+        rightHandKind: readEquippedItemKind(rawEquipped?.rightHandKind, rightHand),
+        leftHandKind: readEquippedItemKind(rawEquipped?.leftHandKind, leftHand),
+        rightHandChargePct: readOptionalPercent(rawEquipped?.rightHandChargePct),
+        leftHandChargePct: readOptionalPercent(rawEquipped?.leftHandChargePct),
+        rightHandPoisonCount: Math.trunc(readNumber(rawEquipped?.rightHandPoisonCount, 0, 0, 9999)),
+        leftHandPoisonCount: Math.trunc(readNumber(rawEquipped?.leftHandPoisonCount, 0, 0, 9999)),
+        ammoName: readText(rawEquipped?.ammoName, '', true),
+        ammoCount: typeof rawEquipped?.ammoCount === 'number' && Number.isFinite(rawEquipped.ammoCount) && rawEquipped.ammoCount >= 0
+          ? Math.trunc(rawEquipped.ammoCount)
+          : null,
+        voiceCooldownSec: readNumber(rawEquipped?.voiceCooldownSec, 0, 0, 100000),
+        voiceWordsKnown: Math.trunc(readNumber(rawEquipped?.voiceWordsKnown, 0, 0, 3)),
+        voiceWordsUnlocked: Math.trunc(readNumber(rawEquipped?.voiceWordsUnlocked, 0, 0, 3)),
+        potionName: readText(rawEquipped?.potionName, '', true),
+        potionCount: typeof rawEquipped?.potionCount === 'number' && Number.isFinite(rawEquipped.potionCount) && rawEquipped.potionCount >= 0
+          ? Math.trunc(rawEquipped.potionCount)
+          : null,
+        potionKind: rawEquipped?.potionKind === 'health' || rawEquipped?.potionKind === 'magicka' || rawEquipped?.potionKind === 'stamina'
+          ? rawEquipped.potionKind
+          : 'other',
+        voice: readText(rawEquipped?.voice, fallback.equipped.voice, true),
+        voiceType: readEquippedVoiceType(rawEquipped?.voiceType, fallback.equipped.voiceType),
+      };
+    })(),
     movement: {
       speedMult: readNumber(rawMovement?.speedMult, fallback.movement.speedMult, 0, 10000),
     },
@@ -341,6 +396,7 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
       health: readNumber(rawPlayerInfo?.health, fallback.playerInfo.health, 0, 100000),
       magicka: readNumber(rawPlayerInfo?.magicka, fallback.playerInfo.magicka, 0, 100000),
       stamina: readNumber(rawPlayerInfo?.stamina, fallback.playerInfo.stamina, 0, 100000),
+      playtimeHours: readNumber(rawPlayerInfo?.playtimeHours, fallback.playerInfo.playtimeHours ?? 0, 0, 1_000_000),
     },
     alertData: {
       healthPct: readNumber(rawAlertData?.healthPct, fallback.alertData.healthPct, 0, 1000),

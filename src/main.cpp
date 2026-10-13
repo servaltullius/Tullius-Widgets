@@ -208,6 +208,11 @@ static void RegisterWidgetHotkeys() {
     hotkeyCallbacks.unfocusView = &TryUnfocusView;
     hotkeyCallbacks.invokeScript = &TryInvoke;
     TulliusWidgets::WidgetHotkeys::RegisterDefaultHotkeys(hotkeyCallbacks);
+    // Saved key bindings apply from startup, before the view is ready.
+    const auto savedSettings = TulliusWidgets::NativeStorage::LoadSettings(ResolveStorageBasePath());
+    if (!savedSettings.empty()) {
+        TulliusWidgets::WidgetHotkeys::ApplyHotkeysFromSettingsJson(savedSettings);
+    }
 }
 
 static void QueueGameTask(std::function<void()> task) {
@@ -281,8 +286,17 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message) {
         }
         break;
     }
+    case SKSE::MessagingInterface::kPreLoadGame: {
+        // The last-potion slot belongs to the character being left behind.
+        TulliusWidgets::StatsCollector::NoteConsumedPotion(0);
+        break;
+    }
     case SKSE::MessagingInterface::kPostLoadGame:
     case SKSE::MessagingInterface::kNewGame: {
+        if (message->type == SKSE::MessagingInterface::kNewGame) {
+            TulliusWidgets::StatsCollector::NoteConsumedPotion(0);
+        }
+        TulliusWidgets::StatsCollector::ResetPlaytimeTracking();
         TulliusWidgets::WidgetBootstrap::SyncOnGameLoaded(bootstrapCallbacks);
         break;
     }

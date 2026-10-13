@@ -7,6 +7,68 @@ import {
 } from './settingsSchema';
 
 describe('settingsSchema', () => {
+  it('defaults new installs to the compact HUD and keeps older saves on classic', () => {
+    expect(defaultSettings.general.hudStyle).toBe('compact');
+    expect(mergeWithDefaults({ schemaVersion: 7 }).general.hudStyle).toBe('compact');
+    expect(mergeWithDefaults({ schemaVersion: 6, general: { opacity: 80 } }).general.hudStyle).toBe('classic');
+    expect(mergeWithDefaults({ schemaVersion: 6 }).general.hudStyle).toBe('classic');
+    expect(mergeWithDefaults({ general: { opacity: 80 } }).general.hudStyle).toBe('classic');
+    expect(mergeWithDefaults({ schemaVersion: 6, general: { hudStyle: 'compact' } }).general.hudStyle).toBe('compact');
+    expect(mergeWithDefaults({ schemaVersion: 7, general: { hudStyle: 'classic' } }).general.hudStyle).toBe('classic');
+    expect(mergeWithDefaults({ schemaVersion: 7, general: { hudStyle: 'bogus' } }).general.hudStyle).toBe('compact');
+  });
+
+  it('reads the timed-effect filters and drops unknown values', () => {
+    expect(mergeWithDefaults({ schemaVersion: 7, timedEffects: { filter: 'debuffs', hideLongerThanMin: 60 } }).timedEffects)
+      .toMatchObject({ filter: 'debuffs', hideLongerThanMin: 60 });
+    expect(mergeWithDefaults({ schemaVersion: 7, timedEffects: { filter: 'odd', hideLongerThanMin: 7 } }).timedEffects)
+      .toMatchObject({ filter: 'all', hideLongerThanMin: 0 });
+  });
+
+  it('keeps valid hotkeys and repairs invalid or clashing ones', () => {
+    expect(mergeWithDefaults({ schemaVersion: 7 }).general).toMatchObject({ settingsHotkey: 0xD2, visibilityHotkey: 0x57 });
+    expect(mergeWithDefaults({ schemaVersion: 7, general: { settingsHotkey: 0xC7, visibilityHotkey: 0xCF } }).general)
+      .toMatchObject({ settingsHotkey: 0xC7, visibilityHotkey: 0xCF });
+    expect(mergeWithDefaults({ schemaVersion: 7, general: { settingsHotkey: 1, visibilityHotkey: 0xD2 } }).general)
+      .toMatchObject({ settingsHotkey: 0xD2, visibilityHotkey: 0x57 });
+  });
+
+  it('keeps pre-compact defaults for fields missing from older saves', () => {
+    const legacy = mergeWithDefaults({ schemaVersion: 6, general: { opacity: 80 } });
+    expect(legacy.resistances.disease).toBe(false);
+    expect(legacy.equipped.voice).toBe(false);
+    expect(legacy.time.gameDisplay).toBe('dateTime');
+    expect(legacy.time.realDisplay).toBe('dateTime');
+    expect(legacy.time.weather).toBe(false);
+    expect(legacy.equipped.potion).toBe(false);
+
+    const fresh = mergeWithDefaults({ schemaVersion: 7 });
+    expect(fresh.resistances.disease).toBe(false);
+    expect(fresh.equipped.voice).toBe(false);
+    expect(fresh.equipped.nameDisplay).toBe('always');
+    expect(fresh.time.gameDisplay).toBe('timeOnly');
+    expect(fresh.time.weather).toBe(false);
+    expect(fresh.equipped.potion).toBe(false);
+    expect(fresh.offense.rightHandDamage).toBe(true);
+  });
+
+  it('keeps up to three valid layout slots and drops broken ones', () => {
+    const merged = mergeWithDefaults({
+      schemaVersion: 7,
+      layoutSlots: [
+        { savedAt: 5, hudStyle: 'classic', compactAnchor: 'topLeft', size: 'large', itemLayouts: { 'player.gold': { visible: true, x: 1, y: 2, scale: 1 } } },
+        'junk',
+        { savedAt: 9, hudStyle: 'compact', itemLayouts: {} },
+        { savedAt: 1, hudStyle: 'compact', itemLayouts: { 'player.gold': { visible: true, x: 1, y: 2, scale: 1 } } },
+      ],
+    });
+    expect(merged.layoutSlots).toHaveLength(3);
+    expect(merged.layoutSlots[0]).toMatchObject({ savedAt: 5, hudStyle: 'classic', compactAnchor: 'topLeft', size: 'large' });
+    expect(merged.layoutSlots[1]).toBeNull();
+    expect(merged.layoutSlots[2]).toBeNull();
+    expect(mergeWithDefaults({ schemaVersion: 7 }).layoutSlots).toEqual([null, null, null]);
+  });
+
   it('uses standard icons without badges for fresh schema v6 settings', () => {
     const merged = mergeWithDefaults({
       schemaVersion: 6,

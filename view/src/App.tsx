@@ -2,27 +2,30 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { HudWidgetItems } from './components/HudWidgetItems';
 import { OnboardingPanel, RuntimeWarningBanner, SettingsSyncWarningBanner } from './components/HudOverlays';
 import { SettingsPanel } from './components/SettingsPanel';
-import { ScreenEffects } from './components/ScreenEffects';
 import { WidgetEditGuides } from './components/WidgetEditGuides';
 import { useGameStatsState } from './hooks/useGameStats';
 import { useSettings } from './hooks/useSettings';
 import { useWidgetEditSelection } from './hooks/useWidgetEditSelection';
 import { createSelectedItemLayoutActions } from './hooks/useSelectedItemLayoutActions';
 import { useWidgetKeyboardNudge } from './hooks/useWidgetKeyboardNudge';
+import { useLayoutHistory } from './hooks/useLayoutHistory';
 import { useLocalization } from './i18n/useLocalization';
 import { useWidgetItemLayouts } from './hooks/useWidgetItemLayouts';
 import type { WidgetItemLayout } from './types/settings';
 import {
-  buildTrackedChangeSignature,
+  buildItemChangeSignatures,
+  joinTrackedChangeSignature,
   getRuntimeWarningText,
   getSettingsSyncWarningText,
   resolveHudVisibility,
 } from './utils/hudPresentation';
+import { formatHotkey } from './utils/hotkeys';
+import { applyTimedEffectFilter } from './utils/timedEffectFilter';
 import { measureWidgetBoundsMap } from './utils/widgetBounds';
 import { snapWidgetMove, type AlignmentGuide } from './utils/widgetSnap';
 import { resolveFontPresetVariables } from './utils/fontPresets';
 import './assets/ui-theme.css';
-import './assets/screen-effects.css';
+import './assets/compact-theme.css';
 
 const SNAP_THRESHOLD = 15;
 const GRID = 10;
@@ -36,7 +39,7 @@ function resolveItemLayout(
 }
 
 export function App() {
-  const { stats, hasLiveStats } = useGameStatsState();
+  const { stats: rawStats, hasLiveStats } = useGameStatsState();
   const [viewport, setViewport] = useState(() => ({
     width: window.innerWidth,
     height: window.innerHeight,
@@ -53,12 +56,16 @@ export function App() {
     lastSettingsSyncOk,
     settingsSyncState,
   } = useSettings();
+  const stats = useMemo(
+    () => applyTimedEffectFilter(rawStats, settings.timedEffects),
+    [rawStats, settings.timedEffects],
+  );
   const [lastChangeAtMs, setLastChangeAtMs] = useState<number>(() => Date.now());
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const { activeLanguage: lang, availableLanguages } = useLocalization(settings.general.language);
   const fontVariables = useMemo(
-    () => resolveFontPresetVariables(settings.general.fontPreset),
-    [settings.general.fontPreset],
+    () => resolveFontPresetVariables(settings.general.fontPreset, settings.general.hudStyle),
+    [settings.general.fontPreset, settings.general.hudStyle],
   );
   const canonicalItemLayouts = useWidgetItemLayouts({
     settings,
@@ -136,9 +143,13 @@ export function App() {
     });
   }, [clearPreviewState, interactionResetToken]);
 
-  const trackedChangeSignature = useMemo(() => {
-    return buildTrackedChangeSignature(stats, itemLayouts, nowMs);
-  }, [itemLayouts, nowMs, stats]);
+  // Per-item change times drive items whose visibility follows combat or value changes; the
+  // joined signature drives the HUD-wide show-on-change timer. Both come from one pass.
+  const itemSignatures = useMemo(() => buildItemChangeSignatures(stats, itemLayouts), [itemLayouts, stats]);
+  const trackedChangeSignature = useMemo(
+    () => joinTrackedChangeSignature(stats.isInCombat, itemSignatures),
+    [itemSignatures, stats.isInCombat],
+  );
 
   useEffect(() => {
     const changedAt = Date.now();
@@ -147,6 +158,55 @@ export function App() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [trackedChangeSignature]);
+
+  const previousItemSignaturesRef = useRef<Record<string, string> | null>(null);
+  const [lastChangeAtByItem, setLastChangeAtByItem] = useState<Record<string, number>>({});
+  const changeWindowMs = settings.general.changeDisplaySeconds * 1000;
+
+  useEffect(() => {
+    const previous = previousItemSignaturesRef.current;
+    if (!hasLiveStats) {
+      previousItemSignaturesRef.current = itemSignatures;
+      return;
+    }
+    const changed = Object.keys(itemSignatures).filter(itemId => !previous || previous[itemId] !== itemSignatures[itemId]);
+    if (changed.length === 0) {
+      previousItemSignaturesRef.current = itemSignatures;
+      return;
+    }
+    const changedAt = Date.now();
+    // Only advance the baseline once the change is recorded; if a newer render cancels this
+    // timer first, the next run still sees the difference against the old baseline.
+    const timer = window.setTimeout(() => {
+      previousItemSignaturesRef.current = itemSignatures;
+      setLastChangeAtByItem(prev => {
+        const next = { ...prev };
+        for (const itemId of changed) next[itemId] = changedAt;
+        return next;
+      });
+      setNowMs(changedAt);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [hasLiveStats, itemSignatures]);
+
+  useEffect(() => {
+    const now = Date.now();
+    let nextExpiry = Number.POSITIVE_INFINITY;
+    for (const changedAt of Object.values(lastChangeAtByItem)) {
+      const expiry = changedAt + changeWindowMs;
+      if (expiry > now && expiry < nextExpiry) nextExpiry = expiry;
+    }
+    if (!Number.isFinite(nextExpiry)) return;
+    const timer = window.setTimeout(() => setNowMs(Date.now()), nextExpiry - now + 30);
+    return () => window.clearTimeout(timer);
+  }, [changeWindowMs, lastChangeAtByItem, nowMs]);
+
+  const itemPresence = useMemo(() => ({
+    hudStyle: settings.general.hudStyle,
+    nowMs,
+    lastChangeAtByItem,
+    changeWindowMs,
+  }), [changeWindowMs, lastChangeAtByItem, nowMs, settings.general.hudStyle]);
 
   useEffect(() => {
     if (!settings.general.showOnChangeOnly) return;
@@ -240,6 +300,16 @@ export function App() {
     }, 300);
   }, [canonicalItemLayouts, clearKeyboardGuideTimeout, computeMovePreview, selectedItemId]);
 
+  const restoreItemLayouts = useCallback((layouts: Record<string, WidgetItemLayout>) => {
+    updateSetting('itemLayouts', layouts);
+  }, [updateSetting]);
+  useLayoutHistory({
+    enabled: settingsOpen,
+    itemLayouts: settings.itemLayouts,
+    onRestore: restoreItemLayouts,
+    resetKey: `${settings.general.hudStyle}:${settings.general.compactAnchor}:${settings.general.size}`,
+  });
+
   useWidgetKeyboardNudge({
     enabled: settingsOpen && selectedItemId !== null,
     selectedItemId,
@@ -321,6 +391,8 @@ export function App() {
       {!settings.general.onboardingSeen && (
         <OnboardingPanel
           lang={lang}
+          settingsKeyLabel={formatHotkey(settings.general.settingsHotkey)}
+          visibilityKeyLabel={formatHotkey(settings.general.visibilityHotkey)}
           onOpenSettings={handleOnboardingOpenSettings}
           onDismiss={handleOnboardingDismiss}
         />
@@ -333,6 +405,7 @@ export function App() {
         settingsOpen={settingsOpen}
         lang={lang}
         itemLayouts={itemLayouts}
+        itemPresence={itemPresence}
         accentColor={accentColor}
         editable={settingsOpen}
         selectedItemId={selectedItemId}
@@ -348,7 +421,6 @@ export function App() {
 
       <WidgetEditGuides visible={settingsOpen} guides={activeGuides} />
 
-      {hasLiveStats && <ScreenEffects alertData={stats.alertData} settings={settings} />}
 
       <SettingsPanel
         settings={settings}

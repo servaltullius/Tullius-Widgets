@@ -69,6 +69,24 @@ describe('useGameStats', () => {
     expect(playerInfo.expectedLevelThreshold).toBeCloseTo(1900.0, 2);
   });
 
+  it('keeps the threshold as the total for a pending level-up', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onStats={stats => { latest = stats; }} />);
+    });
+
+    // 2026-10-13 in-game: 565 XP of a 495 threshold read as 565/565.
+    await act(async () => {
+      window.updateStats?.(JSON.stringify(createStatsPayload({
+        playerInfo: { level: 13, experience: 565, expToNextLevel: 0, nextLevelTotalXp: 495, expectedLevelThreshold: 495 },
+      })));
+    });
+
+    const playerInfo = readPlayerInfo(latest!);
+    expect(playerInfo.experience).toBe(565);
+    expect(playerInfo.nextLevelTotalXp).toBe(495);
+  });
+
   it('accepts updateStats from namespaced bridge handler', async () => {
     await act(async () => {
       root = createRoot(container);
@@ -111,6 +129,60 @@ describe('useGameStats', () => {
       voice: 'Unrelenting Force',
       voiceType: 'shout',
     });
+  });
+
+  it('normalizes hand kinds, enchantment charge, ammo and shout cooldown', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onStats={stats => { latest = stats; }} />);
+    });
+
+    await act(async () => {
+      window.updateStats?.(JSON.stringify(createStatsPayload({
+        equipped: {
+          rightHand: 'Dawnguard Rune Axe', leftHand: '', rightHandKind: 'waraxe', leftHandKind: 'bogus',
+          rightHandChargePct: 37.5, leftHandChargePct: -1, ammoName: '', ammoCount: -1, voiceCooldownSec: 12.5,
+          rightHandPoisonCount: 3, leftHandPoisonCount: -2,
+          voice: 'Fire Breath', voiceType: 'shout',
+        },
+      })));
+    });
+
+    expect(latest!.equipped).toMatchObject({
+      rightHandKind: 'waraxe',
+      leftHandKind: 'empty',
+      rightHandChargePct: 37.5,
+      leftHandChargePct: null,
+      ammoCount: null,
+      voiceCooldownSec: 12.5,
+      rightHandPoisonCount: 3,
+      leftHandPoisonCount: 0,
+    });
+
+    await act(async () => {
+      window.updateStats?.(JSON.stringify(createStatsPayload({
+        seq: 999,
+        equipped: { rightHand: 'Old Bow', leftHand: 'Mystery', voice: '', voiceType: 'empty' },
+      })));
+    });
+    expect(latest!.equipped).toMatchObject({ rightHandKind: 'other', leftHandKind: 'other', ammoCount: null, voiceCooldownSec: 0, rightHandPoisonCount: 0 });
+  });
+
+  it('reads the weather kind and keeps the previous one for unknown values', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onStats={stats => { latest = stats; }} />);
+    });
+
+    await act(async () => {
+      window.updateStats?.(JSON.stringify(createStatsPayload({ seq: 1001, time: { year: 201, month: 7, day: 28, hour: 14, minute: 35, weather: 'snow' } })));
+    });
+    expect(latest!.time.weather).toBe('snow');
+
+    await act(async () => {
+      window.updateStats?.(JSON.stringify(createStatsPayload({ seq: 1002, time: { year: 201, month: 7, day: 28, hour: 14, minute: 36, weather: 'meteor' } })));
+    });
+    expect(latest!.time.weather).toBe('snow');
   });
 
   it('ignores out-of-order stats payload by sequence number', async () => {

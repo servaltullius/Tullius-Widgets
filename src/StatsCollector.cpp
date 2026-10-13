@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <string_view>
 #include <utility>
@@ -184,6 +185,56 @@ static std::string GetTimedEffectSourceName(const RE::ActiveEffect* effect, std:
     return "";
 }
 
+// Icon category for the HUD effect list: what the effect changes, not where it came from.
+static const char* GetEffectCategory(const RE::EffectSetting* baseEffect)
+{
+    if (!baseEffect) return "other";
+    using Archetype = RE::EffectSetting::Archetype;
+    switch (baseEffect->GetArchetype()) {
+    case Archetype::kInvisibility: return "invisibility";
+    case Archetype::kParalysis: return "paralysis";
+    case Archetype::kNightEye: return "vision";
+    case Archetype::kDetectLife: return "vision";
+    case Archetype::kLight: return "vision";
+    case Archetype::kCloak: return "cloak";
+    case Archetype::kSlowTime: return "time";
+    case Archetype::kEtherealize: return "ethereal";
+    default: break;
+    }
+    switch (baseEffect->data.primaryAV) {
+    case RE::ActorValue::kHealth:
+    case RE::ActorValue::kHealRate:
+    case RE::ActorValue::kHealRateMult: return "health";
+    case RE::ActorValue::kMagicka:
+    case RE::ActorValue::kMagickaRate:
+    case RE::ActorValue::kMagickaRateMult: return "magicka";
+    case RE::ActorValue::kStamina:
+    case RE::ActorValue::kStaminaRate:
+    case RE::ActorValue::kStaminaRateMult: return "stamina";
+    case RE::ActorValue::kResistFire: return "fire";
+    case RE::ActorValue::kResistFrost: return "frost";
+    case RE::ActorValue::kResistShock: return "shock";
+    case RE::ActorValue::kResistMagic: return "magic";
+    case RE::ActorValue::kPoisonResist: return "poison";
+    case RE::ActorValue::kResistDisease: return "disease";
+    case RE::ActorValue::kDamageResist: return "armor";
+    case RE::ActorValue::kSpeedMult: return "speed";
+    case RE::ActorValue::kCarryWeight: return "weight";
+    case RE::ActorValue::kWaterBreathing: return "water";
+    case RE::ActorValue::kInvisibility: return "invisibility";
+    case RE::ActorValue::kNightEye: return "vision";
+    default: break;
+    }
+    const auto av = static_cast<std::uint32_t>(baseEffect->data.primaryAV);
+    if (av >= static_cast<std::uint32_t>(RE::ActorValue::kOneHanded) && av <= static_cast<std::uint32_t>(RE::ActorValue::kEnchanting)) {
+        return "skill";
+    }
+    if (av >= static_cast<std::uint32_t>(RE::ActorValue::kOneHandedModifier) && av <= static_cast<std::uint32_t>(RE::ActorValue::kEnchantingModifier)) {
+        return "skill";
+    }
+    return "other";
+}
+
 static std::vector<TimedEffectEntry> CollectTimedEffects(RE::PlayerCharacter* player)
 {
     std::vector<TimedEffectEntry> out;
@@ -218,6 +269,7 @@ static std::vector<TimedEffectEntry> CollectTimedEffects(RE::PlayerCharacter* pl
 
         const auto* baseEffect = effect->GetBaseObject();
         const bool isDebuff = baseEffect && (baseEffect->IsDetrimental() || baseEffect->IsHostile());
+        const float magnitude = std::isfinite(effect->magnitude) ? effect->magnitude : 0.0f;
         out.push_back(TimedEffectEntry{
             static_cast<std::int32_t>(effect->usUniqueID),
             std::move(sourceName),
@@ -227,7 +279,9 @@ static std::vector<TimedEffectEntry> CollectTimedEffects(RE::PlayerCharacter* pl
             isDebuff,
             GetFormId(effect->source),
             GetFormId(baseEffect),
-            GetFormId(effect->spell)
+            GetFormId(effect->spell),
+            GetEffectCategory(baseEffect),
+            magnitude
         });
     }
 
@@ -245,6 +299,24 @@ static std::vector<TimedEffectEntry> CollectTimedEffects(RE::PlayerCharacter* pl
     return out;
 }
 
+// Coarse weather for the HUD; precipitation uses the sky's fade-aware checks.
+static const char* CollectWeatherKind()
+{
+    // Interiors flagged to show the sky (or given windows by mods) keep an exterior sky
+    // mode, so the player's cell decides first (2026-10-13: Arcadia's Cauldron read "clear").
+    if (const auto* player = RE::PlayerCharacter::GetSingleton()) {
+        if (const auto* cell = player->GetParentCell(); cell && cell->IsInteriorCell()) return "indoor";
+    }
+    const auto* sky = RE::Sky::GetSingleton();
+    if (!sky) return "unknown";
+    if (sky->mode.get() == RE::Sky::Mode::kInterior) return "indoor";
+    if (!sky->currentWeather) return "unknown";
+    if (sky->IsSnowing()) return "snow";
+    if (sky->IsRaining()) return "rain";
+    if (sky->currentWeather->data.flags.any(RE::TESWeather::WeatherDataFlag::kCloudy)) return "cloudy";
+    return "clear";
+}
+
 static GameTimeEntry CollectGameTime()
 {
     GameTimeEntry out{
@@ -256,6 +328,7 @@ static GameTimeEntry CollectGameTime()
         20.0f,
         "Morning Star"
     };
+    out.weather = CollectWeatherKind();
 
     auto* calendar = RE::Calendar::GetSingleton();
     if (!calendar) return out;
@@ -404,15 +477,170 @@ static OffenseSnapshot CollectOffenseSnapshot(RE::PlayerCharacter* player)
     return snapshot;
 }
 
+// Coarse item kind for the compact HUD's slot icon; must match EQUIPPED_ITEM_KINDS in the view.
+static const char* GetEquippedKind(RE::PlayerCharacter* player, bool leftHand)
+{
+    auto* equipped = GetEquippedForm(player, leftHand);
+    if (!equipped) return "empty";
+
+    if (const auto* weapon = equipped->As<RE::TESObjectWEAP>()) {
+        switch (weapon->GetWeaponType()) {
+        case RE::WEAPON_TYPE::kHandToHandMelee: return "unarmed";
+        case RE::WEAPON_TYPE::kOneHandSword: return "sword";
+        case RE::WEAPON_TYPE::kOneHandDagger: return "dagger";
+        case RE::WEAPON_TYPE::kOneHandAxe: return "waraxe";
+        case RE::WEAPON_TYPE::kOneHandMace: return "mace";
+        case RE::WEAPON_TYPE::kTwoHandSword: return "greatsword";
+        // Battleaxes and warhammers share an animation type; keywords keep their EDIDs in memory.
+        case RE::WEAPON_TYPE::kTwoHandAxe: return weapon->HasKeywordString("WeapTypeWarhammer") ? "warhammer" : "battleaxe";
+        case RE::WEAPON_TYPE::kBow: return "bow";
+        case RE::WEAPON_TYPE::kStaff: return "staff";
+        case RE::WEAPON_TYPE::kCrossbow: return "crossbow";
+        default: return "other";
+        }
+    }
+    if (const auto* spell = equipped->As<RE::SpellItem>()) {
+        if (const auto* effect = spell->GetAVEffect()) {
+            switch (effect->GetMagickSkill()) {
+            case RE::ActorValue::kDestruction: return "destruction";
+            case RE::ActorValue::kRestoration: return "restoration";
+            case RE::ActorValue::kAlteration: return "alteration";
+            case RE::ActorValue::kIllusion: return "illusion";
+            case RE::ActorValue::kConjuration: return "conjuration";
+            default: break;
+            }
+        }
+        return "spell";
+    }
+    if (equipped->As<RE::TESObjectARMO>()) return "shield";
+    if (equipped->As<RE::TESObjectLIGH>()) return "torch";
+    return "other";
+}
+
+static std::atomic<std::uint32_t> g_lastPotionFormId{0};
+
+// The engine's play-time counter only moves when the game is saved, so the HUD adds the time
+// played since the counter last changed. Collection only runs during gameplay (never behind a
+// blocking menu); gaps longer than a few seconds between two collections (menus, loading)
+// are not counted.
+struct PlaytimeTracker {
+    std::int64_t engineMs{-1};
+    double extraSec{0.0};
+    std::chrono::steady_clock::time_point lastTick{};
+};
+static PlaytimeTracker g_playtime;
+static std::atomic<bool> g_playtimeResetRequested{true};
+constexpr double kPlaytimeMaxGapSec = 5.0;
+
+static double ResolvePlaytimeHours(std::int64_t engineMs)
+{
+    const auto now = std::chrono::steady_clock::now();
+    if (g_playtimeResetRequested.exchange(false) || engineMs != g_playtime.engineMs) {
+        g_playtime = PlaytimeTracker{engineMs, 0.0, now};
+    } else {
+        const double gapSec = std::chrono::duration<double>(now - g_playtime.lastTick).count();
+        if (gapSec > 0.0 && gapSec <= kPlaytimeMaxGapSec) {
+            g_playtime.extraSec += gapSec;
+        }
+        g_playtime.lastTick = now;
+    }
+    const double totalSec = (engineMs > 0 ? static_cast<double>(engineMs) / 1000.0 : 0.0) + g_playtime.extraSec;
+    return totalSec / 3600.0;
+}
+
+static const char* GetPotionKind(const RE::AlchemyItem* potion)
+{
+    const auto* effect = potion ? potion->GetCostliestEffectItem() : nullptr;
+    const auto* base = effect ? effect->baseEffect : nullptr;
+    if (!base) return "other";
+    switch (base->data.primaryAV) {
+    case RE::ActorValue::kHealth:
+    case RE::ActorValue::kHealRate:
+    case RE::ActorValue::kHealRateMult: return "health";
+    case RE::ActorValue::kMagicka:
+    case RE::ActorValue::kMagickaRate:
+    case RE::ActorValue::kMagickaRateMult: return "magicka";
+    case RE::ActorValue::kStamina:
+    case RE::ActorValue::kStaminaRate:
+    case RE::ActorValue::kStaminaRateMult: return "stamina";
+    default: return "other";
+    }
+}
+
+static float GetEquippedChargePct(RE::PlayerCharacter* player, bool leftHand)
+{
+    if (!player) return -1.0f;
+    auto* entry = player->GetEquippedEntryData(leftHand);
+    if (!entry || !entry->object || !entry->object->As<RE::TESObjectWEAP>()) return -1.0f;
+    const auto charge = entry->GetEnchantmentCharge();
+    if (!charge || !std::isfinite(*charge)) return -1.0f;
+    return static_cast<float>(std::clamp(*charge, 0.0, 100.0));
+}
+
+// Doses left of a poison applied to the equipped weapon (0 when none).
+static std::int32_t GetEquippedPoisonCount(RE::PlayerCharacter* player, bool leftHand)
+{
+    if (!player) return 0;
+    auto* entry = player->GetEquippedEntryData(leftHand);
+    if (!entry || !entry->object || !entry->object->As<RE::TESObjectWEAP>() || !entry->extraLists) return 0;
+    // With two copies of a weapon each hand has its own worn list; prefer the one for this hand.
+    std::int32_t fallback = 0;
+    for (auto* extraList : *entry->extraLists) {
+        if (!extraList) continue;
+        const auto* poison = extraList->GetByType<RE::ExtraPoison>();
+        const std::int32_t count = poison && poison->poison && poison->count > 0
+            ? static_cast<std::int32_t>((std::min)(poison->count, 9999u))
+            : 0;
+        const bool wornHere = leftHand ? extraList->HasType<RE::ExtraWornLeft>() : extraList->HasType<RE::ExtraWorn>();
+        if (wornHere) return count;
+        if (fallback == 0) fallback = count;
+    }
+    return fallback;
+}
+
 static EquippedSnapshot CollectEquippedSnapshot(RE::PlayerCharacter* player)
 {
     auto* selectedVoice = GetSelectedVoiceForm(player);
-    return EquippedSnapshot{
+    EquippedSnapshot snapshot{
         GetEquippedName(player, false),
         GetEquippedName(player, true),
-        GetSelectedVoiceName(player),
-        GetSelectedVoiceType(selectedVoice)
+        GetEquippedKind(player, false),
+        GetEquippedKind(player, true)
     };
+    snapshot.voice = GetSelectedVoiceName(player);
+    snapshot.voiceType = GetSelectedVoiceType(selectedVoice);
+    if (const auto* shout = selectedVoice ? selectedVoice->As<RE::TESShout>() : nullptr) {
+        for (const auto& variation : shout->variations) {
+            const auto* word = variation.word;
+            if (!word || !word->GetKnown()) continue;
+            ++snapshot.voiceWordsKnown;
+            if ((word->GetFormFlags() & RE::TESForm::RecordFlags::kUnlocked) != 0) {
+                ++snapshot.voiceWordsUnlocked;
+            }
+        }
+    }
+    if (!player) return snapshot;
+
+    snapshot.rightHandChargePct = GetEquippedChargePct(player, false);
+    snapshot.leftHandChargePct = GetEquippedChargePct(player, true);
+    snapshot.rightHandPoisonCount = GetEquippedPoisonCount(player, false);
+    snapshot.leftHandPoisonCount = GetEquippedPoisonCount(player, true);
+    if (auto* ammo = player->GetCurrentAmmo()) {
+        const char* name = ammo->GetName();
+        snapshot.ammoName = name ? name : "";
+        snapshot.ammoCount = (std::max)(0, player->GetItemCount(ammo));
+    }
+    if (const auto potionId = g_lastPotionFormId.load(std::memory_order_acquire); potionId != 0) {
+        if (auto* potion = RE::TESForm::LookupByID<RE::AlchemyItem>(potionId)) {
+            const char* name = potion->GetName();
+            snapshot.potionName = name ? name : "";
+            snapshot.potionCount = (std::max)(0, player->GetItemCount(potion));
+            snapshot.potionKind = GetPotionKind(potion);
+        }
+    }
+    const float cooldown = player->GetVoiceRecoveryTime();
+    snapshot.voiceCooldownSec = std::isfinite(cooldown) && cooldown > 0.0f ? cooldown : 0.0f;
+    return snapshot;
 }
 
 static MovementSnapshot CollectMovementSnapshot(RE::PlayerCharacter* player)
@@ -449,12 +677,19 @@ static PlayerStateSnapshot CollectPlayerStateSnapshot(RE::PlayerCharacter* playe
         const float rawThreshold = infoRuntime.skills->data->levelThreshold;
         experience = std::isfinite(rawXp) ? (std::max)(rawXp, 0.0f) : 0.0f;
         const float safeThreshold = std::isfinite(rawThreshold) ? rawThreshold : experience;
-        nextLevelTotalXp = (std::max)(safeThreshold, experience);
+        // XP at or past the threshold is a level-up the player has not taken yet, so the
+        // total stays the threshold (the HUD shows it full, as the vanilla bar does).
+        nextLevelTotalXp = safeThreshold;
         expToNextLevel = (std::max)(safeThreshold - experience, 0.0f);
 
         if (rawXp >= rawThreshold && rawThreshold > 0.0f && currentLevel > 1) {
             const float expectedThreshold = ComputeLevelThreshold(currentLevel);
-            if (std::abs(rawThreshold - expectedThreshold) > 1.0f) {
+            // Stale only while the engine still holds the previous level's threshold. Load
+            // orders that change the leveling curve make the threshold differ from the game
+            // settings formula all the time, and XP past it is then a pending level-up.
+            const bool previousLevelThreshold =
+                std::abs(rawThreshold - ComputeLevelThreshold(currentLevel - 1)) <= 1.0f;
+            if (previousLevelThreshold && std::abs(rawThreshold - expectedThreshold) > 1.0f) {
                 experience = (std::max)(rawXp - rawThreshold, 0.0f);
                 nextLevelTotalXp = expectedThreshold;
                 expToNextLevel = (std::max)(expectedThreshold - experience, 0.0f);
@@ -494,6 +729,8 @@ static PlayerStateSnapshot CollectPlayerStateSnapshot(RE::PlayerCharacter* playe
         curMP,
         curSP
     };
+    // Engine counter of real milliseconds played on this character (what STB shows).
+    snapshot.playerInfo.playtimeHours = ResolvePlaytimeHours(infoRuntime.totalPlayingTime);
     snapshot.alertData = AlertDataSnapshot{
         maxHP > 0 ? (curHP / maxHP) * 100.0f : 100.0f,
         maxMP > 0 ? (curMP / maxMP) * 100.0f : 100.0f,
@@ -524,6 +761,16 @@ StatsPayload CollectStatsPayload(RE::PlayerCharacter* player)
 }  // namespace TulliusWidgets::StatsCollectorInternal
 
 namespace TulliusWidgets {
+
+void StatsCollector::ResetPlaytimeTracking()
+{
+    StatsCollectorInternal::g_playtimeResetRequested.store(true);
+}
+
+void StatsCollector::NoteConsumedPotion(std::uint32_t formId)
+{
+    StatsCollectorInternal::g_lastPotionFormId.store(formId, std::memory_order_release);
+}
 
 std::string StatsCollector::CollectStats()
 {

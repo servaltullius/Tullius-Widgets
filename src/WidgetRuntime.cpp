@@ -13,7 +13,8 @@ namespace {
 
 constexpr auto kFastIntervalCombat = std::chrono::milliseconds(100);
 constexpr auto kFastIntervalIdle = std::chrono::milliseconds(500);
-constexpr auto kHeartbeatInterval = std::chrono::seconds(2);
+// Values that change without a game event (regeneration, timers) refresh at this pace.
+constexpr auto kHeartbeatInterval = std::chrono::milliseconds(500);
 constexpr auto kHeartbeatPoll = std::chrono::milliseconds(100);
 constexpr auto kPausedRetryDelay = std::chrono::milliseconds(100);
 

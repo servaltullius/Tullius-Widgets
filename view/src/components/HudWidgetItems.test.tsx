@@ -9,8 +9,15 @@ import type { CombatStats } from '../types/stats';
 import type { WidgetSettings } from '../types/settings';
 import { HudWidgetItems } from './HudWidgetItems';
 
+// These tests cover the classic card renderer; compact rendering has its own suite.
 function cloneSettings(): WidgetSettings {
-  return structuredClone(defaultSettings);
+  const settings = structuredClone(defaultSettings);
+  settings.general.hudStyle = 'classic';
+  settings.resistances.disease = false;
+  settings.equipped.voice = false;
+  settings.time.gameDisplay = 'dateTime';
+  settings.time.realDisplay = 'dateTime';
+  return settings;
 }
 
 function cloneStats(): CombatStats {
@@ -629,7 +636,7 @@ describe('HudWidgetItems', () => {
 
     hideAllItems(itemLayouts);
     itemLayouts['equipped.voice'] = { ...itemLayouts['equipped.voice'], visible: true };
-    (settings.equipped as Record<string, boolean>).voice = true;
+    settings.equipped.voice = true;
     stats.equipped.voice = 'Unrelenting Force';
 
     await act(async () => {

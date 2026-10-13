@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { UpdateSettingFn, WidgetSize } from '../types/settings';
+import { isHotkeyCaptureActive } from '../utils/hotkeys';
 
 export type GroupInteractionMode = 'drag' | 'resize';
 
@@ -91,7 +92,7 @@ export function useGroupEditor({
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || !selectedGroupId) {
+      if (event.key !== 'Escape' || !selectedGroupId || isHotkeyCaptureActive()) {
         return;
       }
 

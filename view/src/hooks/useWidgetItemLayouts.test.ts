@@ -55,6 +55,9 @@ describe('useWidgetItemLayouts', () => {
       playerInfo: 1.25,
     };
     settings.playerInfo.gold = false;
+    // Legacy saves always carry hand damage visibility (true before the compact preset).
+    settings.offense.rightHandDamage = true;
+    settings.offense.leftHandDamage = true;
 
     const resolvedFhd = resolveWidgetItemLayouts({
       settings,

@@ -2,6 +2,7 @@
 
 #include "JsonUtils.h"
 #include "NativeStorage.h"
+#include "WidgetHotkeys.h"
 #include "WidgetInteropContracts.h"
 
 #include <optional>
@@ -116,6 +117,7 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
         std::string payload(payloadView);
         const auto revision = TulliusWidgets::JsonUtils::TryReadUIntField(payloadView, "rev");
         DispatchToGameThread([payload = std::move(payload), revision]() {
+            TulliusWidgets::WidgetHotkeys::ApplyHotkeysFromSettingsJson(payload);
             const bool success = TulliusWidgets::NativeStorage::SaveSettingsAsync(
                 ResolveStorageBasePath(),
                 payload,
@@ -175,7 +177,15 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
         const bool open = state == "open" || state == "true" || state == "1";
         DispatchToGameThread([open]() {
             SetSettingsOpen(open);
+            if (!open) {
+                TulliusWidgets::WidgetHotkeys::ClearCapture();
+            }
         });
+    });
+
+    prismaUI->RegisterJSListener(view, TulliusWidgets::WidgetInteropContracts::kOnHotkeyCapture, [](const char* data) -> void {
+        const bool active = data && std::string_view(data) == "1";
+        TulliusWidgets::WidgetHotkeys::SetCaptureActive(active);
     });
 }
 

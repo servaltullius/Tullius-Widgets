@@ -30,6 +30,16 @@
   "equipped": {
     "rightHand": "Daedric Sword",
     "leftHand": "Chain Lightning",
+    "rightHandKind": "sword",
+    "leftHandKind": "destruction",
+    "rightHandChargePct": 64.0,
+    "leftHandChargePct": -1,
+    "ammoName": "",
+    "ammoCount": -1,
+    "voiceCooldownSec": 0,
+    "potionName": "Potion of Healing",
+    "potionCount": 4,
+    "potionKind": "health",
     "voice": "Unrelenting Force",
     "voiceType": "shout"
   },
@@ -43,6 +53,7 @@
     "hour": 5,
     "minute": 18,
     "monthName": "Last Seed",
+    "weather": "clear",
     "timeScale": 20.0
   },
   "playerInfo": {
@@ -119,10 +130,25 @@
 - UI는 `calcMeta.caps` 기준으로 캡/보조 텍스트를 표시합니다.
 - 원소/독 저항은 현재 `85%` 상한 clamp를 기준으로 안내하며, 음수 하한은 엔진/모드 조합에 따라 달라질 수 있어 고정 clamp 계약으로 두지 않습니다.
 - 고빈도 fast 동기화 payload에서는 `timedEffects`가 생략될 수 있으며, UI는 이전 목록을 유지해야 합니다.
+- 지속 효과 표시 보조:
+  - `timedEffects[].category`는 효과가 바꾸는 대상(주 액터 값/원형)에 따른 아이콘 분류입니다: `health | magicka | stamina | fire | frost | shock | magic | poison | disease | armor | speed | weight | water | invisibility | paralysis | vision | cloak | time | ethereal | skill | other`.
+  - `timedEffects[].magnitude`는 효과 크기(엔진 magnitude)이며, UI는 수치형 분류에서만 표시합니다.
+- 무기 독:
+  - `equipped.rightHandPoisonCount` / `leftHandPoisonCount`는 해당 손 무기에 바른 독의 남은 횟수입니다(없으면 0).
+- 플레이 시간:
+  - `playerInfo.playtimeHours`는 현재 캐릭터의 누적 실제 플레이 시간(시간 단위, 엔진 `totalPlayingTime` 기준)입니다.
+- 날씨 계약:
+  - `time.weather`는 `clear | cloudy | rain | snow | indoor | unknown` 중 하나입니다. 비/눈은 하늘의 전환(fade) 상태를 반영하며, 실내는 `indoor`입니다. 구버전 payload에서는 생략될 수 있고 UI는 이전 값(없으면 `unknown`)을 유지합니다.
 - 장착 표시 계약:
   - `equipped.rightHand`, `equipped.leftHand`는 가능한 경우 인벤토리 표시명(`InventoryEntryData::GetDisplayName`)을 우선 사용합니다.
   - 왼손은 주문/무기 외에 방패 슬롯 보강 판별을 포함합니다.
   - `equipped.voice`는 현재 선택된 포효/파워 이름입니다.
+  - `equipped.rightHandChargePct`, `equipped.leftHandChargePct`는 무기(지팡이 포함) 마법부여 충전률(0~100)이며, 마법부여가 없으면 `-1`입니다.
+  - `equipped.ammoName`, `equipped.ammoCount`는 장착한 화살/볼트와 인벤토리 보유 수량이며, 장착 화살이 없으면 `ammoCount = -1`입니다.
+  - `equipped.voiceWordsKnown`, `equipped.voiceWordsUnlocked`는 선택한 포효의 배운 단어 수와 드래곤 영혼으로 해금한 단어 수(0~3)입니다. 파워는 0입니다.
+  - `equipped.potionName`, `equipped.potionCount`, `equipped.potionKind`는 이번 세션에서 마지막으로 마신 물약(음식·독 제외)과 남은 보유 수, 종류(`health | magicka | stamina | other`)입니다. 아직 마신 물약이 없으면 `potionCount = -1`입니다.
+  - `equipped.voiceCooldownSec`은 선택한 포효의 남은 재사용 대기시간(초)입니다. UI는 다음 payload까지 로컬로 카운트다운합니다.
+  - `equipped.rightHandKind`, `equipped.leftHandKind`는 손별 장비 종류입니다: `empty | unarmed | sword | dagger | waraxe | mace | greatsword | battleaxe | warhammer | bow | crossbow | staff | spell | destruction | restoration | alteration | illusion | conjuration | shield | torch | other`. 주문은 학파가 확인되면 학파 이름을, 아니면 `spell`을 씁니다. 구버전 payload에서는 생략될 수 있으며, UI는 이름이 있으면 `other`, 없으면 `empty`로 처리합니다.
   - `equipped.voiceType`은 `empty | shout | power` 중 하나이며, UI가 포효/파워 슬롯을 표시할 때 참고할 수 있습니다.
   - 장착 이벤트 직후 값은 안정성을 위해 한 틱 지연 후 반영될 수 있습니다.
 - 경험치 계약:

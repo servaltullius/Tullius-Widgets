@@ -1,0 +1,241 @@
+/* Compact HUD design tokens. The font ships with the view (OFL-1.1, licence in
+   fonts/Pretendard-OFL.txt) because the game overlay cannot reach web font services.
+   Prisma UI (Ultralight) showed the variable font at a single weight in game, so each weight
+   is a separate static face, with WOFF as a fallback where WOFF2 is not supported. The Korean
+   subset covers KS X 1001; rarer syllables fall back to the next font in the stack.
+   The fonts are local files, so `block` costs nothing and avoids a first layout with the
+   fallback font: in game, text laid out before the swap kept the old (narrower) box and the
+   end of wider lines was cut off. */
+@font-face {
+  font-family: 'Tullius Pretendard';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('../../node_modules/pretendard/dist/web/static/woff2-subset/Pretendard-Regular.subset.woff2') format('woff2'),
+    url('../../node_modules/pretendard/dist/web/static/woff-subset/Pretendard-Regular.subset.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Tullius Pretendard';
+  font-style: normal;
+  font-weight: 500;
+  font-display: block;
+  src: url('../../node_modules/pretendard/dist/web/static/woff2-subset/Pretendard-Medium.subset.woff2') format('woff2'),
+    url('../../node_modules/pretendard/dist/web/static/woff-subset/Pretendard-Medium.subset.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Tullius Pretendard';
+  font-style: normal;
+  font-weight: 600;
+  font-display: block;
+  src: url('../../node_modules/pretendard/dist/web/static/woff2-subset/Pretendard-SemiBold.subset.woff2') format('woff2'),
+    url('../../node_modules/pretendard/dist/web/static/woff-subset/Pretendard-SemiBold.subset.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Tullius Pretendard';
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url('../../node_modules/pretendard/dist/web/static/woff2-subset/Pretendard-Bold.subset.woff2') format('woff2'),
+    url('../../node_modules/pretendard/dist/web/static/woff-subset/Pretendard-Bold.subset.woff') format('woff');
+}
+
+.tw-compact {
+  --c-text: #ece7db;
+  --c-text-2: #c3bdb0;
+  --c-text-3: #a39d90;
+  --c-gold: #d2bb83;
+  --c-warn: #e6b866;
+  --c-danger: #e8786d;
+  --c-good: #a3c994;
+  --c-res-magic: #b9a0d6;
+  --c-res-fire: #e08a6c;
+  --c-res-frost: #98c6dc;
+  --c-res-shock: #d9c96f;
+  --c-res-poison: #9cbf90;
+  --c-res-disease: #b6ad93;
+  --c-health: #c24c42;
+  --c-magicka: #4a79bd;
+  --c-stamina: #579552;
+  --c-line: rgba(236, 231, 219, 0.2);
+  --c-surface: rgba(10, 9, 8, var(--c-surface-alpha, 0.3));
+  --c-shadow: 0 0 2px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.85);
+
+  color: var(--c-text);
+  font-family: var(--tw-font-compact);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  text-shadow: var(--c-shadow);
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+/* One cheap shadow pass keeps icons readable on bright ground; Prisma rasterizes filters on the CPU. */
+.tw-compact svg {
+  filter: drop-shadow(0 0.5px 1.2px rgba(0, 0, 0, 0.95));
+}
+
+.tw-compact-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--c-text-2);
+  letter-spacing: 0.01em;
+}
+
+.tw-compact-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--c-text);
+}
+
+.tw-compact-value[data-tone='warning'] { color: var(--c-warn); }
+.tw-compact-value[data-tone='danger'] { color: var(--c-danger); }
+.tw-compact-value[data-tone='capped'] { color: var(--c-gold); }
+.tw-compact-value[data-tone='muted'] { color: var(--c-text-3); }
+
+.tw-compact-unit {
+  font-size: 0.72em;
+  font-weight: 500;
+  color: var(--c-text-2);
+  margin-left: 1px;
+}
+
+.tw-compact-sub {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--c-text-2);
+}
+
+.tw-compact-enter {
+  animation: tw-compact-fade-in 140ms ease-out;
+}
+
+@keyframes tw-compact-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Compact timed effects: one slim row per effect, no card. */
+.tw-ceffect-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 250px;
+}
+
+.tw-ceffect-list[data-layout='horizontal'] {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  width: 532px;
+}
+
+.tw-ceffect-list[data-layout='horizontal'] .tw-ceffect-row {
+  width: 250px;
+}
+
+.tw-ceffect-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 12px;
+  row-gap: 3px;
+  align-items: center;
+  position: relative;
+}
+
+.tw-ceffect-name {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 500;
+  max-width: 240px;
+}
+
+.tw-ceffect-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.tw-ceffect-magnitude {
+  flex: none;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--c-text-2);
+}
+
+.tw-ceffect-row[data-debuff='true'] .tw-ceffect-label { color: #f1b1aa; }
+/* Losses read as a threat at a glance, not as another buff number. */
+.tw-ceffect-row[data-debuff='true'] .tw-ceffect-magnitude { color: #e47770; font-weight: 600; }
+
+.tw-ceffect-time {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-text-2);
+  text-align: right;
+}
+
+.tw-ceffect-row[data-urgent='true'] .tw-ceffect-time { color: var(--c-warn); }
+
+.tw-ceffect-track {
+  grid-column: 1 / -1;
+  height: 2px;
+  margin-left: 17px;
+  background: rgba(236, 231, 219, 0.12);
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0.9);
+}
+
+.tw-ceffect-fill {
+  display: block;
+  height: 2px;
+  background: rgba(236, 231, 219, 0.45);
+}
+
+.tw-ceffect-row[data-debuff='true'] .tw-ceffect-fill { background: var(--c-danger); }
+
+.tw-ceffect-more,
+.tw-ceffect-empty {
+  font-size: 11px;
+  color: var(--c-text-3);
+  padding-left: 17px;
+}
+
+/* Short-lived +/- readout next to counters (gold, XP). Animates opacity only. */
+/* Floats under (or beside) its value so it never pushes neighbours around. */
+.tw-compact-delta {
+  position: absolute;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--c-good);
+  animation: tw-compact-delta 1600ms ease-out forwards;
+}
+
+.tw-compact-delta[data-direction='down'] { color: var(--c-danger); }
+
+.tw-compact-delta--below {
+  left: 20px;
+  top: 100%;
+  margin-top: 2px;
+}
+
+.tw-compact-delta--right {
+  left: calc(100% + 6px);
+  top: 0;
+}
+
+@keyframes tw-compact-delta {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Set once the bundled fonts are ready: changing a text property forces one relayout, so any
+   line measured with the fallback font is measured again with Pretendard. */
+html.tw-fonts-ready .tw-compact {
+  font-kerning: normal;
+}

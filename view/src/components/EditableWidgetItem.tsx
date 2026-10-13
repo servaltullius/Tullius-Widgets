@@ -21,6 +21,8 @@ interface EditableWidgetItemProps {
   opacity: number;
   accentColor: string;
   transparentBg: boolean;
+  /** 'bare' draws no card: the compact HUD renders text and icons straight on the scene. */
+  surface?: 'card' | 'bare';
   editable: boolean;
   selected: boolean;
   onSelect: (itemId: string) => void;
@@ -75,6 +77,7 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
   opacity,
   accentColor,
   transparentBg,
+  surface = 'card',
   editable,
   selected,
   onSelect,
@@ -280,7 +283,8 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
     };
   }, [activePointerMode, maxScale, minScale]);
 
-  const showBg = !transparentBg || editable;
+  const bare = surface === 'bare';
+  const showBg = !bare && (!transparentBg || editable);
   const showSelectionFrame = editable && selected;
   const showHoverFrame = editable && hovered && !selected;
   const cursor = activePointerMode === 'drag'
@@ -292,7 +296,8 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
       ref={containerRef}
       data-widget-item-id={itemId}
       data-widget-independent="true"
-      data-widget-surface={showBg ? 'framed' : 'transparent'}
+      data-widget-surface={bare ? 'bare' : showBg ? 'framed' : 'transparent'}
+      className={bare ? 'tw-compact tw-compact-enter' : undefined}
       onMouseDown={handleMouseDown}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -300,7 +305,8 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
         position: 'fixed',
         left: `${x}px`,
         top: `${y}px`,
-        opacity: opacity / 100,
+        opacity: bare ? 1 : opacity / 100,
+        ...(bare ? { '--c-surface-alpha': String(Math.round((opacity / 100) * 0.42 * 100) / 100) } : {}),
         transform: `scale(${scale})`,
         transformOrigin: 'top left',
         background: showBg
@@ -308,21 +314,29 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
           : 'transparent',
         borderRadius: '2px 8px 2px 8px',
         padding: showBg ? '7px 9px' : '0',
-        border: showSelectionFrame
+        ...(bare ? {
+          border: 'none',
+          outline: showSelectionFrame
+            ? `2px solid ${hexToRgba('#ffd700', 0.95)}`
+            : showHoverFrame
+              ? `1px solid ${hexToRgba('#ffd700', 0.55)}`
+              : editable ? '1px dashed rgba(255, 215, 0, 0.35)' : 'none',
+          outlineOffset: '4px',
+        } : {}),
+        border: bare ? 'none' : showSelectionFrame
           ? `2px solid ${hexToRgba('#ffd700', 0.95)}`
           : showHoverFrame
             ? `1px solid ${hexToRgba('#ffd700', 0.45)}`
             : editable
               ? '1px dashed rgba(255, 215, 0, 0.25)'
               : showBg ? '1px solid rgba(229, 234, 238, 0.18)' : 'none',
-        boxShadow: showSelectionFrame
+        boxShadow: bare ? 'none' : showSelectionFrame
           ? `0 0 0 2px ${hexToRgba('#ffd700', 0.22)}, inset 0 0 20px ${hexToRgba(accentColor, 0.1)}, 0 0 18px ${hexToRgba('#ffd700', 0.2)}`
           : showHoverFrame
             ? `0 0 0 1px ${hexToRgba('#ffd700', 0.14)}, inset 0 0 18px ${hexToRgba(accentColor, 0.08)}`
             : showBg
               ? '0 8px 22px rgba(0, 0, 0, 0.24), inset 0 1px rgba(255, 255, 255, 0.025)'
               : 'none',
-        backdropFilter: showBg ? 'blur(4px)' : undefined,
         overflow: 'visible',
         userSelect: 'none',
         pointerEvents: editable ? 'auto' : 'none',

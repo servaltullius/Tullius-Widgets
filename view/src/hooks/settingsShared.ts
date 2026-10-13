@@ -2,7 +2,7 @@ import type { WidgetItemLayout, WidgetSettings } from '../types/settings';
 import { getWidgetItemDefaultZIndex } from '../data/widgetItemRegistry';
 import { isPlainObject } from '../utils/normalize';
 
-export const SETTINGS_SCHEMA_VERSION = 6;
+export const SETTINGS_SCHEMA_VERSION = 7;
 
 const DEFAULT_ITEM_LAYOUT: WidgetItemLayout = {
   visible: true,
@@ -35,6 +35,12 @@ export function serializeSettingsPayload(settings: WidgetSettings, revision: num
   });
 }
 
+const ITEM_SHOW_WHEN_LEAF_VALUES = new Set(['always', 'combat', 'change', 'combatOrChange']);
+
+function isItemShowWhen(value: unknown): boolean {
+  return typeof value === 'string' && ITEM_SHOW_WHEN_LEAF_VALUES.has(value);
+}
+
 export function updateValueByPath(current: WidgetSettings, path: string, value: unknown): WidgetSettings {
   if (path.startsWith('itemLayouts.')) {
     const keys = path.split('.');
@@ -48,6 +54,7 @@ export function updateValueByPath(current: WidgetSettings, path: string, value: 
         || leafKey === 'scale'
         || leafKey === 'locked'
         || leafKey === 'zIndex'
+        || (leafKey === 'showWhen' && isItemShowWhen(value))
       ) {
         const currentItem = current.itemLayouts[itemId] ?? getDefaultItemLayout(itemId);
         if (Object.is(currentItem[leafKey], value)) {

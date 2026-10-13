@@ -3,26 +3,34 @@ import { EditableWidgetItem } from './EditableWidgetItem';
 import { ExperienceWidget } from './ExperienceWidget';
 import { ResistanceWidget } from './ResistanceWidget';
 import { StatWidget } from './StatWidget';
+import { ClassicVoiceWidget } from './ClassicVoiceWidget';
 import { TimedEffectList } from './TimedEffectList';
+import { CompactHudItem } from './compact/CompactHudItem';
+import { CompactIconThemeContext } from './compact/compactIconTheme';
 import { t } from '../i18n/translations';
 import { getWidgetItemRegistryEntry } from '../data/widgetItemRegistry';
 import type { WidgetInteractionMode } from '../hooks/useWidgetEditSelection';
 import type { Language, WidgetItemLayout, WidgetSettings } from '../types/settings';
 import type { CombatStats } from '../types/stats';
 import {
+  buildClassicEquipDetail,
   formatGold,
   formatPercent,
   formatWeight,
   getCarryTone,
   getLowResourceTone,
+  LOW_RESOURCE_THRESHOLDS,
   getVisibleHudItemIds,
   hasMeaningfulDifference,
+  isLeftHandHeldByTwoHanded,
+  type ItemPresenceContext,
   resolveExperienceProgress,
 } from '../utils/hudPresentation';
 import {
   formatGameDateTime,
   formatGameTimeOnly,
   formatRealDateTime,
+  formatPlaytime,
   formatRealTimeOnly,
   TIME_WIDGET_VALUE_MAX_WIDTH,
   useSharedTimeWidgetClock,
@@ -31,6 +39,15 @@ import { sortItemIdsByZIndex } from '../utils/itemLayoutEditing';
 import '../assets/hud-widgets.css';
 
 const ELEMENTAL_RESIST_CAP = 85;
+
+const WEATHER_KEYS = {
+  clear: 'weatherClear',
+  cloudy: 'weatherCloudy',
+  rain: 'weatherRain',
+  snow: 'weatherSnow',
+  indoor: 'weatherIndoor',
+  unknown: 'weatherUnknown',
+} as const;
 const DISEASE_RESIST_MIN = 0;
 const WEAPON_DAMAGE_CAP = 9999;
 const WEAPON_DAMAGE_MIN = 0;
@@ -117,6 +134,7 @@ interface HudWidgetItemsProps {
   settingsOpen: boolean;
   lang: Language;
   itemLayouts: Record<string, WidgetItemLayout>;
+  itemPresence?: ItemPresenceContext;
   accentColor: string;
   editable?: boolean;
   selectedItemId?: string | null;
@@ -138,6 +156,7 @@ function renderItemShell(
   transparentBg: boolean,
   child: ReactNode,
   options?: {
+    surface?: 'card' | 'bare';
     editable: boolean;
     selected: boolean;
     minScale: number;
@@ -181,6 +200,7 @@ function renderItemShell(
       opacity={opacity}
       accentColor={accentColor}
       transparentBg={transparentBg}
+      surface={resolvedOptions.surface ?? 'card'}
       editable={resolvedOptions.editable}
       selected={resolvedOptions.selected}
       onSelect={resolvedOptions.onSelect}
@@ -204,6 +224,7 @@ export function HudWidgetItems({
   settingsOpen,
   lang,
   itemLayouts,
+  itemPresence,
   accentColor,
   editable = false,
   selectedItemId = null,
@@ -226,14 +247,15 @@ export function HudWidgetItems({
   const visibleItemIds = useMemo(() => {
     return sortItemIdsByZIndex(
       itemLayouts,
-      getVisibleHudItemIds(itemLayouts, stats, settingsOpen),
+      getVisibleHudItemIds(itemLayouts, stats, settingsOpen, itemPresence),
     );
-  }, [itemLayouts, settingsOpen, stats]);
+  }, [itemLayouts, itemPresence, settingsOpen, stats]);
 
   if (!shouldShow) {
     return null;
   }
 
+  const compact = settings.general.hudStyle === 'compact';
   const { currentXp, totalXpForNextLevel } = resolveExperienceProgress(stats.playerInfo);
   const capLabel = t(lang, 'capLimitLabel');
   const armorLimitLabel = t(lang, 'capArmorLimitLabel');
@@ -258,9 +280,9 @@ export function HudWidgetItems({
   const armorHelper = stats.defense.armorRating > armorCapForMaxReduction + 0.5
     ? `${armorLimitLabel} ${Math.round(armorCapForMaxReduction)}`
     : undefined;
-  const healthTone = getLowResourceTone(stats.alertData.healthPct, settings.visualAlerts.lowHealthThreshold);
-  const magickaTone = getLowResourceTone(stats.alertData.magickaPct, settings.visualAlerts.lowMagickaThreshold);
-  const staminaTone = getLowResourceTone(stats.alertData.staminaPct, settings.visualAlerts.lowStaminaThreshold);
+  const healthTone = getLowResourceTone(stats.alertData.healthPct, LOW_RESOURCE_THRESHOLDS.health);
+  const magickaTone = getLowResourceTone(stats.alertData.magickaPct, LOW_RESOURCE_THRESHOLDS.magicka);
+  const staminaTone = getLowResourceTone(stats.alertData.staminaPct, LOW_RESOURCE_THRESHOLDS.stamina);
   const carryTone = getCarryTone(stats.alertData.carryPct);
   const carryWeightDisplay = resolveCarryWeightDisplay(settings.playerInfo.carryWeightDisplay, stats.alertData.carryPct);
   const gameTimeValue = settings.time.gameDisplay === 'timeOnly'
@@ -286,6 +308,7 @@ export function HudWidgetItems({
           settings.general.transparentBg,
           child,
           {
+            surface: compact ? 'bare' : 'card',
             editable,
             selected: selectedItemId === itemId,
             minScale: registryEntry.minScale,
@@ -301,6 +324,14 @@ export function HudWidgetItems({
           },
         );
 
+        if (compact) {
+          return renderEditableItem((
+            <CompactIconThemeContext.Provider value={settings.general.iconTheme}>
+              <CompactHudItem itemId={itemId} stats={stats} settings={settings} lang={lang} nowMs={nowMs} layout={layout} />
+            </CompactIconThemeContext.Provider>
+          ));
+        }
+
         switch (itemId) {
           case 'experience.progress':
             return renderEditableItem(
@@ -312,6 +343,7 @@ export function HudWidgetItems({
                   visible
                   lang={lang}
                   iconTheme={settings.general.iconTheme}
+                  showNumbers={settings.experience.showNumbers}
                 />
               ),
             );
@@ -608,6 +640,7 @@ export function HudWidgetItems({
                 standardIcon="rightHandEquipped"
                 iconColor="#e85050"
                 value={stats.equipped.rightHand || t(lang, 'equippedEmpty')}
+                helperText={buildClassicEquipDetail(stats, 'right', lang)}
                 visible
                 prominence="secondary"
                 remountValueOnChange
@@ -620,7 +653,10 @@ export function HudWidgetItems({
                 icon="leftHand"
                 standardIcon="leftHandEquipped"
                 iconColor="#4090e8"
-                value={stats.equipped.leftHand || t(lang, 'equippedEmpty')}
+                value={isLeftHandHeldByTwoHanded(stats)
+                  ? t(lang, 'equippedTwoHanded')
+                  : stats.equipped.leftHand || t(lang, 'equippedEmpty')}
+                helperText={isLeftHandHeldByTwoHanded(stats) ? undefined : buildClassicEquipDetail(stats, 'left', lang)}
                 visible
                 prominence="secondary"
                 remountValueOnChange
@@ -628,7 +664,7 @@ export function HudWidgetItems({
             ));
           case 'equipped.voice':
             return renderEditableItem((
-              <StatWidget
+              <ClassicVoiceWidget
                 {...statIconProps}
                 icon="voice"
                 iconColor={stats.equipped.voiceType === 'power' ? '#82c8ff' : '#d8c17a'}
@@ -636,6 +672,22 @@ export function HudWidgetItems({
                 visible
                 prominence="secondary"
                 remountValueOnChange
+                cooldownSec={stats.equipped.voiceCooldownSec}
+                cooldownTemplate={t(lang, 'equipDetailCooldown')}
+              />
+            ));
+          case 'equipped.potion':
+            return renderEditableItem((
+              <StatWidget
+                {...statIconProps}
+                icon="potion"
+                iconColor={stats.equipped.potionKind === 'magicka' ? '#4090e8' : stats.equipped.potionKind === 'stamina' ? '#40c840' : '#e86060'}
+                value={stats.equipped.potionCount === null
+                  ? t(lang, 'equippedEmpty')
+                  : `${stats.equipped.potionName} \u00d7${stats.equipped.potionCount}`}
+                visible
+                prominence="secondary"
+                valueTone={stats.equipped.potionCount === 0 ? 'danger' : 'default'}
               />
             ));
           case 'time.game':
@@ -662,6 +714,31 @@ export function HudWidgetItems({
                 valueMaxWidth={TIME_WIDGET_VALUE_MAX_WIDTH}
               />
             ));
+          case 'time.playtime':
+            return renderEditableItem((
+              <StatWidget
+                {...statIconProps}
+                icon="playtime"
+                iconColor="#c3bdb0"
+                value={formatPlaytime(stats.playerInfo.playtimeHours, t(lang, 'playtimeFormat'))}
+                visible
+                prominence="secondary"
+              />
+            ));
+          case 'time.weather': {
+            const weatherKey = WEATHER_KEYS[stats.time.weather];
+            return renderEditableItem((
+              <StatWidget
+                {...statIconProps}
+                icon="weather"
+                standardIcon={weatherKey}
+                iconColor="#9fc3d8"
+                value={t(lang, weatherKey)}
+                visible
+                prominence="secondary"
+              />
+            ));
+          }
           case 'movement.speedMult':
             return renderEditableItem((
               <StatWidget {...statIconProps} icon="speed" iconColor="#44ddff" value={stats.movement.speedMult} unit="%" visible prominence="secondary" />

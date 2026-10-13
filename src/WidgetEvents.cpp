@@ -1,4 +1,5 @@
 #include "WidgetEvents.h"
+#include "StatsCollector.h"
 #include "WidgetVisibilityState.h"
 
 #include <algorithm>
@@ -105,6 +106,13 @@ public:
         if (!event) return RE::BSEventNotifyControl::kContinue;
         auto* actor = event->actor.get();
         if (IsPlayerReference(actor)) {
+            // Drinking a potion fires an equip event for it.
+            if (event->equipped) {
+                if (auto* potion = RE::TESForm::LookupByID<RE::AlchemyItem>(event->baseObject);
+                    potion && !potion->IsFood() && !potion->IsPoison()) {
+                    StatsCollector::NoteConsumedPotion(event->baseObject);
+                }
+            }
             if (auto* taskInterface = SKSE::GetTaskInterface()) {
                 taskInterface->AddTask([]() {
                     SendStatsForced();

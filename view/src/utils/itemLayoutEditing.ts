@@ -1,9 +1,11 @@
 import {
+  COMPACT_EFFECT_COLUMN_WIDTH,
+  COMPACT_EFFECT_ROW_WIDTH,
   WIDGET_ITEM_IDS,
   resolveWidgetItemLayouts,
   getWidgetItemDefaultZIndex,
 } from '../data/widgetItemRegistry';
-import type { WidgetItemLayout, WidgetSettings } from '../types/settings';
+import type { HudStyle, LayoutSlot, WidgetItemLayout, WidgetSettings } from '../types/settings';
 
 function stampLayoutViewport(
   layout: WidgetItemLayout,
@@ -198,4 +200,118 @@ export function nudgeItemLayout(
       y: currentLayout.y + deltaY,
     },
   };
+}
+
+// Switching HUD style moves every item to that style's default placement but keeps which
+// items the player chose to show.
+export function buildItemLayoutsForHudStyle(
+  settings: WidgetSettings,
+  hudStyle: HudStyle,
+): Record<string, WidgetItemLayout> {
+  const baseline = { width: 1920, height: 1080 };
+  const current = resolveWidgetItemLayouts({ settings, viewportWidth: baseline.width, viewportHeight: baseline.height });
+  const target = resolveWidgetItemLayouts({
+    settings: {
+      ...settings,
+      general: { ...settings.general, hudStyle },
+      positions: {},
+      layouts: {},
+      groupScales: {},
+      itemLayouts: {},
+    },
+    viewportWidth: baseline.width,
+    viewportHeight: baseline.height,
+  });
+
+  return Object.fromEntries(
+    Object.entries(target).map(([itemId, layout]) => [
+      itemId,
+      {
+        ...layout,
+        visible: current[itemId]?.visible ?? layout.visible,
+        viewportWidth: baseline.width,
+        viewportHeight: baseline.height,
+      },
+    ]),
+  );
+}
+
+// Snapshot of the arrangement the player currently sees, stamped with the current screen size
+// so loading it on the same screen restores it exactly (any resolution or aspect ratio).
+export function captureLayoutSlot(
+  settings: WidgetSettings,
+  savedAt: number,
+  viewport: { width: number; height: number },
+): LayoutSlot {
+  const baseline = { width: Math.round(viewport.width), height: Math.round(viewport.height) };
+  const resolved = resolveWidgetItemLayouts({ settings, viewportWidth: baseline.width, viewportHeight: baseline.height });
+  return {
+    savedAt,
+    hudStyle: settings.general.hudStyle,
+    compactAnchor: settings.general.compactAnchor,
+    size: settings.general.size,
+    itemLayouts: Object.fromEntries(
+      Object.entries(resolved).map(([itemId, layout]) => [
+        itemId,
+        { ...layout, viewportWidth: baseline.width, viewportHeight: baseline.height },
+      ]),
+    ),
+  };
+}
+
+// In a right-hand compact corner the effect list hugs the right edge; switching between the
+// column (250px) and row (532px) layouts moves the cluster by the width difference, as the
+// corner defaults do, so the wider row neither runs off-screen nor lands on the cluster. Only
+// items still inside the default cluster move; widgets dragged elsewhere stay put. Returns
+// null when nothing needs to move.
+export function shiftEffectListForLayout(
+  settings: WidgetSettings,
+  nextLayout: WidgetSettings['timedEffects']['listLayout'],
+): Record<string, WidgetItemLayout> | null {
+  const anchor = settings.general.compactAnchor;
+  const listLayout = settings.itemLayouts['timedEffects.list'];
+  if (
+    settings.general.hudStyle !== 'compact'
+    || (anchor !== 'bottomRight' && anchor !== 'topRight')
+    || nextLayout === settings.timedEffects.listLayout
+    || !listLayout
+  ) {
+    return null;
+  }
+
+  // The default cluster's box (both list layouts) in screen fractions, with a little slack.
+  const baseline = { width: 1920, height: 1080 };
+  const boxes = (['vertical', 'horizontal'] as const).map(layout => {
+    const defaults = resolveWidgetItemLayouts({
+      settings: { ...settings, timedEffects: { ...settings.timedEffects, listLayout: layout }, positions: {}, layouts: {}, groupScales: {}, itemLayouts: {} },
+      viewportWidth: baseline.width,
+      viewportHeight: baseline.height,
+    });
+    const items = Object.values(defaults);
+    return {
+      minX: Math.min(...items.map(item => item.x)) / baseline.width,
+      minY: Math.min(...items.map(item => item.y)) / baseline.height,
+      maxY: Math.max(...items.map(item => item.y)) / baseline.height,
+    };
+  });
+  const slack = 0.03;
+  const minX = Math.min(...boxes.map(box => box.minX)) - slack;
+  const minY = Math.min(...boxes.map(box => box.minY)) - slack;
+  const maxY = Math.max(...boxes.map(box => box.maxY)) + slack;
+
+  const listWidth = listLayout.viewportWidth ?? baseline.width;
+  const listHeight = listLayout.viewportHeight ?? baseline.height;
+  const widthDelta = (COMPACT_EFFECT_ROW_WIDTH - COMPACT_EFFECT_COLUMN_WIDTH) * listLayout.scale;
+  const direction = nextLayout === 'horizontal' ? -1 : 1;
+  return Object.fromEntries(
+    Object.entries(settings.itemLayouts).map(([itemId, layout]) => {
+      const width = layout.viewportWidth ?? baseline.width;
+      const height = layout.viewportHeight ?? baseline.height;
+      const inCluster = layout.x / width >= minX && layout.y / height >= minY && layout.y / height <= maxY;
+      if (!inCluster) return [itemId, layout];
+      // Same on-screen distance for items saved against another viewport (resolve-time scale).
+      const scale = Math.min(width / listWidth, height / listHeight);
+      return [itemId, { ...layout, x: Number((layout.x + direction * widthDelta * scale).toFixed(3)) }];
+    }),
+  );
 }

@@ -21,6 +21,20 @@ export const mockStats: CombatStats = {
   equipped: {
     rightHand: 'Daedric Sword',
     leftHand: 'Fireball',
+    rightHandKind: 'sword',
+    leftHandKind: 'destruction',
+    rightHandChargePct: 64,
+    leftHandChargePct: null,
+    rightHandPoisonCount: 0,
+    leftHandPoisonCount: 0,
+    ammoName: '',
+    ammoCount: null,
+    voiceCooldownSec: 0,
+    voiceWordsKnown: 3,
+    voiceWordsUnlocked: 2,
+    potionName: 'Potion of Healing',
+    potionCount: 4,
+    potionKind: 'health',
     voice: 'Unrelenting Force',
     voiceType: 'shout',
   },
@@ -35,6 +49,7 @@ export const mockStats: CombatStats = {
     minute: 35,
     monthName: 'Last Seed',
     timeScale: 20,
+    weather: 'clear',
     snapshotAtMs: Date.now(),
   },
   playerInfo: {
@@ -49,6 +64,7 @@ export const mockStats: CombatStats = {
     health: 320,
     magicka: 200,
     stamina: 250,
+    playtimeHours: 137.4,
   },
   alertData: {
     healthPct: 100,
@@ -57,9 +73,9 @@ export const mockStats: CombatStats = {
     carryPct: 61.8,
   },
   timedEffects: [
-    { instanceId: 101, stableKey: 'id:101', snapshotAtMs: 0, sourceName: 'Oakflesh', effectName: 'Armor Bonus', remainingSec: 82, totalSec: 120, isDebuff: false, sourceFormId: 0x0001A2B3, effectFormId: 0x0004C5D6, spellFormId: 0x0007E8F9 },
-    { instanceId: 102, stableKey: 'id:102', snapshotAtMs: 0, sourceName: 'Fortify Marksman Potion', effectName: 'Fortify Marksman', remainingSec: 34, totalSec: 45, isDebuff: false, sourceFormId: 0x0001A2B4, effectFormId: 0x0004C5D7, spellFormId: 0x0007E8FA },
-    { instanceId: 103, stableKey: 'id:103', snapshotAtMs: 0, sourceName: 'Shock Cloak Trap', effectName: 'Weakness to Shock', remainingSec: 11, totalSec: 30, isDebuff: true, sourceFormId: 0x0001A2B5, effectFormId: 0x0004C5D8, spellFormId: 0x0007E8FB },
+    { instanceId: 101, stableKey: 'id:101', snapshotAtMs: 0, sourceName: 'Oakflesh', effectName: 'Armor Bonus', remainingSec: 82, totalSec: 120, isDebuff: false, sourceFormId: 0x0001A2B3, effectFormId: 0x0004C5D6, spellFormId: 0x0007E8F9, category: 'armor', magnitude: 40 },
+    { instanceId: 102, stableKey: 'id:102', snapshotAtMs: 0, sourceName: 'Fortify Marksman Potion', effectName: 'Fortify Marksman', remainingSec: 34, totalSec: 45, isDebuff: false, sourceFormId: 0x0001A2B4, effectFormId: 0x0004C5D7, spellFormId: 0x0007E8FA, category: 'skill', magnitude: 25 },
+    { instanceId: 103, stableKey: 'id:103', snapshotAtMs: 0, sourceName: 'Shock Cloak Trap', effectName: 'Weakness to Shock', remainingSec: 11, totalSec: 30, isDebuff: true, sourceFormId: 0x0001A2B5, effectFormId: 0x0004C5D8, spellFormId: 0x0007E8FB, category: 'shock', magnitude: 30 },
   ],
   calcMeta: {
     rawResistances: {

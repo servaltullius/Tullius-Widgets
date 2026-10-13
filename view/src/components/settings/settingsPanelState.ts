@@ -1,6 +1,6 @@
 import { SETTINGS_PANEL_STORAGE_KEYS } from '../../constants/bridge';
 
-export type PanelTab = 'general' | 'combat' | 'effects' | 'alerts' | 'presets';
+export type PanelTab = 'general' | 'combat' | 'effects' | 'presets';
 export interface PanelPosition {
   left: number;
   top: number;
