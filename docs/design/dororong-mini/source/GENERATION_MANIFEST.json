@@ -202,30 +202,7 @@
   },
   {
     "name": "small-rightHandDamage.png",
-    "status": "saved",
-    "refs": [
-      "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\output\\small-fire.png",
-      "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-2.png",
-      "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-4.png",
-      "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-5.png",
-      "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-8.png"
-    ],
-    "prompt": "Create ONE transparent square HUD icon, matching the small-fire icon in reference image 1 and the original Doro drawing in reference images 2–5.\nReplace the flame with ONE LARGE SILVER SWORD with a gold guard and blue grip. The sword dominates the icon, rising diagonally from LOWER LEFT to UPPER RIGHT: tip at upper-right, hilt at lower-middle. The blade has a white four-point gleam and simple two-tone silver fill.\nDoro is small, beside the grip at lower-left. Her pink bob has pointed bangs, a plain outward tuft on the LEFT, and exactly ONE visible spiral rose plus light-blue ribbon and white ribbon tails on the RIGHT. Purple two-tone eyes, omega mouth, two cheek marks on each cheek; broad simple white body and two short feet.\nUse a SIMPLE ONE-HANDED POSE to avoid overlapping limbs: her left arm, on the viewer RIGHT, extends a short distance to grip the sword with ONE round white mitten. Her other arm, on the viewer LEFT, hangs freely DOWN beside the body. Exactly two arms, exactly two hands, one gripping and one hanging. No hand above the gripping arm, no hands attached directly to the sword guard, no third mitten. Both arms originate from the torso.\nKeep face and hair ornament visible. Same clean thick black outlines, restrained flat colors, minimal shading, cartoon drawing fidelity as refs. Composition legible at tiny 22px HUD size. True transparent alpha outside character and sword, generous transparent edge margin. No background, no panel, no text, no border, no extra character.",
     "category": "small",
-    "source": "C:\\Users\\kdw73\\.codex\\generated_images\\01a13035-7bfb-7971-a928-6e0f0d1b4963\\exec-ab8d82ae-774b-4594-94c7-5b4fb7fe94da.png",
-    "validation": {
-      "File": "small-rightHandDamage.png",
-      "Width": 256,
-      "Height": 256,
-      "TransparentPixels": 44827,
-      "Bounds": [
-        28,
-        12,
-        246,
-        241
-      ],
-      "Bytes": 45781
-    },
     "previous": {
       "source": "C:\\Users\\kdw73\\.codex\\generated_images\\01a13035-7bfb-7971-a928-6e0f0d1b4963\\exec-801e8f71-412f-496e-ad9e-34f83c9ef753.png",
       "prompt": "Use case: illustration-story. Produce ONE finished Doro/Dororong HUD icon, square PNG with true transparent alpha.\nImage 1 is the selected existing icon and supplies the approved character drawing and layout. Images 2–5 are the original Doro comic frames and are the primary identity/style references. Match that original character and the approved icon closely.\nKeep the pink bob and divided fringe, small outward hair flick, pale broad face, two-tone lavender oval eyes with white glints, slanting dark brows, tiny omega mouth, pink cheek marks, and simple continuous white torso with plain rounded mitten arms and short wide feet. There is ONE visible spiral rose hair ornament with a pale-blue bow and hanging pale tails on the viewer's RIGHT. Retain this asymmetric design. The viewer's left hair outline is a simple bob with a small outward tuft. No second rose, no twin ponytails. Keep the head orientation even when a different hand holds the prop.\nSimple dark outlines and restrained pastel flat cartoon color treatment, few details, matching the supplied original frames and selected icon. No text, letters, numerals, captions, watermarks, clothing, scenery, frame, floor, cast shadow, thick white sticker border, or extra characters. One icon, not a sheet. Keep the whole silhouette inside the canvas with a small safe margin. Preserve real transparency, never draw a checkerboard.\nRequested icon: small-rightHandDamage. Replace the flame prop in image 1 with one large bright silver sword angled toward the upper RIGHT of the canvas. The prop is large, bold and clearly readable at 22-pixel HUD size. Doro peeks beside or behind it on the RIGHT with the same recognizable face, hair, one visible rose and small white mitten arms holding its edge. Adjust the arms to fit the prop; retain the approved character design. The prop is the main visual symbol. Remove every part of the old fire prop.",
@@ -250,34 +227,98 @@
         "Bytes": 52781
       }
     },
-    "correctionReason": "Correct upper-right sword direction and simplify arms"
-  },
-  {
-    "name": "small-leftHandDamage.png",
-    "status": "saved",
+    "correctionReason": "Correct upper-right sword direction and simplify arms",
+    "redoRequested": true,
+    "redoStatus": "complete",
+    "redoReference": "REDO_HAND_DAMAGE.md",
+    "retryScheduledAt": "2026-10-13T12:45:00+09:00",
+    "retryAutomationId": "2",
+    "userChoice": "Regenerate with a short broad sword and a clearly visible Doro face; verify at 28px",
+    "history": [
+      {
+        "name": "small-rightHandDamage.png",
+        "status": "saved",
+        "source": "C:\\Users\\kdw73\\.codex\\generated_images\\01a13035-7bfb-7971-a928-6e0f0d1b4963\\exec-ab8d82ae-774b-4594-94c7-5b4fb7fe94da.png",
+        "prompt": "Create ONE transparent square HUD icon, matching the small-fire icon in reference image 1 and the original Doro drawing in reference images 2–5.\nReplace the flame with ONE LARGE SILVER SWORD with a gold guard and blue grip. The sword dominates the icon, rising diagonally from LOWER LEFT to UPPER RIGHT: tip at upper-right, hilt at lower-middle. The blade has a white four-point gleam and simple two-tone silver fill.\nDoro is small, beside the grip at lower-left. Her pink bob has pointed bangs, a plain outward tuft on the LEFT, and exactly ONE visible spiral rose plus light-blue ribbon and white ribbon tails on the RIGHT. Purple two-tone eyes, omega mouth, two cheek marks on each cheek; broad simple white body and two short feet.\nUse a SIMPLE ONE-HANDED POSE to avoid overlapping limbs: her left arm, on the viewer RIGHT, extends a short distance to grip the sword with ONE round white mitten. Her other arm, on the viewer LEFT, hangs freely DOWN beside the body. Exactly two arms, exactly two hands, one gripping and one hanging. No hand above the gripping arm, no hands attached directly to the sword guard, no third mitten. Both arms originate from the torso.\nKeep face and hair ornament visible. Same clean thick black outlines, restrained flat colors, minimal shading, cartoon drawing fidelity as refs. Composition legible at tiny 22px HUD size. True transparent alpha outside character and sword, generous transparent edge margin. No background, no panel, no text, no border, no extra character.",
+        "refs": [
+          "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\output\\small-fire.png",
+          "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-2.png",
+          "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-4.png",
+          "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-5.png",
+          "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-8.png"
+        ],
+        "validation": {
+          "File": "small-rightHandDamage.png",
+          "Width": 256,
+          "Height": 256,
+          "TransparentPixels": 44827,
+          "Bounds": [
+            28,
+            12,
+            246,
+            241
+          ],
+          "Bytes": 45781
+        },
+        "error": null,
+        "redoStatus": "scheduled",
+        "previous": {
+          "source": "C:\\Users\\kdw73\\.codex\\generated_images\\01a13035-7bfb-7971-a928-6e0f0d1b4963\\exec-801e8f71-412f-496e-ad9e-34f83c9ef753.png",
+          "prompt": "Use case: illustration-story. Produce ONE finished Doro/Dororong HUD icon, square PNG with true transparent alpha.\nImage 1 is the selected existing icon and supplies the approved character drawing and layout. Images 2–5 are the original Doro comic frames and are the primary identity/style references. Match that original character and the approved icon closely.\nKeep the pink bob and divided fringe, small outward hair flick, pale broad face, two-tone lavender oval eyes with white glints, slanting dark brows, tiny omega mouth, pink cheek marks, and simple continuous white torso with plain rounded mitten arms and short wide feet. There is ONE visible spiral rose hair ornament with a pale-blue bow and hanging pale tails on the viewer's RIGHT. Retain this asymmetric design. The viewer's left hair outline is a simple bob with a small outward tuft. No second rose, no twin ponytails. Keep the head orientation even when a different hand holds the prop.\nSimple dark outlines and restrained pastel flat cartoon color treatment, few details, matching the supplied original frames and selected icon. No text, letters, numerals, captions, watermarks, clothing, scenery, frame, floor, cast shadow, thick white sticker border, or extra characters. One icon, not a sheet. Keep the whole silhouette inside the canvas with a small safe margin. Preserve real transparency, never draw a checkerboard.\nRequested icon: small-rightHandDamage. Replace the flame prop in image 1 with one large bright silver sword angled toward the upper RIGHT of the canvas. The prop is large, bold and clearly readable at 22-pixel HUD size. Doro peeks beside or behind it on the RIGHT with the same recognizable face, hair, one visible rose and small white mitten arms holding its edge. Adjust the arms to fit the prop; retain the approved character design. The prop is the main visual symbol. Remove every part of the old fire prop.",
+          "refs": [
+            "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\output\\small-fire.png",
+            "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-2.png",
+            "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-4.png",
+            "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-5.png",
+            "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-8.png"
+          ],
+          "validation": {
+            "File": "small-rightHandDamage.png",
+            "Width": 256,
+            "Height": 256,
+            "TransparentPixels": 42315,
+            "Bounds": [
+              11,
+              15,
+              252,
+              233
+            ],
+            "Bytes": 52781
+          }
+        }
+      }
+    ],
+    "prompt": "Use case: illustration-story. Generate ONE finished compact Doro hand-damage HUD icon. Image 1, the gold coin icon, supplies the desired LARGE character size, foreground-prop composition, line thickness and cartoon style. Images 2–5 are original character identity references. Match the original Doro identity in reference images 2–5: pink bob, pointed divided fringe and a small outward flick, purple two-tone oval eyes with white glints, tiny omega mouth, paired pink cheek marks, plain broad WHITE body, two short rounded mitten arms and short wide feet. Exactly ONE visible spiral rose hair ornament with a pale blue bow and white ribbon tails is on the VIEWER'S RIGHT of the head. The left side is plain bob hair with a small flick. Retain this asymmetry. Match clean dark cartoon outlines and restrained simple colors of image 1. No twin ponytails, no second rose, no clothes, no text, no frame, no extra character.\nReplace the coin with ONE SHORT, WIDE, CHUNKY SWORD. Bright silver blade with two flat tones, gold crossguard and short gold handle, thick dark outline. The blade is stubby and broad, not a long narrow weapon: blade length roughly 1.5 to 2 times its width, with a broad pointed tip. The ENTIRE weapon including grip occupies only about half the canvas height and forms a compact bold silhouette in the LOWER LEFT / center foreground. It must not stretch corner to corner. Do not miniaturize the character to fit a sword.\nDoro peeks from the RIGHT, behind and beside the compact prop, at approximately the same large scale as the coin icon. Her pink head occupies about 60 percent of the canvas width; her two purple eyes, omega mouth and single rose are all clearly readable. Keep the whole face ABOVE or beside the sword; blade and guard cannot cross the face or hair ornament. Simple white torso and little feet remain visible, with exactly TWO short attached mitten arms holding the prop naturally. One gripping hand and one free/edge-holding hand, no extra floating mitten.\nDesign for an actual 28-pixel HUD: broad shapes, thick outlines, minimal detail, strong separation of silver weapon and pink Doro face. Entire icon stays within a small transparent edge margin. Square transparent-alpha PNG. No scenery, floor, card, checkerboard, text, watermark, stickers, or additional weapons.\nDirectional requirement: the compact sword blade points toward the UPPER RIGHT, with its short grip below-left. Doro's head orientation and rose on viewer RIGHT are unchanged. The sword stays in the lower/left foreground, with a low compact tip that leaves the large face unobscured.",
     "refs": [
-      "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\output\\small-fire.png",
+      "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\good-example-small-gold.png",
       "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-2.png",
       "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-4.png",
       "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-5.png",
       "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-8.png"
     ],
-    "prompt": "Create ONE transparent square HUD icon, matching the small-fire icon in reference image 1 and the original Doro drawing in reference images 2–5.\nReplace the flame with ONE LARGE SILVER SWORD with a gold guard and blue grip. The sword dominates the icon, rising diagonally from LOWER RIGHT to UPPER LEFT: tip at upper-left, hilt at lower-middle. The blade has a white four-point gleam and simple two-tone silver fill.\nDoro is small, beside the grip at lower-right. Her pink bob has pointed bangs, a plain outward tuft on the LEFT, and exactly ONE visible spiral rose plus light-blue ribbon and white ribbon tails on the RIGHT. Purple two-tone eyes, omega mouth, two cheek marks on each cheek; broad simple white body and two short feet.\nUse a SIMPLE ONE-HANDED POSE to avoid overlapping limbs: her right arm, on the viewer LEFT, extends a short distance to grip the sword with ONE round white mitten. Her other arm, on the viewer RIGHT, hangs freely DOWN beside the body. Exactly two arms, exactly two hands, one gripping and one hanging. No hand above the gripping arm, no hands attached directly to the sword guard, no third mitten. Both arms originate from the torso.\nKeep face and hair ornament visible. Same clean thick black outlines, restrained flat colors, minimal shading, cartoon drawing fidelity as refs. Composition legible at tiny 22px HUD size. True transparent alpha outside character and sword, generous transparent edge margin. No background, no panel, no text, no border, no extra character.",
-    "category": "small",
-    "source": "C:\\Users\\kdw73\\.codex\\generated_images\\01a13035-7bfb-7971-a928-6e0f0d1b4963\\exec-af6267cb-a846-4a87-bc10-6f6263cf8856.png",
+    "source": "C:\\Users\\kdw73\\.codex\\generated_images\\01a13035-7bfb-7971-a928-6e0f0d1b4963\\exec-f171d23e-b54f-42cf-b46c-ff3016e0d5f5.png",
     "validation": {
-      "File": "small-leftHandDamage.png",
+      "File": "small-rightHandDamage.png",
       "Width": 256,
       "Height": 256,
-      "TransparentPixels": 46888,
+      "TransparentPixels": 29619,
       "Bounds": [
-        15,
-        13,
-        249,
-        241
+        22,
+        10,
+        242,
+        239
       ],
-      "Bytes": 43412
+      "Bytes": 66978
     },
+    "status": "saved",
+    "generationMethod": "built-in image_gen",
+    "completedAt": "2026-10-13",
+    "review28px": "Passed visual comparison with gold and health on light, dark and checker backgrounds",
+    "reviewPreview": "preview/hand-damage-28px.png"
+  },
+  {
+    "name": "small-leftHandDamage.png",
+    "category": "small",
     "previous": {
       "source": "C:\\Users\\kdw73\\.codex\\generated_images\\01a13035-7bfb-7971-a928-6e0f0d1b4963\\exec-5334ea91-e9b8-47be-94d5-116a02f73fd9.png",
       "prompt": "Use case: illustration-story. Produce ONE finished Doro/Dororong HUD icon, square PNG with true transparent alpha.\nImage 1 is the selected existing icon and supplies the approved character drawing and layout. Images 2–5 are the original Doro comic frames and are the primary identity/style references. Match that original character and the approved icon closely.\nKeep the pink bob and divided fringe, small outward hair flick, pale broad face, two-tone lavender oval eyes with white glints, slanting dark brows, tiny omega mouth, pink cheek marks, and simple continuous white torso with plain rounded mitten arms and short wide feet. There is ONE visible spiral rose hair ornament with a pale-blue bow and hanging pale tails on the viewer's RIGHT. Retain this asymmetric design. The viewer's left hair outline is a simple bob with a small outward tuft. No second rose, no twin ponytails. Keep the head orientation even when a different hand holds the prop.\nSimple dark outlines and restrained pastel flat cartoon color treatment, few details, matching the supplied original frames and selected icon. No text, letters, numerals, captions, watermarks, clothing, scenery, frame, floor, cast shadow, thick white sticker border, or extra characters. One icon, not a sheet. Keep the whole silhouette inside the canvas with a small safe margin. Preserve real transparency, never draw a checkerboard.\nRequested icon: small-leftHandDamage. Replace the flame prop in image 1 with one large bright silver sword angled toward the upper LEFT of the canvas; keep Doro's head and rose ornament orientation unchanged. The prop is large, bold and clearly readable at 22-pixel HUD size. Doro peeks beside or behind it on the RIGHT with the same recognizable face, hair, one visible rose and small white mitten arms holding its edge. Adjust the arms to fit the prop; retain the approved character design. The prop is the main visual symbol. Remove every part of the old fire prop.",
@@ -302,7 +343,94 @@
         "Bytes": 57626
       }
     },
-    "correctionReason": "Keep upper-left sword direction and simplify arms"
+    "correctionReason": "Keep upper-left sword direction and simplify arms",
+    "redoRequested": true,
+    "redoStatus": "complete",
+    "redoReference": "REDO_HAND_DAMAGE.md",
+    "retryScheduledAt": "2026-10-13T12:45:00+09:00",
+    "retryAutomationId": "2",
+    "userChoice": "Regenerate with a short broad sword and a clearly visible Doro face; verify at 28px",
+    "history": [
+      {
+        "name": "small-leftHandDamage.png",
+        "status": "saved",
+        "source": "C:\\Users\\kdw73\\.codex\\generated_images\\01a13035-7bfb-7971-a928-6e0f0d1b4963\\exec-af6267cb-a846-4a87-bc10-6f6263cf8856.png",
+        "prompt": "Create ONE transparent square HUD icon, matching the small-fire icon in reference image 1 and the original Doro drawing in reference images 2–5.\nReplace the flame with ONE LARGE SILVER SWORD with a gold guard and blue grip. The sword dominates the icon, rising diagonally from LOWER RIGHT to UPPER LEFT: tip at upper-left, hilt at lower-middle. The blade has a white four-point gleam and simple two-tone silver fill.\nDoro is small, beside the grip at lower-right. Her pink bob has pointed bangs, a plain outward tuft on the LEFT, and exactly ONE visible spiral rose plus light-blue ribbon and white ribbon tails on the RIGHT. Purple two-tone eyes, omega mouth, two cheek marks on each cheek; broad simple white body and two short feet.\nUse a SIMPLE ONE-HANDED POSE to avoid overlapping limbs: her right arm, on the viewer LEFT, extends a short distance to grip the sword with ONE round white mitten. Her other arm, on the viewer RIGHT, hangs freely DOWN beside the body. Exactly two arms, exactly two hands, one gripping and one hanging. No hand above the gripping arm, no hands attached directly to the sword guard, no third mitten. Both arms originate from the torso.\nKeep face and hair ornament visible. Same clean thick black outlines, restrained flat colors, minimal shading, cartoon drawing fidelity as refs. Composition legible at tiny 22px HUD size. True transparent alpha outside character and sword, generous transparent edge margin. No background, no panel, no text, no border, no extra character.",
+        "refs": [
+          "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\output\\small-fire.png",
+          "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-2.png",
+          "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-4.png",
+          "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-5.png",
+          "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-8.png"
+        ],
+        "validation": {
+          "File": "small-leftHandDamage.png",
+          "Width": 256,
+          "Height": 256,
+          "TransparentPixels": 46888,
+          "Bounds": [
+            15,
+            13,
+            249,
+            241
+          ],
+          "Bytes": 43412
+        },
+        "error": null,
+        "redoStatus": "scheduled",
+        "previous": {
+          "source": "C:\\Users\\kdw73\\.codex\\generated_images\\01a13035-7bfb-7971-a928-6e0f0d1b4963\\exec-5334ea91-e9b8-47be-94d5-116a02f73fd9.png",
+          "prompt": "Use case: illustration-story. Produce ONE finished Doro/Dororong HUD icon, square PNG with true transparent alpha.\nImage 1 is the selected existing icon and supplies the approved character drawing and layout. Images 2–5 are the original Doro comic frames and are the primary identity/style references. Match that original character and the approved icon closely.\nKeep the pink bob and divided fringe, small outward hair flick, pale broad face, two-tone lavender oval eyes with white glints, slanting dark brows, tiny omega mouth, pink cheek marks, and simple continuous white torso with plain rounded mitten arms and short wide feet. There is ONE visible spiral rose hair ornament with a pale-blue bow and hanging pale tails on the viewer's RIGHT. Retain this asymmetric design. The viewer's left hair outline is a simple bob with a small outward tuft. No second rose, no twin ponytails. Keep the head orientation even when a different hand holds the prop.\nSimple dark outlines and restrained pastel flat cartoon color treatment, few details, matching the supplied original frames and selected icon. No text, letters, numerals, captions, watermarks, clothing, scenery, frame, floor, cast shadow, thick white sticker border, or extra characters. One icon, not a sheet. Keep the whole silhouette inside the canvas with a small safe margin. Preserve real transparency, never draw a checkerboard.\nRequested icon: small-leftHandDamage. Replace the flame prop in image 1 with one large bright silver sword angled toward the upper LEFT of the canvas; keep Doro's head and rose ornament orientation unchanged. The prop is large, bold and clearly readable at 22-pixel HUD size. Doro peeks beside or behind it on the RIGHT with the same recognizable face, hair, one visible rose and small white mitten arms holding its edge. Adjust the arms to fit the prop; retain the approved character design. The prop is the main visual symbol. Remove every part of the old fire prop.",
+          "refs": [
+            "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\output\\small-fire.png",
+            "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-2.png",
+            "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-4.png",
+            "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-5.png",
+            "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-8.png"
+          ],
+          "validation": {
+            "File": "small-leftHandDamage.png",
+            "Width": 256,
+            "Height": 256,
+            "TransparentPixels": 40923,
+            "Bounds": [
+              13,
+              11,
+              251,
+              240
+            ],
+            "Bytes": 57626
+          }
+        }
+      }
+    ],
+    "prompt": "Use case: illustration-story. Generate ONE finished compact Doro hand-damage HUD icon. Image 1, the gold coin icon, supplies the desired LARGE character size, foreground-prop composition, line thickness and cartoon style. Images 2–5 are original character identity references. Match the original Doro identity in reference images 2–5: pink bob, pointed divided fringe and a small outward flick, purple two-tone oval eyes with white glints, tiny omega mouth, paired pink cheek marks, plain broad WHITE body, two short rounded mitten arms and short wide feet. Exactly ONE visible spiral rose hair ornament with a pale blue bow and white ribbon tails is on the VIEWER'S RIGHT of the head. The left side is plain bob hair with a small flick. Retain this asymmetry. Match clean dark cartoon outlines and restrained simple colors of image 1. No twin ponytails, no second rose, no clothes, no text, no frame, no extra character.\nReplace the coin with ONE SHORT, WIDE, CHUNKY SWORD. Bright silver blade with two flat tones, gold crossguard and short gold handle, thick dark outline. The blade is stubby and broad, not a long narrow weapon: blade length roughly 1.5 to 2 times its width, with a broad pointed tip. The ENTIRE weapon including grip occupies only about half the canvas height and forms a compact bold silhouette in the LOWER LEFT / center foreground. It must not stretch corner to corner. Do not miniaturize the character to fit a sword.\nDoro peeks from the RIGHT, behind and beside the compact prop, at approximately the same large scale as the coin icon. Her pink head occupies about 60 percent of the canvas width; her two purple eyes, omega mouth and single rose are all clearly readable. Keep the whole face ABOVE or beside the sword; blade and guard cannot cross the face or hair ornament. Simple white torso and little feet remain visible, with exactly TWO short attached mitten arms holding the prop naturally. One gripping hand and one free/edge-holding hand, no extra floating mitten.\nDesign for an actual 28-pixel HUD: broad shapes, thick outlines, minimal detail, strong separation of silver weapon and pink Doro face. Entire icon stays within a small transparent edge margin. Square transparent-alpha PNG. No scenery, floor, card, checkerboard, text, watermark, stickers, or additional weapons.\nDirectional requirement: the compact sword blade points toward the UPPER LEFT, with its short grip below-right. Mirror ONLY the sword's directional geometry relative to the right-hand variant. Doro's head orientation and rose on viewer RIGHT are unchanged; do not mirror the character or whole image. Keep the sword in the lower/left foreground and leave the large face unobscured.",
+    "refs": [
+      "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\good-example-small-gold.png",
+      "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-2.png",
+      "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-4.png",
+      "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-5.png",
+      "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-8.png"
+    ],
+    "source": "C:\\Users\\kdw73\\.codex\\generated_images\\01a13035-7bfb-7971-a928-6e0f0d1b4963\\exec-d74f7c04-4389-4f18-81c8-3f50b714f33c.png",
+    "validation": {
+      "File": "small-leftHandDamage.png",
+      "Width": 256,
+      "Height": 256,
+      "TransparentPixels": 30899,
+      "Bounds": [
+        11,
+        15,
+        248,
+        240
+      ],
+      "Bytes": 63739
+    },
+    "status": "saved",
+    "generationMethod": "built-in image_gen",
+    "completedAt": "2026-10-13",
+    "review28px": "Passed visual comparison with gold and health on light, dark and checker backgrounds",
+    "reviewPreview": "preview/hand-damage-28px.png"
   },
   {
     "name": "small-weight.png",
@@ -1884,36 +2012,104 @@
   },
   {
     "name": "slot-potion-stamina.png",
-    "status": "error",
+    "category": "slot",
+    "retryScheduledAt": "2026-10-13T12:45:00+09:00",
+    "retryAutomationId": "2",
+    "userChoice": "Generate anew with built-in image_gen after quota reset",
+    "history": [
+      {
+        "name": "slot-potion-stamina.png",
+        "status": "error",
+        "source": null,
+        "prompt": "Use case: illustration-story. Produce ONE finished Doro/Dororong HUD icon, square PNG with true transparent alpha.\nImage 1 is the selected existing icon and supplies the approved character drawing and layout. Images 2–5 are the original Doro comic frames and are the primary identity/style references. Match that original character and the approved icon closely.\nKeep the pink bob and divided fringe, small outward hair flick, pale broad face, two-tone lavender oval eyes with white glints, slanting dark brows, tiny omega mouth, pink cheek marks, and simple continuous white torso with plain rounded mitten arms and short wide feet. There is ONE visible spiral rose hair ornament with a pale-blue bow and hanging pale tails on the viewer's RIGHT. Retain this asymmetric design. The viewer's left hair outline is a simple bob with a small outward tuft. No second rose, no twin ponytails. Keep the head orientation even when a different hand holds the prop.\nSimple dark outlines and restrained pastel flat cartoon color treatment, few details, matching the supplied original frames and selected icon. No text, letters, numerals, captions, watermarks, clothing, scenery, frame, floor, cast shadow, thick white sticker border, or extra characters. One icon, not a sheet. Keep the whole silhouette inside the canvas with a small safe margin. Preserve real transparency, never draw a checkerboard.\nRequested icon: slot-potion-stamina. Keep the full-body Doro character design from image 1 but change the pose and prop as follows: ONE round green potion bottle with a short neck and cork, hugged with BOTH mitten arms in front of the lower torso. Match the reference's simple broad white torso and short feet. Keep the face and the SINGLE rose ornament with blue ribbon on the viewer's RIGHT clearly readable. Fit the complete body and prop in frame. Remove every part of the old sword.",
+        "refs": [
+          "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\output\\slot-sword.png",
+          "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-2.png",
+          "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-4.png",
+          "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-5.png",
+          "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-8.png"
+        ],
+        "validation": null,
+        "error": "image generation failed: http 429 Too Many Requests: Some(\"{\\\"error\\\":{\\\"type\\\":\\\"usage_limit_reached\\\",\\\"message\\\":\\\"The usage limit has been reached\\\",\\\"plan_type\\\":\\\"plus\\\",\\\"resets_at\\\":1791862829,\\\"eligible_promo\\\":null,\\\"limit_window_minutes\\\":1440,\\\"resets_in_seconds\\\":46890}}\")",
+        "redoStatus": null,
+        "previous": null
+      }
+    ],
+    "prompt": "Use case: illustration-story. Generate ONE finished transparent Doro HUD potion icon. Image 1 is the existing selected potion icon supplying pose, proportion and drawing style; images 2–5 are the original comic identity references. Match the original Doro identity in reference images 2–5: pink bob, pointed divided fringe and a small outward flick, purple two-tone oval eyes with white glints, tiny omega mouth, paired pink cheek marks, plain broad WHITE body, two short rounded mitten arms and short wide feet. Exactly ONE visible spiral rose hair ornament with a pale blue bow and white ribbon tails is on the VIEWER'S RIGHT of the head. The left side is plain bob hair with a small flick. Retain this asymmetry. Match clean dark cartoon outlines and restrained simple colors of image 1. No twin ponytails, no second rose, no clothes, no text, no frame, no extra character.\nFull-body Doro hugs ONE round glass potion bottle with BOTH simple white mitten arms in front of the lower torso, like image 1. Exactly two attached arms and two hands. Short bottle neck, small brown cork, a few simple glass highlights and bubbles. Keep the complete face, rose and feet visible. The bottle must not cover the mouth or eyes. Clean simple shape readable in a small HUD, square canvas with safe transparent margin. True transparent alpha everywhere outside the icon. No backdrop, checkerboard, cast shadow or extra props.\nRequested potion: stamina. The potion liquid is bright GREEN, with darker emerald below and a pale lime highlight above. Draw the bottle and Doro freshly in the same style as image 1.",
     "refs": [
-      "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\output\\slot-sword.png",
+      "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\output\\slot-potion-magicka.png",
       "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-2.png",
       "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-4.png",
       "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-5.png",
       "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-8.png"
     ],
-    "prompt": "Use case: illustration-story. Produce ONE finished Doro/Dororong HUD icon, square PNG with true transparent alpha.\nImage 1 is the selected existing icon and supplies the approved character drawing and layout. Images 2–5 are the original Doro comic frames and are the primary identity/style references. Match that original character and the approved icon closely.\nKeep the pink bob and divided fringe, small outward hair flick, pale broad face, two-tone lavender oval eyes with white glints, slanting dark brows, tiny omega mouth, pink cheek marks, and simple continuous white torso with plain rounded mitten arms and short wide feet. There is ONE visible spiral rose hair ornament with a pale-blue bow and hanging pale tails on the viewer's RIGHT. Retain this asymmetric design. The viewer's left hair outline is a simple bob with a small outward tuft. No second rose, no twin ponytails. Keep the head orientation even when a different hand holds the prop.\nSimple dark outlines and restrained pastel flat cartoon color treatment, few details, matching the supplied original frames and selected icon. No text, letters, numerals, captions, watermarks, clothing, scenery, frame, floor, cast shadow, thick white sticker border, or extra characters. One icon, not a sheet. Keep the whole silhouette inside the canvas with a small safe margin. Preserve real transparency, never draw a checkerboard.\nRequested icon: slot-potion-stamina. Keep the full-body Doro character design from image 1 but change the pose and prop as follows: ONE round green potion bottle with a short neck and cork, hugged with BOTH mitten arms in front of the lower torso. Match the reference's simple broad white torso and short feet. Keep the face and the SINGLE rose ornament with blue ribbon on the viewer's RIGHT clearly readable. Fit the complete body and prop in frame. Remove every part of the old sword.",
-    "category": "slot",
-    "error": "image generation failed: http 429 Too Many Requests: Some(\"{\\\"error\\\":{\\\"type\\\":\\\"usage_limit_reached\\\",\\\"message\\\":\\\"The usage limit has been reached\\\",\\\"plan_type\\\":\\\"plus\\\",\\\"resets_at\\\":1791862829,\\\"eligible_promo\\\":null,\\\"limit_window_minutes\\\":1440,\\\"resets_in_seconds\\\":46890}}\")",
-    "retryScheduledAt": "2026-10-13T12:45:00+09:00",
-    "retryAutomationId": "2",
-    "userChoice": "Generate anew with built-in image_gen after quota reset"
+    "source": "C:\\Users\\kdw73\\.codex\\generated_images\\01a13035-7bfb-7971-a928-6e0f0d1b4963\\exec-ac4687e3-4356-4b31-a65b-84a86c6cf454.png",
+    "validation": {
+      "File": "slot-potion-stamina.png",
+      "Width": 256,
+      "Height": 256,
+      "TransparentPixels": 36095,
+      "Bounds": [
+        40,
+        23,
+        244,
+        232
+      ],
+      "Bytes": 59581
+    },
+    "status": "saved",
+    "generationMethod": "built-in image_gen",
+    "completedAt": "2026-10-13"
   },
   {
     "name": "slot-potion-other.png",
-    "status": "error",
+    "category": "slot",
+    "retryScheduledAt": "2026-10-13T12:45:00+09:00",
+    "retryAutomationId": "2",
+    "userChoice": "Generate anew with built-in image_gen after quota reset",
+    "history": [
+      {
+        "name": "slot-potion-other.png",
+        "status": "error",
+        "source": null,
+        "prompt": "Use case: illustration-story. Produce ONE finished Doro/Dororong HUD icon, square PNG with true transparent alpha.\nImage 1 is the selected existing icon and supplies the approved character drawing and layout. Images 2–5 are the original Doro comic frames and are the primary identity/style references. Match that original character and the approved icon closely.\nKeep the pink bob and divided fringe, small outward hair flick, pale broad face, two-tone lavender oval eyes with white glints, slanting dark brows, tiny omega mouth, pink cheek marks, and simple continuous white torso with plain rounded mitten arms and short wide feet. There is ONE visible spiral rose hair ornament with a pale-blue bow and hanging pale tails on the viewer's RIGHT. Retain this asymmetric design. The viewer's left hair outline is a simple bob with a small outward tuft. No second rose, no twin ponytails. Keep the head orientation even when a different hand holds the prop.\nSimple dark outlines and restrained pastel flat cartoon color treatment, few details, matching the supplied original frames and selected icon. No text, letters, numerals, captions, watermarks, clothing, scenery, frame, floor, cast shadow, thick white sticker border, or extra characters. One icon, not a sheet. Keep the whole silhouette inside the canvas with a small safe margin. Preserve real transparency, never draw a checkerboard.\nRequested icon: slot-potion-other. Keep the full-body Doro character design from image 1 but change the pose and prop as follows: ONE round pale amber potion bottle with a short neck and cork, hugged with BOTH mitten arms in front of the lower torso. Match the reference's simple broad white torso and short feet. Keep the face and the SINGLE rose ornament with blue ribbon on the viewer's RIGHT clearly readable. Fit the complete body and prop in frame. Remove every part of the old sword.",
+        "refs": [
+          "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\output\\slot-sword.png",
+          "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-2.png",
+          "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-4.png",
+          "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-5.png",
+          "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-8.png"
+        ],
+        "validation": null,
+        "error": "image generation failed: http 429 Too Many Requests: Some(\"{\\\"error\\\":{\\\"type\\\":\\\"usage_limit_reached\\\",\\\"message\\\":\\\"The usage limit has been reached\\\",\\\"plan_type\\\":\\\"plus\\\",\\\"resets_at\\\":1791862830,\\\"eligible_promo\\\":null,\\\"limit_window_minutes\\\":1440,\\\"resets_in_seconds\\\":46888}}\")",
+        "redoStatus": null,
+        "previous": null
+      }
+    ],
+    "prompt": "Use case: illustration-story. Generate ONE finished transparent Doro HUD potion icon. Image 1 is the existing selected potion icon supplying pose, proportion and drawing style; images 2–5 are the original comic identity references. Match the original Doro identity in reference images 2–5: pink bob, pointed divided fringe and a small outward flick, purple two-tone oval eyes with white glints, tiny omega mouth, paired pink cheek marks, plain broad WHITE body, two short rounded mitten arms and short wide feet. Exactly ONE visible spiral rose hair ornament with a pale blue bow and white ribbon tails is on the VIEWER'S RIGHT of the head. The left side is plain bob hair with a small flick. Retain this asymmetry. Match clean dark cartoon outlines and restrained simple colors of image 1. No twin ponytails, no second rose, no clothes, no text, no frame, no extra character.\nFull-body Doro hugs ONE round glass potion bottle with BOTH simple white mitten arms in front of the lower torso, like image 1. Exactly two attached arms and two hands. Short bottle neck, small brown cork, a few simple glass highlights and bubbles. Keep the complete face, rose and feet visible. The bottle must not cover the mouth or eyes. Clean simple shape readable in a small HUD, square canvas with safe transparent margin. True transparent alpha everywhere outside the icon. No backdrop, checkerboard, cast shadow or extra props.\nRequested potion: other. The potion liquid is soft pale AMBER / golden honey, with a warm amber lower shade and light gold upper highlight. Draw the bottle and Doro freshly in the same style as image 1.",
     "refs": [
-      "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\output\\slot-sword.png",
+      "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\output\\slot-potion-health.png",
       "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-2.png",
       "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-4.png",
       "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-5.png",
       "\\\\wsl.localhost\\Ubuntu\\home\\kdw73\\Tullius Widgets\\view\\.qa\\dororong-mini\\codex-handoff\\reference\\doro-ref-8.png"
     ],
-    "prompt": "Use case: illustration-story. Produce ONE finished Doro/Dororong HUD icon, square PNG with true transparent alpha.\nImage 1 is the selected existing icon and supplies the approved character drawing and layout. Images 2–5 are the original Doro comic frames and are the primary identity/style references. Match that original character and the approved icon closely.\nKeep the pink bob and divided fringe, small outward hair flick, pale broad face, two-tone lavender oval eyes with white glints, slanting dark brows, tiny omega mouth, pink cheek marks, and simple continuous white torso with plain rounded mitten arms and short wide feet. There is ONE visible spiral rose hair ornament with a pale-blue bow and hanging pale tails on the viewer's RIGHT. Retain this asymmetric design. The viewer's left hair outline is a simple bob with a small outward tuft. No second rose, no twin ponytails. Keep the head orientation even when a different hand holds the prop.\nSimple dark outlines and restrained pastel flat cartoon color treatment, few details, matching the supplied original frames and selected icon. No text, letters, numerals, captions, watermarks, clothing, scenery, frame, floor, cast shadow, thick white sticker border, or extra characters. One icon, not a sheet. Keep the whole silhouette inside the canvas with a small safe margin. Preserve real transparency, never draw a checkerboard.\nRequested icon: slot-potion-other. Keep the full-body Doro character design from image 1 but change the pose and prop as follows: ONE round pale amber potion bottle with a short neck and cork, hugged with BOTH mitten arms in front of the lower torso. Match the reference's simple broad white torso and short feet. Keep the face and the SINGLE rose ornament with blue ribbon on the viewer's RIGHT clearly readable. Fit the complete body and prop in frame. Remove every part of the old sword.",
-    "category": "slot",
-    "error": "image generation failed: http 429 Too Many Requests: Some(\"{\\\"error\\\":{\\\"type\\\":\\\"usage_limit_reached\\\",\\\"message\\\":\\\"The usage limit has been reached\\\",\\\"plan_type\\\":\\\"plus\\\",\\\"resets_at\\\":1791862830,\\\"eligible_promo\\\":null,\\\"limit_window_minutes\\\":1440,\\\"resets_in_seconds\\\":46888}}\")",
-    "retryScheduledAt": "2026-10-13T12:45:00+09:00",
-    "retryAutomationId": "2",
-    "userChoice": "Generate anew with built-in image_gen after quota reset"
+    "source": "C:\\Users\\kdw73\\.codex\\generated_images\\01a13035-7bfb-7971-a928-6e0f0d1b4963\\exec-6446b503-f609-4b3a-8f0a-27450f77b1fc.png",
+    "validation": {
+      "File": "slot-potion-other.png",
+      "Width": 256,
+      "Height": 256,
+      "TransparentPixels": 36588,
+      "Bounds": [
+        37,
+        24,
+        241,
+        251
+      ],
+      "Bytes": 57831
+    },
+    "status": "saved",
+    "generationMethod": "built-in image_gen",
+    "completedAt": "2026-10-13"
   }
 ]
