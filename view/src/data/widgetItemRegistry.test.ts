@@ -323,8 +323,9 @@ describe('widgetItemRegistry', () => {
     });
 
     expect(fhd['experience.progress']).toMatchObject({ x: 34, y: 898, scale: 1, visible: true });
-    expect(fhd['resistance.disease'].visible).toBe(true);
-    expect(fhd['equipped.voice'].visible).toBe(true);
+    expect(fhd['resistance.disease'].visible).toBe(false);
+    expect(fhd['equipped.voice'].visible).toBe(false);
+    expect(fhd['offense.rightHandDamage'].visible).toBe(true);
     expect(uhd['experience.progress']).toMatchObject({ x: 68, y: 1796, scale: 2 });
     for (const layout of Object.values(fhd)) {
       expect(layout.x).toBeLessThan(960);

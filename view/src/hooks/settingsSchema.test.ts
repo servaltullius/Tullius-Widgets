@@ -43,12 +43,13 @@ describe('settingsSchema', () => {
     expect(legacy.equipped.potion).toBe(false);
 
     const fresh = mergeWithDefaults({ schemaVersion: 7 });
-    expect(fresh.resistances.disease).toBe(true);
-    expect(fresh.equipped.voice).toBe(true);
+    expect(fresh.resistances.disease).toBe(false);
+    expect(fresh.equipped.voice).toBe(false);
     expect(fresh.equipped.nameDisplay).toBe('always');
     expect(fresh.time.gameDisplay).toBe('timeOnly');
-    expect(fresh.time.weather).toBe(true);
-    expect(fresh.equipped.potion).toBe(true);
+    expect(fresh.time.weather).toBe(false);
+    expect(fresh.equipped.potion).toBe(false);
+    expect(fresh.offense.rightHandDamage).toBe(true);
   });
 
   it('keeps up to three valid layout slots and drops broken ones', () => {

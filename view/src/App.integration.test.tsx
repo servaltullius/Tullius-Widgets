@@ -576,15 +576,15 @@ describe('App quick-edit integration', () => {
     )?.closest('label');
     const diseaseToggle = diseaseToggleLabel?.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
     expect(diseaseToggle).toBeTruthy();
-    // Fresh installs use the compact preset, which shows disease resistance by default.
-    expect(diseaseToggle?.checked).toBe(true);
-    expect(getWidget(container, 'resistance.disease')).not.toBeNull();
+    // Disease resistance is hidden by default.
+    expect(diseaseToggle?.checked).toBe(false);
+    expect(getWidget(container, 'resistance.disease')).toBeNull();
 
     await act(async () => {
       diseaseToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    expect((diseaseToggleLabel?.querySelector('input[type="checkbox"]') as HTMLInputElement | null)?.checked).toBe(false);
-    expect(getWidget(container, 'resistance.disease')).toBeNull();
+    expect((diseaseToggleLabel?.querySelector('input[type="checkbox"]') as HTMLInputElement | null)?.checked).toBe(true);
+    expect(getWidget(container, 'resistance.disease')).not.toBeNull();
   });
 });

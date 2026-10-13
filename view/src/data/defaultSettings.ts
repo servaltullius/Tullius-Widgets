@@ -27,7 +27,7 @@ export const defaultSettings: WidgetSettings = {
     frost: true,
     shock: true,
     poison: true,
-    disease: true,
+    disease: false,
     displayMode: 'both',
   },
   defense: {
@@ -35,16 +35,15 @@ export const defaultSettings: WidgetSettings = {
     damageReduction: true,
   },
   offense: {
-    // The compact equipment slots already show per-hand damage.
-    rightHandDamage: false,
-    leftHandDamage: false,
+    rightHandDamage: true,
+    leftHandDamage: true,
     critChance: true,
   },
   equipped: {
     rightHand: true,
     leftHand: true,
-    voice: true,
-    potion: true,
+    voice: false,
+    potion: false,
     nameDisplay: 'always',
   },
   timedEffects: {
@@ -62,7 +61,7 @@ export const defaultSettings: WidgetSettings = {
     gameDisplay: 'timeOnly',
     realDateTime: true,
     realDisplay: 'timeOnly',
-    weather: true,
+    weather: false,
     playtime: false,
   },
   experience: {
