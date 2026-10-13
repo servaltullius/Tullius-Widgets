@@ -1,35 +1,43 @@
-[center][img]https://raw.githubusercontent.com/servaltullius/Tullius-Widgets/master/docs/screenshot-widgets.png[/img][/center]
+[center][img]https://raw.githubusercontent.com/servaltullius/Tullius-Widgets/master/docs/screenshot-compact-ingame.png[/img][/center]
 
 [size=4][b]Tullius Widgets[/b][/size]
 
 A modern combat HUD and STB Widgets alternative for Skyrim SE/AE, powered by [url=https://www.nexusmods.com/skyrimspecialedition/mods/148718]Prisma UI[/url].
-It presents 25 combat and utility items in a restrained Nordic-style design while keeping every widget independently movable and configurable.
-Standard, widely recognizable icons are used by default. The original Dororong icon theme remains available as an option.
+Since v1.8.0 the cardless [b]Compact HUD[/b] is the default for new installs, and the original card-based Classic style is still available.
+Every widget stays independently movable and configurable. Standard icons are the default, and a Dororong icon theme is available as an option.
 
-[size=3][b]v1.6.0 Highlights[/b][/size]
+[size=3][b]v1.8.0 Highlights[/b][/size]
 
 [list]
-[*]Redesigned the HUD with dark translucent surfaces, thin borders, clearer number hierarchy, and stat-specific accent colors
-[*]Kept [b]all widgets independent[/b]: each item can still be moved, resized, locked, hidden, or reordered separately
-[*]Made the standard icon set the default; Dororong icons remain optional and identifier badges can be disabled
-[*]Reworked Experience into a horizontal level/value/progress widget
-[*]Reworked Resistances into horizontal widgets showing both effective and raw values
-[*]Separated attack and equipment widgets with distinct sword and hand icons
+[*][b]Compact HUD[/b]: a gauge-style cluster in the bottom-left corner that leaves room above vanilla, TrueHUD and SkyHUD resource bars
+[*][b]Equipment slots R / L / Z / P[/b]: weapon type and spell school icons with per-hand damage, enchantment charge, doses left of an applied poison, arrows and bolts, shout cooldown and words, and the last potion you drank
+[*][b]New widgets[/b]: weather (clear / cloudy / rain / snow / indoors) and total play time
+[*][b]Timed effects[/b]: category icons, magnitudes, harmful effects highlighted, filters
+[*][b]Per-widget show conditions[/b]: always / in combat / when the value changes
+[*]Four corner presets and four sizes for the cluster, three layout slots, layout undo ([b]Ctrl+Z[/b] / [b]Ctrl+Y[/b])
+[*]Remappable settings-panel and show/hide keys
+[*][b]73 mini Dororong icons[/b] for the Compact HUD (unofficial fan art)
+[*]Ships the Pretendard font so the HUD looks the same in game
+[*]Removed the screen-edge vignette alerts
+[*]Skyrim 1.7.x support; damage reduction now matches the game's calculation
+[*]Existing settings keep the Classic style and layout. Switch in Settings → General → HUD style
 [/list]
+
+[center][img]https://raw.githubusercontent.com/servaltullius/Tullius-Widgets/master/docs/screenshot-compact-dororong.jpg[/img][/center]
 
 [line]
 
 [size=3][b]Core Features[/b][/size]
 
 [list]
-[*]Shows [b]25 independently positioned HUD items[/b] covering progression, player stats, resistances, defense, offense, equipment, time, movement, and timed effects
-[*]Uses familiar [b]standard icons by default[/b], with the original Dororong theme and optional identifier badges still available
-[*]Supports per-widget [b]move, resize, lock, visibility, and layer order[/b] controls
-[*]Supports direct drag editing, neighbor snapping, alignment guides, and 1px/10px keyboard movement
-[*]Optional [b]Combat Only[/b] and [b]Show Only When Values Change[/b] display modes
-[*]Global opacity, HUD font, color tone, and transparent background controls
-[*][b]Preset export/import[/b] support
-[*][b]Visual vignette alerts[/b] for low Health/Magicka/Stamina and overencumbrance
+[*][b]28 independently positioned HUD items[/b] covering progression, player stats, resistances, defense, offense, equipment, time and weather, movement, and timed effects
+[*]Two styles: [b]Compact HUD[/b] and [b]Classic cards[/b]
+[*]Uses familiar [b]standard icons by default[/b], with the Dororong theme and optional identifier badges available
+[*]Per-widget [b]move, resize, lock, visibility, layer order[/b] and [b]show conditions[/b]
+[*]Direct drag editing, neighbor snapping, alignment guides, 1px/10px keyboard movement, and undo
+[*]Global opacity and HUD font; color tone and transparent background for the Classic style
+[*][b]Preset export/import[/b] and three layout slots
+[*]Remappable settings-panel and show/hide keys (ignored while the console or a text field has focus)
 [*][b]Runtime warning banner[/b] for unsupported runtime / SKSE / Address Library combinations
 [*][b]External JSON localization[/b] support with Korean and English included by default
 [/list]
@@ -43,10 +51,10 @@ Standard, widely recognizable icons are used by default. The original Dororong i
 [*][b]Resistances[/b] - Magic, Fire, Frost, Shock, Poison, Disease
 [*][b]Defense[/b] - Armor Rating, Damage Reduction
 [*][b]Offense[/b] - Right/Left Hand Damage, Critical Chance
-[*][b]Equipped Slots[/b] - Right/Left hand equipment and selected Shout/Power
+[*][b]Equipped Slots[/b] - Right/left hand equipment (charge, poison, ammo), Shout/Power (cooldown, words), last potion drunk
 [*][b]Movement[/b] - Speed multiplier
-[*][b]Time[/b] - Skyrim date/time and real date/time
-[*][b]Timed Effects[/b] - Source name, effect name, remaining duration
+[*][b]Time[/b] - Skyrim date/time, real date/time, weather, total play time
+[*][b]Timed Effects[/b] - Category icon, effect name and magnitude, remaining duration, filters
 [/list]
 
 [size=3][b]Stat Display Notes[/b][/size]
@@ -85,18 +93,20 @@ Data/
   PrismaUI/views/TulliusWidgets/i18n/en.json
   PrismaUI/views/TulliusWidgets/i18n/ko.json
   PrismaUI/views/TulliusWidgets/assets/...
+  PrismaUI/views/TulliusWidgets/fonts/...
 [/code]
 
 [line]
 
 [size=3][b]Controls[/b][/size]
 [list]
-[*][b]Insert[/b] - Open / close the settings panel
-[*][b]F11[/b] - Toggle widget visibility
+[*][b]Insert[/b] - Open / close the settings panel (remappable in Settings)
+[*][b]F11[/b] - Toggle widget visibility (remappable in Settings)
 [*][b]ESC[/b] - Close the settings panel
 [*][b]Drag / Resize[/b] - Edit widgets while the settings panel is open
 [*][b]Arrow keys[/b] - Move the selected widget by 1px
 [*][b]Shift + Arrow keys[/b] - Move the selected widget by 10px
+[*][b]Ctrl + Z[/b] / [b]Ctrl + Y[/b] - Undo / redo layout edits while the settings panel is open
 [/list]
 
 [line]
@@ -161,4 +171,6 @@ If some translation keys are missing, the UI falls back to the bundled [b]Englis
 [*][url=https://www.nexusmods.com/skyrimspecialedition/mods/148718]Prisma UI[/url] by StarkMP
 [*][url=https://github.com/CharmedBaryon/CommonLibSSE-NG]CommonLib-NG[/url] by CharmedBaryon
 [*][url=https://lucide.dev/]Lucide Icons[/url]
+[*]Font: Pretendard (SIL Open Font License 1.1)
+[*]The Dororong (Doro) icons are an unofficial fan-made theme. Original: GODDESS OF VICTORY: NIKKE / SHIFT UP. This mod is not affiliated with, made or endorsed by SHIFT UP. The icons were made with AI image generation.
 [/list]
