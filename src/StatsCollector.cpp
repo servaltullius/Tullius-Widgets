@@ -302,6 +302,11 @@ static std::vector<TimedEffectEntry> CollectTimedEffects(RE::PlayerCharacter* pl
 // Coarse weather for the HUD; precipitation uses the sky's fade-aware checks.
 static const char* CollectWeatherKind()
 {
+    // Interiors flagged to show the sky (or given windows by mods) keep an exterior sky
+    // mode, so the player's cell decides first (2026-10-13: Arcadia's Cauldron read "clear").
+    if (const auto* player = RE::PlayerCharacter::GetSingleton()) {
+        if (const auto* cell = player->GetParentCell(); cell && cell->IsInteriorCell()) return "indoor";
+    }
     const auto* sky = RE::Sky::GetSingleton();
     if (!sky) return "unknown";
     if (sky->mode.get() == RE::Sky::Mode::kInterior) return "indoor";
