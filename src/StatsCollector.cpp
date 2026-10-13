@@ -672,12 +672,19 @@ static PlayerStateSnapshot CollectPlayerStateSnapshot(RE::PlayerCharacter* playe
         const float rawThreshold = infoRuntime.skills->data->levelThreshold;
         experience = std::isfinite(rawXp) ? (std::max)(rawXp, 0.0f) : 0.0f;
         const float safeThreshold = std::isfinite(rawThreshold) ? rawThreshold : experience;
-        nextLevelTotalXp = (std::max)(safeThreshold, experience);
+        // XP at or past the threshold is a level-up the player has not taken yet, so the
+        // total stays the threshold (the HUD shows it full, as the vanilla bar does).
+        nextLevelTotalXp = safeThreshold;
         expToNextLevel = (std::max)(safeThreshold - experience, 0.0f);
 
         if (rawXp >= rawThreshold && rawThreshold > 0.0f && currentLevel > 1) {
             const float expectedThreshold = ComputeLevelThreshold(currentLevel);
-            if (std::abs(rawThreshold - expectedThreshold) > 1.0f) {
+            // Stale only while the engine still holds the previous level's threshold. Load
+            // orders that change the leveling curve make the threshold differ from the game
+            // settings formula all the time, and XP past it is then a pending level-up.
+            const bool previousLevelThreshold =
+                std::abs(rawThreshold - ComputeLevelThreshold(currentLevel - 1)) <= 1.0f;
+            if (previousLevelThreshold && std::abs(rawThreshold - expectedThreshold) > 1.0f) {
                 experience = (std::max)(rawXp - rawThreshold, 0.0f);
                 nextLevelTotalXp = expectedThreshold;
                 expToNextLevel = (std::max)(expectedThreshold - experience, 0.0f);

@@ -238,19 +238,23 @@ describe('hudPresentation', () => {
     expect(visibleItemIds.filter(itemId => itemId.startsWith('timedEffects.'))).toEqual(['timedEffects.list']);
   });
 
-  it('resets stale experience progress to the new level threshold safely', () => {
-    const playerInfo: PlayerInfo = {
+  it('keeps a pending level-up full instead of guessing the next level', () => {
+    // 2026-10-13 in-game: level 13, 565 XP of a 495 threshold, while the game settings
+    // formula gave 495 too (the load order changed it after loading).
+    const pending: PlayerInfo = {
       ...cloneStats().playerInfo,
-      experience: 1200,
+      experience: 565,
       expToNextLevel: 0,
-      nextLevelTotalXp: 1000,
-      expectedLevelThreshold: 1300,
+      nextLevelTotalXp: 495,
+      expectedLevelThreshold: 495,
     };
+    expect(resolveExperienceProgress(pending)).toEqual({ currentXp: 565, totalXpForNextLevel: 495 });
 
-    expect(resolveExperienceProgress(playerInfo)).toEqual({
-      currentXp: 0,
-      totalXpForNextLevel: 1300,
-    });
+    const normal: PlayerInfo = { ...pending, experience: 447, expToNextLevel: 48 };
+    expect(resolveExperienceProgress(normal)).toEqual({ currentXp: 447, totalXpForNextLevel: 495 });
+
+    const noTotal: PlayerInfo = { ...pending, experience: 100, expToNextLevel: 300, nextLevelTotalXp: 0 };
+    expect(resolveExperienceProgress(noTotal)).toEqual({ currentXp: 100, totalXpForNextLevel: 400 });
   });
 
   it('resolves overall HUD visibility from combat and change-window rules', () => {

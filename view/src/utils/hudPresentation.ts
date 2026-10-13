@@ -6,7 +6,6 @@ import type { CombatStats, PlayerInfo } from '../types/stats';
 
 const CARRY_WARNING_THRESHOLD = 85;
 const CARRY_DANGER_THRESHOLD = 100;
-const XP_STALE_TOLERANCE = 1;
 
 export type HudValueTone = 'default' | 'warning' | 'danger';
 export type HudSettingsSyncState = 'idle' | 'retrying' | 'failed' | 'saved';
@@ -74,22 +73,16 @@ export function hasMeaningfulDifference(a: number, b: number): boolean {
   return Math.abs(a - b) > 0.05;
 }
 
+// The plugin corrects a threshold left over from the previous level. XP at or past the
+// threshold is a level-up the player has not taken yet: progress shows full, like the
+// vanilla bar, instead of being guessed down to the next level (2026-10-13: 565/495 shown
+// as 0/495 on a load order with its own leveling curve).
 export function resolveExperienceProgress(playerInfo: PlayerInfo): ExperienceProgress {
-  let currentXp = Math.max(0, Math.round(playerInfo.experience));
-  const rawNextLevelXp = Math.max(0, Math.round(playerInfo.expToNextLevel));
+  const currentXp = Math.max(0, Math.round(playerInfo.experience));
   const providedTotalXp = Math.max(0, Math.round(playerInfo.nextLevelTotalXp));
-  const expectedThreshold = Math.max(0, Math.round(playerInfo.expectedLevelThreshold));
-  let totalXpForNextLevel = Math.max(currentXp + rawNextLevelXp, providedTotalXp);
-
-  if (
-    currentXp >= totalXpForNextLevel
-    && totalXpForNextLevel > 0
-    && expectedThreshold > 0
-    && Math.abs(totalXpForNextLevel - expectedThreshold) > XP_STALE_TOLERANCE
-  ) {
-    currentXp = Math.max(0, currentXp - totalXpForNextLevel);
-    totalXpForNextLevel = expectedThreshold;
-  }
+  const totalXpForNextLevel = providedTotalXp > 0
+    ? providedTotalXp
+    : currentXp + Math.max(0, Math.round(playerInfo.expToNextLevel));
 
   return {
     currentXp,
