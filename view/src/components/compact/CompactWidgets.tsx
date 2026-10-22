@@ -212,7 +212,8 @@ export const CompactResource = memo(function CompactResource({ icon, color, valu
     <div data-compact-item="resource" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
       <CompactIcon name={icon} size={14} color={color} />
       <div style={{ width: 96, height: 6, background: 'rgba(8, 8, 8, 0.55)', boxShadow: '0 0 0 1px var(--c-line)' }}>
-        <div style={{ width: `${clamped}%`, height: 6, background: color }} />
+        {/* Values arrive every 0.5 s; easing over the same span keeps draining and regenerating smooth. */}
+        <div style={{ width: `${clamped}%`, height: 6, background: color, transition: 'width 0.5s linear' }} />
       </div>
       <span key={Math.round(value)} className="tw-compact-value" data-tone={tone === 'default' ? 'default' : tone} style={{ fontSize: 13 }}>
         {Math.round(value)}
