@@ -147,6 +147,7 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs, layout }:
           value={stats.playerInfo.health}
           pct={stats.alertData.healthPct}
           tone={getLowResourceTone(stats.alertData.healthPct, LOW_RESOURCE_THRESHOLDS.health) as 'default' | 'warning' | 'danger'}
+          inCombat={stats.isInCombat}
         />
       );
     case 'player.magicka':
@@ -157,6 +158,7 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs, layout }:
           value={stats.playerInfo.magicka}
           pct={stats.alertData.magickaPct}
           tone={getLowResourceTone(stats.alertData.magickaPct, LOW_RESOURCE_THRESHOLDS.magicka) as 'default' | 'warning' | 'danger'}
+          inCombat={stats.isInCombat}
         />
       );
     case 'player.stamina':
@@ -167,6 +169,7 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs, layout }:
           value={stats.playerInfo.stamina}
           pct={stats.alertData.staminaPct}
           tone={getLowResourceTone(stats.alertData.staminaPct, LOW_RESOURCE_THRESHOLDS.stamina) as 'default' | 'warning' | 'danger'}
+          inCombat={stats.isInCombat}
         />
       );
     case 'defense.armorRating': {

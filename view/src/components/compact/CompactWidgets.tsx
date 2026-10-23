@@ -204,16 +204,28 @@ interface CompactResourceProps {
   value: number;
   pct: number;
   tone: 'default' | 'warning' | 'danger';
+  /** Stats arrive every 0.1 s in combat and every 0.5 s otherwise; the bar eases over that span. */
+  inCombat?: boolean;
 }
 
-export const CompactResource = memo(function CompactResource({ icon, color, value, pct, tone }: CompactResourceProps) {
+export const CompactResource = memo(function CompactResource({ icon, color, value, pct, tone, inCombat = false }: CompactResourceProps) {
   const clamped = Math.max(0, Math.min(100, pct));
   return (
     <div data-compact-item="resource" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
       <CompactIcon name={icon} size={14} color={color} />
       <div style={{ width: 96, height: 6, background: 'rgba(8, 8, 8, 0.55)', boxShadow: '0 0 0 1px var(--c-line)' }}>
-        {/* Values arrive every 0.5 s; easing over the same span keeps draining and regenerating smooth. */}
-        <div style={{ width: `${clamped}%`, height: 6, background: color, transition: 'width 0.5s linear' }} />
+        {/* Easing over the update interval keeps draining and regenerating smooth without the bar
+            trailing the number in combat; scaleX animates without re-laying out the HUD each frame. */}
+        <div
+          style={{
+            width: '100%',
+            height: 6,
+            background: color,
+            transform: `scaleX(${clamped / 100})`,
+            transformOrigin: 'left center',
+            transition: `transform ${inCombat ? 0.1 : 0.5}s linear`,
+          }}
+        />
       </div>
       <span key={Math.round(value)} className="tw-compact-value" data-tone={tone === 'default' ? 'default' : tone} style={{ fontSize: 13 }}>
         {Math.round(value)}
