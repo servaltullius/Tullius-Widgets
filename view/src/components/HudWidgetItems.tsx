@@ -1,4 +1,4 @@
-import { useMemo, type ComponentProps, type ReactNode } from 'react';
+import { useContext, useMemo, type ComponentProps, type ReactNode } from 'react';
 import { EditableWidgetItem } from './EditableWidgetItem';
 import { ExperienceWidget } from './ExperienceWidget';
 import { ResistanceWidget } from './ResistanceWidget';
@@ -6,7 +6,9 @@ import { StatWidget } from './StatWidget';
 import { ClassicVoiceWidget } from './ClassicVoiceWidget';
 import { TimedEffectList } from './TimedEffectList';
 import { CompactHudItem } from './compact/CompactHudItem';
-import { CompactIconThemeContext } from './compact/compactIconTheme';
+import { CompactIconThemeContext, type CompactIconSource } from './compact/compactIconTheme';
+import { findIconPack } from '../data/iconPacks';
+import { IconPacksContext } from '../hooks/useIconPacks';
 import { t } from '../i18n/translations';
 import { getWidgetItemRegistryEntry } from '../data/widgetItemRegistry';
 import type { WidgetInteractionMode } from '../hooks/useWidgetEditSelection';
@@ -243,6 +245,11 @@ export function HudWidgetItems({
       || itemLayouts['time.real']?.visible === true
     );
   const nowMs = useSharedTimeWidgetClock(stats.time.snapshotAtMs, hasVisibleTimeItem);
+  const iconPacks = useContext(IconPacksContext);
+  const iconSource = useMemo<CompactIconSource>(() => ({
+    theme: settings.general.iconTheme,
+    pack: findIconPack(iconPacks, settings.general.iconPack),
+  }), [iconPacks, settings.general.iconPack, settings.general.iconTheme]);
 
   const visibleItemIds = useMemo(() => {
     return sortItemIdsByZIndex(
@@ -326,7 +333,7 @@ export function HudWidgetItems({
 
         if (compact) {
           return renderEditableItem((
-            <CompactIconThemeContext.Provider value={settings.general.iconTheme}>
+            <CompactIconThemeContext.Provider value={iconSource}>
               <CompactHudItem itemId={itemId} stats={stats} settings={settings} lang={lang} nowMs={nowMs} layout={layout} />
             </CompactIconThemeContext.Provider>
           ));

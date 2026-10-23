@@ -13,6 +13,7 @@ export const defaultSettings: WidgetSettings = {
     language: '',
     fontPreset: 'default',
     iconTheme: 'standard',
+    iconPack: '',
     hudStyle: 'compact',
     compactAnchor: 'bottomLeft',
     settingsHotkey: 0xD2,

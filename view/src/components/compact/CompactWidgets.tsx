@@ -20,8 +20,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { standardStatIconMap } from '../../data/standardStatIcons';
-import { getDororongSlotIcon, getDororongStatIcon } from '../../data/dororongMiniIcons';
-import { CompactIconThemeContext } from './compactIconTheme';
+import { CompactIconThemeContext, getCompactSlotArt, getCompactStatArt } from './compactIconTheme';
 import type { EquippedItemKind, PotionKind } from '../../types/stats';
 import { formatThousands } from '../../utils/hudPresentation';
 import { useCooldown } from '../../hooks/useCooldown';
@@ -93,10 +92,11 @@ interface CompactStatProps {
 const DORORONG_ICON_SCALE = 2;
 
 export function CompactIcon({ name, size, color }: { name: string; size: number; color: string }) {
-  const theme = useContext(CompactIconThemeContext);
-  const art = getDororongStatIcon(theme, name);
+  const source = useContext(CompactIconThemeContext);
+  const art = getCompactStatArt(source, name);
   if (art) {
-    const drawn = Math.round(size * DORORONG_ICON_SCALE);
+    // Packs over the standard theme keep the line icon's footprint and layout.
+    const drawn = Math.round(size * (source.theme === 'dororong' ? DORORONG_ICON_SCALE : 1));
     return (
       <img
         src={art}
@@ -406,9 +406,9 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
 
   const isEmpty = kind === 'empty' || !name || heldByOtherHand;
   const Icon = slotKey === 'Z' ? VOICE_ICON : EQUIP_KIND_ICONS[kind] ?? EQUIP_KIND_ICONS.other;
-  const iconTheme = useContext(CompactIconThemeContext);
+  const iconSource = useContext(CompactIconThemeContext);
   // Dororong slots are larger so the character holding the item is easy to read.
-  const dororong = iconTheme === 'dororong';
+  const dororong = iconSource.theme === 'dororong';
   const slotWidth = dororong ? 64 : 54;
   const slotHeight = dororong ? 70 : 60;
   const artSize = dororong ? 56 : 36;
@@ -450,7 +450,7 @@ export const CompactEquipSlot = memo(function CompactEquipSlot({
           const artName = isPotion
             ? (isEmpty ? undefined : `potion-${potionKind ?? 'other'}`)
             : slotKey === 'Z' ? (isEmpty ? undefined : 'voice') : isEmpty && !heldByOtherHand ? 'empty' : kind;
-          const art = artName ? getDororongSlotIcon(iconTheme, artName, slotKey === 'L' ? 'left' : 'right') : undefined;
+          const art = artName ? getCompactSlotArt(iconSource, artName, slotKey === 'L' ? 'left' : 'right') : undefined;
           if (!art) return null;
           return (
             <img

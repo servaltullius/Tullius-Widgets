@@ -17,9 +17,14 @@ const STAT_ALIASES: Record<string, string> = {
   weatherUnknown: 'cloudy',
 };
 
+// File name for a stat icon key (the weather keys share the weather art names).
+export function resolveStatIconFile(name: string): string {
+  return STAT_ALIASES[name] ?? name;
+}
+
 export function getDororongStatIcon(theme: IconTheme, name: string): string | undefined {
   if (theme !== 'dororong') return undefined;
-  return ICONS[STAT_ALIASES[name] ?? name];
+  return ICONS[resolveStatIconFile(name)];
 }
 
 // The left-hand slot prefers art with the item in Doro's left paw ("slot-<kind>-left").

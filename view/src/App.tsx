@@ -24,6 +24,7 @@ import { applyTimedEffectFilter } from './utils/timedEffectFilter';
 import { measureWidgetBoundsMap } from './utils/widgetBounds';
 import { snapWidgetMove, type AlignmentGuide } from './utils/widgetSnap';
 import { resolveFontPresetVariables } from './utils/fontPresets';
+import { IconPacksContext, useIconPacksBridge } from './hooks/useIconPacks';
 import './assets/ui-theme.css';
 import './assets/compact-theme.css';
 
@@ -40,6 +41,7 @@ function resolveItemLayout(
 
 export function App() {
   const { stats: rawStats, hasLiveStats } = useGameStatsState();
+  const iconPacks = useIconPacksBridge();
   const [viewport, setViewport] = useState(() => ({
     width: window.innerWidth,
     height: window.innerHeight,
@@ -372,6 +374,7 @@ export function App() {
   }, [clearKeyboardGuideTimeout]);
 
   return (
+    <IconPacksContext.Provider value={iconPacks}>
     <div data-testid="app-font-theme" style={fontVariables}>
       {runtimeWarningText && runtimeDiagnostics && (
         <RuntimeWarningBanner
@@ -436,5 +439,6 @@ export function App() {
         selectedItemLayoutActions={selectedItemLayoutActions}
       />
     </div>
+    </IconPacksContext.Provider>
   );
 }

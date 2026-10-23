@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import type { Language, UpdateSettingFn, WidgetSettings } from '../../types/settings';
 import { t, type LocalizationLanguageEntry } from '../../i18n/translations';
 import { AccordionSection, CustomSelect, Toggle } from './SettingsControls';
@@ -8,6 +8,8 @@ import { formatHotkey } from '../../utils/hotkeys';
 import { scalePanelPixels } from './panelScale';
 import { FONT_PRESET_OPTIONS } from '../../utils/fontPresets';
 import { buildItemLayoutsForHudStyle, captureLayoutSlot, shiftEffectListForLayout } from '../../utils/itemLayoutEditing';
+import { findIconPack, type IconPack } from '../../data/iconPacks';
+import { IconPacksContext } from '../../hooks/useIconPacks';
 
 const SLOT_LOAD_CONFIRM_MS = 4000;
 
@@ -154,10 +156,14 @@ function buildEquipNameDisplayOptions(lang: Language) {
   ];
 }
 
-function buildIconThemeOptions(lang: Language) {
+const ICON_PACK_OPTION_PREFIX = 'pack:';
+
+// User icon packs only change the compact HUD, so the classic style lists the built-in themes.
+function buildIconThemeOptions(lang: Language, packs: readonly IconPack[]) {
   return [
     { value: 'standard', label: t(lang, 'iconThemeStandard') },
     { value: 'dororong', label: t(lang, 'iconThemeDororong') },
+    ...packs.map(pack => ({ value: `${ICON_PACK_OPTION_PREFIX}${pack.id}`, label: t(lang, 'iconThemePack').replace('{name}', pack.name) })),
   ];
 }
 
@@ -183,7 +189,10 @@ export function GeneralTabSections({
   panelScale = 1,
 }: GeneralTabSectionsProps) {
   const fontPresetOptions = buildFontPresetOptions(lang);
-  const iconThemeOptions = buildIconThemeOptions(lang);
+  const compact = settings.general.hudStyle === 'compact';
+  const iconPacks = useContext(IconPacksContext);
+  const activeIconPack = compact ? findIconPack(iconPacks, settings.general.iconPack) : null;
+  const iconThemeOptions = buildIconThemeOptions(lang, compact ? iconPacks : []);
 
   return (
     <AccordionSection
@@ -272,31 +281,50 @@ export function GeneralTabSections({
           apply to the classic card style. */}
       <SelectRow
         label={t(lang, 'iconTheme')}
-        value={settings.general.iconTheme}
+        value={activeIconPack ? `${ICON_PACK_OPTION_PREFIX}${activeIconPack.id}` : settings.general.iconTheme}
         options={iconThemeOptions}
         onChange={nextValue => {
-          const iconTheme = nextValue as WidgetSettings['general']['iconTheme'];
-          if (settings.general.hudStyle !== 'compact') {
-            onUpdate('general.iconTheme', iconTheme);
+          if (!compact) {
+            onUpdate('general.iconTheme', nextValue as WidgetSettings['general']['iconTheme']);
+            return;
+          }
+          // A pack draws over its base theme; picking a built-in theme drops the pack.
+          const pickedPack = nextValue.startsWith(ICON_PACK_OPTION_PREFIX)
+            ? findIconPack(iconPacks, nextValue.slice(ICON_PACK_OPTION_PREFIX.length))
+            : null;
+          if (nextValue.startsWith(ICON_PACK_OPTION_PREFIX) && !pickedPack) return;
+          const iconTheme = pickedPack ? pickedPack.base : nextValue as WidgetSettings['general']['iconTheme'];
+          const iconPack = pickedPack?.id ?? '';
+          if (iconTheme === settings.general.iconTheme) {
+            // Same layout and icon size: keep the player's arrangement.
+            onUpdate('general.iconPack', iconPack);
             return;
           }
           // The compact Dororong icons are larger and use their own, roomier arrangement.
           const nextItemLayouts = buildItemLayoutsForHudStyle(
-            { ...settings, general: { ...settings.general, iconTheme } },
+            { ...settings, general: { ...settings.general, iconTheme, iconPack } },
             'compact',
           );
           onUpdate('positions', {}, { persist: false });
           onUpdate('layouts', {}, { persist: false });
           onUpdate('groupScales', {}, { persist: false });
           onUpdate('general.iconTheme', iconTheme, { persist: false });
+          onUpdate('general.iconPack', iconPack, { persist: false });
           onUpdate('itemLayouts', nextItemLayouts);
         }}
         panelScale={panelScale}
         testId="icon-theme-select"
       />
-      {settings.general.hudStyle === 'compact' && (
+      {compact && (
         <p style={{ color: '#88a4c4', fontSize: scalePanelPixels(18, panelScale), margin: `0 0 ${scalePanelPixels(8, panelScale)} 0` }}>
           {t(lang, 'iconThemeCompactHint')}
+        </p>
+      )}
+      {compact && (
+        <p data-testid="icon-pack-hint" style={{ color: '#88a4c4', fontSize: scalePanelPixels(18, panelScale), margin: `0 0 ${scalePanelPixels(8, panelScale)} 0` }}>
+          {activeIconPack?.author
+            ? t(lang, 'iconPackCredit').replace('{name}', activeIconPack.version ? `${activeIconPack.name} ${activeIconPack.version}` : activeIconPack.name).replace('{author}', activeIconPack.author)
+            : t(lang, 'iconPackHint')}
         </p>
       )}
       {settings.general.hudStyle === 'classic' && (

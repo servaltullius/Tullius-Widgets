@@ -115,3 +115,10 @@ test('view focus path shows the view and requests PrismaUI focus with pauseGame 
   assert.match(viewBridgeText, /api_->Show\(view\);/);
   assert.match(viewBridgeText, /api_->Focus\(view, pauseGame, disableFocusMenu\)/);
 });
+
+test('icon packs reach the view under the bridge name it listens for, before the settings', () => {
+  const bridgeConstantsText = readFileSync(new URL('../view/src/constants/bridge.ts', import.meta.url), 'utf8');
+  assert.match(interopContractsText, /kUpdateIconPacks\[\] = "updateIconPacks";/);
+  assert.match(bridgeConstantsText, /updateIconPacks: 'updateIconPacks'/);
+  assert.match(mainText, /static void SendSettingsToView\(\) \{[\s\S]*?SendIconPacksToView\(\);[\s\S]*?LoadSettings/);
+});
