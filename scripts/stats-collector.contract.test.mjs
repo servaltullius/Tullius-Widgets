@@ -38,3 +38,13 @@ test('stats collector writer still emits core payload contract sections', () => 
   assert.match(statsWriterText, /\\"ammoCount\\"/);
   assert.match(statsWriterText, /\\"rightHandChargePct\\"/);
 });
+
+test('health, magicka and stamina use the current value over the engine maximum', () => {
+  // GetActorValue already has damage applied; adding the kDamage modifier again counted
+  // every lost point twice (stamina read low and moved twice as fast).
+  for (const av of ['kHealth', 'kMagicka', 'kStamina']) {
+    assert.match(statsCollectorText, new RegExp(`GetActorValueMax\\(RE::ActorValue::${av}\\)`));
+    assert.match(statsCollectorText, new RegExp(`av->GetActorValue\\(RE::ActorValue::${av}\\)`));
+    assert.doesNotMatch(statsCollectorText, new RegExp(`ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::${av}\\)`));
+  }
+});

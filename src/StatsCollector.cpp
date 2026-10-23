@@ -657,15 +657,16 @@ static PlayerStateSnapshot CollectPlayerStateSnapshot(RE::PlayerCharacter* playe
     if (!player) return snapshot;
 
     auto* av = player->AsActorValueOwner();
-    const float maxHP = av->GetActorValue(RE::ActorValue::kHealth);
-    const float maxMP = av->GetActorValue(RE::ActorValue::kMagicka);
-    const float maxSP = av->GetActorValue(RE::ActorValue::kStamina);
-    const float dmgHP = player->GetActorValueModifier(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kHealth);
-    const float dmgMP = player->GetActorValueModifier(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kMagicka);
-    const float dmgSP = player->GetActorValueModifier(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kStamina);
-    const float curHP = (std::max)(maxHP + dmgHP, 0.0f);
-    const float curMP = (std::max)(maxMP + dmgMP, 0.0f);
-    const float curSP = (std::max)(maxSP + dmgSP, 0.0f);
+    // GetActorValue is the current value, damage already applied; the maximum is the
+    // permanent value plus temporary (fortify) modifiers. Treating the current value as the
+    // maximum and adding the damage modifier again counted every lost point twice, so
+    // stamina and the others read low and moved twice as fast while draining or regenerating.
+    const float maxHP = player->GetActorValueMax(RE::ActorValue::kHealth);
+    const float maxMP = player->GetActorValueMax(RE::ActorValue::kMagicka);
+    const float maxSP = player->GetActorValueMax(RE::ActorValue::kStamina);
+    const float curHP = (std::max)(av->GetActorValue(RE::ActorValue::kHealth), 0.0f);
+    const float curMP = (std::max)(av->GetActorValue(RE::ActorValue::kMagicka), 0.0f);
+    const float curSP = (std::max)(av->GetActorValue(RE::ActorValue::kStamina), 0.0f);
     const std::int32_t currentLevel = static_cast<std::int32_t>(player->GetLevel());
     float experience = 0.0f;
     float expToNextLevel = 0.0f;
