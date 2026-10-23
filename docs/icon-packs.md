@@ -101,6 +101,7 @@ Square, transparent PNGs of 96–256px work best. They are drawn small (see the 
 ## 배포 / Sharing
 
 - 팩만 따로 모드로 배포할 수 있습니다. 압축 안 경로를 `PrismaUI/views/TulliusWidgets/icon-packs/<팩 이름>/...`로 만들면 MO2·Vortex에서 바로 설치됩니다.
+- MO2는 `PrismaUI` 폴더만 있는 압축을 설치할 때 "<data>의 내용물이 유효하지 않은 것으로 보입니다"라고 경고합니다. 구조가 위와 같다면 그대로 확인을 누르면 됩니다(MO2가 SKSE·meshes 같은 익숙한 폴더가 없어서 띄우는 경고입니다).
 - 다른 작품의 캐릭터나 아이콘을 쓴다면 원작자의 이용 규정을 확인하세요.
 
-Packs can be shared as standalone mods; use the archive path `PrismaUI/views/TulliusWidgets/icon-packs/<pack name>/...`. If you draw someone else's characters or icons, check the original creator's terms.
+Packs can be shared as standalone mods; use the archive path `PrismaUI/views/TulliusWidgets/icon-packs/<pack name>/...`. MO2 warns that the <data> contents look invalid for an archive holding only a `PrismaUI` folder; with this layout it is safe to click OK. If you draw someone else's characters or icons, check the original creator's terms.
