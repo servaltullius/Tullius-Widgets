@@ -6,6 +6,14 @@ A modern combat HUD and STB Widgets alternative for Skyrim SE/AE, powered by [ur
 Since v1.8.0 the cardless [b]Compact HUD[/b] is the default for new installs, and the original card-based Classic style is still available.
 Every widget stays independently movable and configurable. Standard icons are the default, and a Dororong icon theme is available as an option.
 
+[size=3][b]New in v1.9.0: icon packs[/b][/size]
+
+[list]
+[*]Reskin the Compact HUD with your own PNGs: put files named like [font=Courier New]health.png[/font] or [font=Courier New]slot-sword.png[/font] in [font=Courier New]PrismaUI/views/TulliusWidgets/icon-packs/<pack name>/[/font] and pick the pack in Settings → General → Icon Style
+[*]Only the icons you add change; the rest stay built-in, so partial packs work. Packs can be shared as their own mods
+[*]How to make one, with every icon name: [url=https://github.com/servaltullius/Tullius-Widgets/blob/master/docs/icon-packs.md]icon pack guide[/url]
+[/list]
+
 [size=3][b]v1.8.0 Highlights[/b][/size]
 
 [list]
@@ -32,6 +40,7 @@ Every widget stays independently movable and configurable. Standard icons are th
 [list]
 [*][b]28 independently positioned HUD items[/b] covering progression, player stats, resistances, defense, offense, equipment, time and weather, movement, and timed effects
 [*]Two styles: [b]Compact HUD[/b] and [b]Classic cards[/b]
+[*][b]Icon packs[/b]: reskin the Compact HUD with your own PNGs
 [*]Uses familiar [b]standard icons by default[/b], with the Dororong theme and optional identifier badges available
 [*]Per-widget [b]move, resize, lock, visibility, layer order[/b] and [b]show conditions[/b]
 [*]Direct drag editing, neighbor snapping, alignment guides, 1px/10px keyboard movement, and undo
