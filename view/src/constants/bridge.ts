@@ -7,6 +7,7 @@ export const BRIDGE_HANDLERS = {
   toggleWidgetsVisibility: 'toggleWidgetsVisibility',
   closeSettings: 'closeSettings',
   setHUDColor: 'setHUDColor',
+  updateIconPacks: 'updateIconPacks',
 } as const;
 
 export const BRIDGE_CALLBACKS = {

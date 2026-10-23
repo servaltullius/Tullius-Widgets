@@ -1,3 +1,4 @@
+#include "IconPacks.h"
 #include "NativeStorage.h"
 #include "PrismaUI_API.h"
 #include "RuntimeDiagnostics.h"
@@ -118,8 +119,18 @@ static void SendHUDColorToView() {
     logger::info("HUD color sent: {}", hex);
 }
 
+static void SendIconPacksToView() {
+    if (!IsInteropReady()) return;
+    std::size_t packCount = 0;
+    const auto json = TulliusWidgets::IconPacks::BuildIconPacksJson(ResolveStorageBasePath(), &packCount);
+    if (!TryInteropCall(TulliusWidgets::WidgetInteropContracts::kUpdateIconPacks, json.c_str())) return;
+    logger::info("Icon packs sent to view: {}", packCount);
+}
+
 static void SendSettingsToView() {
     if (!IsInteropReady()) return;
+    // Before the settings, so a saved icon pack is known when they are applied.
+    SendIconPacksToView();
     std::string json = TulliusWidgets::NativeStorage::LoadSettings(ResolveStorageBasePath());
     if (json.empty()) return;
     if (!TryInteropCall(TulliusWidgets::WidgetInteropContracts::kUpdateSettings, json.c_str())) return;

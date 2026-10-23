@@ -16,6 +16,7 @@ import type {
 } from '../types/settings';
 import { LAYOUT_SLOT_COUNT } from '../types/settings';
 import { defaultSettings } from '../data/defaultSettings';
+import { isValidIconPackId } from '../data/iconPacks';
 import { sanitizeWidgetItemLayouts } from '../data/widgetItemRegistry';
 import { isPlainObject, readBoolean, readNumber } from '../utils/normalize';
 import { sanitizeHotkeys } from '../utils/hotkeys';
@@ -168,6 +169,9 @@ function mergeGeneralSettings(
   const hasExplicitIconBadgeSetting = typeof incoming.showIconBadges === 'boolean';
   target.iconTheme = readEnum<IconTheme>(incoming.iconTheme, target.iconTheme, ICON_THEMES);
   target.showIconBadges = readBoolean(incoming.showIconBadges, target.showIconBadges);
+  target.iconPack = typeof incoming.iconPack === 'string' && (incoming.iconPack === '' || isValidIconPackId(incoming.iconPack))
+    ? incoming.iconPack
+    : target.iconPack;
   if (isLegacyIconPresentation) {
     if (!hasExplicitIconTheme) {
       target.iconTheme = 'dororong';

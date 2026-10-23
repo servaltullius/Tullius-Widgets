@@ -24,8 +24,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { EffectCategory, TimedEffect } from '../types/stats';
-import { getDororongStatIcon } from '../data/dororongMiniIcons';
-import { CompactIconThemeContext } from './compact/compactIconTheme';
+import { CompactIconThemeContext, getCompactStatArt } from './compact/compactIconTheme';
 
 const EFFECT_CATEGORY_ICONS: Record<EffectCategory, LucideIcon> = {
   health: Heart,
@@ -137,7 +136,7 @@ export function TimedEffectList({
   variant = 'card',
 }: TimedEffectListProps) {
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const iconTheme = useContext(CompactIconThemeContext);
+  const iconSource = useContext(CompactIconThemeContext);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -196,7 +195,7 @@ export function TimedEffectList({
           >
             <span className="tw-ceffect-name">
               {(() => {
-                const art = getDororongStatIcon(iconTheme, effect.category);
+                const art = getCompactStatArt(iconSource, effect.category);
                 if (art) {
                   // Drawn at 20 px over the line icon's 12 px footprint so rows keep their pitch.
                   return <img src={art} alt="" aria-hidden="true" width={20} height={20} style={{ flex: 'none', display: 'block', margin: -4 }} />;

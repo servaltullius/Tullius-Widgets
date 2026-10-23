@@ -222,6 +222,9 @@ export const bundledTranslations = {
     compactSizeSmallScreenHint: '화면이 작아 글자가 작게 보일 수 있습니다. \'크게\'를 권장합니다.',
     equippedTwoHanded: '(양손)',
     iconThemeCompactHint: '아이콘 스타일을 바꾸면 위젯이 그 스타일의 기본 배치로 이동합니다(도로롱은 아이콘이 커서 간격이 더 넓습니다).',
+    iconThemePack: '아이콘 팩: {name}',
+    iconPackCredit: '{name} — 제작 {author}',
+    iconPackHint: 'PrismaUI/views/TulliusWidgets/icon-packs 폴더에 아이콘 팩을 넣으면 여기에서 고를 수 있습니다. 팩에 없는 아이콘은 기본 아이콘으로 보입니다.',
   },
   en: {
     title: 'Tullius Widgets',
@@ -443,6 +446,9 @@ export const bundledTranslations = {
     compactSizeSmallScreenHint: 'Your screen is small, so text may look tiny. \'Large\' is recommended.',
     equippedTwoHanded: '(two-handed)',
     iconThemeCompactHint: 'Changing the icon style moves widgets to that style\'s default layout (Dororong icons are larger and spaced wider).',
+    iconThemePack: 'Icon pack: {name}',
+    iconPackCredit: '{name} — by {author}',
+    iconPackHint: 'Icon packs placed in PrismaUI/views/TulliusWidgets/icon-packs show up here. Icons a pack lacks use the built-in ones.',
   },
 } as const;
 

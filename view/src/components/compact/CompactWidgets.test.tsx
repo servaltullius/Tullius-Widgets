@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CompactEquipSlot, CompactExperienceRing, CompactResistance, CompactStat } from './CompactWidgets';
 import { CompactIconThemeContext } from './compactIconTheme';
+import { normalizeIconPacks } from '../../data/iconPacks';
 
 describe('CompactWidgets', () => {
   let container: HTMLDivElement;
@@ -143,13 +144,50 @@ describe('CompactWidgets', () => {
     render(<CompactStat icon="gold" iconColor="#fff" value="8,876" />);
     expect(container.querySelector('[data-compact-icon-art]')).toBeNull();
     render(
-      <CompactIconThemeContext.Provider value="dororong">
+      <CompactIconThemeContext.Provider value={{ theme: 'dororong', pack: null }}>
         <CompactStat icon="gold" iconColor="#fff" value="8,876" />
         <CompactEquipSlot slotKey="R" name="긴 활" emptyLabel="-" kind="bow" value={8} nameDisplay="never" />
       </CompactIconThemeContext.Provider>,
     );
     expect(container.querySelector('[data-compact-icon-art="gold"]')).not.toBeNull();
     expect(container.querySelector('[data-compact-slot-art="bow"]')).not.toBeNull();
+  });
+
+  it('draws an icon pack over its base theme and falls back to the base for missing icons', () => {
+    const [pack] = normalizeIconPacks(JSON.stringify({
+      packs: [{ id: 'My Pack', icons: ['Gold', 'slot-sword', 'slot-sword-left', 'slot-bow'], manifest: '' }],
+    }));
+    render(
+      <CompactIconThemeContext.Provider value={{ theme: 'dororong', pack }}>
+        <CompactStat icon="gold" iconColor="#fff" value="8,876" />
+        <CompactStat icon="health" iconColor="#fff" value="300" />
+        <CompactEquipSlot slotKey="R" name="강철 검" emptyLabel="-" kind="sword" value={8} nameDisplay="never" />
+        <CompactEquipSlot slotKey="L" name="강철 검" emptyLabel="-" kind="sword" value={8} nameDisplay="never" />
+        <CompactEquipSlot slotKey="L" name="긴 활" emptyLabel="-" kind="bow" value={8} nameDisplay="never" />
+      </CompactIconThemeContext.Provider>,
+    );
+    const gold = container.querySelector('[data-compact-icon-art="gold"]') as HTMLImageElement;
+    expect(gold.getAttribute('src')).toBe('icon-packs/My%20Pack/Gold.png');
+    expect(gold.getAttribute('width')).toBe('30');
+    // Not in the pack: the base theme's built-in art.
+    expect(container.querySelector('[data-compact-icon-art="health"]')?.getAttribute('src')).not.toContain('icon-packs/');
+    const slots = [...container.querySelectorAll('[data-compact-slot-art]')].map(el => el.getAttribute('src'));
+    expect(slots).toEqual([
+      'icon-packs/My%20Pack/slot-sword.png',
+      'icon-packs/My%20Pack/slot-sword-left.png',
+      // No "-left" art in the pack: its right-hand art, not the base theme's.
+      'icon-packs/My%20Pack/slot-bow.png',
+    ]);
+
+    // Over the standard theme: the line icon's footprint, and line icons for what is missing.
+    render(
+      <CompactIconThemeContext.Provider value={{ theme: 'standard', pack }}>
+        <CompactStat icon="gold" iconColor="#fff" value="8,876" />
+        <CompactStat icon="health" iconColor="#fff" value="300" />
+      </CompactIconThemeContext.Provider>,
+    );
+    expect(container.querySelector('[data-compact-icon-art="gold"]')?.getAttribute('width')).toBe('15');
+    expect(container.querySelector('[data-compact-icon-art="health"]')).toBeNull();
   });
 
   it('shows the doses left of an applied weapon poison', () => {

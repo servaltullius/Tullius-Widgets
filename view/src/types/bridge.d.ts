@@ -10,6 +10,7 @@ declare global {
     toggleWidgetsVisibility?: () => void;
     closeSettings?: () => void;
     setHUDColor?: (hex: string) => void;
+    updateIconPacks?: (jsonString: string) => void;
   }
 
   interface TulliusWidgetsBridgeNamespace {
@@ -28,6 +29,7 @@ declare global {
     toggleWidgetsVisibility?: () => void;
     closeSettings?: () => void;
     setHUDColor?: (hex: string) => void;
+    updateIconPacks?: (jsonString: string) => void;
 
     onSettingsChanged?: (jsonString: string) => void;
     onSettingsSyncResult?: (success: boolean, revision?: number) => void;

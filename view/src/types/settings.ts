@@ -53,6 +53,8 @@ export interface WidgetSettings {
     language: Language;
     fontPreset: FontPreset;
     iconTheme: IconTheme;
+    /** Folder name of a user icon pack drawn over `iconTheme` in the compact HUD ('' = none). */
+    iconPack: string;
     hudStyle: HudStyle;
     compactAnchor: CompactAnchor;
     /** DirectInput scan codes for the settings panel and show/hide-all hotkeys. */
