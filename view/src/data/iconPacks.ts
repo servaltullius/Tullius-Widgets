@@ -86,9 +86,12 @@ export function normalizeIconPacks(jsonString: string): IconPack[] {
   return packs.sort((a, b) => a.name.localeCompare(b.name));
 }
 
+// Case-insensitive like the folder names it stands for on Windows, so renaming a pack folder
+// only by case keeps the player's choice.
 export function findIconPack(packs: readonly IconPack[], id: string): IconPack | null {
   if (!id) return null;
-  return packs.find(pack => pack.id === id) ?? null;
+  const key = id.toLowerCase();
+  return packs.find(pack => pack.id.toLowerCase() === key) ?? null;
 }
 
 // Relative to the view's index.html (PrismaUI/views/TulliusWidgets/).

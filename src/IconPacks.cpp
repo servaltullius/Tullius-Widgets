@@ -6,6 +6,7 @@
 #include <cctype>
 #include <fstream>
 #include <iterator>
+#include <string_view>
 #include <system_error>
 #include <vector>
 
@@ -24,14 +25,33 @@ std::string ToUtf8(const std::filesystem::path& path)
     return std::string(reinterpret_cast<const char*>(u8.data()), u8.size());
 }
 
+// Same characters the view accepts (isValidIconPackId): letters in any script (any UTF-8
+// byte from 0x80), digits, space and _ - . ( ) ' [ ]. A folder the view would drop is logged
+// here instead of vanishing from the menu without a word.
 bool IsSafePackId(const std::string& id)
 {
     if (id.empty() || id.size() > kMaxPackIdBytes || id.front() == '.' || id.find("..") != std::string::npos) {
         return false;
     }
-    return std::none_of(id.begin(), id.end(), [](unsigned char c) {
-        return c < 0x20 || c == '/' || c == '\\' || c == ':' || c == '"' || c == '%';
+    return std::all_of(id.begin(), id.end(), [](unsigned char c) {
+        return c >= 0x80 || std::isalnum(c) || c == ' ' || c == '_' || c == '-' || c == '.' ||
+               c == '(' || c == ')' || c == '\'' || c == '[' || c == ']';
     });
+}
+
+bool IsValidUtf8(std::string_view text)
+{
+    std::size_t i = 0;
+    while (i < text.size()) {
+        const auto c = static_cast<unsigned char>(text[i]);
+        const std::size_t length = c < 0x80 ? 1 : (c >> 5) == 0x6 ? 2 : (c >> 4) == 0xE ? 3 : (c >> 3) == 0x1E ? 4 : 0;
+        if (length == 0 || i + length > text.size()) return false;
+        for (std::size_t j = 1; j < length; ++j) {
+            if ((static_cast<unsigned char>(text[i + j]) >> 6) != 0x2) return false;
+        }
+        i += length;
+    }
+    return true;
 }
 
 bool IsSafeIconName(const std::string& name)
@@ -57,7 +77,16 @@ std::string ReadManifest(const std::filesystem::path& packDir)
     if (ec || size == 0 || size > kMaxManifestBytes) return {};
     std::ifstream file(manifestPath, std::ios::binary);
     if (!file) return {};
-    return std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+    std::string text{ std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>() };
+    // Notepad saves UTF-8 with a byte-order mark, which JSON.parse rejects.
+    if (text.starts_with("\xEF\xBB\xBF")) text.erase(0, 3);
+    // A manifest in a legacy code page (CP949 and the like) would put invalid UTF-8 into the
+    // listing every pack shares; the pack keeps working under its folder name.
+    if (!IsValidUtf8(text)) {
+        logger::warn("Icon pack manifest is not UTF-8, ignoring it: {}", ToUtf8(manifestPath));
+        return {};
+    }
+    return text;
 }
 
 }  // namespace
@@ -82,7 +111,10 @@ std::string BuildIconPacksJson(const std::filesystem::path& gameRootPath, std::s
         std::error_code entryEc;
         if (!it->is_directory(entryEc) || entryEc) continue;
         Pack pack{ ToUtf8(it->path().filename()) };
-        if (!IsSafePackId(pack.id)) continue;
+        if (!IsSafePackId(pack.id)) {
+            logger::warn("Icon pack folder name not supported (letters, digits, space and _ - . ( ) ' [ ] only): {}", pack.id);
+            continue;
+        }
 
         std::error_code fileEc;
         for (std::filesystem::directory_iterator file(it->path(), fileEc), fileEnd; !fileEc && file != fileEnd && pack.icons.size() < kMaxIconsPerPack; file.increment(fileEc)) {

@@ -18,6 +18,7 @@ describe('iconPacks', () => {
     expect(getIconPackUrl(korean, 'GOLD')).toBe('icon-packs/%EB%8F%84%EB%A1%9C%EB%A1%B1%20%EB%A6%AC%EC%8A%A4%ED%82%A8/gold.png');
     expect(getIconPackUrl(korean, 'health')).toBeUndefined();
     expect(findIconPack(packs, 'zeta')).toBe(zeta);
+    expect(findIconPack(packs, 'ZETA')).toBe(zeta);
     expect(findIconPack(packs, '')).toBeNull();
     expect(findIconPack(packs, 'missing')).toBeNull();
   });
