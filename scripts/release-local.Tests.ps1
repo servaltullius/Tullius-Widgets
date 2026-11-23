@@ -596,4 +596,54 @@ exit /b 1
       }
     }
   }
+
+  It "recognizes step markers appended to output that did not end with a newline" {
+    $output = "##TW-STEP-BEGIN 0`r`n##TW-STEP-DONE 0`r`n##TW-STEP-BEGIN 1`r`nbuilding 100%`r##TW-STEP-DONE 1`r`n##TW-STEP-BEGIN 2`r`nerror: broken##TW-STEP-FAIL 2 -4058`r`n"
+    $result = Resolve-CmdCommandsOutput -Output $output -Path "C:\stage" -Commands @("xmake build", "npm run lint") -ExitCode -4058
+
+    $result.ErrorMessage | Should Be "Step 2/2 failed with exit code -4058: call npm run lint"
+    $result.Display | Should Match "building 100%"
+    $result.Display | Should Match "\[cmd\] \(1/2\) ok"
+    $result.Display | Should Match "error: broken"
+    $result.Display | Should Not Match "##TW-STEP"
+
+    $success = Resolve-CmdCommandsOutput `
+      -Output "##TW-STEP-DONE 0`r`n##TW-STEP-BEGIN 1`r`nlast line without newline##TW-STEP-DONE 1`r`n" `
+      -Path "C:\stage" `
+      -Commands @("xmake build") `
+      -ExitCode 0
+    $success.ErrorMessage | Should Be $null
+  }
+
+  It "keeps the existing frontend dist and leaves no temporary copies when the swap fails" {
+    $root = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
+    $repoViewDist = Join-Path $root "repo/dist/PrismaUI/views/TulliusWidgets"
+    $stagedViewDist = Join-Path $root "stage/dist/PrismaUI/views/TulliusWidgets"
+    New-Item -ItemType Directory -Path $repoViewDist -Force | Out-Null
+    New-Item -ItemType Directory -Path $stagedViewDist -Force | Out-Null
+    Set-Content -Path (Join-Path $repoViewDist "index.html") -Value "old" -Encoding ASCII
+    Set-Content -Path (Join-Path $stagedViewDist "index.html") -Value "new" -Encoding ASCII
+    # An open handle inside the directory makes Windows refuse to move it.
+    $lock = [System.IO.File]::Open(
+      (Join-Path $repoViewDist "index.html"),
+      [System.IO.FileMode]::Open,
+      [System.IO.FileAccess]::Read,
+      [System.IO.FileShare]::Read)
+
+    try {
+      { Publish-StagedFrontendDist -StagedViewDist $stagedViewDist -RepoViewDist $repoViewDist } | Should Throw
+      $lock.Dispose()
+      $lock = $null
+      (Get-Content -Path (Join-Path $repoViewDist "index.html") -Raw).Trim() | Should Be "old"
+      @(Get-ChildItem -LiteralPath (Split-Path -Parent $repoViewDist) -Force).Count | Should Be 1
+    }
+    finally {
+      if ($lock) {
+        $lock.Dispose()
+      }
+      if (Test-Path $root) {
+        Remove-Item -LiteralPath $root -Recurse -Force
+      }
+    }
+  }
 }

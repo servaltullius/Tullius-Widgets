@@ -526,11 +526,20 @@ function Resolve-CmdCommandsOutput {
   $failedCode = $null
   $display = [System.Text.StringBuilder]::new()
 
-  foreach ($line in ("$Output" -split "\r?\n")) {
-    if ($line -match '^##TW-STEP-(BEGIN|DONE|FAIL) (\d+)(?: (-?\d+))?\s*$') {
-      $index = [int]$Matches[2]
+  # A step whose output does not end with a newline (a progress bar ending in a bare CR, say)
+  # gets the next marker appended to its last line, so markers are matched at the end of a
+  # line and whatever precedes them is kept as that step's output.
+  foreach ($line in ("$Output" -split "\r?\n|\r")) {
+    if ($line -match '^(.*?)##TW-STEP-(BEGIN|DONE|FAIL) (\d+)(?: (-?\d+))?\s*$') {
+      $precedingText = $Matches[1]
+      $kind = $Matches[2]
+      $index = [int]$Matches[3]
+      $markerCode = $Matches[4]
+      if ($precedingText.Trim()) {
+        [void]$display.AppendLine($precedingText)
+      }
       $label = if ($index -eq 0) { "[cmd] (setup)" } else { "[cmd] ($index/$total)" }
-      switch ($Matches[1]) {
+      switch ($kind) {
         "BEGIN" { [void]$display.AppendLine("$label $(& $describe $index)") }
         "DONE" {
           $lastDone = $index
@@ -538,7 +547,7 @@ function Resolve-CmdCommandsOutput {
         }
         "FAIL" {
           $failedStep = $index
-          $failedCode = [int]$Matches[3]
+          $failedCode = [int]$markerCode
           [void]$display.AppendLine("$label FAILED with exit code ${failedCode}: $(& $describe $index)")
         }
       }
@@ -867,16 +876,18 @@ function Publish-StagedFrontendDist {
     throw "Staged frontend build output is missing index.html: $StagedViewDist (left $RepoViewDist untouched)"
   }
 
-  $parent = Split-Path -Parent $RepoViewDist
   $leaf = Split-Path -Leaf $RepoViewDist
-  New-Item -ItemType Directory -Path $parent -Force | Out-Null
+  New-Item -ItemType Directory -Path (Split-Path -Parent $RepoViewDist) -Force | Out-Null
+  # .NET resolves relative paths against the process directory, not the PowerShell location.
+  $parent = (Resolve-Path -LiteralPath (Split-Path -Parent $RepoViewDist)).ProviderPath
+  $RepoViewDist = Join-Path $parent $leaf
 
   $suffix = [guid]::NewGuid().ToString("N").Substring(0, 12)
   $incoming = Join-Path $parent ".$leaf.incoming-$suffix"
   $previous = Join-Path $parent ".$leaf.previous-$suffix"
 
   try {
-    Copy-Item -LiteralPath $StagedViewDist -Destination $incoming -Recurse -Force
+    Copy-Item -LiteralPath $StagedViewDist -Destination $incoming -Recurse -Force -ErrorAction Stop
     if (-not (Test-Path -LiteralPath (Join-Path $incoming "index.html"))) {
       throw "Copied frontend output is missing index.html: $incoming"
     }
@@ -888,27 +899,34 @@ function Publish-StagedFrontendDist {
     throw
   }
 
+  # Directory.Move only renames (the paths are siblings), unlike Move-Item, which falls back to
+  # copy-then-delete when a rename is refused and can leave a duplicate or half-deleted view.
   $hadPrevious = Test-Path -LiteralPath $RepoViewDist
-  if ($hadPrevious) {
-    Move-Item -LiteralPath $RepoViewDist -Destination $previous
-  }
-
   try {
-    Move-Item -LiteralPath $incoming -Destination $RepoViewDist
+    if ($hadPrevious) {
+      [System.IO.Directory]::Move($RepoViewDist, $previous)
+    }
+    [System.IO.Directory]::Move($incoming, $RepoViewDist)
   }
   catch {
-    if ($hadPrevious -and -not (Test-Path -LiteralPath $RepoViewDist)) {
-      Move-Item -LiteralPath $previous -Destination $RepoViewDist
+    $swapError = $_
+    if ($hadPrevious -and -not (Test-Path -LiteralPath $RepoViewDist) -and (Test-Path -LiteralPath $previous)) {
+      try {
+        [System.IO.Directory]::Move($previous, $RepoViewDist)
+      }
+      catch {
+        Write-Warning "Could not move the previous frontend dist back from ${previous} to ${RepoViewDist}: $($_.Exception.Message)"
+      }
     }
     if (Test-Path -LiteralPath $incoming) {
       Remove-Item -LiteralPath $incoming -Recurse -Force -ErrorAction SilentlyContinue
     }
-    throw
+    throw $swapError
   }
 
   if ($hadPrevious) {
     try {
-      Remove-Item -LiteralPath $previous -Recurse -Force
+      Remove-Item -LiteralPath $previous -Recurse -Force -ErrorAction Stop
     }
     catch {
       Write-Warning "Updated $RepoViewDist, but could not remove the previous copy at ${previous}: $($_.Exception.Message)"
