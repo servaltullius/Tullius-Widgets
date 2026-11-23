@@ -102,6 +102,23 @@ test('menu visibility heuristics cover transient photo or capture menus', () => 
   assert.match(widgetVisibilityStateText, /IsApplicationMenuOpen\(\)/);
 });
 
+test('transient menu matching never walks an untrusted menu-name length', () => {
+  const menuNameMatchText = readFileSync(new URL('../src/MenuNameMatch.h', import.meta.url), 'utf8');
+  assert.match(widgetVisibilityStateText, /#include "MenuNameMatch\.h"/);
+  assert.match(widgetVisibilityStateText, /MenuNameMatch::TrustedMenuName\(std::string_view\(menuName\)\)/);
+  assert.match(widgetVisibilityStateText, /MenuNameMatch::ContainsAnyLoweredToken\(trustedMenuName, kTransientHideMenuTokens\)/);
+  assert.doesNotMatch(widgetVisibilityStateText, /ToLowerAscii|\.reserve\(/);
+  assert.match(menuNameMatchText, /kMaxTrustedMenuNameLength = 128;/);
+  assert.match(menuNameMatchText, /::strnlen\(reported\.data\(\), reported\.size\(\)\) != reported\.size\(\)/);
+});
+
+test('corrupted menu close events reconcile tracked transient menus with the UI', () => {
+  assert.match(widgetVisibilityStateText, /std::vector<std::string> g_openTransientMenus;/);
+  assert.match(widgetVisibilityStateText, /g_reconcileTransientMenus\.store\(true, std::memory_order_release\);/);
+  assert.match(widgetVisibilityStateText, /return !ui->IsMenuOpen\(menuName\);/);
+  assert.match(widgetVisibilityStateText, /ReconcileTransientMenus\(ui\);\s*return g_transientHideMenuCount\.load/);
+});
+
 test('visibility checks allow PrismaUI focus without hiding the widget view', () => {
   assert.match(widgetEventsHeaderText, /bool \(\*hasViewFocus\)\(\) = nullptr;/);
   assert.match(widgetRuntimeHeaderText, /std::function<bool\(\)> hasViewFocus;/);
