@@ -49,19 +49,15 @@ try {
         "npm run build"
       )
 
-      $stagedViewDist = Join-Path $frontendBuildRoot "dist/PrismaUI/views/TulliusWidgets"
-      $repoViewDist = Join-Path $repoRoot "dist/PrismaUI/views/TulliusWidgets"
-      if (Test-Path $repoViewDist) {
-        Remove-Item -LiteralPath $repoViewDist -Recurse -Force
-      }
-      New-Item -ItemType Directory -Path (Split-Path $repoViewDist -Parent) -Force | Out-Null
-      Copy-Item -LiteralPath $stagedViewDist -Destination $repoViewDist -Recurse -Force
+      Publish-StagedFrontendDist `
+        -StagedViewDist (Join-Path $frontendBuildRoot "dist/PrismaUI/views/TulliusWidgets") `
+        -RepoViewDist (Join-Path $repoRoot "dist/PrismaUI/views/TulliusWidgets")
     } else {
       Push-Location "view"
       try {
-        npm run lint
-        npm test -- --run
-        npm run build
+        Invoke-CheckedNativeCommand -Description "npm run lint" -ScriptBlock { npm run lint }
+        Invoke-CheckedNativeCommand -Description "npm test -- --run" -ScriptBlock { npm test -- --run }
+        Invoke-CheckedNativeCommand -Description "npm run build" -ScriptBlock { npm run build }
       }
       finally {
         Pop-Location
@@ -109,8 +105,10 @@ try {
       Copy-Item -LiteralPath $stagedDllPath -Destination (Join-Path $repoBuildDir "TulliusWidgets.dll") -Force
       Sync-RequiresLockFromStage -StageRoot $pluginBuildRoot -RepoRoot $repoRoot | Out-Null
     } else {
-      xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false
-      xmake build
+      Invoke-CheckedNativeCommand -Description "xmake f" -ScriptBlock {
+        xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false
+      }
+      Invoke-CheckedNativeCommand -Description "xmake build" -ScriptBlock { xmake build }
     }
 
     Write-PluginBuildStamp -RepoRoot $repoRoot -PluginDllPath $pluginDllPath

@@ -487,4 +487,113 @@ exit /b 1
       }
     }
   }
+
+  It "prefixes cmd steps with call exactly once" {
+    (ConvertTo-CmdCallCommand -Command "npm ci") | Should Be "call npm ci"
+    (ConvertTo-CmdCallCommand -Command "call npm ci") | Should Be "call npm ci"
+    (ConvertTo-CmdCallCommand -Command "CALL `"C:\VS\VsDevCmd.bat`" -arch=amd64") | Should Be "CALL `"C:\VS\VsDevCmd.bat`" -arch=amd64"
+    (ConvertTo-CmdCallCommand -Command "`"C:\xmake\xmake.exe`" build") | Should Be "call `"C:\xmake\xmake.exe`" build"
+  }
+
+  It "runs every cmd step even when a step is a batch file invoked without call" {
+    $root = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $root -Force | Out-Null
+    Set-Content -Path (Join-Path $root "first.cmd") -Value @("@echo off", "echo FIRST-RAN") -Encoding ASCII
+    Set-Content -Path (Join-Path $root "second.cmd") -Value @("@echo off", "echo done> second.marker") -Encoding ASCII
+
+    try {
+      Invoke-CmdCommands -Path $root -Commands @(".\first.cmd", ".\second.cmd")
+      (Test-Path (Join-Path $root "second.marker")) | Should Be $true
+    }
+    finally {
+      if (Test-Path $root) {
+        Remove-Item -LiteralPath $root -Recurse -Force
+      }
+    }
+  }
+
+  It "stops at the failing cmd step and names it, including negative exit codes" {
+    $root = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $root -Force | Out-Null
+    Set-Content -Path (Join-Path $root "ok.cmd") -Value @("@echo off", "echo OK-STEP") -Encoding ASCII
+    Set-Content -Path (Join-Path $root "fail.cmd") -Value @("@echo off", "echo LINT-ERROR-DETAIL", "exit /b -4058") -Encoding ASCII
+    Set-Content -Path (Join-Path $root "after.cmd") -Value @("@echo off", "echo done> after.marker") -Encoding ASCII
+
+    try {
+      { Invoke-CmdCommands -Path $root -Commands @(".\ok.cmd", ".\fail.cmd", ".\after.cmd") } |
+        Should Throw "Step 2/3 failed with exit code -4058: call .\fail.cmd"
+      (Test-Path (Join-Path $root "after.marker")) | Should Be $false
+    }
+    finally {
+      if (Test-Path $root) {
+        Remove-Item -LiteralPath $root -Recurse -Force
+      }
+    }
+  }
+
+  It "fails when the cmd batch exits 0 before the last step completed" {
+    $output = "##TW-STEP-BEGIN 0`r`n##TW-STEP-DONE 0`r`n##TW-STEP-BEGIN 1`r`nadded 300 packages`r`n##TW-STEP-DONE 1`r`n"
+    $result = Resolve-CmdCommandsOutput -Output $output -Path "C:\stage\view" -Commands @("npm ci", "npm run lint") -ExitCode 0
+
+    $result.ErrorMessage | Should Be "Command batch ended without an error code, but step 2/2 never completed: call npm run lint"
+    $result.Display | Should Match "\[cmd\] \(1/2\) call npm ci"
+    $result.Display | Should Match "added 300 packages"
+  }
+
+  It "fails when the cmd working directory cannot be entered" {
+    $missing = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
+    { Invoke-CmdCommands -Path $missing -Commands @("echo never") } |
+      Should Throw "Setup step failed with exit code 1: enter $missing"
+  }
+
+  It "throws when a checked native command exits non-zero" {
+    { Invoke-CheckedNativeCommand -Description "fake lint" -ScriptBlock { cmd.exe /d /c "exit 3" } } |
+      Should Throw "fake lint failed with exit code 3"
+    { Invoke-CheckedNativeCommand -Description "fake ok" -ScriptBlock { cmd.exe /d /c "exit 0" } } |
+      Should Not Throw
+  }
+
+  It "keeps the existing frontend dist when the staged build produced no output" {
+    $root = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
+    $repoViewDist = Join-Path $root "repo/dist/PrismaUI/views/TulliusWidgets"
+    $stagedViewDist = Join-Path $root "stage/dist/PrismaUI/views/TulliusWidgets"
+    New-Item -ItemType Directory -Path $repoViewDist -Force | Out-Null
+    Set-Content -Path (Join-Path $repoViewDist "index.html") -Value "old" -Encoding ASCII
+
+    try {
+      { Publish-StagedFrontendDist -StagedViewDist $stagedViewDist -RepoViewDist $repoViewDist } |
+        Should Throw "Staged frontend build output is missing index.html"
+      (Get-Content -Path (Join-Path $repoViewDist "index.html") -Raw).Trim() | Should Be "old"
+    }
+    finally {
+      if (Test-Path $root) {
+        Remove-Item -LiteralPath $root -Recurse -Force
+      }
+    }
+  }
+
+  It "replaces the frontend dist with the staged build without leaving temporary copies" {
+    $root = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
+    $repoViewDist = Join-Path $root "repo/dist/PrismaUI/views/TulliusWidgets"
+    $stagedViewDist = Join-Path $root "stage/dist/PrismaUI/views/TulliusWidgets"
+    New-Item -ItemType Directory -Path $repoViewDist -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $stagedViewDist "assets") -Force | Out-Null
+    Set-Content -Path (Join-Path $repoViewDist "index.html") -Value "old" -Encoding ASCII
+    Set-Content -Path (Join-Path $repoViewDist "stale.js") -Value "stale" -Encoding ASCII
+    Set-Content -Path (Join-Path $stagedViewDist "index.html") -Value "new" -Encoding ASCII
+    Set-Content -Path (Join-Path $stagedViewDist "assets/app.js") -Value "app" -Encoding ASCII
+
+    try {
+      Publish-StagedFrontendDist -StagedViewDist $stagedViewDist -RepoViewDist $repoViewDist
+      (Get-Content -Path (Join-Path $repoViewDist "index.html") -Raw).Trim() | Should Be "new"
+      (Test-Path (Join-Path $repoViewDist "assets/app.js")) | Should Be $true
+      (Test-Path (Join-Path $repoViewDist "stale.js")) | Should Be $false
+      @(Get-ChildItem -LiteralPath (Split-Path -Parent $repoViewDist) -Force).Count | Should Be 1
+    }
+    finally {
+      if (Test-Path $root) {
+        Remove-Item -LiteralPath $root -Recurse -Force
+      }
+    }
+  }
 }
