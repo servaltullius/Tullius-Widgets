@@ -83,12 +83,9 @@ function Invoke-ReleaseLocal {
         if (-not $stagedViewDist) {
           throw "Frontend build output was not found in the staged workspace."
         }
-        $repoViewDist = Join-Path $repoRoot "dist/PrismaUI/views/TulliusWidgets"
-        if (Test-Path $repoViewDist) {
-          Remove-Item -LiteralPath $repoViewDist -Recurse -Force
-        }
-        New-Item -ItemType Directory -Path (Split-Path $repoViewDist -Parent) -Force | Out-Null
-        Copy-Item -LiteralPath $stagedViewDist -Destination $repoViewDist -Recurse -Force
+        Publish-StagedFrontendDist `
+          -StagedViewDist $stagedViewDist `
+          -RepoViewDist (Join-Path $repoRoot "dist/PrismaUI/views/TulliusWidgets")
       }
     }
 

@@ -48,8 +48,8 @@ test('default hotkeys include F11 widget visibility toggle', () => {
 });
 
 test('saved hotkey bindings apply at startup and on every settings save', () => {
-  assert.match(hotkeysText, /TryReadUIntField\(settingsJson, "settingsHotkey"\)/);
-  assert.match(hotkeysText, /TryReadUIntField\(settingsJson, "visibilityHotkey"\)/);
+  assert.match(hotkeysText, /TryReadUIntMember\(settingsJson, \{ "general", "settingsHotkey" \}\)/);
+  assert.match(hotkeysText, /TryReadUIntMember\(settingsJson, \{ "general", "visibilityHotkey" \}\)/);
   assert.match(hotkeysText, /case 0xD2:  \/\/ Insert/);
   assert.match(hotkeysText, /IsMenuOpen\(RE::Console::MENU_NAME\)/);
   assert.match(hotkeysText, /GetRuntimeData\(\).textEntryCount <= 0/);
@@ -87,7 +87,7 @@ test('settings bridge listener tracks settings panel visibility for native hotke
 
 test('settings sync bridge result includes optional revision-aware ack support', () => {
   assert.match(interopContractsText, /kOnSettingsSyncResult\[] = "onSettingsSyncResult"/);
-  assert.match(jsListenersText, /TryReadUIntField\(payloadView, "rev"\)/);
+  assert.match(jsListenersText, /TryReadUIntMember\(payloadView, \{ "rev" \}\)/);
   assert.match(jsListenersText, /NotifySettingsSyncResult\(saved, revision\)/);
 });
 

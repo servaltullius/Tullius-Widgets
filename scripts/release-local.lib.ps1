@@ -460,6 +460,135 @@ function Invoke-CmdBatchScript {
   return $result.ExitCode
 }
 
+function ConvertTo-CmdCallCommand {
+  param([string]$Command)
+
+  # A .cmd/.bat (npm.cmd, VsDevCmd.bat, ...) invoked without "call" replaces the running batch,
+  # so every later step is silently skipped and cmd exits 0. "call" is harmless for .exe targets.
+  if ($Command -match '^\s*call\s') {
+    return $Command.Trim()
+  }
+  return "call $($Command.Trim())"
+}
+
+function Get-CmdCommandsScriptLines {
+  param(
+    [string]$Path,
+    [string[]]$Commands
+  )
+
+  # Markers are echoed by step index only, so command text never has to be escaped for echo.
+  # Each errorlevel check sits on its own line so %errorlevel% expands after the step has run,
+  # and "not ==0" also catches negative exit codes (npm reports e.g. -4058) that "if errorlevel 1" misses.
+  $lines = [System.Collections.Generic.List[string]]::new()
+  $lines.Add("@echo off")
+  $lines.Add("setlocal")
+
+  $steps = @(
+    @{ Index = 0; Command = $(if ($Path.StartsWith("\\")) { "pushd `"$Path`" 2>&1" } else { "cd /d `"$Path`" 2>&1" }) }
+  )
+  for ($i = 0; $i -lt $Commands.Count; $i++) {
+    $steps += @{ Index = $i + 1; Command = "$(ConvertTo-CmdCallCommand -Command $Commands[$i]) 2>&1" }
+  }
+
+  foreach ($step in $steps) {
+    $index = $step.Index
+    $lines.Add("echo ##TW-STEP-BEGIN $index")
+    $lines.Add($step.Command)
+    $lines.Add('set "TW_STEP_RC=%errorlevel%"')
+    $lines.Add("if not `"%TW_STEP_RC%`"==`"0`" echo ##TW-STEP-FAIL $index %TW_STEP_RC%")
+    $lines.Add('if not "%TW_STEP_RC%"=="0" exit /b %TW_STEP_RC%')
+    $lines.Add("echo ##TW-STEP-DONE $index")
+  }
+
+  $lines.Add("endlocal")
+  $lines.Add("exit /b 0")
+  return ,$lines.ToArray()
+}
+
+function Resolve-CmdCommandsOutput {
+  param(
+    [string]$Output,
+    [string]$Path,
+    [string[]]$Commands,
+    [int]$ExitCode
+  )
+
+  $total = $Commands.Count
+  $describe = {
+    param([int]$Index)
+    if ($Index -eq 0) { return "enter $Path" }
+    return ConvertTo-CmdCallCommand -Command $Commands[$Index - 1]
+  }
+
+  $lastDone = -1
+  $failedStep = $null
+  $failedCode = $null
+  $display = [System.Text.StringBuilder]::new()
+
+  # A step whose output does not end with a newline (a progress bar ending in a bare CR, say)
+  # gets the next marker appended to its last line, so markers are matched at the end of a
+  # line and whatever precedes them is kept as that step's output.
+  foreach ($line in ("$Output" -split "\r?\n|\r")) {
+    if ($line -match '^(.*?)##TW-STEP-(BEGIN|DONE|FAIL) (\d+)(?: (-?\d+))?\s*$') {
+      $precedingText = $Matches[1]
+      $kind = $Matches[2]
+      $index = [int]$Matches[3]
+      $markerCode = $Matches[4]
+      if ($precedingText.Trim()) {
+        [void]$display.AppendLine($precedingText)
+      }
+      $label = if ($index -eq 0) { "[cmd] (setup)" } else { "[cmd] ($index/$total)" }
+      switch ($kind) {
+        "BEGIN" { [void]$display.AppendLine("$label $(& $describe $index)") }
+        "DONE" {
+          $lastDone = $index
+          if ($index -gt 0) { [void]$display.AppendLine("$label ok") }
+        }
+        "FAIL" {
+          $failedStep = $index
+          $failedCode = [int]$markerCode
+          [void]$display.AppendLine("$label FAILED with exit code ${failedCode}: $(& $describe $index)")
+        }
+      }
+      continue
+    }
+    [void]$display.AppendLine($line)
+  }
+
+  $errorMessage = $null
+  if ($null -ne $failedStep) {
+    $stepLabel = if ($failedStep -eq 0) { "Setup step" } else { "Step $failedStep/$total" }
+    $errorMessage = "$stepLabel failed with exit code ${failedCode}: $(& $describe $failedStep)"
+  } elseif ($ExitCode -ne 0) {
+    $errorMessage = "Command batch failed with exit code $ExitCode after step $([Math]::Max($lastDone, 0))/$total completed."
+  } elseif ($lastDone -ne $total) {
+    $nextStep = $lastDone + 1
+    $errorMessage = "Command batch ended without an error code, but step $nextStep/$total never completed: $(& $describe $nextStep)"
+  }
+
+  return @{
+    Display = $display.ToString().TrimEnd()
+    ErrorMessage = $errorMessage
+  }
+}
+
+function Invoke-CheckedNativeCommand {
+  param(
+    [string]$Description,
+    [scriptblock]$ScriptBlock
+  )
+
+  # PowerShell does not stop on a native command's non-zero exit code, even with
+  # $ErrorActionPreference = "Stop", so each step checks $LASTEXITCODE explicitly.
+  $global:LASTEXITCODE = 0
+  & $ScriptBlock
+  $exitCode = $global:LASTEXITCODE
+  if ($exitCode -ne 0) {
+    throw "$Description failed with exit code $exitCode"
+  }
+}
+
 function Invoke-CmdCommands {
   param(
     [string]$Path,
@@ -471,7 +600,6 @@ function Invoke-CmdCommands {
     return
   }
 
-  $commandText = $filteredCommands -join " && "
   $bootstrapLocation = if ($env:SystemRoot -and (Test-Path $env:SystemRoot)) {
     $env:SystemRoot
   } elseif ($env:SystemDrive) {
@@ -480,35 +608,25 @@ function Invoke-CmdCommands {
     "C:\"
   }
 
+  $scriptLines = Get-CmdCommandsScriptLines -Path $Path -Commands $filteredCommands
   Push-Location $bootstrapLocation
   try {
-    $scriptLines = [System.Collections.Generic.List[string]]::new()
-    $scriptLines.Add("@echo off")
-    $scriptLines.Add("setlocal")
-
-    $exitCode = 0
-
-    if ($Path.StartsWith("\\")) {
-      $scriptLines.Add("pushd `"$Path`"")
-    } else {
-      $scriptLines.Add("cd /d `"$Path`"")
-    }
-    $scriptLines.Add("if errorlevel 1 exit /b %errorlevel%")
-
-    foreach ($command in $filteredCommands) {
-      $scriptLines.Add($command)
-      $scriptLines.Add("if errorlevel 1 exit /b %errorlevel%")
-    }
-
-    $scriptLines.Add("endlocal")
-    $exitCode = Invoke-CmdBatchScript -ScriptLines $scriptLines -WorkingDirectory $bootstrapLocation
+    $result = Invoke-CmdBatchScriptWithOutput -ScriptLines $scriptLines -WorkingDirectory $bootstrapLocation
   }
   finally {
     Pop-Location
   }
 
-  if ($exitCode -ne 0) {
-    throw "Command failed with exit code ${exitCode}: $commandText"
+  $resolved = Resolve-CmdCommandsOutput `
+    -Output $result.Output `
+    -Path $Path `
+    -Commands $filteredCommands `
+    -ExitCode $result.ExitCode
+  if ($resolved.Display) {
+    Write-Host $resolved.Display
+  }
+  if ($resolved.ErrorMessage) {
+    throw $resolved.ErrorMessage
   }
 }
 
@@ -744,6 +862,76 @@ function Prepare-FrontendBuildWorkspace {
     -DestinationPath (Join-Path $stageRoot "view")
 
   return $stageRoot
+}
+
+function Publish-StagedFrontendDist {
+  param(
+    [string]$StagedViewDist,
+    [string]$RepoViewDist
+  )
+
+  # The repo's existing view stays in place until a complete replacement sits next to it,
+  # so a failed build or an interrupted copy over \\wsl.localhost never leaves it missing.
+  if (-not $StagedViewDist -or -not (Test-Path -LiteralPath (Join-Path $StagedViewDist "index.html"))) {
+    throw "Staged frontend build output is missing index.html: $StagedViewDist (left $RepoViewDist untouched)"
+  }
+
+  $leaf = Split-Path -Leaf $RepoViewDist
+  New-Item -ItemType Directory -Path (Split-Path -Parent $RepoViewDist) -Force | Out-Null
+  # .NET resolves relative paths against the process directory, not the PowerShell location.
+  $parent = (Resolve-Path -LiteralPath (Split-Path -Parent $RepoViewDist)).ProviderPath
+  $RepoViewDist = Join-Path $parent $leaf
+
+  $suffix = [guid]::NewGuid().ToString("N").Substring(0, 12)
+  $incoming = Join-Path $parent ".$leaf.incoming-$suffix"
+  $previous = Join-Path $parent ".$leaf.previous-$suffix"
+
+  try {
+    Copy-Item -LiteralPath $StagedViewDist -Destination $incoming -Recurse -Force -ErrorAction Stop
+    if (-not (Test-Path -LiteralPath (Join-Path $incoming "index.html"))) {
+      throw "Copied frontend output is missing index.html: $incoming"
+    }
+  }
+  catch {
+    if (Test-Path -LiteralPath $incoming) {
+      Remove-Item -LiteralPath $incoming -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    throw
+  }
+
+  # Directory.Move only renames (the paths are siblings), unlike Move-Item, which falls back to
+  # copy-then-delete when a rename is refused and can leave a duplicate or half-deleted view.
+  $hadPrevious = Test-Path -LiteralPath $RepoViewDist
+  try {
+    if ($hadPrevious) {
+      [System.IO.Directory]::Move($RepoViewDist, $previous)
+    }
+    [System.IO.Directory]::Move($incoming, $RepoViewDist)
+  }
+  catch {
+    $swapError = $_
+    if ($hadPrevious -and -not (Test-Path -LiteralPath $RepoViewDist) -and (Test-Path -LiteralPath $previous)) {
+      try {
+        [System.IO.Directory]::Move($previous, $RepoViewDist)
+      }
+      catch {
+        Write-Warning "Could not move the previous frontend dist back from ${previous} to ${RepoViewDist}: $($_.Exception.Message)"
+      }
+    }
+    if (Test-Path -LiteralPath $incoming) {
+      Remove-Item -LiteralPath $incoming -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    throw $swapError
+  }
+
+  if ($hadPrevious) {
+    try {
+      Remove-Item -LiteralPath $previous -Recurse -Force -ErrorAction Stop
+    }
+    catch {
+      Write-Warning "Updated $RepoViewDist, but could not remove the previous copy at ${previous}: $($_.Exception.Message)"
+    }
+  }
 }
 
 function Initialize-ReleasePackageStage {

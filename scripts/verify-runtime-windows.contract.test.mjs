@@ -36,3 +36,14 @@ test('verify-runtime-windows stages frontend and plugin builds when launched fro
   assert.match(scriptText, /Invoke-CmdCommands -Path \$pluginBuildRoot -Commands @\(/);
   assert.match(scriptText, /Remove-StageRoots -Paths \$stageRoots/);
 });
+
+test('staged cmd steps are invoked with call and replace the repo frontend dist only after a successful build', () => {
+  const releaseLocalText = readFileSync(new URL('./release-local.ps1', import.meta.url), 'utf8');
+  assert.match(sharedLibText, /function ConvertTo-CmdCallCommand/);
+  assert.match(sharedLibText, /function Publish-StagedFrontendDist/);
+  assert.doesNotMatch(sharedLibText, /if errorlevel 1 exit/);
+  for (const text of [scriptText, releaseLocalText]) {
+    assert.match(text, /Publish-StagedFrontendDist\s*`/);
+    assert.doesNotMatch(text, /Remove-Item -LiteralPath \$repoViewDist/);
+  }
+});

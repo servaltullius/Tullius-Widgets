@@ -260,8 +260,8 @@ void RegisterDefaultHotkeys(const Callbacks& callbacks)
 
 void ApplyHotkeysFromSettingsJson(std::string_view settingsJson)
 {
-    auto settingsKey = TulliusWidgets::JsonUtils::TryReadUIntField(settingsJson, "settingsHotkey").value_or(kInsertScanCode);
-    auto visibilityKey = TulliusWidgets::JsonUtils::TryReadUIntField(settingsJson, "visibilityHotkey").value_or(kF11ScanCode);
+    auto settingsKey = TulliusWidgets::JsonUtils::TryReadUIntMember(settingsJson, { "general", "settingsHotkey" }).value_or(kInsertScanCode);
+    auto visibilityKey = TulliusWidgets::JsonUtils::TryReadUIntMember(settingsJson, { "general", "visibilityHotkey" }).value_or(kF11ScanCode);
     if (!IsBindableScanCode(settingsKey)) {
         settingsKey = kInsertScanCode;
     }
