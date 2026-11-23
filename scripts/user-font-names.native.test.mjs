@@ -1,19 +1,10 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { defineNativeTest } from './native-tests/harness.mjs';
 
-const srcDir = fileURLToPath(new URL('../src', import.meta.url));
-const testSource = fileURLToPath(new URL('./native-tests/user_font_names_test.cpp', import.meta.url));
+// The view tests use the same table (view/src/data/userFonts.test.ts), so the plugin and the
+// view accept and reject exactly the same folder and file names.
 const nameCases = JSON.parse(readFileSync(new URL('../view/src/data/userFontNameCases.json', import.meta.url), 'utf8'));
-
-function findCompiler() {
-  const candidates = [process.env.CXX, 'g++', 'clang++'].filter(Boolean);
-  return candidates.find((compiler) => spawnSync(compiler, ['--version'], { stdio: 'ignore' }).status === 0);
-}
 
 // The plugin sees names as UTF-8 bytes. A lone UTF-16 surrogate cannot be encoded, so it becomes
 // the three bytes a naive encoder would emit (ED A0 80), which a strict UTF-8 check must reject.
@@ -38,43 +29,17 @@ function utf8Bytes(text) {
   return bytes;
 }
 
-function cppBytes(text) {
-  return utf8Bytes(text).map(byte => `\\x${byte.toString(16).padStart(2, '0')}`).join('');
+function writeNameCases(workDir) {
+  const lines = nameCases.map(({ label, name, repeat = 1, suffix = '', valid }) => {
+    const bytes = utf8Bytes(name.repeat(repeat) + suffix);
+    const escaped = bytes.map(byte => `\\x${byte.toString(16).padStart(2, '0')}`).join('');
+    return `{ ${JSON.stringify(label)}, std::string("${escaped}", ${bytes.length}), ${valid} },`;
+  });
+  writeFileSync(join(workDir, 'user_font_name_cases.inc'), `${lines.join('\n')}\n`);
 }
 
-function caseName({ name, repeat = 1, suffix = '' }) {
-  return name.repeat(repeat) + suffix;
-}
-
-const compiler = findCompiler();
-
-test(
+defineNativeTest(
   'native user font name rules accept and reject the same names as the view',
-  { skip: compiler ? false : 'no host C++ compiler (set CXX, or install g++/clang++)' },
-  () => {
-    const workDir = mkdtempSync(join(tmpdir(), 'tw-user-font-names-'));
-    try {
-      const cases = nameCases.map(nameCase => {
-        const name = caseName(nameCase);
-        // Separate literals keep a \x escape from swallowing the following hex digits.
-        return `{ ${JSON.stringify(nameCase.label)}, std::string("${cppBytes(name)}", ${utf8Bytes(name).length}), ${nameCase.valid} },`;
-      });
-      writeFileSync(join(workDir, 'user_font_name_cases.inc'), `${cases.join('\n')}\n`);
-
-      const binary = join(workDir, process.platform === 'win32' ? 'user_font_names_test.exe' : 'user_font_names_test');
-      const build = spawnSync(
-        compiler,
-        ['-std=c++23', '-O1', '-Wall', '-Wextra', '-Werror', `-I${srcDir}`, `-I${workDir}`, testSource, '-o', binary],
-        { encoding: 'utf8' },
-      );
-      assert.equal(build.status, 0, `compile failed:\n${build.stdout}${build.stderr}`);
-
-      const run = spawnSync(binary, [], { encoding: 'utf8' });
-      assert.equal(run.signal, null, `test binary crashed with ${run.signal}:\n${run.stderr}`);
-      assert.equal(run.status, 0, `test binary failed:\n${run.stdout}${run.stderr}`);
-      assert.match(run.stdout, /user_font_names_test: ok/);
-    } finally {
-      rmSync(workDir, { recursive: true, force: true });
-    }
-  },
+  'user_font_names_test',
+  { prepare: writeNameCases },
 );

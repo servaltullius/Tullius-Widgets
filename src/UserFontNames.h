@@ -76,7 +76,7 @@ inline constexpr std::string_view kNamePunctuation = " _-.()'[]+&,!#@~=;";
     for (unsigned char byte : fileName.substr(0, dot)) {
         if (IsAsciiLetter(byte)) letters += LowercaseAscii(byte);
     }
-    return !letters.contains("italic") && !letters.contains("oblique");
+    return letters.find("italic") == std::string::npos && letters.find("oblique") == std::string::npos;
 }
 
 // Sorts by UTF-8 bytes and drops names that differ only in ASCII case: they are one file on
