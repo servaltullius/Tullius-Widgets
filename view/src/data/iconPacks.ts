@@ -83,7 +83,8 @@ export function normalizeIconPacks(jsonString: string): IconPack[] {
       icons,
     });
   }
-  return packs.sort((a, b) => a.name.localeCompare(b.name));
+  // A fixed collation keeps the menu order the same whatever the system locale is.
+  return packs.sort((a, b) => a.name.localeCompare(b.name, 'en'));
 }
 
 // Case-insensitive like the folder names it stands for on Windows, so renaming a pack folder
