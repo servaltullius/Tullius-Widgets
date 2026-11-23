@@ -104,8 +104,8 @@ inline void AppendUtf8(std::string& out, std::uint32_t codeUnit)
 // Reads the JSON string starting at input[pos] == '"' and leaves pos just past
 // the closing quote. When `decoded` is non-null the unescaped text is stored
 // there (\uXXXX is decoded per UTF-16 code unit, which is exact for the ASCII
-// member names this header looks up). Returns false on an unterminated string
-// or an invalid escape.
+// member names this header looks up). Returns false on an unterminated string,
+// a raw control character or an invalid escape.
 inline bool ReadString(std::string_view input, std::size_t& pos, std::string* decoded)
 {
     if (pos >= input.size() || input[pos] != '"') {
@@ -117,6 +117,9 @@ inline bool ReadString(std::string_view input, std::size_t& pos, std::string* de
         if (c == '"') {
             ++pos;
             return true;
+        }
+        if (static_cast<unsigned char>(c) < 0x20) {
+            return false;
         }
         if (c != '\\') {
             if (decoded) {
@@ -174,71 +177,238 @@ inline bool ReadString(std::string_view input, std::size_t& pos, std::string* de
     return false;
 }
 
-// Skips one JSON value of any type starting at input[pos]. Containers are
-// skipped iteratively by bracket depth (strings inside them are skipped whole,
-// so brackets or quotes in string values are never counted), which keeps deep
-// nesting from growing the stack.
-inline bool SkipValue(std::string_view input, std::size_t& pos)
+inline bool IsDigit(char c)
+{
+    return c >= '0' && c <= '9';
+}
+
+// Skips a number matching the JSON grammar:
+// -? (0 | [1-9][0-9]*) (.[0-9]+)? ([eE][+-]?[0-9]+)?
+inline bool SkipNumber(std::string_view input, std::size_t& pos)
+{
+    if (pos < input.size() && input[pos] == '-') {
+        ++pos;
+    }
+    if (pos >= input.size() || !IsDigit(input[pos])) {
+        return false;
+    }
+    if (input[pos] == '0') {
+        ++pos;
+    } else {
+        while (pos < input.size() && IsDigit(input[pos])) {
+            ++pos;
+        }
+    }
+    if (pos < input.size() && input[pos] == '.') {
+        ++pos;
+        if (pos >= input.size() || !IsDigit(input[pos])) {
+            return false;
+        }
+        while (pos < input.size() && IsDigit(input[pos])) {
+            ++pos;
+        }
+    }
+    if (pos < input.size() && (input[pos] == 'e' || input[pos] == 'E')) {
+        ++pos;
+        if (pos < input.size() && (input[pos] == '+' || input[pos] == '-')) {
+            ++pos;
+        }
+        if (pos >= input.size() || !IsDigit(input[pos])) {
+            return false;
+        }
+        while (pos < input.size() && IsDigit(input[pos])) {
+            ++pos;
+        }
+    }
+    return true;
+}
+
+// Skips a string, number, true, false or null.
+inline bool SkipScalar(std::string_view input, std::size_t& pos)
 {
     if (pos >= input.size()) {
         return false;
     }
-
-    const char first = input[pos];
-    if (first == '"') {
+    const char c = input[pos];
+    if (c == '"') {
         return ReadString(input, pos, nullptr);
     }
+    if (c == '-' || IsDigit(c)) {
+        return SkipNumber(input, pos);
+    }
+    for (const std::string_view literal : { std::string_view("true"), std::string_view("false"), std::string_view("null") }) {
+        if (input.substr(pos, literal.size()) == literal) {
+            pos += literal.size();
+            return true;
+        }
+    }
+    return false;
+}
 
-    if (first == '{' || first == '[') {
-        std::size_t depth = 0;
-        while (pos < input.size()) {
-            const char c = input[pos];
-            if (c == '"') {
-                if (!ReadString(input, pos, nullptr)) {
+// Reads `"name" :` and leaves pos at the member value.
+inline bool ReadMemberName(std::string_view input, std::size_t& pos, std::string* decoded)
+{
+    SkipWhitespace(input, pos);
+    if (!ReadString(input, pos, decoded)) {
+        return false;
+    }
+    SkipWhitespace(input, pos);
+    if (pos >= input.size() || input[pos] != ':') {
+        return false;
+    }
+    ++pos;
+    SkipWhitespace(input, pos);
+    return pos < input.size();
+}
+
+// Skips one JSON value of any type starting at input[pos], validating it.
+// Containers are tracked on an explicit stack of expected closing brackets
+// instead of recursion, so deep nesting cannot overflow the call stack.
+inline bool SkipValue(std::string_view input, std::size_t& pos)
+{
+    std::string closers;
+    while (true) {
+        // Expecting a value.
+        SkipWhitespace(input, pos);
+        if (pos >= input.size()) {
+            return false;
+        }
+        const char c = input[pos];
+        if (c == '{' || c == '[') {
+            const char closer = c == '{' ? '}' : ']';
+            ++pos;
+            SkipWhitespace(input, pos);
+            if (pos < input.size() && input[pos] == closer) {
+                ++pos;
+            } else {
+                closers += closer;
+                if (closer == '}' && !ReadMemberName(input, pos, nullptr)) {
                     return false;
                 }
                 continue;
             }
-            if (c == '{' || c == '[') {
-                ++depth;
-            } else if (c == '}' || c == ']') {
-                --depth;
-                if (depth == 0) {
-                    ++pos;
-                    return true;
-                }
+        } else if (!SkipScalar(input, pos)) {
+            return false;
+        }
+
+        // A value just ended: close finished containers or move to the next element.
+        while (true) {
+            if (closers.empty()) {
+                return true;
+            }
+            SkipWhitespace(input, pos);
+            if (pos >= input.size()) {
+                return false;
+            }
+            if (input[pos] == closers.back()) {
+                ++pos;
+                closers.pop_back();
+                continue;
+            }
+            if (input[pos] != ',') {
+                return false;
             }
             ++pos;
-        }
-        return false;
-    }
-
-    // Number or literal: runs until the next structural character or whitespace.
-    const std::size_t start = pos;
-    while (pos < input.size()) {
-        const char c = input[pos];
-        if (c == ',' || c == '}' || c == ']' || c == ' ' || c == '\t' || c == '\n' || c == '\r') {
+            if (closers.back() == '}' && !ReadMemberName(input, pos, nullptr)) {
+                return false;
+            }
             break;
         }
-        if (c == '"' || c == '{' || c == '[' || c == ':') {
+    }
+}
+
+// Converts an already validated JSON value to uint32. Only non-negative numbers
+// without an exponent that fit qualify; a fraction is truncated toward zero.
+inline std::optional<std::uint32_t> ToUInt(std::string_view token)
+{
+    if (token.empty() || !IsDigit(token.front()) || token.find_first_of("eE") != std::string_view::npos) {
+        return std::nullopt;
+    }
+    std::uint32_t value = 0;
+    const auto [ptr, ec] = std::from_chars(token.data(), token.data() + token.size(), value);
+    if (ec != std::errc{} || ptr == token.data()) {
+        return std::nullopt;
+    }
+    return value;
+}
+
+using PathIterator = std::initializer_list<std::string_view>::const_iterator;
+
+// Scans the object at input[pos] == '{' to its end. Every member named
+// *segment replaces the previous result, as JSON.parse keeps the last
+// duplicate: a leaf member yields its uint value (or nullopt), and an
+// intermediate member restarts the lookup inside its object. Recursion depth is
+// bounded by the path length.
+inline bool ScanObject(
+    std::string_view input,
+    std::size_t& pos,
+    PathIterator segment,
+    PathIterator pathEnd,
+    std::optional<std::uint32_t>& result)
+{
+    ++pos;
+    SkipWhitespace(input, pos);
+    if (pos < input.size() && input[pos] == '}') {
+        ++pos;
+        return true;
+    }
+
+    std::string memberName;
+    while (true) {
+        memberName.clear();
+        if (!ReadMemberName(input, pos, &memberName)) {
+            return false;
+        }
+
+        if (memberName != *segment) {
+            if (!SkipValue(input, pos)) {
+                return false;
+            }
+        } else if (std::next(segment) == pathEnd) {
+            const auto valueStart = pos;
+            if (!SkipValue(input, pos)) {
+                return false;
+            }
+            result = ToUInt(input.substr(valueStart, pos - valueStart));
+        } else if (input[pos] == '{') {
+            result.reset();
+            if (!ScanObject(input, pos, std::next(segment), pathEnd, result)) {
+                return false;
+            }
+        } else {
+            result.reset();
+            if (!SkipValue(input, pos)) {
+                return false;
+            }
+        }
+
+        SkipWhitespace(input, pos);
+        if (pos >= input.size()) {
+            return false;
+        }
+        if (input[pos] == '}') {
+            ++pos;
+            return true;
+        }
+        if (input[pos] != ',') {
             return false;
         }
         ++pos;
     }
-    return pos > start;
 }
 
 }  // namespace detail
 
 // Reads an unsigned integer stored at an object member path, e.g. {"rev"} for a
-// top-level member or {"general", "settingsHotkey"} for a nested one. Only real
-// member names at the given depth match: a string VALUE that spells a member
-// name, or a same-named member at another depth, is ignored. The first member
-// with a matching name decides the result; it yields nullopt when its value is
-// not a non-negative number that fits in uint32 (the integer prefix of a number
-// is used, as before). Malformed JSON before the member also yields nullopt, but
-// anything after the member is not inspected. A leading UTF-8 BOM is skipped so
-// hand-edited settings files keep working.
+// top-level member or {"general", "settingsHotkey"} for a nested one, the way
+// the view's JSON.parse would see it:
+// - Only real member names at the given depth match. A string VALUE that spells
+//   a member name, or a same-named member at another depth, is ignored.
+// - When a name repeats, the last occurrence wins, at every level of the path.
+// - The value must be a non-negative JSON number without an exponent that fits
+//   in uint32; a fraction is truncated toward zero. Anything else is nullopt.
+// - The whole document must be valid JSON whose root is an object (a leading
+//   UTF-8 BOM is allowed); otherwise the result is nullopt.
 inline std::optional<std::uint32_t> TryReadUIntMember(
     std::string_view input,
     std::initializer_list<std::string_view> path)
@@ -254,55 +424,16 @@ inline std::optional<std::uint32_t> TryReadUIntMember(
     if (pos >= input.size() || input[pos] != '{') {
         return std::nullopt;
     }
-    ++pos;
 
-    auto segment = path.begin();
-    std::string memberName;
-    while (true) {
-        detail::SkipWhitespace(input, pos);
-        memberName.clear();
-        if (!detail::ReadString(input, pos, &memberName)) {
-            return std::nullopt;  // '}' (member absent at this level) or malformed input.
-        }
-
-        detail::SkipWhitespace(input, pos);
-        if (pos >= input.size() || input[pos] != ':') {
-            return std::nullopt;
-        }
-        ++pos;
-        detail::SkipWhitespace(input, pos);
-        if (pos >= input.size()) {
-            return std::nullopt;
-        }
-
-        if (memberName == *segment) {
-            if (std::next(segment) == path.end()) {
-                std::uint32_t value = 0;
-                const char* begin = input.data() + pos;
-                const char* end = input.data() + input.size();
-                const auto [ptr, ec] = std::from_chars(begin, end, value);
-                if (ec == std::errc{} && ptr != begin) {
-                    return value;
-                }
-                return std::nullopt;
-            }
-            if (input[pos] != '{') {
-                return std::nullopt;
-            }
-            ++segment;
-            ++pos;
-            continue;
-        }
-
-        if (!detail::SkipValue(input, pos)) {
-            return std::nullopt;
-        }
-        detail::SkipWhitespace(input, pos);
-        if (pos >= input.size() || input[pos] != ',') {
-            return std::nullopt;  // End of the object without the member, or malformed input.
-        }
-        ++pos;
+    std::optional<std::uint32_t> result;
+    if (!detail::ScanObject(input, pos, path.begin(), path.end(), result)) {
+        return std::nullopt;
     }
+    detail::SkipWhitespace(input, pos);
+    if (pos != input.size()) {
+        return std::nullopt;
+    }
+    return result;
 }
 
 }  // namespace TulliusWidgets::JsonUtils

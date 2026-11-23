@@ -114,8 +114,6 @@ void TestFormattingTolerance()
     CHECK(Is(Rev(R"({"rev":4294967295})"), 4294967295u));
     // Integer prefix of a number, as before.
     CHECK(Is(Rev(R"({"rev":12.5})"), 12));
-    // Anything after the member is not inspected.
-    CHECK(Is(Rev(R"({"rev":8,)"), 8));
 }
 
 void TestRejectedValues()
@@ -125,8 +123,25 @@ void TestRejectedValues()
     CHECK(!Rev(R"({"rev":"5"})").has_value());
     CHECK(!Rev(R"({"rev":null})").has_value());
     CHECK(!Rev(R"({"rev":{"rev":5}})").has_value());
-    // The first member with the name decides.
-    CHECK(!Rev(R"({"rev":"x","rev":5})").has_value());
+    CHECK(!Rev(R"({"rev":1e3})").has_value());
+    CHECK(!Rev(R"({"rev":-0})").has_value());
+    CHECK(!Rev(R"({"rev":true})").has_value());
+}
+
+// Same results as the view's JSON.parse, which keeps the last duplicate.
+void TestDuplicateMembersLastWins()
+{
+    CHECK(Is(Rev(R"({"rev":1,"rev":2})"), 2));
+    CHECK(Is(Rev(R"({"rev":"x","rev":5})"), 5));
+    CHECK(!Rev(R"({"rev":5,"rev":"x"})").has_value());
+
+    CHECK(Is(SettingsHotkey(R"({"general":{"settingsHotkey":1,"settingsHotkey":3}})"), 3));
+    CHECK(Is(SettingsHotkey(R"({"general":{"settingsHotkey":1},"general":{"settingsHotkey":2}})"), 2));
+    // A later same-named object replaces the earlier one wholesale.
+    CHECK(!SettingsHotkey(R"({"general":{"settingsHotkey":1},"general":{}})").has_value());
+    CHECK(!SettingsHotkey(R"({"general":{"settingsHotkey":1},"general":5})").has_value());
+    CHECK(Is(SettingsHotkey(R"({"general":5,"general":{"settingsHotkey":4}})"), 4));
+    CHECK(Is(VisibilityHotkey(R"({"general":{"visibilityHotkey":1},"x":0,"general":{"visibilityHotkey":87}})"), 87));
 }
 
 void TestMalformedInput()
@@ -148,6 +163,33 @@ void TestMalformedInput()
     CHECK(!Rev("{rev:1}").has_value());
     CHECK(!Rev("{\"a\":1,}").has_value());
     CHECK(!SettingsHotkey(R"({"general":{"settingsHotkey")").has_value());
+
+    // The whole document is validated, including what follows the member.
+    CHECK(!Rev(R"({"rev":8,)").has_value());
+    CHECK(!Rev(R"({"rev":8)").has_value());
+    CHECK(!Rev(R"({"rev":8}})").has_value());
+    CHECK(!Rev(R"({"rev":8} x)").has_value());
+    CHECK(!Rev(R"({"rev":8,"a":[1})").has_value());
+    CHECK(!Rev(R"({"rev":01})").has_value());
+
+    // Mismatched brackets and invalid scalars before the member.
+    CHECK(!Rev(R"({"a":[1},"rev":2})").has_value());
+    CHECK(!Rev(R"({"a":{"b":1]],"rev":2})").has_value());
+    CHECK(!Rev(R"({"a":abc,"rev":2})").has_value());
+    CHECK(!Rev(R"({"a":tru,"rev":2})").has_value());
+    CHECK(!Rev(R"({"a":truex,"rev":2})").has_value());
+    CHECK(!Rev(R"({"a":1.,"rev":2})").has_value());
+    CHECK(!Rev(R"({"a":.5,"rev":2})").has_value());
+    CHECK(!Rev(R"({"a":1e,"rev":2})").has_value());
+    CHECK(!Rev(R"({"a":--1,"rev":2})").has_value());
+    CHECK(!Rev(R"({"a":[1,],"rev":2})").has_value());
+    CHECK(!Rev(R"({"a":[,1],"rev":2})").has_value());
+    CHECK(!Rev(R"({"a":{"b"},"rev":2})").has_value());
+    CHECK(!Rev(R"({"a":{"b":1,},"rev":2})").has_value());
+    CHECK(!Rev(R"({"a":{1:2},"rev":2})").has_value());
+    CHECK(!Rev("{\"a\":\"raw\nnewline\",\"rev\":2}").has_value());
+    // Valid nested containers of every kind still pass.
+    CHECK(Is(Rev(R"({"a":[{},[],{"b":[1,-2.5E+3,"]",null]},[[]]],"rev":2})"), 2));
     CHECK(!TryReadUIntMember(R"({"rev":1})", {}).has_value());
 
     // Deep nesting is skipped without recursion.
@@ -167,6 +209,7 @@ int main()
     TestStringValuesAreSkipped();
     TestFormattingTolerance();
     TestRejectedValues();
+    TestDuplicateMembersLastWins();
     TestMalformedInput();
 
     if (g_failures != 0) {
