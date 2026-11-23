@@ -8,6 +8,7 @@ inline constexpr char kUpdateRuntimeStatus[] = "updateRuntimeStatus";
 inline constexpr char kImportSettingsFromNative[] = "importSettingsFromNative";
 inline constexpr char kSetHUDColor[] = "setHUDColor";
 inline constexpr char kUpdateIconPacks[] = "updateIconPacks";
+inline constexpr char kUpdateUserFonts[] = "updateUserFonts";
 
 inline constexpr char kOnSettingsChanged[] = "onSettingsChanged";
 inline constexpr char kOnExportSettings[] = "onExportSettings";

@@ -4,10 +4,21 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { defaultSettings } from '../../data/defaultSettings';
 import type { WidgetSettings } from '../../types/settings';
+import { useSettings } from '../../hooks/useSettings';
 import { PresetSection } from './PresetSection';
 
 function cloneSettings(): WidgetSettings {
   return structuredClone(defaultSettings);
+}
+
+function PresetRoundTrip() {
+  const { settings } = useSettings();
+  return (
+    <>
+      <PresetSection lang="ko" settings={settings} />
+      <output>{settings.general.userFont}</output>
+    </>
+  );
 }
 
 describe('PresetSection', () => {
@@ -69,5 +80,26 @@ describe('PresetSection', () => {
     expect(payload.general).not.toHaveProperty('visibilityHotkey');
     expect(payload.layoutSlots).toBeUndefined();
     expect(payload.general).toHaveProperty('hudStyle');
+  });
+
+  it('preserves the user font selection through preset export and import', async () => {
+    const exportSettings = vi.fn<(json: string) => void>();
+    window.onExportSettings = exportSettings;
+    const userFont = "King's 글꼴";
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<PresetRoundTrip />);
+    });
+    await act(async () => window.updateSettings?.(JSON.stringify({ schemaVersion: 7, general: { userFont } })));
+    const exportButton = Array.from(container.querySelectorAll('button')).find(button => button.textContent?.includes('프리셋 내보내기'));
+    expect(exportButton).toBeDefined();
+    await act(async () => exportButton!.click());
+    const exported = exportSettings.mock.calls[0][0];
+    expect(JSON.parse(exported).general.userFont).toBe(userFont);
+
+    await act(async () => window.updateSettings?.(JSON.stringify({ schemaVersion: 7, general: { userFont: '' } })));
+    expect(container.querySelector('output')?.textContent).toBe('');
+    await act(async () => window.importSettingsFromNative?.(exported));
+    expect(container.querySelector('output')?.textContent).toBe(userFont);
   });
 });

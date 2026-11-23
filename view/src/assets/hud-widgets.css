@@ -252,7 +252,7 @@
 }
 
 .tw-experience-level-mark span {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--tw-font-level, Georgia, "Times New Roman", serif);
   font-size: 17px;
   font-weight: 500;
 }

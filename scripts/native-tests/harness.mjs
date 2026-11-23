@@ -21,17 +21,21 @@ const compiler = findCompiler();
 /**
  * Compiles scripts/native-tests/<name>.cpp against src/ with warnings as
  * errors, runs it, and expects "<name>: ok" on stdout.
+ *
+ * `prepare(workDir)` may write generated headers into the temporary build
+ * folder, which is on the include path (for tables shared with the view).
  */
-export function defineNativeTest(title, name) {
+export function defineNativeTest(title, name, { prepare } = {}) {
   const testSource = fileURLToPath(new URL(`./${name}.cpp`, import.meta.url));
 
   test(title, { skip: compiler ? false : 'no host C++ compiler (set CXX, or install g++/clang++)' }, () => {
     const workDir = mkdtempSync(join(tmpdir(), `tw-${name}-`));
     try {
+      prepare?.(workDir);
       const binary = join(workDir, process.platform === 'win32' ? `${name}.exe` : name);
       const build = spawnSync(
         compiler,
-        ['-std=c++20', '-O1', '-Wall', '-Wextra', '-Werror', `-I${srcDir}`, testSource, '-o', binary],
+        ['-std=c++20', '-O1', '-Wall', '-Wextra', '-Werror', `-I${srcDir}`, `-I${workDir}`, testSource, '-o', binary],
         { encoding: 'utf8' },
       );
       assert.equal(build.status, 0, `compile failed:\n${build.stdout}${build.stderr}`);

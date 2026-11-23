@@ -10,6 +10,8 @@ import { FONT_PRESET_OPTIONS } from '../../utils/fontPresets';
 import { buildItemLayoutsForHudStyle, captureLayoutSlot, shiftEffectListForLayout } from '../../utils/itemLayoutEditing';
 import { findIconPack, type IconPack } from '../../data/iconPacks';
 import { IconPacksContext } from '../../hooks/useIconPacks';
+import { findUserFont, type UserFont } from '../../data/userFonts';
+import { UserFontsContext } from '../../hooks/useUserFonts';
 
 const SLOT_LOAD_CONFIRM_MS = 4000;
 
@@ -122,11 +124,16 @@ function buildTimedEffectsLayoutOptions(lang: Language) {
   ];
 }
 
-function buildFontPresetOptions(lang: Language) {
-  return FONT_PRESET_OPTIONS.map(option => ({
-    value: option.value,
-    label: t(lang, option.labelKey),
-  }));
+const USER_FONT_OPTION_PREFIX = 'user-font:';
+
+function buildFontOptions(lang: Language, fonts: readonly UserFont[]) {
+  return [
+    ...FONT_PRESET_OPTIONS.map(option => ({ value: option.value, label: t(lang, option.labelKey) })),
+    ...fonts.map(font => ({
+      value: `${USER_FONT_OPTION_PREFIX}${font.id}`,
+      label: t(lang, 'fontUserOption').replace('{name}', font.id),
+    })),
+  ];
 }
 
 function slotButtonStyle(panelScale: number, enabled: boolean) {
@@ -188,7 +195,17 @@ export function GeneralTabSections({
   toggleSection,
   panelScale = 1,
 }: GeneralTabSectionsProps) {
-  const fontPresetOptions = buildFontPresetOptions(lang);
+  const { fonts: userFonts, status: userFontStatus } = useContext(UserFontsContext);
+  const { fontPreset, userFont } = settings.general;
+  const activeUserFont = findUserFont(userFonts, userFont);
+  const fontOptions = buildFontOptions(lang, userFonts);
+  // Folder names can be 192 bytes without spaces; wrap them instead of widening the panel.
+  const fontHintStyle = {
+    color: '#88a4c4',
+    fontSize: scalePanelPixels(18, panelScale),
+    margin: `0 0 ${scalePanelPixels(8, panelScale)} 0`,
+    overflowWrap: 'anywhere',
+  } as const;
   const compact = settings.general.hudStyle === 'compact';
   const iconPacks = useContext(IconPacksContext);
   const activeIconPack = compact ? findIconPack(iconPacks, settings.general.iconPack) : null;
@@ -270,12 +287,32 @@ export function GeneralTabSections({
 
       <SelectRow
         label={t(lang, 'fontPreset')}
-        value={settings.general.fontPreset}
-        options={fontPresetOptions}
-        onChange={nextValue => onUpdate('general.fontPreset', nextValue)}
+        value={activeUserFont ? `${USER_FONT_OPTION_PREFIX}${activeUserFont.id}` : fontPreset}
+        options={fontOptions}
+        onChange={nextValue => {
+          if (nextValue.startsWith(USER_FONT_OPTION_PREFIX)) {
+            const pickedFont = findUserFont(userFonts, nextValue.slice(USER_FONT_OPTION_PREFIX.length));
+            if (pickedFont) onUpdate('general.userFont', pickedFont.id);
+          } else if (userFont) {
+            onUpdate('general.fontPreset', nextValue, { persist: false });
+            onUpdate('general.userFont', '');
+          } else {
+            onUpdate('general.fontPreset', nextValue);
+          }
+        }}
         panelScale={panelScale}
         testId="font-preset-select"
       />
+      <p style={fontHintStyle}>{t(lang, 'userFontHint')}</p>
+      {userFontStatus === 'loading' && (
+        <p data-testid="user-font-loading" style={fontHintStyle}>{t(lang, 'userFontLoading').replace('{name}', userFont)}</p>
+      )}
+      {userFontStatus === 'missing' && (
+        <p style={fontHintStyle}>{t(lang, 'userFontMissing').replace('{name}', userFont)}</p>
+      )}
+      {userFontStatus === 'failed' && (
+        <p style={fontHintStyle}>{t(lang, 'userFontLoadFailed').replace('{name}', userFont)}</p>
+      )}
 
       {/* Both styles have a Dororong icon set; badges, accent tone and card transparency only
           apply to the classic card style. */}

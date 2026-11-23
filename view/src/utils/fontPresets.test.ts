@@ -6,6 +6,17 @@ import {
 } from './fontPresets';
 
 describe('fontPresets', () => {
+  it.each(['classic', 'compact'] as const)('prepends a user family to the %s HUD stacks and level numbers only', hudStyle => {
+    const preset = resolveFontPresetVariables('default', hudStyle);
+    const withUserFont = resolveFontPresetVariables('default', hudStyle, 'TW User Font 3');
+    expect(preset['--tw-font-level']).toBe('Georgia, "Times New Roman", serif');
+    expect(withUserFont['--tw-font-ui']).toBe(preset['--tw-font-ui']);
+    for (const property of ['--tw-font-hud', '--tw-font-compact', '--tw-font-level'] as const) {
+      expect(withUserFont[property]).toBe(`"TW User Font 3", ${preset[property]}`);
+    }
+    expect(resolveFontPresetVariables('default', hudStyle, null)).toEqual(preset);
+  });
+
   it('exposes ui and hud stacks for every supported preset', () => {
     expect(FONT_PRESET_OPTIONS.map(option => option.value)).toEqual([
       'default',

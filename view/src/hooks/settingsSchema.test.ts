@@ -7,6 +7,17 @@ import {
 } from './settingsSchema';
 
 describe('settingsSchema', () => {
+  it('preserves valid user font names and defaults invalid or missing names to empty', () => {
+    const merge = (general: Record<string, unknown>) => mergeWithDefaults({ schemaVersion: 7, general });
+    expect(merge({ userFont: "King's 글꼴 👑" }).general.userFont).toBe("King's 글꼴 👑");
+    expect(merge({ userFont: '가'.repeat(64) }).general.userFont).toBe('가'.repeat(64));
+    for (const userFont of [42, null, {}, 'bad/path', ' bad', '가'.repeat(65)]) {
+      expect(merge({ userFont }).general.userFont).toBe('');
+    }
+    expect(merge({ userFont: '' }).general.userFont).toBe('');
+    expect(merge({}).general.userFont).toBe('');
+  });
+
   it('defaults new installs to the compact HUD and keeps older saves on classic', () => {
     expect(defaultSettings.general.hudStyle).toBe('compact');
     expect(mergeWithDefaults({ schemaVersion: 7 }).general.hudStyle).toBe('compact');

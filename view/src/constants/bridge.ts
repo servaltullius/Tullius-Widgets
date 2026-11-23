@@ -8,6 +8,7 @@ export const BRIDGE_HANDLERS = {
   closeSettings: 'closeSettings',
   setHUDColor: 'setHUDColor',
   updateIconPacks: 'updateIconPacks',
+  updateUserFonts: 'updateUserFonts',
 } as const;
 
 export const BRIDGE_CALLBACKS = {

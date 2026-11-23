@@ -17,6 +17,7 @@ import type {
 import { LAYOUT_SLOT_COUNT } from '../types/settings';
 import { defaultSettings } from '../data/defaultSettings';
 import { isValidIconPackId } from '../data/iconPacks';
+import { isValidUserFontName } from '../data/userFonts';
 import { sanitizeWidgetItemLayouts } from '../data/widgetItemRegistry';
 import { isPlainObject, readBoolean, readNumber } from '../utils/normalize';
 import { sanitizeHotkeys } from '../utils/hotkeys';
@@ -164,6 +165,9 @@ function mergeGeneralSettings(
   target.size = readEnum<WidgetSize>(incoming.size, target.size, WIDGET_SIZES);
   target.language = readLanguageCode(incoming.language, target.language);
   target.fontPreset = readEnum<FontPreset>(incoming.fontPreset, target.fontPreset, FONT_PRESETS);
+  target.userFont = typeof incoming.userFont === 'string' && isValidUserFontName(incoming.userFont)
+    ? incoming.userFont
+    : '';
   const hasExplicitIconTheme = typeof incoming.iconTheme === 'string'
     && ICON_THEMES.includes(incoming.iconTheme as IconTheme);
   const hasExplicitIconBadgeSetting = typeof incoming.showIconBadges === 'boolean';

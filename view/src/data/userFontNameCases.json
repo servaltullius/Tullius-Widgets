@@ -1,0 +1,23 @@
+[
+  { "label": "Hangul", "name": "한글", "valid": true, "rule": "nonAscii" },
+  { "label": "apostrophe and extension", "name": "King's Regular.ttf", "valid": true, "rule": "punctuation" },
+  { "label": "all allowed ASCII punctuation", "name": "Font_2 (Regular)-[A].ttf", "valid": true, "rule": "punctuation" },
+  { "label": "common font name symbols", "name": "Hahmlet & Co, Font+Hangul! #1 @2 ~3=4;.ttf", "valid": true, "rule": "punctuation" },
+  { "label": "asterisk", "name": "Foo*Bar", "valid": false, "rule": "punctuation" },
+  { "label": "question mark", "name": "Foo?Bar", "valid": false, "rule": "punctuation" },
+  { "label": "emoji", "name": "Font 👑", "valid": true, "rule": "nonAscii" },
+  { "label": "192 UTF-8 bytes", "name": "가", "repeat": 64, "valid": true, "rule": "length" },
+  { "label": "193 UTF-8 bytes including the extension", "name": "가", "repeat": 63, "suffix": ".ttf", "valid": false, "rule": "length" },
+  { "label": "empty", "name": "", "valid": false, "rule": "empty" },
+  { "label": "leading dot", "name": ".Hidden", "valid": false, "rule": "leadingDot" },
+  { "label": "consecutive dots", "name": "Font..Regular", "valid": false, "rule": "doubleDot" },
+  { "label": "leading space", "name": " Font", "valid": false, "rule": "leadingSpace" },
+  { "label": "trailing space", "name": "Font ", "valid": false, "rule": "trailingSpace" },
+  { "label": "trailing dot", "name": "Font.", "valid": false, "rule": "trailingDot" },
+  { "label": "slash", "name": "Foo/Bar", "valid": false, "rule": "punctuation" },
+  { "label": "backslash", "name": "Foo\\Bar", "valid": false, "rule": "punctuation" },
+  { "label": "percent", "name": "Foo%Bar", "valid": false, "rule": "punctuation" },
+  { "label": "double quote", "name": "Foo\"Bar", "valid": false, "rule": "punctuation" },
+  { "label": "ASCII control", "name": "Font\n", "valid": false, "rule": "punctuation" },
+  { "label": "unpaired UTF-16 surrogate", "name": "Font\ud800", "valid": false, "rule": "utf8" }
+]

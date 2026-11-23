@@ -3,6 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { defaultSettings } from '../../data/defaultSettings';
+import { normalizeUserFonts } from '../../data/userFonts';
+import { UserFontsContext } from '../../hooks/useUserFonts';
+import { t } from '../../i18n/translations';
 import type { WidgetSettings } from '../../types/settings';
 import { CombatTabSections, EffectsTabSections, GeneralTabSections, PresetsTabSections } from './SettingsTabSections';
 
@@ -142,6 +145,73 @@ describe('SettingsTabSections', () => {
     });
 
     expect(onUpdate).toHaveBeenCalledWith('general.fontPreset', 'readable');
+  });
+
+  describe('user fonts', () => {
+    const fonts = normalizeUserFonts(JSON.stringify({ fonts: [{ id: "King's Font", files: ['Font.ttf'] }] }));
+
+    async function renderFonts(savedFont: string, status: 'none' | 'ready' | 'missing' | 'failed') {
+      const settings = cloneSettings();
+      settings.general.userFont = savedFont;
+      const onUpdate = vi.fn();
+      await act(async () => {
+        root = createRoot(container);
+        root.render(
+          <UserFontsContext.Provider value={{ fonts, status }}>
+            <GeneralTabSections
+              lang="ko"
+              settings={settings}
+              selectedLanguage="ko"
+              effectiveVisible
+              onUpdate={onUpdate}
+              accentColor="#fff"
+              availableLanguages={[]}
+              isSectionExpanded={() => true}
+              toggleSection={() => {}}
+            />
+          </UserFontsContext.Provider>,
+        );
+      });
+      return onUpdate;
+    }
+
+    async function chooseFont(value: string) {
+      await act(async () => getByTestId(container, 'font-preset-select')!.click());
+      const option = getByTestIdFromDocument(`font-preset-select-option-${value}`);
+      expect(option).not.toBeNull();
+      await act(async () => option!.click());
+    }
+
+    it('saves only the discovered folder when a user font is chosen', async () => {
+      const onUpdate = await renderFonts('', 'none');
+      expect(container.textContent).toContain(t('ko', 'userFontHint'));
+      await chooseFont("user-font:King's Font");
+      expect(onUpdate.mock.calls).toEqual([['general.userFont', "King's Font"]]);
+    });
+
+    it('displays the discovered case and persists the two changes when choosing a preset', async () => {
+      const onUpdate = await renderFonts("king's font", 'ready');
+      expect(getByTestId(container, 'font-preset-select')?.textContent).toContain("사용자 글꼴: King's Font");
+      await chooseFont('readable');
+      expect(onUpdate.mock.calls).toEqual([
+        ['general.fontPreset', 'readable', { persist: false }],
+        ['general.userFont', ''],
+      ]);
+    });
+
+    it('shows the preset and the saved name when the folder is missing', async () => {
+      const onUpdate = await renderFonts('Missing Font', 'missing');
+      expect(getByTestId(container, 'font-preset-select')?.textContent).toContain(t('ko', 'fontPresetDefault'));
+      expect(container.textContent).toContain(t('ko', 'userFontMissing').replace('{name}', 'Missing Font'));
+      expect(onUpdate).not.toHaveBeenCalled();
+    });
+
+    it('keeps the installed font selected and explains a load failure', async () => {
+      const onUpdate = await renderFonts("King's Font", 'failed');
+      expect(getByTestId(container, 'font-preset-select')?.textContent).toContain("사용자 글꼴: King's Font");
+      expect(container.textContent).toContain(t('ko', 'userFontLoadFailed').replace('{name}', "King's Font"));
+      expect(onUpdate).not.toHaveBeenCalled();
+    });
   });
 
   it('switches the HUD style and moves widgets to that style\'s default layout', async () => {

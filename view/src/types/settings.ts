@@ -52,6 +52,8 @@ export interface WidgetSettings {
     size: WidgetSize;
     language: Language;
     fontPreset: FontPreset;
+    /** Folder name of the HUD's user font ('' = use the preset). */
+    userFont: string;
     iconTheme: IconTheme;
     /** Folder name of a user icon pack drawn over `iconTheme` in the compact HUD ('' = none). */
     iconPack: string;

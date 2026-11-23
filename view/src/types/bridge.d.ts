@@ -11,6 +11,7 @@ declare global {
     closeSettings?: () => void;
     setHUDColor?: (hex: string) => void;
     updateIconPacks?: (jsonString: string) => void;
+    updateUserFonts?: (jsonString: string) => void;
   }
 
   interface TulliusWidgetsBridgeNamespace {
@@ -30,6 +31,7 @@ declare global {
     closeSettings?: () => void;
     setHUDColor?: (hex: string) => void;
     updateIconPacks?: (jsonString: string) => void;
+    updateUserFonts?: (jsonString: string) => void;
 
     onSettingsChanged?: (jsonString: string) => void;
     onSettingsSyncResult?: (success: boolean, revision?: number) => void;
