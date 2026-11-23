@@ -239,3 +239,14 @@
 html.tw-fonts-ready .tw-compact {
   font-kerning: normal;
 }
+
+/* Re-measure both HUD styles when their font changes, including compact text after startup. */
+html body .tw-hud-font-root.tw-font-pass-a *,
+html body .tw-hud-font-root.tw-font-pass-a {
+  font-kerning: normal;
+}
+
+html body .tw-hud-font-root.tw-font-pass-b *,
+html body .tw-hud-font-root.tw-font-pass-b {
+  font-kerning: auto;
+}

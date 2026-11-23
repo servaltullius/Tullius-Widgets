@@ -139,3 +139,27 @@ test('icon packs reach the view under the bridge name it listens for, before the
   assert.match(bridgeConstantsText, /updateIconPacks: 'updateIconPacks'/);
   assert.match(mainText, /static void SendSettingsToView\(\) \{[\s\S]*?SendIconPacksToView\(\);[\s\S]*?LoadSettings/);
 });
+
+test('user fonts reach the view after icon packs and before the saved settings', () => {
+  const bridgeConstantsText = readFileSync(new URL('../view/src/constants/bridge.ts', import.meta.url), 'utf8');
+  assert.match(interopContractsText, /kUpdateUserFonts\[\] = "updateUserFonts";/);
+  assert.match(bridgeConstantsText, /updateUserFonts: 'updateUserFonts'/);
+  assert.match(mainText, /static void SendSettingsToView\(\) \{[\s\S]*?SendIconPacksToView\(\);\s*SendUserFontsToView\(\);[\s\S]*?kUpdateSettings/);
+  const sendBody = mainText.match(/static void SendUserFontsToView\(\) \{([\s\S]*?)\n\}/)?.[1] ?? '';
+  assert.match(sendBody, /BuildUserFontsJson[\s\S]*?kUpdateUserFonts, json\.c_str\(\)/);
+  assert.doesNotMatch(sendBody, /if\s*\([^\n]*(?:fontCount|json\.empty\(\))/);
+});
+
+test('user font scanning uses the shared name rules, its path and limits', () => {
+  const scanner = readFileSync(new URL('../src/UserFonts.cpp', import.meta.url), 'utf8');
+  assert.match(scanner, /#include "UserFontNames\.h"/);
+  assert.match(scanner, /"Data" \/ "PrismaUI" \/ "views" \/ "TulliusWidgets" \/ "user-fonts"/);
+  // Font type first (no warning for licence files), then the name rule, then size.
+  assert.match(scanner, /if \(!IsUsableFontFileName\(name\)\) continue;\s*if \(!IsValidName\(name\)\)/);
+  assert.match(scanner, /if \(!IsValidName\(id\)\)/);
+  assert.match(scanner, /file_size\(\) != 0/);
+  assert.match(scanner, /kMaxFonts = 32;/);
+  assert.match(scanner, /kMaxFilesPerFont = 16;/);
+  assert.match(scanner, /SortAndDropCaseDuplicates\(files\);\s*if \(files\.size\(\) > kMaxFilesPerFont\)/);
+  assert.match(scanner, /std::sort\(fonts\.begin[\s\S]*fonts\.resize\(kMaxFonts\)/);
+});

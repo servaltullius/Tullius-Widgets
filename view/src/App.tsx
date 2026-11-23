@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { HudWidgetItems } from './components/HudWidgetItems';
 import { OnboardingPanel, RuntimeWarningBanner, SettingsSyncWarningBanner } from './components/HudOverlays';
 import { SettingsPanel } from './components/SettingsPanel';
@@ -24,7 +24,10 @@ import { applyTimedEffectFilter } from './utils/timedEffectFilter';
 import { measureWidgetBoundsMap } from './utils/widgetBounds';
 import { snapWidgetMove, type AlignmentGuide } from './utils/widgetSnap';
 import { resolveFontPresetVariables } from './utils/fontPresets';
+import { FONTS_READY_EVENT } from './utils/fontsReady';
 import { IconPacksContext, useIconPacksBridge } from './hooks/useIconPacks';
+import { UserFontsContext, useUserFontsBridge } from './hooks/useUserFonts';
+import { useUserFontFace } from './hooks/useUserFontFace';
 import './assets/ui-theme.css';
 import './assets/compact-theme.css';
 
@@ -42,6 +45,7 @@ function resolveItemLayout(
 export function App() {
   const { stats: rawStats, hasLiveStats } = useGameStatsState();
   const iconPacks = useIconPacksBridge();
+  const userFonts = useUserFontsBridge();
   const [viewport, setViewport] = useState(() => ({
     width: window.innerWidth,
     height: window.innerHeight,
@@ -65,9 +69,40 @@ export function App() {
   const [lastChangeAtMs, setLastChangeAtMs] = useState<number>(() => Date.now());
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const { activeLanguage: lang, availableLanguages } = useLocalization(settings.general.language);
+  const hudFontRoot = useRef<HTMLDivElement>(null);
+  const lastHudFamily = useRef<string | null>(null);
+  const relayoutHudText = useCallback(() => {
+    const root = hudFontRoot.current;
+    if (!root) return;
+    const hasPass = root.classList.contains('tw-font-pass-a') || root.classList.contains('tw-font-pass-b');
+    // The bundled-font startup rule already uses normal kerning for compact text.
+    const usesNormalKerning = hasPass
+      ? root.classList.contains('tw-font-pass-a')
+      : document.documentElement.classList.contains('tw-fonts-ready') && root.querySelector('.tw-compact') !== null;
+    const firstPass = !usesNormalKerning;
+    root.classList.toggle('tw-font-pass-a', firstPass);
+    root.classList.toggle('tw-font-pass-b', !firstPass);
+  }, []);
+  const { family: userFamily, status: userFontStatus } = useUserFontFace(userFonts, settings.general.userFont, relayoutHudText);
+  useEffect(() => {
+    // Once a user font switch has set a relayout class, the startup rule for the bundled font no
+    // longer changes the computed style, so the bundled font becoming ready must relayout here.
+    const handleFontsReady = () => {
+      const root = hudFontRoot.current;
+      if (root && (root.classList.contains('tw-font-pass-a') || root.classList.contains('tw-font-pass-b'))) {
+        relayoutHudText();
+      }
+    };
+    window.addEventListener(FONTS_READY_EVENT, handleFontsReady);
+    return () => window.removeEventListener(FONTS_READY_EVENT, handleFontsReady);
+  }, [relayoutHudText]);
+  useLayoutEffect(() => {
+    if (userFamily !== lastHudFamily.current || userFontStatus === 'failed') relayoutHudText();
+    lastHudFamily.current = userFamily;
+  }, [userFamily, userFontStatus, relayoutHudText]);
   const fontVariables = useMemo(
-    () => resolveFontPresetVariables(settings.general.fontPreset, settings.general.hudStyle),
-    [settings.general.fontPreset, settings.general.hudStyle],
+    () => resolveFontPresetVariables(settings.general.fontPreset, settings.general.hudStyle, userFamily),
+    [settings.general.fontPreset, settings.general.hudStyle, userFamily],
   );
   const canonicalItemLayouts = useWidgetItemLayouts({
     settings,
@@ -401,43 +436,47 @@ export function App() {
         />
       )}
 
-      <HudWidgetItems
-        shouldShow={shouldShow}
-        stats={stats}
-        settings={settings}
-        settingsOpen={settingsOpen}
-        lang={lang}
-        itemLayouts={itemLayouts}
-        itemPresence={itemPresence}
-        accentColor={accentColor}
-        editable={settingsOpen}
-        selectedItemId={selectedItemId}
-        onSelectItem={selectItem}
-        onInteractionStart={startInteraction}
-        onInteractionEnd={endInteraction}
-        onMoveItem={handleMoveItem}
-        onMoveItemEnd={handleMoveItemEnd}
-        onResizeItem={handleResizeItem}
-        onResizeItemEnd={handleResizeItemEnd}
-        onItemElementRef={registerItemElement}
-      />
+      <div ref={hudFontRoot} className="tw-hud-font-root">
+        <HudWidgetItems
+          shouldShow={shouldShow}
+          stats={stats}
+          settings={settings}
+          settingsOpen={settingsOpen}
+          lang={lang}
+          itemLayouts={itemLayouts}
+          itemPresence={itemPresence}
+          accentColor={accentColor}
+          editable={settingsOpen}
+          selectedItemId={selectedItemId}
+          onSelectItem={selectItem}
+          onInteractionStart={startInteraction}
+          onInteractionEnd={endInteraction}
+          onMoveItem={handleMoveItem}
+          onMoveItemEnd={handleMoveItemEnd}
+          onResizeItem={handleResizeItem}
+          onResizeItemEnd={handleResizeItemEnd}
+          onItemElementRef={registerItemElement}
+        />
+      </div>
 
       <WidgetEditGuides visible={settingsOpen} guides={activeGuides} />
 
 
-      <SettingsPanel
-        settings={settings}
-        lang={lang}
-        effectiveVisible={visible}
-        open={settingsOpen}
-        onClose={handleCloseSettings}
-        onUpdate={updateSetting}
-        accentColor={accentColor}
-        availableLanguages={availableLanguages}
-        selectedItemId={selectedItemId}
-        selectedItemLayout={selectedItemId ? itemLayouts[selectedItemId] ?? null : null}
-        selectedItemLayoutActions={selectedItemLayoutActions}
-      />
+      <UserFontsContext.Provider value={{ fonts: userFonts, status: userFontStatus }}>
+        <SettingsPanel
+          settings={settings}
+          lang={lang}
+          effectiveVisible={visible}
+          open={settingsOpen}
+          onClose={handleCloseSettings}
+          onUpdate={updateSetting}
+          accentColor={accentColor}
+          availableLanguages={availableLanguages}
+          selectedItemId={selectedItemId}
+          selectedItemLayout={selectedItemId ? itemLayouts[selectedItemId] ?? null : null}
+          selectedItemLayoutActions={selectedItemLayoutActions}
+        />
+      </UserFontsContext.Provider>
     </div>
     </IconPacksContext.Provider>
   );

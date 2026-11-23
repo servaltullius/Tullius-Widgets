@@ -12,6 +12,7 @@ export const defaultSettings: WidgetSettings = {
     size: 'medium',
     language: '',
     fontPreset: 'default',
+    userFont: '',
     iconTheme: 'standard',
     iconPack: '',
     hudStyle: 'compact',

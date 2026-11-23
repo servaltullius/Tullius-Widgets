@@ -42,48 +42,48 @@ interface CustomSelectProps {
   testId?: string;
 }
 
+const DROPDOWN_GAP_PX = 4;
+const DROPDOWN_OPTION_HEIGHT_PX = 48;
+const DROPDOWN_BORDER_PX = 1;
+
 export function CustomSelect({ value, options, onChange, panelScale = 1, testId }: CustomSelectProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const selected = options.find(option => option.value === value);
-  const dropdownGap = Number((4 * panelScale).toFixed(3));
-  const estimatedOptionHeight = Number((48 * panelScale).toFixed(3));
+  const dropdownGap = DROPDOWN_GAP_PX * panelScale;
+  const estimatedOptionHeight = DROPDOWN_OPTION_HEIGHT_PX * panelScale;
 
   const resolveDropdownPosition = useCallback(() => {
     const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) {
-      return {
-        top: dropdownGap,
-        left: dropdownGap,
-        minWidth: Number((120 * panelScale).toFixed(3)),
-      };
-    }
+    if (!rect) return null;
 
-    const estimatedMenuHeight = Math.max(estimatedOptionHeight, options.length * estimatedOptionHeight);
-    const viewportHeight = Number.isFinite(window.innerHeight) && window.innerHeight > 0
-      ? window.innerHeight
-      : rect.bottom + estimatedMenuHeight + dropdownGap;
-    const canOpenUpward =
-      viewportHeight - rect.bottom < estimatedMenuHeight + dropdownGap
-      && rect.top > estimatedMenuHeight + dropdownGap;
+    const estimatedMenuHeight = options.length * estimatedOptionHeight + 2 * DROPDOWN_BORDER_PX;
+    const viewportBottom = Math.max(dropdownGap, window.innerHeight - dropdownGap);
+    const lowerStart = Math.max(dropdownGap, Math.min(viewportBottom, rect.bottom + dropdownGap));
+    const upperEnd = Math.max(dropdownGap, Math.min(viewportBottom, rect.top - dropdownGap));
+    const below = viewportBottom - lowerStart;
+    const above = upperEnd - dropdownGap;
+    const opensUpward = below < estimatedMenuHeight && above > below;
+
+    const viewportWidth = window.innerWidth;
+    const viewportRight = Math.max(dropdownGap, viewportWidth - dropdownGap);
+    const minWidth = Math.min(rect.width, viewportRight - dropdownGap);
+    const left = Math.max(dropdownGap, Math.min(rect.left, viewportRight - minWidth));
+    const rightEdge = Math.max(dropdownGap + minWidth, Math.min(rect.right, viewportRight));
+    const alignRight = rect.left + rect.width / 2 > viewportWidth / 2;
 
     return {
-      top: canOpenUpward
-        ? Math.max(dropdownGap, rect.top - estimatedMenuHeight - dropdownGap)
-        : Math.max(
-          dropdownGap,
-          Math.min(viewportHeight - estimatedMenuHeight - dropdownGap, rect.bottom + dropdownGap),
-        ),
-      left: rect.left,
-      minWidth: rect.width,
+      top: opensUpward ? undefined : lowerStart,
+      bottom: opensUpward ? window.innerHeight - upperEnd : undefined,
+      left: alignRight ? undefined : left,
+      right: alignRight ? viewportWidth - rightEdge : undefined,
+      minWidth,
+      maxWidth: alignRight ? rightEdge - dropdownGap : viewportRight - left,
+      maxHeight: opensUpward ? above : below,
     };
-  }, [dropdownGap, estimatedOptionHeight, options.length, panelScale]);
+  }, [dropdownGap, estimatedOptionHeight, options.length]);
 
-  const [dropdownPosition, setDropdownPosition] = useState({
-    top: dropdownGap,
-    left: dropdownGap,
-    minWidth: Number((120 * panelScale).toFixed(3)),
-  });
+  const [dropdownPosition, setDropdownPosition] = useState<ReturnType<typeof resolveDropdownPosition>>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -114,41 +114,44 @@ export function CustomSelect({ value, options, onChange, panelScale = 1, testId 
   }, [open, resolveDropdownPosition, testId]);
 
   return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
-      <div data-testid={testId} onClick={() => setOpen(!open)} style={{
+    <div ref={containerRef} style={{ position: 'relative', minWidth: 0, maxWidth: '100%' }}>
+      <div data-testid={testId} title={selected?.label ?? value} onClick={() => setOpen(!open)} style={{
         background: '#333', color: '#fff', border: '1px solid #555',
         borderRadius: scalePanelPixels(6, panelScale),
         padding: `${scalePanelPixels(8, panelScale)} ${scalePanelPixels(16, panelScale)}`,
         fontSize: scalePanelPixels(24, panelScale),
         cursor: 'pointer', userSelect: 'none', minWidth: scalePanelPixels(120, panelScale), textAlign: 'center',
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>
         {selected?.label ?? value} ▾
       </div>
-      {open && createPortal(
+      {open && dropdownPosition && createPortal(
         <div
           data-select-menu={testId ?? 'custom-select'}
           style={{
             position: 'fixed',
-            top: dropdownPosition.top,
-            left: dropdownPosition.left,
+            ...dropdownPosition,
+            boxSizing: 'border-box',
             zIndex: 1100,
             background: '#2a2a3a',
-            border: '1px solid #555',
+            border: `${DROPDOWN_BORDER_PX}px solid #555`,
             borderRadius: scalePanelPixels(6, panelScale),
-            minWidth: dropdownPosition.minWidth,
-            overflow: 'hidden',
+            overflowX: 'hidden',
+            overflowY: 'auto',
             boxShadow: '0 12px 24px rgba(0,0,0,0.32)',
           }}
         >
           {options.map(option => (
             <div key={option.value}
               data-testid={testId ? `${testId}-option-${option.value}` : undefined}
+              title={option.label}
               onClick={() => { onChange(option.value); setOpen(false); }}
               style={{
                 padding: `${scalePanelPixels(12, panelScale)} ${scalePanelPixels(20, panelScale)}`,
-                fontSize: scalePanelPixels(24, panelScale), color: '#fff',
+                fontSize: scalePanelPixels(24, panelScale), lineHeight: scalePanelPixels(24, panelScale), color: '#fff',
                 cursor: 'pointer',
                 background: option.value === value ? '#4a4a5a' : 'transparent',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               }}
               onMouseEnter={event => { event.currentTarget.style.background = '#3a3a4a'; }}
               onMouseLeave={event => { event.currentTarget.style.background = option.value === value ? '#4a4a5a' : 'transparent'; }}

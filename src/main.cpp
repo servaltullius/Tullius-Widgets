@@ -3,6 +3,7 @@
 #include "PrismaUI_API.h"
 #include "RuntimeDiagnostics.h"
 #include "StatsCollector.h"
+#include "UserFonts.h"
 #include "WidgetBootstrap.h"
 #include "WidgetEvents.h"
 #include "WidgetHotkeys.h"
@@ -127,10 +128,19 @@ static void SendIconPacksToView() {
     logger::info("Icon packs sent to view: {}", packCount);
 }
 
+static void SendUserFontsToView() {
+    if (!IsInteropReady()) return;
+    std::size_t fontCount = 0;
+    const auto json = TulliusWidgets::UserFonts::BuildUserFontsJson(ResolveStorageBasePath(), &fontCount);
+    if (!TryInteropCall(TulliusWidgets::WidgetInteropContracts::kUpdateUserFonts, json.c_str())) return;
+    logger::info("User fonts sent to view: {}", fontCount);
+}
+
 static void SendSettingsToView() {
     if (!IsInteropReady()) return;
-    // Before the settings, so a saved icon pack is known when they are applied.
+    // Send available assets before applying the saved selections.
     SendIconPacksToView();
+    SendUserFontsToView();
     std::string json = TulliusWidgets::NativeStorage::LoadSettings(ResolveStorageBasePath());
     if (json.empty()) return;
     if (!TryInteropCall(TulliusWidgets::WidgetInteropContracts::kUpdateSettings, json.c_str())) return;

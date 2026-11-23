@@ -1,5 +1,8 @@
 // @vitest-environment jsdom
+/// <reference types="node" />
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { URL as NodeUrl } from 'node:url';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
@@ -46,6 +49,7 @@ vi.mock('./hooks/useSelectedItemLayoutActions', async importOriginal => {
 });
 
 import { App } from './App';
+import { FONTS_READY_EVENT } from './utils/fontsReady';
 import { defaultSettings } from './data/defaultSettings';
 import { resolveWidgetItemLayouts } from './hooks/useWidgetItemLayouts';
 
@@ -139,6 +143,110 @@ describe('App quick-edit integration', () => {
     globalThis.fetch = originalFetch;
     vi.useRealTimers();
     delete reactActEnvironment.IS_REACT_ACT_ENVIRONMENT;
+  });
+
+  it.each([
+    { style: 'classic', textSelector: '.tw-stat-value', appliedKerning: 'normal', presetKerning: 'auto' },
+    { style: 'compact', textSelector: '.tw-compact-value', appliedKerning: 'auto', presetKerning: 'normal' },
+  ] as const)('applies and clears a user font in the $style HUD without remounting its text', async ({
+    style, textSelector, appliedKerning, presetKerning,
+  }) => {
+    const stylesheet = document.createElement('style');
+    stylesheet.textContent = readFileSync(new NodeUrl('./assets/compact-theme.css', import.meta.url), 'utf8');
+    document.head.appendChild(stylesheet);
+    document.documentElement.classList.add('tw-fonts-ready');
+    const originalFonts = Object.getOwnPropertyDescriptor(document, 'fonts');
+    Object.defineProperty(document, 'fonts', { configurable: true, value: { load: vi.fn().mockResolvedValue([{}]) } });
+
+    try {
+      await act(async () => {
+        root = createRoot(container);
+        root.render(<App />);
+      });
+      const setUserFont = (userFont: string) => window.updateSettings?.(JSON.stringify({
+        schemaVersion: 7,
+        general: { hudStyle: style, userFont, onboardingSeen: true },
+        itemLayouts: { 'player.level': { ...getDefaultPlayerLevelLayout(), visible: true } },
+      }));
+      const setListing = () => window.TulliusWidgetsBridge?.v1?.updateUserFonts?.(JSON.stringify({
+        fonts: [{ id: 'HUD Font', files: ['Font-Regular.ttf'] }],
+      }));
+      await act(async () => setUserFont(''));
+      await act(async () => window.toggleSettings?.());
+      const widget = getWidget(container, 'player.level');
+      const text = widget?.querySelector(textSelector);
+      expect(text).toBeTruthy();
+      const theme = container.querySelector<HTMLElement>('[data-testid="app-font-theme"]')!;
+      const uiFont = theme.style.getPropertyValue('--tw-font-ui');
+
+      // Either bridge message may arrive first.
+      if (style === 'classic') {
+        await act(async () => setListing());
+        await act(async () => setUserFont('hud font'));
+      } else {
+        await act(async () => setUserFont('hud font'));
+        await act(async () => setListing());
+      }
+      expect(theme.style.getPropertyValue('--tw-font-hud')).toMatch(/^"TW User Font \d+", /);
+      expect(theme.style.getPropertyValue('--tw-font-ui')).toBe(uiFont);
+      expect(getWidget(container, 'player.level')).toBe(widget);
+      expect(widget?.querySelector(textSelector)).toBe(text);
+      expect(getComputedStyle(text!).getPropertyValue('font-kerning')).toBe(appliedKerning);
+      if (style === 'compact') {
+        expect(getComputedStyle(widget!).getPropertyValue('font-kerning')).toBe(appliedKerning);
+      }
+
+      await act(async () => setUserFont(''));
+      expect(theme.style.getPropertyValue('--tw-font-hud')).not.toContain('TW User Font');
+      expect(getWidget(container, 'player.level')).toBe(widget);
+      expect(widget?.querySelector(textSelector)).toBe(text);
+      expect(getComputedStyle(text!).getPropertyValue('font-kerning')).toBe(presetKerning);
+    } finally {
+      if (originalFonts) Object.defineProperty(document, 'fonts', originalFonts);
+      else Reflect.deleteProperty(document, 'fonts');
+      document.documentElement.classList.remove('tw-fonts-ready');
+      stylesheet.remove();
+    }
+  });
+
+  it('relayouts the HUD when the bundled font becomes ready after a user font switch', async () => {
+    const stylesheet = document.createElement('style');
+    stylesheet.textContent = readFileSync(new NodeUrl('./assets/compact-theme.css', import.meta.url), 'utf8');
+    document.head.appendChild(stylesheet);
+    const originalFonts = Object.getOwnPropertyDescriptor(document, 'fonts');
+    Object.defineProperty(document, 'fonts', { configurable: true, value: { load: vi.fn().mockResolvedValue([{}]) } });
+
+    try {
+      await act(async () => {
+        root = createRoot(container);
+        root.render(<App />);
+      });
+      await act(async () => window.TulliusWidgetsBridge?.v1?.updateUserFonts?.(JSON.stringify({
+        fonts: [{ id: 'HUD Font', files: ['Font-Regular.ttf'] }],
+      })));
+      await act(async () => window.updateSettings?.(JSON.stringify({
+        schemaVersion: 7,
+        general: { hudStyle: 'compact', userFont: 'HUD Font', onboardingSeen: true },
+        itemLayouts: { 'player.level': { ...getDefaultPlayerLevelLayout(), visible: true } },
+      })));
+      await act(async () => window.toggleSettings?.());
+      const text = getWidget(container, 'player.level')?.querySelector('.tw-compact-value');
+      expect(text).toBeTruthy();
+      const kerningBefore = getComputedStyle(text!).getPropertyValue('font-kerning');
+
+      // The bundled font finishes after the user font: its startup rule is outranked by the
+      // user font relayout class, so the HUD must relayout on the event instead.
+      await act(async () => {
+        document.documentElement.classList.add('tw-fonts-ready');
+        window.dispatchEvent(new Event(FONTS_READY_EVENT));
+      });
+      expect(getComputedStyle(text!).getPropertyValue('font-kerning')).not.toBe(kerningBefore);
+    } finally {
+      if (originalFonts) Object.defineProperty(document, 'fonts', originalFonts);
+      else Reflect.deleteProperty(document, 'fonts');
+      document.documentElement.classList.remove('tw-fonts-ready');
+      stylesheet.remove();
+    }
   });
 
   it('keeps quick-edit action state canonical while a drag preview is active', async () => {
