@@ -10,6 +10,7 @@
 #include <string_view>
 
 using TulliusWidgets::JsonUtils::TryReadUIntMember;
+using TulliusWidgets::JsonUtils::TryReadStringMember;
 
 namespace {
 
@@ -200,6 +201,29 @@ void TestMalformedInput()
     CHECK(Is(Rev(deep), 6));
 }
 
+void TestStringMembers()
+{
+    const auto read = [](std::string_view json) {
+        return TryReadStringMember(json, { "general", "freeCameraDisplay" });
+    };
+    CHECK(read(R"({"general":{"freeCameraDisplay":"vitals"}})") == "vitals");
+    CHECK(read(R"({"general":{"freeCameraDisplay":"\u0061l\u006c"}})") == "all");
+    CHECK(read(R"({"gene\u0072al":{"freeCameraDisplay":"all"}})") == "all");
+    CHECK(read(R"({"general":{"freeCameraDisplay":"hide","freeCameraDisplay":"all"}})") == "all");
+    CHECK(read(R"({"general":{"freeCameraDisplay":"hide"},"general":{"freeCameraDisplay":"all"}})") == "all");
+    CHECK(read(R"({"general":{"iconPack":"freeCameraDisplay","freeCameraDisplay":"all"}})") == "all");
+    CHECK(!read(R"({"general":{"iconPack":"freeCameraDisplay","value":"all"}})"));
+    CHECK(!read(R"({"x":{"general":{"freeCameraDisplay":"all"}}})"));
+    CHECK(!read(R"({"general":{"freeCameraDisplay":"all"},"general":[]})"));
+    CHECK(!read(R"({"general":{"freeCameraDisplay":"all"},"general":{}})"));
+    CHECK(!read(R"({"general":{"freeCameraDisplay":"all","freeCameraDisplay":42}})"));
+    CHECK(!read(R"({"general":{"freeCameraDisplay":null}})"));
+    CHECK(read("\xEF\xBB\xBF" R"({"general":{"freeCameraDisplay":"hide"}})") == "hide");
+    CHECK(!read(R"({"general":{"freeCameraDisplay":"all"},"x":[1,]})"));
+    CHECK(!read(R"({"general":{"freeCameraDisplay":"a\xell"}})"));
+    CHECK(!read(R"({"general":{"freeCameraDisplay":"all"}} trailing)"));
+}
+
 }  // namespace
 
 int main()
@@ -211,6 +235,7 @@ int main()
     TestRejectedValues();
     TestDuplicateMembersLastWins();
     TestMalformedInput();
+    TestStringMembers();
 
     if (g_failures != 0) {
         std::fprintf(stderr, "json_utils_test: %d failure(s)\n", g_failures);

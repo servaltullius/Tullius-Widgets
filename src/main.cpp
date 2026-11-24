@@ -76,16 +76,18 @@ static bool TryInvoke(const char* script) {
 
 static bool TryShowView() {
     SyncViewBridgeApi();
-    return g_viewBridge.Show();
-}
-
-static bool TryHideView() {
-    SyncViewBridgeApi();
-    return g_viewBridge.Hide();
+    if (!g_viewBridge.Show()) {
+        return false;
+    }
+    TulliusWidgets::WidgetRuntime::NoteViewShown();
+    return true;
 }
 
 static void HideViewIfReady() {
-    (void)TryHideView();
+    SyncViewBridgeApi();
+    if (g_viewBridge.Hide()) {
+        TulliusWidgets::WidgetRuntime::NoteViewHidden();
+    }
 }
 
 static bool ViewHasFocus() {
@@ -143,6 +145,9 @@ static void SendSettingsToView() {
     SendUserFontsToView();
     std::string json = TulliusWidgets::NativeStorage::LoadSettings(ResolveStorageBasePath());
     if (json.empty()) return;
+    // The view adopts the file it receives here, so the plugin applies the same file: otherwise a
+    // failed save earlier in the session leaves the two on different hotkeys or camera policy.
+    TulliusWidgets::WidgetHotkeys::ApplyHotkeysFromSettingsJson(json);
     if (!TryInteropCall(TulliusWidgets::WidgetInteropContracts::kUpdateSettings, json.c_str())) return;
     logger::info("Saved settings sent to view");
 }

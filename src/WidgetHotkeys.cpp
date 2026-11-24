@@ -2,6 +2,8 @@
 
 #include "JsonUtils.h"
 #include "WidgetInteropContracts.h"
+#include "WidgetRuntime.h"
+#include "WidgetVisibilityState.h"
 #include <keyhandler/keyhandler.h>
 #include <atomic>
 #include <chrono>
@@ -260,6 +262,18 @@ void RegisterDefaultHotkeys(const Callbacks& callbacks)
 
 void ApplyHotkeysFromSettingsJson(std::string_view settingsJson)
 {
+    using WidgetVisibilityState::FreeCameraDisplay;
+    const auto value = JsonUtils::TryReadStringMember(settingsJson, { "general", "freeCameraDisplay" });
+    auto display = FreeCameraDisplay::kHide;
+    if (value == "vitals") {
+        display = FreeCameraDisplay::kVitals;
+    } else if (value == "all") {
+        display = FreeCameraDisplay::kAll;
+    }
+    if (WidgetVisibilityState::SetFreeCameraDisplay(display)) {
+        WidgetRuntime::RequestVisibilityCheck();
+    }
+
     auto settingsKey = TulliusWidgets::JsonUtils::TryReadUIntMember(settingsJson, { "general", "settingsHotkey" }).value_or(kInsertScanCode);
     auto visibilityKey = TulliusWidgets::JsonUtils::TryReadUIntMember(settingsJson, { "general", "visibilityHotkey" }).value_or(kF11ScanCode);
     if (!IsBindableScanCode(settingsKey)) {

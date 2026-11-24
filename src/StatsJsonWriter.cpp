@@ -35,6 +35,12 @@ std::string StatsJsonWriter::Build(const StatsPayload& payload)
     json_ += ',';
     json_ += "\"isInCombat\":";
     AppendBool(payload.inCombat);
+    json_ += ",\"weaponDrawn\":";
+    AppendBool(payload.weaponDrawn);
+    json_ += ",\"sneaking\":";
+    AppendBool(payload.sneaking);
+    json_ += ",\"freeCamera\":";
+    AppendBool(payload.freeCamera);
     json_ += '}';
     return json_;
 }

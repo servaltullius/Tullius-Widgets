@@ -156,4 +156,7 @@ export interface CombatStats {
   timedEffects: TimedEffect[];
   calcMeta: CalculationMeta;
   isInCombat: boolean;
+  weaponDrawn: boolean;
+  sneaking: boolean;
+  freeCamera: boolean;
 }

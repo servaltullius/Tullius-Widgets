@@ -4,6 +4,7 @@ import { OnboardingPanel, RuntimeWarningBanner, SettingsSyncWarningBanner } from
 import { SettingsPanel } from './components/SettingsPanel';
 import { WidgetEditGuides } from './components/WidgetEditGuides';
 import { useGameStatsState } from './hooks/useGameStats';
+import { useAutoHide } from './hooks/useAutoHide';
 import { useSettings } from './hooks/useSettings';
 import { useWidgetEditSelection } from './hooks/useWidgetEditSelection';
 import { createSelectedItemLayoutActions } from './hooks/useSelectedItemLayoutActions';
@@ -12,13 +13,7 @@ import { useLayoutHistory } from './hooks/useLayoutHistory';
 import { useLocalization } from './i18n/useLocalization';
 import { useWidgetItemLayouts } from './hooks/useWidgetItemLayouts';
 import type { WidgetItemLayout } from './types/settings';
-import {
-  buildItemChangeSignatures,
-  joinTrackedChangeSignature,
-  getRuntimeWarningText,
-  getSettingsSyncWarningText,
-  resolveHudVisibility,
-} from './utils/hudPresentation';
+import { getRuntimeWarningText, getSettingsSyncWarningText } from './utils/hudPresentation';
 import { formatHotkey } from './utils/hotkeys';
 import { applyTimedEffectFilter } from './utils/timedEffectFilter';
 import { measureWidgetBoundsMap } from './utils/widgetBounds';
@@ -33,6 +28,8 @@ import './assets/compact-theme.css';
 
 const SNAP_THRESHOLD = 15;
 const GRID = 10;
+const HUD_FADE_IN_MS = 200;
+const HUD_FADE_OUT_MS = 500;
 
 function resolveItemLayout(
   itemId: string,
@@ -66,8 +63,6 @@ export function App() {
     () => applyTimedEffectFilter(rawStats, settings.timedEffects),
     [rawStats, settings.timedEffects],
   );
-  const [lastChangeAtMs, setLastChangeAtMs] = useState<number>(() => Date.now());
-  const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const { activeLanguage: lang, availableLanguages } = useLocalization(settings.general.language);
   const hudFontRoot = useRef<HTMLDivElement>(null);
   const lastHudFamily = useRef<string | null>(null);
@@ -180,92 +175,18 @@ export function App() {
     });
   }, [clearPreviewState, interactionResetToken]);
 
-  // Per-item change times drive items whose visibility follows combat or value changes; the
-  // joined signature drives the HUD-wide show-on-change timer. Both come from one pass.
-  const itemSignatures = useMemo(() => buildItemChangeSignatures(stats, itemLayouts), [itemLayouts, stats]);
-  const trackedChangeSignature = useMemo(
-    () => joinTrackedChangeSignature(stats.isInCombat, itemSignatures),
-    [itemSignatures, stats.isInCombat],
-  );
-
-  useEffect(() => {
-    const changedAt = Date.now();
-    const timer = window.setTimeout(() => {
-      setLastChangeAtMs(changedAt);
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [trackedChangeSignature]);
-
-  const previousItemSignaturesRef = useRef<Record<string, string> | null>(null);
-  const [lastChangeAtByItem, setLastChangeAtByItem] = useState<Record<string, number>>({});
-  const changeWindowMs = settings.general.changeDisplaySeconds * 1000;
-
-  useEffect(() => {
-    const previous = previousItemSignaturesRef.current;
-    if (!hasLiveStats) {
-      previousItemSignaturesRef.current = itemSignatures;
-      return;
-    }
-    const changed = Object.keys(itemSignatures).filter(itemId => !previous || previous[itemId] !== itemSignatures[itemId]);
-    if (changed.length === 0) {
-      previousItemSignaturesRef.current = itemSignatures;
-      return;
-    }
-    const changedAt = Date.now();
-    // Only advance the baseline once the change is recorded; if a newer render cancels this
-    // timer first, the next run still sees the difference against the old baseline.
-    const timer = window.setTimeout(() => {
-      previousItemSignaturesRef.current = itemSignatures;
-      setLastChangeAtByItem(prev => {
-        const next = { ...prev };
-        for (const itemId of changed) next[itemId] = changedAt;
-        return next;
-      });
-      setNowMs(changedAt);
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [hasLiveStats, itemSignatures]);
-
-  useEffect(() => {
-    const now = Date.now();
-    let nextExpiry = Number.POSITIVE_INFINITY;
-    for (const changedAt of Object.values(lastChangeAtByItem)) {
-      const expiry = changedAt + changeWindowMs;
-      if (expiry > now && expiry < nextExpiry) nextExpiry = expiry;
-    }
-    if (!Number.isFinite(nextExpiry)) return;
-    const timer = window.setTimeout(() => setNowMs(Date.now()), nextExpiry - now + 30);
-    return () => window.clearTimeout(timer);
-  }, [changeWindowMs, lastChangeAtByItem, nowMs]);
-
-  const itemPresence = useMemo(() => ({
-    hudStyle: settings.general.hudStyle,
-    nowMs,
-    lastChangeAtByItem,
-    changeWindowMs,
-  }), [changeWindowMs, lastChangeAtByItem, nowMs, settings.general.hudStyle]);
-
-  useEffect(() => {
-    if (!settings.general.showOnChangeOnly) return;
-    const timer = window.setInterval(() => {
-      setNowMs(Date.now());
-    }, 250);
-    return () => window.clearInterval(timer);
-  }, [settings.general.showOnChangeOnly]);
-
   useEffect(() => {
     if (!settingsOpen || settings.general.onboardingSeen) return;
     updateSetting('general.onboardingSeen', true);
   }, [settings.general.onboardingSeen, settingsOpen, updateSetting]);
 
-  const { shouldShow } = resolveHudVisibility({
+  const { visibility, itemPresence } = useAutoHide({
     visible,
     hasLiveStats,
-    settings,
+    general: settings.general,
     stats,
     settingsOpen,
-    nowMs,
-    lastChangeAtMs,
+    itemLayouts,
   });
 
   const runtimeWarningText = getRuntimeWarningText(lang, runtimeDiagnostics);
@@ -436,9 +357,20 @@ export function App() {
         />
       )}
 
-      <div ref={hudFontRoot} className="tw-hud-font-root">
+      <div
+        ref={hudFontRoot}
+        className="tw-hud-font-root"
+        style={{
+          opacity: visibility.opacity,
+          // Only auto-hide fades. F11, the settings panel and the free camera switch at once as before.
+          transition: settings.general.autoHide.enabled
+            ? `opacity ${visibility.opacity === 1 ? HUD_FADE_IN_MS : HUD_FADE_OUT_MS}ms`
+            : 'none',
+        }}
+      >
         <HudWidgetItems
-          shouldShow={shouldShow}
+          shouldShow={visibility.render}
+          visibility={visibility}
           stats={stats}
           settings={settings}
           settingsOpen={settingsOpen}

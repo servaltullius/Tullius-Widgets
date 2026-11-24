@@ -436,6 +436,9 @@ function normalizeCombatStats(value: unknown, fallback: CombatStats): CombatStat
     isInCombat: typeof value.isInCombat === 'boolean'
       ? value.isInCombat
       : fallback.isInCombat,
+    weaponDrawn: readBoolean(value.weaponDrawn, false),
+    sneaking: readBoolean(value.sneaking, false),
+    freeCamera: readBoolean(value.freeCamera, false),
   };
 }
 

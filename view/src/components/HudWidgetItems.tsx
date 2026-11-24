@@ -25,6 +25,7 @@ import {
   getVisibleHudItemIds,
   hasMeaningfulDifference,
   isLeftHandHeldByTwoHanded,
+  type HudVisibility,
   type ItemPresenceContext,
   resolveExperienceProgress,
 } from '../utils/hudPresentation';
@@ -137,6 +138,7 @@ interface HudWidgetItemsProps {
   lang: Language;
   itemLayouts: Record<string, WidgetItemLayout>;
   itemPresence?: ItemPresenceContext;
+  visibility?: Pick<HudVisibility, 'itemMask' | 'bypassShowWhen'>;
   accentColor: string;
   editable?: boolean;
   selectedItemId?: string | null;
@@ -227,6 +229,7 @@ export function HudWidgetItems({
   lang,
   itemLayouts,
   itemPresence,
+  visibility,
   accentColor,
   editable = false,
   selectedItemId = null,
@@ -239,24 +242,19 @@ export function HudWidgetItems({
   onResizeItemEnd = () => {},
   onItemElementRef,
 }: HudWidgetItemsProps) {
-  const hasVisibleTimeItem = shouldShow
-    && (
-      itemLayouts['time.game']?.visible === true
-      || itemLayouts['time.real']?.visible === true
+  const visibleItemIds = useMemo(() => {
+    return sortItemIdsByZIndex(
+      itemLayouts,
+      getVisibleHudItemIds(itemLayouts, stats, settingsOpen, itemPresence, visibility),
     );
+  }, [itemLayouts, itemPresence, settingsOpen, stats, visibility]);
+  const hasVisibleTimeItem = shouldShow && (visibleItemIds.includes('time.game') || visibleItemIds.includes('time.real'));
   const nowMs = useSharedTimeWidgetClock(stats.time.snapshotAtMs, hasVisibleTimeItem);
   const iconPacks = useContext(IconPacksContext);
   const iconSource = useMemo<CompactIconSource>(() => ({
     theme: settings.general.iconTheme,
     pack: findIconPack(iconPacks, settings.general.iconPack),
   }), [iconPacks, settings.general.iconPack, settings.general.iconTheme]);
-
-  const visibleItemIds = useMemo(() => {
-    return sortItemIdsByZIndex(
-      itemLayouts,
-      getVisibleHudItemIds(itemLayouts, stats, settingsOpen, itemPresence),
-    );
-  }, [itemLayouts, itemPresence, settingsOpen, stats]);
 
   if (!shouldShow) {
     return null;

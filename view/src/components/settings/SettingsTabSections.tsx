@@ -12,8 +12,16 @@ import { findIconPack, type IconPack } from '../../data/iconPacks';
 import { IconPacksContext } from '../../hooks/useIconPacks';
 import { findUserFont, type UserFont } from '../../data/userFonts';
 import { UserFontsContext } from '../../hooks/useUserFonts';
+import { MAX_HIDE_DELAY_SECONDS } from '../../data/defaultSettings';
 
 const SLOT_LOAD_CONFIRM_MS = 4000;
+const AUTO_HIDE_CONDITIONS = [
+  ['showInCombat', 'autoHideInCombat'],
+  ['showWeaponDrawn', 'autoHideWeaponDrawn'],
+  ['showSneaking', 'autoHideSneaking'],
+  ['showResourcesNotFull', 'autoHideResourcesNotFull'],
+  ['showOnChange', 'autoHideOnChange'],
+] as const;
 
 const PRESET_COLORS = [
   '', '#6699cc', '#cc6666', '#66cc99', '#cc99cc', '#ccaa66', '#66cccc', '#ffffff',
@@ -196,11 +204,14 @@ export function GeneralTabSections({
   panelScale = 1,
 }: GeneralTabSectionsProps) {
   const { fonts: userFonts, status: userFontStatus } = useContext(UserFontsContext);
-  const { fontPreset, userFont } = settings.general;
+  const { autoHide, freeCameraDisplay, fontPreset, userFont } = settings.general;
+  const hasEnabledVital = readItemVisibility(settings, 'player.health', settings.playerInfo.health)
+    || readItemVisibility(settings, 'player.magicka', settings.playerInfo.magicka)
+    || readItemVisibility(settings, 'player.stamina', settings.playerInfo.stamina);
   const activeUserFont = findUserFont(userFonts, userFont);
   const fontOptions = buildFontOptions(lang, userFonts);
   // Folder names can be 192 bytes without spaces; wrap them instead of widening the panel.
-  const fontHintStyle = {
+  const hintStyle = {
     color: '#88a4c4',
     fontSize: scalePanelPixels(18, panelScale),
     margin: `0 0 ${scalePanelPixels(8, panelScale)} 0`,
@@ -225,22 +236,56 @@ export function GeneralTabSections({
           {t(lang, 'sessionVisibilityHint').replace('{key}', formatHotkey(settings.general.visibilityHotkey))}
         </p>
       )}
-      <Toggle label={t(lang, 'combatOnly')} checked={settings.general.combatOnly} onChange={value => onUpdate('general.combatOnly', value)} panelScale={panelScale} />
-      <Toggle label={t(lang, 'showOnChangeOnly')} checked={settings.general.showOnChangeOnly} onChange={value => onUpdate('general.showOnChangeOnly', value)} panelScale={panelScale} />
-      {settings.general.showOnChangeOnly && (
-        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${scalePanelPixels(8, panelScale)} 0 ${scalePanelPixels(8, panelScale)} ${scalePanelPixels(20, panelScale)}` }}>
-          <span style={{ color: '#aaa', fontSize: scalePanelPixels(20, panelScale) }}>
-            {t(lang, 'changeDisplaySeconds')}: {settings.general.changeDisplaySeconds}
-          </span>
-          <input
-            type="range"
-            min={1}
-            max={15}
-            value={settings.general.changeDisplaySeconds}
-            onChange={event => onUpdate('general.changeDisplaySeconds', Number(event.target.value))}
-            style={{ width: scalePanelPixels(180, panelScale) }}
-          />
-        </label>
+      <Toggle label={t(lang, 'autoHide')} checked={autoHide.enabled} onChange={value => onUpdate('general.autoHide.enabled', value)} panelScale={panelScale} />
+      {autoHide.enabled && (
+        <div style={{ paddingLeft: scalePanelPixels(20, panelScale) }}>
+          {AUTO_HIDE_CONDITIONS.map(([field, label]) => (
+            <Toggle key={field} label={t(lang, label)} checked={autoHide[field]} onChange={value => onUpdate(`general.autoHide.${field}`, value)} panelScale={panelScale} />
+          ))}
+          <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${scalePanelPixels(8, panelScale)} 0` }}>
+            <span style={{ color: '#aaa', fontSize: scalePanelPixels(20, panelScale) }}>
+              {t(lang, 'hideDelaySeconds')}: {autoHide.hideDelaySeconds}
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={MAX_HIDE_DELAY_SECONDS}
+              step={1}
+              value={autoHide.hideDelaySeconds}
+              onChange={event => onUpdate('general.autoHide.hideDelaySeconds', Number(event.target.value))}
+              style={{ width: scalePanelPixels(180, panelScale) }}
+            />
+          </label>
+        </div>
+      )}
+      <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${scalePanelPixels(8, panelScale)} 0` }}>
+        <span style={{ color: '#aaa', fontSize: scalePanelPixels(20, panelScale) }}>
+          {t(lang, 'changeDisplaySeconds')}: {settings.general.changeDisplaySeconds}
+        </span>
+        <input
+          type="range"
+          min={1}
+          max={15}
+          value={settings.general.changeDisplaySeconds}
+          onChange={event => onUpdate('general.changeDisplaySeconds', Number(event.target.value))}
+          style={{ width: scalePanelPixels(180, panelScale) }}
+        />
+      </label>
+      <p style={hintStyle}>{t(lang, 'changeDisplaySecondsHint')}</p>
+      <SelectRow
+        label={t(lang, 'freeCameraDisplay')}
+        value={freeCameraDisplay}
+        options={[
+          { value: 'hide', label: t(lang, 'freeCameraHide') },
+          { value: 'vitals', label: t(lang, 'freeCameraVitals') },
+          { value: 'all', label: t(lang, 'freeCameraAll') },
+        ]}
+        onChange={value => onUpdate('general.freeCameraDisplay', value)}
+        panelScale={panelScale}
+        testId="free-camera-display-select"
+      />
+      {freeCameraDisplay === 'vitals' && !hasEnabledVital && (
+        <p style={hintStyle}>{t(lang, 'freeCameraNoVitals')}</p>
       )}
 
       <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${scalePanelPixels(8, panelScale)} 0` }}>
@@ -303,15 +348,15 @@ export function GeneralTabSections({
         panelScale={panelScale}
         testId="font-preset-select"
       />
-      <p style={fontHintStyle}>{t(lang, 'userFontHint')}</p>
+      <p style={hintStyle}>{t(lang, 'userFontHint')}</p>
       {userFontStatus === 'loading' && (
-        <p data-testid="user-font-loading" style={fontHintStyle}>{t(lang, 'userFontLoading').replace('{name}', userFont)}</p>
+        <p data-testid="user-font-loading" style={hintStyle}>{t(lang, 'userFontLoading').replace('{name}', userFont)}</p>
       )}
       {userFontStatus === 'missing' && (
-        <p style={fontHintStyle}>{t(lang, 'userFontMissing').replace('{name}', userFont)}</p>
+        <p style={hintStyle}>{t(lang, 'userFontMissing').replace('{name}', userFont)}</p>
       )}
       {userFontStatus === 'failed' && (
-        <p style={fontHintStyle}>{t(lang, 'userFontLoadFailed').replace('{name}', userFont)}</p>
+        <p style={hintStyle}>{t(lang, 'userFontLoadFailed').replace('{name}', userFont)}</p>
       )}
 
       {/* Both styles have a Dororong icon set; badges, accent tone and card transparency only

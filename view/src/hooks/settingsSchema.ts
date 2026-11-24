@@ -1,4 +1,5 @@
 import type {
+  AutoHideSettings,
   CarryWeightDisplayMode,
   FontPreset,
   CompactAnchor,
@@ -15,7 +16,7 @@ import type {
   WidgetSize,
 } from '../types/settings';
 import { LAYOUT_SLOT_COUNT } from '../types/settings';
-import { defaultSettings } from '../data/defaultSettings';
+import { defaultSettings, MAX_HIDE_DELAY_SECONDS } from '../data/defaultSettings';
 import { isValidIconPackId } from '../data/iconPacks';
 import { isValidUserFontName } from '../data/userFonts';
 import { sanitizeWidgetItemLayouts } from '../data/widgetItemRegistry';
@@ -136,6 +137,33 @@ function cloneDefaultSettings(): WidgetSettings {
   return JSON.parse(JSON.stringify(defaultSettings)) as WidgetSettings;
 }
 
+function mergeAutoHide(defaults: AutoHideSettings, general: Record<string, unknown>): AutoHideSettings {
+  // Presets omit the schema version, so only the original field's presence identifies the new format.
+  if (!Object.prototype.hasOwnProperty.call(general, 'autoHide')) {
+    const showInCombat = general.combatOnly === true;
+    const showOnChange = general.showOnChangeOnly === true;
+    if (!showInCombat && !showOnChange) return defaults;
+    return {
+      ...defaults,
+      enabled: true,
+      showInCombat,
+      showWeaponDrawn: false,
+      showSneaking: false,
+      showResourcesNotFull: false,
+      showOnChange,
+      hideDelaySeconds: 0,
+    };
+  }
+
+  const incoming = general.autoHide;
+  if (!isPlainObject(incoming)) return defaults;
+  const { hideDelaySeconds, ...conditions } = defaults;
+  return {
+    ...mergeBooleanSection(conditions, incoming),
+    hideDelaySeconds: Math.trunc(readNumber(incoming.hideDelaySeconds, hideDelaySeconds, 0, MAX_HIDE_DELAY_SECONDS)),
+  };
+}
+
 function mergeGeneralSettings(
   target: WidgetSettings['general'],
   incoming: unknown,
@@ -157,8 +185,8 @@ function mergeGeneralSettings(
   }
 
   target.visible = readBoolean(incoming.visible, target.visible);
-  target.combatOnly = readBoolean(incoming.combatOnly, target.combatOnly);
-  target.showOnChangeOnly = readBoolean(incoming.showOnChangeOnly, target.showOnChangeOnly);
+  target.autoHide = mergeAutoHide(target.autoHide, incoming);
+  target.freeCameraDisplay = readEnum(incoming.freeCameraDisplay, target.freeCameraDisplay, ['hide', 'vitals', 'all']);
   target.changeDisplaySeconds = readNumber(incoming.changeDisplaySeconds, target.changeDisplaySeconds, 1, 15);
   target.onboardingSeen = readBoolean(incoming.onboardingSeen, target.onboardingSeen);
   target.opacity = readNumber(incoming.opacity, target.opacity, 10, 100);

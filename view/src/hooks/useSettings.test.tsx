@@ -102,6 +102,35 @@ describe('useSettings', () => {
     expect(latest!.general.size).toBe('xsmall');
   });
 
+  it('persists legacy auto-hide migration on the next settings edit', async () => {
+    vi.useFakeTimers();
+    const onSettingsChanged = vi.fn<(json: string) => void>();
+    vi.stubGlobal('onSettingsChanged', onSettingsChanged);
+    let updateSetting: UpdateSettingFn | null = null;
+    try {
+      await act(async () => {
+        root = createRoot(container);
+        root.render(<SettingsAndUpdateHarness onSettings={settings => { latest = settings; }} onReady={value => { updateSetting = value; }} />);
+      });
+      // Supply saved layouts so the existing layout backfill does not independently persist them.
+      const itemLayouts = resolveWidgetItemLayouts({ settings: defaultSettings, viewportWidth: 1920, viewportHeight: 1080 });
+      await act(async () => window.updateSettings?.(JSON.stringify({ schemaVersion: 7, general: { combatOnly: true }, itemLayouts })));
+      await act(async () => vi.advanceTimersByTimeAsync(250));
+      expect(latest!.general.autoHide).toMatchObject({ enabled: true, showInCombat: true, hideDelaySeconds: 0 });
+      expect(onSettingsChanged).not.toHaveBeenCalled();
+
+      await act(async () => updateSetting?.('general.opacity', 80));
+      await act(async () => vi.advanceTimersByTimeAsync(250));
+      expect(onSettingsChanged).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(onSettingsChanged.mock.calls[0][0])).toMatchObject({
+        schemaVersion: 7,
+        general: { opacity: 80, combatOnly: false, showOnChangeOnly: false, autoHide: latest!.general.autoHide },
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('starts with the standalone level widget hidden in fresh stage 2 defaults', async () => {
     await act(async () => {
       root = createRoot(container);

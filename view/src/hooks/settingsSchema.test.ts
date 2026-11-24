@@ -7,6 +7,48 @@ import {
 } from './settingsSchema';
 
 describe('settingsSchema', () => {
+  it.each([[true, false], [false, true], [true, true], [false, false]])(
+    'migrates legacy combatOnly=%s and showOnChangeOnly=%s when autoHide is absent',
+    (combatOnly, showOnChangeOnly) => {
+      const merged = mergeWithDefaults({ schemaVersion: 7, general: { combatOnly, showOnChangeOnly } });
+      expect(merged.general.combatOnly).toBe(false);
+      expect(merged.general.showOnChangeOnly).toBe(false);
+      expect(merged.general.autoHide).toEqual(combatOnly || showOnChangeOnly ? {
+        enabled: true,
+        showInCombat: combatOnly,
+        showWeaponDrawn: false,
+        showSneaking: false,
+        showResourcesNotFull: false,
+        showOnChange: showOnChangeOnly,
+        hideDelaySeconds: 0,
+      } : defaultSettings.general.autoHide);
+    },
+  );
+
+  it('uses the new fields even without a schema version and validates partial settings', () => {
+    const merged = mergeWithDefaults({ general: {
+      combatOnly: true,
+      showOnChangeOnly: true,
+      autoHide: { enabled: false, showInCombat: 'false', showWeaponDrawn: false, showSneaking: true, hideDelaySeconds: 12.8 },
+      freeCameraDisplay: 'vitals',
+    } });
+    expect(merged.general).toMatchObject({
+      combatOnly: false,
+      showOnChangeOnly: false,
+      autoHide: { ...defaultSettings.general.autoHide, showWeaponDrawn: false, showSneaking: true, hideDelaySeconds: 12 },
+      freeCameraDisplay: 'vitals',
+    });
+  });
+
+  it.each([{ autoHide: null }, { autoHide: 'on' }, { autoHide: [] }, { autoHide: undefined }])('ignores legacy flags when the new key exists with value $autoHide', ({ autoHide }) => {
+    const merged = mergeWithDefaults({ general: { autoHide, combatOnly: true, showOnChangeOnly: true, freeCameraDisplay: 'invalid' } });
+    expect(merged.general).toMatchObject({ combatOnly: false, showOnChangeOnly: false, autoHide: defaultSettings.general.autoHide, freeCameraDisplay: 'hide' });
+  });
+
+  it.each([[-2, 0], [31, 30], ['25', 3]])('validates hide delay %s as %s', (hideDelaySeconds, expected) => {
+    expect(mergeWithDefaults({ general: { autoHide: { hideDelaySeconds } } }).general.autoHide.hideDelaySeconds).toBe(expected);
+  });
+
   it('preserves valid user font names and defaults invalid or missing names to empty', () => {
     const merge = (general: Record<string, unknown>) => mergeWithDefaults({ schemaVersion: 7, general });
     expect(merge({ userFont: "King's 글꼴 👑" }).general.userFont).toBe("King's 글꼴 👑");

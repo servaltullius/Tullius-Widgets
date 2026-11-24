@@ -49,6 +49,17 @@ describe('useGameStats', () => {
     delete window.TulliusWidgetsBridge;
   });
 
+  it('reads player activity booleans and defaults missing or invalid fields to false', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onStats={stats => { latest = stats; }} />);
+    });
+    await act(async () => window.updateStats?.(JSON.stringify({ weaponDrawn: true, sneaking: true, freeCamera: true })));
+    expect(latest).toMatchObject({ weaponDrawn: true, sneaking: true, freeCamera: true });
+    await act(async () => window.updateStats?.(JSON.stringify({ isInCombat: false, weaponDrawn: 'true', sneaking: 1 })));
+    expect(latest).toMatchObject({ weaponDrawn: false, sneaking: false, freeCamera: false });
+  });
+
   it('preserves fractional XP values from updateStats payload', async () => {
     await act(async () => {
       root = createRoot(container);

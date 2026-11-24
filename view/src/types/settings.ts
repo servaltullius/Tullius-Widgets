@@ -12,6 +12,17 @@ export type EquipNameDisplay = 'always' | 'onChange' | 'never';
 export type ItemShowWhen = 'always' | 'combat' | 'change' | 'combatOrChange';
 export type Language = string;
 
+export type FreeCameraDisplay = 'hide' | 'vitals' | 'all';
+export interface AutoHideSettings {
+  enabled: boolean;
+  showInCombat: boolean;
+  showWeaponDrawn: boolean;
+  showSneaking: boolean;
+  showResourcesNotFull: boolean;
+  showOnChange: boolean;
+  hideDelaySeconds: number;
+}
+
 export interface GroupPosition {
   x: number;
   y: number;
@@ -46,6 +57,8 @@ export interface WidgetSettings {
     visible: boolean;
     combatOnly: boolean;
     showOnChangeOnly: boolean;
+    autoHide: AutoHideSettings;
+    freeCameraDisplay: FreeCameraDisplay;
     changeDisplaySeconds: number;
     onboardingSeen: boolean;
     opacity: number;

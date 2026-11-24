@@ -336,7 +336,7 @@ using PathIterator = std::initializer_list<std::string_view>::const_iterator;
 
 // Scans the object at input[pos] == '{' to its end. Every member named
 // *segment replaces the previous result, as JSON.parse keeps the last
-// duplicate: a leaf member yields its uint value (or nullopt), and an
+// duplicate: a leaf member yields its raw token, and an
 // intermediate member restarts the lookup inside its object. Recursion depth is
 // bounded by the path length.
 inline bool ScanObject(
@@ -344,7 +344,7 @@ inline bool ScanObject(
     std::size_t& pos,
     PathIterator segment,
     PathIterator pathEnd,
-    std::optional<std::uint32_t>& result)
+    std::optional<std::string_view>& result)
 {
     ++pos;
     SkipWhitespace(input, pos);
@@ -369,7 +369,7 @@ inline bool ScanObject(
             if (!SkipValue(input, pos)) {
                 return false;
             }
-            result = ToUInt(input.substr(valueStart, pos - valueStart));
+            result = input.substr(valueStart, pos - valueStart);
         } else if (input[pos] == '{') {
             result.reset();
             if (!ScanObject(input, pos, std::next(segment), pathEnd, result)) {
@@ -397,19 +397,13 @@ inline bool ScanObject(
     }
 }
 
-}  // namespace detail
-
-// Reads an unsigned integer stored at an object member path, e.g. {"rev"} for a
-// top-level member or {"general", "settingsHotkey"} for a nested one, the way
-// the view's JSON.parse would see it:
+// Finds a raw token at an object member path the way the view's JSON.parse sees it:
 // - Only real member names at the given depth match. A string VALUE that spells
 //   a member name, or a same-named member at another depth, is ignored.
 // - When a name repeats, the last occurrence wins, at every level of the path.
-// - The value must be a non-negative JSON number without an exponent that fits
-//   in uint32; a fraction is truncated toward zero. Anything else is nullopt.
 // - The whole document must be valid JSON whose root is an object (a leading
 //   UTF-8 BOM is allowed); otherwise the result is nullopt.
-inline std::optional<std::uint32_t> TryReadUIntMember(
+inline std::optional<std::string_view> FindMemberToken(
     std::string_view input,
     std::initializer_list<std::string_view> path)
 {
@@ -420,20 +414,49 @@ inline std::optional<std::uint32_t> TryReadUIntMember(
     constexpr std::string_view kUtf8Bom = "\xEF\xBB\xBF";
     std::size_t pos = input.substr(0, kUtf8Bom.size()) == kUtf8Bom ? kUtf8Bom.size() : 0;
 
-    detail::SkipWhitespace(input, pos);
+    SkipWhitespace(input, pos);
     if (pos >= input.size() || input[pos] != '{') {
         return std::nullopt;
     }
 
-    std::optional<std::uint32_t> result;
-    if (!detail::ScanObject(input, pos, path.begin(), path.end(), result)) {
+    std::optional<std::string_view> result;
+    if (!ScanObject(input, pos, path.begin(), path.end(), result)) {
         return std::nullopt;
     }
-    detail::SkipWhitespace(input, pos);
+    SkipWhitespace(input, pos);
     if (pos != input.size()) {
         return std::nullopt;
     }
     return result;
+}
+
+}  // namespace detail
+
+// The token must be a non-negative JSON number without an exponent that fits
+// in uint32; a fraction is truncated toward zero.
+inline std::optional<std::uint32_t> TryReadUIntMember(
+    std::string_view input,
+    std::initializer_list<std::string_view> path)
+{
+    const auto token = detail::FindMemberToken(input, path);
+    return token ? detail::ToUInt(*token) : std::nullopt;
+}
+
+inline std::optional<std::string> TryReadStringMember(
+    std::string_view input,
+    std::initializer_list<std::string_view> path)
+{
+    const auto token = detail::FindMemberToken(input, path);
+    if (!token || token->front() != '"') {
+        return std::nullopt;
+    }
+
+    std::size_t pos = 0;
+    std::string decoded;
+    if (!detail::ReadString(*token, pos, &decoded)) {
+        return std::nullopt;
+    }
+    return decoded;
 }
 
 }  // namespace TulliusWidgets::JsonUtils

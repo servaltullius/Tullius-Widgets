@@ -1,11 +1,23 @@
 import type { GroupPosition, WidgetLayout, WidgetSettings, WidgetSize } from '../types/settings';
 import { getWidgetDefaultPositions } from './widgetRegistry';
 
+export const MAX_HIDE_DELAY_SECONDS = 30;
+
 export const defaultSettings: WidgetSettings = {
   general: {
     visible: true,
     combatOnly: false,
     showOnChangeOnly: false,
+    autoHide: {
+      enabled: false,
+      showInCombat: true,
+      showWeaponDrawn: true,
+      showSneaking: false,
+      showResourcesNotFull: true,
+      showOnChange: true,
+      hideDelaySeconds: 3,
+    },
+    freeCameraDisplay: 'hide',
     changeDisplaySeconds: 4,
     onboardingSeen: false,
     opacity: 70,

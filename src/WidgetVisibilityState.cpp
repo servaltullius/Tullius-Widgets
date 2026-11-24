@@ -27,6 +27,7 @@ std::atomic<std::uint32_t> g_transientHideMenuCount{ 0 };
 // were tracked. Reconciliation is limited to that case so menus that only
 // exist as synthetic events (not registered with the UI) keep working.
 std::atomic<bool> g_reconcileTransientMenus{ false };
+std::atomic<FreeCameraDisplay> g_freeCameraDisplay{ FreeCameraDisplay::kHide };
 
 static constexpr std::array<std::string_view, 20> kKnownHiddenMenus = {
     RE::InventoryMenu::MENU_NAME,
@@ -118,13 +119,18 @@ bool IsAnyKnownHiddenMenuOpen(RE::UI* ui)
         [ui](const auto& menuName) { return ui->IsMenuOpen(menuName); });
 }
 
+}  // namespace
+
+bool SetFreeCameraDisplay(FreeCameraDisplay display)
+{
+    return g_freeCameraDisplay.exchange(display, std::memory_order_acq_rel) != display;
+}
+
 bool IsFreeCameraModeActive()
 {
     const auto* playerCamera = RE::PlayerCamera::GetSingleton();
     return playerCamera && playerCamera->IsInFreeCameraMode();
 }
-
-}  // namespace
 
 bool ShouldHideForMenu(const RE::BSFixedString& menuName)
 {
@@ -163,6 +169,15 @@ void NoteMenuOpenClose(const RE::BSFixedString& menuName, bool opening)
 
 bool IsBlockingUiState(RE::UI* ui, bool allowFocusedWidgetMenu)
 {
+    // The settings panel stays usable in a free camera scene: the focused view owns the screen.
+    const bool freeCameraBlocks = ui && !allowFocusedWidgetMenu
+        && g_freeCameraDisplay.load(std::memory_order_acquire) == FreeCameraDisplay::kHide
+        && IsFreeCameraModeActive();
+    return freeCameraBlocks || IsBlockingUiStateExceptFreeCamera(ui, allowFocusedWidgetMenu);
+}
+
+bool IsBlockingUiStateExceptFreeCamera(RE::UI* ui, bool allowFocusedWidgetMenu)
+{
     if (!ui) {
         return false;
     }
@@ -173,7 +188,7 @@ bool IsBlockingUiState(RE::UI* ui, bool allowFocusedWidgetMenu)
         || ui->IsModalMenuOpen()
         || ui->IsApplicationMenuOpen());
 
-    if (genericUiBlockersActive || IsFreeCameraModeActive() || IsAnyKnownHiddenMenuOpen(ui)) {
+    if (genericUiBlockersActive || IsAnyKnownHiddenMenuOpen(ui)) {
         return true;
     }
 

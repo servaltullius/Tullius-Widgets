@@ -128,6 +128,51 @@ test('visibility checks allow PrismaUI focus without hiding the widget view', ()
   assert.match(widgetVisibilityStateText, /const bool genericUiBlockersActive = !allowFocusedWidgetMenu/);
 });
 
+test('the stats bridge serializes weapon, sneak, and free camera activity as booleans', () => {
+  const statsWriterText = readFileSync(new URL('../src/StatsJsonWriter.cpp', import.meta.url), 'utf8');
+  const statsCollectorText = readFileSync(new URL('../src/StatsCollector.cpp', import.meta.url), 'utf8');
+  for (const field of ['weaponDrawn', 'sneaking', 'freeCamera']) {
+    assert.ok(statsWriterText.includes(String.raw`\"${field}\":`));
+    assert.ok(statsWriterText.includes(`AppendBool(payload.${field});`));
+  }
+  assert.match(statsCollectorText, /payload\.weaponDrawn = player && player->AsActorState\(\)->IsWeaponDrawn\(\);/);
+  assert.match(statsCollectorText, /payload\.sneaking = player && player->IsSneaking\(\);/);
+  assert.match(statsCollectorText, /payload\.freeCamera = player && WidgetVisibilityState::IsFreeCameraModeActive\(\);/);
+});
+
+test('settings change only the free-camera blocker and request a visibility check', () => {
+  const blocking = widgetVisibilityStateText.match(/bool IsBlockingUiState\(.*\)\s*\{([\s\S]*?)\n\}/)?.[1];
+  // The focused settings panel stays visible in a free camera scene.
+  assert.match(blocking, /freeCameraBlocks = ui && !allowFocusedWidgetMenu\s*&& g_freeCameraDisplay\.load\(.*\) == FreeCameraDisplay::kHide\s*&& IsFreeCameraModeActive\(\)/);
+  assert.match(blocking, /freeCameraBlocks \|\| IsBlockingUiStateExceptFreeCamera\(ui, allowFocusedWidgetMenu\)/);
+  assert.match(hotkeysText, /TryReadStringMember\(settingsJson, \{ "general", "freeCameraDisplay" \}\)/);
+  assert.match(hotkeysText, /value == "vitals"[\s\S]*?display = FreeCameraDisplay::kVitals;[\s\S]*?value == "all"[\s\S]*?display = FreeCameraDisplay::kAll;/);
+  assert.match(hotkeysText, /if \(WidgetVisibilityState::SetFreeCameraDisplay\(display\)\)\s*\{\s*WidgetRuntime::RequestVisibilityCheck\(\)/);
+  assert.match(widgetRuntimeText, /visibilityCheckDue = visibilityCheckRequested \|\| now >= nextVisibilityCheck/);
+  // A save load re-reads the file for the view; the plugin applies the same file.
+  assert.match(mainText, /static void SendSettingsToView\(\) \{[\s\S]*?ApplyHotkeysFromSettingsJson\(json\);\s*if \(!TryInteropCall\([^)]*kUpdateSettings/);
+});
+
+test('the heartbeat recovers any native hide and keeps stats paused while the view is hidden', () => {
+  assert.match(mainText, /static void HideViewIfReady\(\) \{[\s\S]*?if \(g_viewBridge\.Hide\(\)\) \{\s*TulliusWidgets::WidgetRuntime::NoteViewHidden\(\)/);
+  assert.match(widgetRuntimeText, /void NoteViewHidden\(\)\s*\{\s*g_state\.menusWereHidden\.store\(true,/);
+  assert.match(widgetRuntimeText, /menusWereHidden\.exchange\(false,[^\n]+\n\s*recoveredView = ShowView\(\)/);
+  // Stats stay paused while the view is hidden (including the free camera on "hide"); the
+  // recovery path shows the view and forces one dispatch instead.
+  assert.doesNotMatch(widgetRuntimeText, /IsBlockingUiStateExceptFreeCamera/);
+  assert.match(widgetRuntimeText, /void SendStatsToView\(bool force\)[\s\S]*?if \(WidgetVisibilityState::IsBlockingUiState\(ui, HasViewFocus\(\)\)\) \{\s*ScheduleStatsUpdateAfter/);
+  assert.match(widgetRuntimeText, /recoveredView = ShowView\(\);[\s\S]*?if \(recoveredView \|\| heartbeatDue \|\| scheduledDue\) \{\s*RequestStatsDispatch\(true\);/);
+});
+
+test('the App relies on auto-hide deadlines and has no legacy visibility polling', () => {
+  const appText = readFileSync(new URL('../view/src/App.tsx', import.meta.url), 'utf8');
+  const autoHideText = readFileSync(new URL('../view/src/hooks/useAutoHide.ts', import.meta.url), 'utf8');
+  assert.match(appText, /useAutoHide\(\{/);
+  for (const text of [appText, autoHideText]) {
+    assert.doesNotMatch(text, /setInterval\(|showOnChangeOnly|joinTrackedChangeSignature/);
+  }
+});
+
 test('view focus path shows the view and requests PrismaUI focus with pauseGame support', () => {
   assert.match(viewBridgeText, /api_->Show\(view\);/);
   assert.match(viewBridgeText, /api_->Focus\(view, pauseGame, disableFocusMenu\)/);

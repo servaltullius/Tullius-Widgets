@@ -145,6 +145,90 @@ describe('App quick-edit integration', () => {
     delete reactActEnvironment.IS_REACT_ACT_ENVIRONMENT;
   });
 
+  it('fades after a value-change window and hide delay without new stats or remounting widgets', async () => {
+    vi.useFakeTimers();
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<App />);
+    });
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({
+        schemaVersion: 7,
+        general: { onboardingSeen: true, changeDisplaySeconds: 4, autoHide: { enabled: true, showInCombat: false, hideDelaySeconds: 3 } },
+      }));
+    });
+
+    const hud = container.querySelector<HTMLDivElement>('.tw-hud-font-root')!;
+    const gold = getWidget(container, 'player.gold');
+    expect(gold).not.toBeNull();
+    expect(hud.style.opacity).toBe('0');
+    await act(async () => window.updateStats?.(JSON.stringify({ isInCombat: true })));
+    expect(hud.style.opacity).toBe('0');
+
+    await act(async () => window.updateStats?.(JSON.stringify({ playerInfo: { gold: 123 } })));
+    expect(hud.style.opacity).toBe('1');
+    expect(hud.style.transition).toBe('opacity 200ms');
+    await act(async () => vi.advanceTimersByTimeAsync(4000));
+    expect(hud.style.opacity).toBe('1');
+    await act(async () => vi.advanceTimersByTimeAsync(2999));
+    expect(hud.style.opacity).toBe('1');
+    await act(async () => vi.advanceTimersByTimeAsync(1));
+    expect(hud.style.opacity).toBe('0');
+    expect(hud.style.transition).toBe('opacity 500ms');
+    expect(getWidget(container, 'player.gold')).toBe(gold);
+
+    await act(async () => window.updateStats?.(JSON.stringify({ weaponDrawn: true })));
+    expect(hud.style.opacity).toBe('1');
+    expect(getWidget(container, 'player.gold')).toBe(gold);
+    await act(async () => window.updateStats?.(JSON.stringify({ weaponDrawn: false })));
+    await act(async () => vi.advanceTimersByTimeAsync(3000));
+    expect(hud.style.opacity).toBe('0');
+    await act(async () => window.toggleSettings?.());
+    expect(hud.style.opacity).toBe('1');
+    expect(getWidget(container, 'player.gold')).toBe(gold);
+  });
+
+  it('does not wake the HUD when a widget is switched on, and only fades with auto-hide on', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<App />);
+    });
+    const hud = container.querySelector<HTMLDivElement>('.tw-hud-font-root')!;
+    // The plugin sends the saved settings before the first stats.
+    await act(async () => window.updateSettings?.(JSON.stringify({ schemaVersion: 7, general: { onboardingSeen: true } })));
+    // Same values as the stats already shown, so this sample is not a value change.
+    await act(async () => window.updateStats?.(JSON.stringify({ isInCombat: false })));
+    // Auto-hide off: F11, the settings panel and the free camera switch without a fade.
+    expect(hud.style.opacity).toBe('1');
+    expect(hud.style.transition).toBe('none');
+
+    const changeOnly = {
+      enabled: true,
+      showInCombat: false,
+      showWeaponDrawn: false,
+      showSneaking: false,
+      showResourcesNotFull: false,
+      showOnChange: true,
+      hideDelaySeconds: 0,
+    };
+    await act(async () => window.updateSettings?.(JSON.stringify({
+      schemaVersion: 7,
+      general: { onboardingSeen: true, autoHide: changeOnly },
+    })));
+    expect(hud.style.opacity).toBe('0');
+
+    await act(async () => window.updateSettings?.(JSON.stringify({
+      schemaVersion: 7,
+      general: { onboardingSeen: true, autoHide: changeOnly },
+      itemLayouts: { 'player.level': { ...getDefaultPlayerLevelLayout(), visible: true } },
+    })));
+    expect(getWidget(container, 'player.level')).not.toBeNull();
+    expect(hud.style.opacity).toBe('0');
+
+    await act(async () => window.updateStats?.(JSON.stringify({ playerInfo: { gold: 987654 } })));
+    expect(hud.style.opacity).toBe('1');
+  });
+
   it.each([
     { style: 'classic', textSelector: '.tw-stat-value', appliedKerning: 'normal', presetKerning: 'auto' },
     { style: 'compact', textSelector: '.tw-compact-value', appliedKerning: 'auto', presetKerning: 'normal' },

@@ -1,6 +1,7 @@
 #include "StatsCollector.h"
 #include "StatsJsonWriter.h"
 #include "StatsPayload.h"
+#include "WidgetVisibilityState.h"
 #include "RE/C/Calendar.h"
 #include <algorithm>
 #include <array>
@@ -756,6 +757,9 @@ StatsPayload CollectStatsPayload(RE::PlayerCharacter* player)
     payload.alertData = playerState.alertData;
     payload.timedEffects = CollectTimedEffects(player);
     payload.inCombat = player && player->IsInCombat();
+    payload.weaponDrawn = player && player->AsActorState()->IsWeaponDrawn();
+    payload.sneaking = player && player->IsSneaking();
+    payload.freeCamera = player && WidgetVisibilityState::IsFreeCameraModeActive();
     return payload;
 }
 

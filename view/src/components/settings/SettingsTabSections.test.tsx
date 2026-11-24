@@ -4,7 +4,9 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { defaultSettings } from '../../data/defaultSettings';
 import { normalizeUserFonts } from '../../data/userFonts';
+import { resolveWidgetItemLayouts } from '../../data/widgetItemRegistry';
 import { UserFontsContext } from '../../hooks/useUserFonts';
+import { updateValueByPath } from '../../hooks/settingsShared';
 import { t } from '../../i18n/translations';
 import type { WidgetSettings } from '../../types/settings';
 import { CombatTabSections, EffectsTabSections, GeneralTabSections, PresetsTabSections } from './SettingsTabSections';
@@ -145,6 +147,57 @@ describe('SettingsTabSections', () => {
     });
 
     expect(onUpdate).toHaveBeenCalledWith('general.fontPreset', 'readable');
+  });
+
+  it('exposes auto-hide controls and explains when the free-camera vitals selection is empty', async () => {
+    let settings = cloneSettings();
+    settings.itemLayouts = resolveWidgetItemLayouts({ settings, viewportWidth: 1920, viewportHeight: 1080 });
+    const render = () => root?.render(
+      <GeneralTabSections
+        lang="ko"
+        settings={settings}
+        selectedLanguage="ko"
+        effectiveVisible
+        onUpdate={onUpdate}
+        accentColor="#fff"
+        availableLanguages={[]}
+        isSectionExpanded={() => true}
+        toggleSection={() => {}}
+      />,
+    );
+    const onUpdate = vi.fn((path: string, value: unknown) => {
+      settings = updateValueByPath(settings, path, value);
+      render();
+    });
+    const findSlider = (label: string) => Array.from(container.querySelectorAll('label'))
+      .find(element => element.textContent?.startsWith(label))?.querySelector('input[type="range"]');
+
+    await act(async () => {
+      root = createRoot(container);
+      render();
+    });
+    expect(findSlider(t('ko', 'changeDisplaySeconds'))).toBeTruthy();
+    expect(findSlider(t('ko', 'hideDelaySeconds'))).toBeUndefined();
+    expect(getToggleInputByLabel(container, t('ko', 'autoHideInCombat'))).toBeFalsy();
+    await act(async () => getToggleInputByLabel(container, t('ko', 'autoHide'))?.click());
+    expect(onUpdate).toHaveBeenCalledWith('general.autoHide.enabled', true);
+    for (const key of ['autoHideInCombat', 'autoHideWeaponDrawn', 'autoHideSneaking', 'autoHideResourcesNotFull', 'autoHideOnChange'] as const) {
+      expect(getToggleInputByLabel(container, t('ko', key))).toBeTruthy();
+    }
+    await act(async () => getToggleInputByLabel(container, t('ko', 'autoHideSneaking'))?.click());
+    expect(onUpdate).toHaveBeenCalledWith('general.autoHide.showSneaking', true);
+    expect(findSlider(t('ko', 'hideDelaySeconds'))?.getAttribute('min')).toBe('0');
+    expect(findSlider(t('ko', 'hideDelaySeconds'))?.getAttribute('max')).toBe('30');
+
+    await act(async () => getByTestId(container, 'free-camera-display-select')?.click());
+    await act(async () => getByTestIdFromDocument('free-camera-display-select-option-vitals')?.click());
+    expect(onUpdate).toHaveBeenCalledWith('general.freeCameraDisplay', 'vitals');
+    expect(container.textContent).toContain(t('ko', 'freeCameraNoVitals'));
+    await act(async () => {
+      settings = updateValueByPath(settings, 'itemLayouts.player.health.visible', true);
+      render();
+    });
+    expect(container.textContent).not.toContain(t('ko', 'freeCameraNoVitals'));
   });
 
   describe('user fonts', () => {
