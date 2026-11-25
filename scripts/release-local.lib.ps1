@@ -81,23 +81,6 @@ function Get-WindowsXmakeCommand {
   return $null
 }
 
-function Get-WindowsVsDevCmd {
-  $candidates = @(
-    "C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\VsDevCmd.bat",
-    "C:\Program Files\Microsoft Visual Studio\17\Community\Common7\Tools\VsDevCmd.bat",
-    "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat",
-    "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\VsDevCmd.bat"
-  )
-
-  foreach ($candidate in $candidates) {
-    if (Test-Path $candidate) {
-      return $candidate
-    }
-  }
-
-  return $null
-}
-
 function Convert-ToCmdArgument {
   param([string]$Value)
 

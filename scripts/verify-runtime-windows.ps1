@@ -72,7 +72,6 @@ try {
     } else {
       if (Test-CommandAvailable "xmake") { "xmake" } else { $null }
     }
-    $vsDevCmd = if ($usesUncWorkRoot) { Get-WindowsVsDevCmd } else { $null }
     $canRunXmake = $null -ne $xmakeCommand
 
     if (-not $canRunXmake) {
@@ -82,8 +81,6 @@ try {
       } else {
         throw "xmake was not found and the existing plugin DLL cannot be safely reused."
       }
-    } elseif ($usesUncWorkRoot -and -not $vsDevCmd) {
-      throw "VsDevCmd.bat was not found. Visual Studio Build Tools environment could not be initialized."
     }
   }
 
@@ -94,7 +91,8 @@ try {
       $stageRoots.Add($pluginBuildRoot) | Out-Null
 
       Invoke-CmdCommands -Path $pluginBuildRoot -Commands @(
-        "call `"$vsDevCmd`" -arch=amd64 -host_arch=amd64",
+        # xmake finds MSVC itself, as in the local-path branch. The VsDevCmd environment is not
+        # loaded first: with its PATH, xmake 3.0.6 crashed (0xC0000374) while checking tools (2026-11-25).
         "`"$xmakeCommand`" f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false --ccache=y",
         "`"$xmakeCommand`" build -y -v"
       )

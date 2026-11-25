@@ -19,7 +19,7 @@ CI를 사용하지 않고 로컬에서 빌드한 결과물만으로 ZIP 생성�
 - GitHub Actions 메이저 업데이트는 Dependabot이 매월 PR로 올립니다.
 
 ## WSL에서 작업 중인 경우
-이제는 WSL UNC worktree에서도 공식 스크립트로 바로 빌드할 수 있습니다. 스크립트가 필요한 파일을 임시 Windows 경로로 스테이징한 뒤 `VsDevCmd.bat` + `xmake`를 호출합니다.
+이제는 WSL UNC worktree에서도 공식 스크립트로 바로 빌드할 수 있습니다. 스크립트가 필요한 파일을 임시 Windows 경로로 스테이징한 뒤 `xmake`를 호출합니다. MSVC는 xmake가 직접 찾습니다.
 
 권장 절차:
 1. WSL에서 프런트와 패키지까지 한 번에 만들려면 아래를 실행합니다.
@@ -35,14 +35,14 @@ pwsh -File .\scripts\verify-runtime-windows.ps1
 pwsh -File .\scripts\release-local.ps1 -NoPublish
 ```
 
-3. 수동으로 네이티브 DLL만 빌드하고 싶다면 여전히 Windows PowerShell 또는 Developer Command Prompt에서 직접 `xmake`를 실행할 수 있습니다.
+3. 수동으로 네이티브 DLL만 빌드하려면 일반 Windows PowerShell에서 직접 `xmake`를 실행합니다. Developer Command Prompt(`VsDevCmd.bat`)는 쓰지 마세요. 그 PATH에서는 xmake 3.0.6이 도구를 확인하다 비정상 종료했습니다(0xC0000374, 2026-11-25).
 
 ```powershell
 xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false
 xmake build -y -v
 ```
 
-설치된 Visual Studio 에디션/버전에 따라 `VsDevCmd.bat` 경로는 달라질 수 있지만, 공식 스크립트는 일반적인 설치 경로를 자동 탐색합니다.
+Visual Studio 에디션/버전은 xmake가 자동으로 찾습니다.
 
 관련 스크립트 역할:
 
@@ -96,5 +96,6 @@ pwsh -File .\scripts\release-local.ps1 -Repo servaltullius/Tullius-Widgets -Chan
   - 권장: 릴리즈 전용 경로를 새로 clone해서 사용하거나, 작업 폴더를 깨끗한 상태로 맞춘 뒤 실행
 - ZIP 파일명이 기대 버전과 다르면(`TulliusWidgets-v<version>.zip`) 먼저 `xmake.lua`의 `set_version`과 현재 브랜치 HEAD를 확인하세요.
 - Windows에서 `xmake`를 찾지 못하면 `C:\Program Files\xmake\xmake.exe` 설치 여부와 PATH를 확인하세요.
-- Visual Studio 탐지가 실패하면 Build Tools 또는 Community 설치 상태와 `VsDevCmd.bat` 존재 여부를 확인하세요.
+- Visual Studio 탐지가 실패하면 Build Tools 또는 Community 설치 상태(C++ 데스크톱 개발 워크로드)를 확인하세요.
+- `xmake f`가 종료 코드 -1073740940(0xC0000374)으로 끝나면 Developer Command Prompt 등 VS 개발자 환경의 PATH에서 실행했는지 확인하세요. 일반 PowerShell에서는 정상입니다.
 - WSL에서 `./scripts/package.sh` 실행 시 `powershell.exe`가 없으면 Windows 연동이 불가능하므로, Windows 쪽 PowerShell에서 `release-local.ps1`를 직접 실행해야 합니다.
