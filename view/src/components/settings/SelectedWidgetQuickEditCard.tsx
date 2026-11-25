@@ -2,8 +2,6 @@ import type { CSSProperties } from 'react';
 import type { ItemShowWhen, Language, WidgetItemLayout } from '../../types/settings';
 import { CustomSelect } from './SettingsControls';
 import { t } from '../../i18n/translations';
-import { scalePanelPixels } from './panelScale';
-import { createPanelCheckboxStyle } from './checkboxStyles';
 
 interface SelectedWidgetQuickEditCardProps {
   lang: Language;
@@ -22,6 +20,10 @@ interface SelectedWidgetQuickEditCardProps {
   showWhen?: ItemShowWhen;
   showWhenOptions?: readonly ItemShowWhen[];
   onShowWhenChange?: (next: ItemShowWhen) => void;
+  /** Opens the settings category that holds this widget; the button is hidden without it. */
+  onShowRelatedSettings?: () => void;
+  /** Deselects the widget; the close button is hidden without it. */
+  onClose?: () => void;
   panelScale?: number;
 }
 
@@ -49,63 +51,58 @@ export function SelectedWidgetQuickEditCard({
   showWhen,
   showWhenOptions = ['always', 'combat', 'change', 'combatOrChange'],
   onShowWhenChange,
+  onShowRelatedSettings,
+  onClose,
   panelScale = 1,
 }: SelectedWidgetQuickEditCardProps) {
   const reorderDisabled = layout.locked || !layout.visible;
   const scaleDisabled = layout.locked;
-  const buttonStyle = createButtonStyle(panelScale);
-  const valueStyle = createValueStyle(panelScale);
+  const span = maxScale - minScale;
+  const fill = span > 0 ? Math.min(100, Math.max(0, ((layout.scale - minScale) / span) * 100)) : 0;
 
   return (
-    <section
-      data-selected-widget-quick-edit-card
-      style={{
-        marginBottom: scalePanelPixels(16, panelScale),
-        border: '1px solid rgba(255, 215, 0, 0.24)',
-        borderRadius: scalePanelPixels(12, panelScale),
-        padding: `${scalePanelPixels(14, panelScale)} ${scalePanelPixels(16, panelScale)}`,
-        background: 'linear-gradient(180deg, rgba(255, 215, 0, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%)',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: scalePanelPixels(12, panelScale), marginBottom: scalePanelPixels(12, panelScale) }}>
-        <h3
-          data-selected-widget-title
-          style={{ margin: 0, color: '#ffe6a8', fontSize: scalePanelPixels(24, panelScale), lineHeight: 1.2 }}
-        >
-          {title}
-        </h3>
-        <span style={{ color: '#a8bbd8', fontSize: scalePanelPixels(14, panelScale) }}>
-          z {layout.zIndex}
+    <section className="tw-p-card" data-selected-widget-quick-edit-card>
+      <div className="tw-p-card-head">
+        <h3 className="tw-p-card-title" data-selected-widget-title style={{ margin: 0 }}>{title}</h3>
+        <span className="tw-p-card-head-side">
+          <span className="tw-p-help" style={{ margin: 0 }}>z {layout.zIndex}</span>
+          {onClose && (
+            <button type="button" className="tw-p-btn is-small is-icon" data-quick-edit-close="true" aria-label={t(lang, 'close')} title={t(lang, 'close')} onClick={onClose}>
+              ×
+            </button>
+          )}
         </span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: `${scalePanelPixels(10, panelScale)} ${scalePanelPixels(16, panelScale)}`, alignItems: 'center' }}>
-        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: scalePanelPixels(10, panelScale), minHeight: scalePanelPixels(28, panelScale) }}>
-          <span style={{ color: '#ddd', fontSize: scalePanelPixels(16, panelScale) }}>{t(lang, 'showWidgets')}</span>
+      <label className="tw-p-row tw-p-toggle-row" style={{ borderTop: 0 }}>
+        <span className="tw-p-label">{t(lang, 'showWidgets')}</span>
+        <span className="tw-p-switch">
           <input
             type="checkbox"
+            role="switch"
             checked={layout.visible}
             data-quick-edit-visibility-toggle="true"
             onChange={event => onToggleVisible(event.target.checked)}
-            style={createPanelCheckboxStyle(panelScale, layout.visible, 18)}
           />
-        </label>
-
-        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: scalePanelPixels(10, panelScale), minHeight: scalePanelPixels(28, panelScale) }}>
-          <span style={{ color: '#ddd', fontSize: scalePanelPixels(16, panelScale) }}>{t(lang, 'lock')}</span>
+          <span className="tw-p-switch-track" aria-hidden="true" />
+        </span>
+      </label>
+      <label className="tw-p-row tw-p-toggle-row">
+        <span className="tw-p-label">{t(lang, 'lock')}</span>
+        <span className="tw-p-switch">
           <input
             type="checkbox"
+            role="switch"
             checked={layout.locked}
             data-quick-edit-lock-toggle="true"
             onChange={event => onToggleLocked(event.target.checked)}
-            style={createPanelCheckboxStyle(panelScale, layout.locked, 18)}
           />
-        </label>
-
-        <label style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: scalePanelPixels(12, panelScale) }}>
-          <span style={{ color: '#ddd', fontSize: scalePanelPixels(16, panelScale), minWidth: scalePanelPixels(54, panelScale) }}>
-            {t(lang, 'size')}
-          </span>
+          <span className="tw-p-switch-track" aria-hidden="true" />
+        </span>
+      </label>
+      <div className="tw-p-row">
+        <span className="tw-p-label">{t(lang, 'size')}</span>
+        <span className="tw-p-slider">
           <input
             type="range"
             min={minScale}
@@ -113,56 +110,33 @@ export function SelectedWidgetQuickEditCard({
             step={0.05}
             value={layout.scale}
             disabled={scaleDisabled}
+            aria-label={t(lang, 'size')}
             data-quick-edit-size-slider="true"
+            style={{ '--fill': `${fill}%` } as CSSProperties}
             onInput={event => onScaleChange(Number((event.target as HTMLInputElement).value))}
-            style={{ flex: 1 }}
           />
-          <span style={{ color: '#a8bbd8', fontSize: scalePanelPixels(14, panelScale), minWidth: scalePanelPixels(38, panelScale), textAlign: 'right' }}>
-            {layout.scale.toFixed(2)}
-          </span>
-        </label>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: scalePanelPixels(8, panelScale) }}>
-          <span style={{ color: '#ddd', fontSize: scalePanelPixels(16, panelScale), minWidth: scalePanelPixels(44, panelScale) }}>{t(lang, 'positionX')}</span>
-          <button type="button" data-quick-edit-nudge-x="-1" onClick={() => onNudgeX(-1)} style={buttonStyle}>-1</button>
-          <span style={valueStyle}>{layout.x}</span>
-          <button type="button" data-quick-edit-nudge-x="+1" onClick={() => onNudgeX(1)} style={buttonStyle}>+1</button>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: scalePanelPixels(8, panelScale) }}>
-          <span style={{ color: '#ddd', fontSize: scalePanelPixels(16, panelScale), minWidth: scalePanelPixels(44, panelScale) }}>{t(lang, 'positionY')}</span>
-          <button type="button" data-quick-edit-nudge-y="-1" onClick={() => onNudgeY(-1)} style={buttonStyle}>-1</button>
-          <span style={valueStyle}>{layout.y}</span>
-          <button type="button" data-quick-edit-nudge-y="+1" onClick={() => onNudgeY(1)} style={buttonStyle}>+1</button>
-        </div>
+          <span className="tw-p-slider-value">{layout.scale.toFixed(2)}</span>
+        </span>
       </div>
-
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: scalePanelPixels(8, panelScale), marginTop: scalePanelPixels(12, panelScale) }}>
-        <button type="button" data-quick-edit-reset="true" onClick={onReset} style={buttonStyle}>
-          {t(lang, 'resetPosition')}
-        </button>
-        <button
-          type="button"
-          data-quick-edit-send-backward="true"
-          onClick={onSendBackward}
-          disabled={reorderDisabled}
-          style={buttonStyle}
-        >
-          {t(lang, 'sendBackward')}
-        </button>
-        <button
-          type="button"
-          data-quick-edit-bring-forward="true"
-          onClick={onBringForward}
-          disabled={reorderDisabled}
-          style={buttonStyle}
-        >
-          {t(lang, 'bringForward')}
-        </button>
+      <div className="tw-p-row">
+        <span className="tw-p-label">{t(lang, 'positionX')}</span>
+        <span className="tw-p-button-row">
+          <button type="button" className="tw-p-btn is-small" data-quick-edit-nudge-x="-1" aria-label={`${t(lang, 'positionX')} -1`} onClick={() => onNudgeX(-1)}>−1</button>
+          <span className="tw-p-nudge-value">{Math.round(layout.x)}</span>
+          <button type="button" className="tw-p-btn is-small" data-quick-edit-nudge-x="+1" aria-label={`${t(lang, 'positionX')} +1`} onClick={() => onNudgeX(1)}>+1</button>
+        </span>
+      </div>
+      <div className="tw-p-row">
+        <span className="tw-p-label">{t(lang, 'positionY')}</span>
+        <span className="tw-p-button-row">
+          <button type="button" className="tw-p-btn is-small" data-quick-edit-nudge-y="-1" aria-label={`${t(lang, 'positionY')} -1`} onClick={() => onNudgeY(-1)}>−1</button>
+          <span className="tw-p-nudge-value">{Math.round(layout.y)}</span>
+          <button type="button" className="tw-p-btn is-small" data-quick-edit-nudge-y="+1" aria-label={`${t(lang, 'positionY')} +1`} onClick={() => onNudgeY(1)}>+1</button>
+        </span>
       </div>
       {showWhen && onShowWhenChange && (
-        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: scalePanelPixels(12, panelScale) }}>
-          <span style={{ color: '#aaa', fontSize: scalePanelPixels(20, panelScale) }}>{t(lang, 'showWhenLabel')}</span>
+        <div className="tw-p-row">
+          <span className="tw-p-label">{t(lang, 'showWhenLabel')}</span>
           <CustomSelect
             value={showWhen}
             options={showWhenOptions.map(value => ({ value, label: t(lang, SHOW_WHEN_LABEL_KEYS[value]) }))}
@@ -170,29 +144,24 @@ export function SelectedWidgetQuickEditCard({
             panelScale={panelScale}
             testId="selected-widget-show-when"
           />
-        </label>
+        </div>
+      )}
+      <div className="tw-p-button-row" style={{ marginTop: 'calc(8px * var(--ps))' }}>
+        <button type="button" className="tw-p-btn is-small" data-quick-edit-reset="true" onClick={onReset}>
+          {t(lang, 'resetPosition')}
+        </button>
+        <button type="button" className="tw-p-btn is-small" data-quick-edit-send-backward="true" onClick={onSendBackward} disabled={reorderDisabled}>
+          {t(lang, 'sendBackward')}
+        </button>
+        <button type="button" className="tw-p-btn is-small" data-quick-edit-bring-forward="true" onClick={onBringForward} disabled={reorderDisabled}>
+          {t(lang, 'bringForward')}
+        </button>
+      </div>
+      {onShowRelatedSettings && (
+        <button type="button" className="tw-p-btn is-small tw-p-card-link" data-quick-edit-related-settings="true" onClick={onShowRelatedSettings}>
+          {t(lang, 'quickEditRelatedSettings')}
+        </button>
       )}
     </section>
   );
-}
-
-function createButtonStyle(panelScale: number): CSSProperties {
-  return {
-    background: 'var(--tw-color-button-bg)',
-    border: '1px solid var(--tw-color-button-border)',
-    color: 'var(--tw-color-button-text)',
-    borderRadius: 'var(--tw-radius-sm)',
-    fontSize: scalePanelPixels(14, panelScale),
-    padding: `${scalePanelPixels(6, panelScale)} ${scalePanelPixels(10, panelScale)}`,
-    cursor: 'pointer',
-  };
-}
-
-function createValueStyle(panelScale: number): CSSProperties {
-  return {
-    minWidth: scalePanelPixels(42, panelScale),
-    textAlign: 'center',
-    color: '#a8bbd8',
-    fontSize: scalePanelPixels(14, panelScale),
-  };
 }

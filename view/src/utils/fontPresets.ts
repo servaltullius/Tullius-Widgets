@@ -33,7 +33,8 @@ const UNIVERSAL_FALLBACK_STACK = [
 
 const FONT_PRESET_STACKS: Record<FontPreset, FontPresetStacks> = {
   default: {
-    uiFontStack: `"Segoe UI", ${UNIVERSAL_FALLBACK_STACK}`,
+    // The settings panel is designed around the bundled Pretendard; other presets keep their own face.
+    uiFontStack: `"Tullius Pretendard", "Segoe UI", ${UNIVERSAL_FALLBACK_STACK}`,
     hudFontStack: `"Segoe UI", ${UNIVERSAL_FALLBACK_STACK}`,
   },
   readable: {

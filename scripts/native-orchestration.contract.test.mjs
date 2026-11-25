@@ -60,6 +60,27 @@ test('saved hotkey bindings apply at startup and on every settings save', () => 
   assert.match(jsListenersText, /WidgetHotkeys::SetCaptureActive\(active\)/);
   assert.match(hotkeysText, /return;  \/\/ Esc cancels the capture on the page instead of closing the panel\./);
   assert.match(hotkeysText, /kCaptureReleaseGraceMs/);
+  assert.match(interopContractsText, /kOnEscapeOwner\[] = "onEscapeOwner"/);
+  assert.match(jsListenersText, /WidgetHotkeys::SetPageOwnsEscape\(state == "1", state == "0e"\)/);
+  assert.match(hotkeysText, /g_pageEscapeReleasedAtMs\.store\(releasedByPageEsc \? NowMs\(\) : 0/);
+  assert.match(jsListenersText, /WidgetHotkeys::ClearPageEscape\(\)/);
+  assert.match(interopContractsText, /kHandleEscapeScript\[] = "handleEscape\(\)"/);
+  assert.match(hotkeysText, /if \(PageHoldsEscape\(\)\) \{[\s\S]*?InvokeScript\(TulliusWidgets::WidgetInteropContracts::kHandleEscapeScript\);[\s\S]*?return;\s*\}/);
+  assert.match(hotkeysText, /if \(PageReleasedEscapeJustNow\(\)\) \{\s*return;/);
+  assert.match(hotkeysText, /Register\(kEscapeScanCode, KeyEventType::KEY_DOWN, \[\]\(\) \{\s*if \(AnotherMenuTakesEscape\(\)\) \{\s*return;/);
+  assert.match(hotkeysText, /IsBlockingUiStateExceptFreeCamera\(ui, true\)/);
+});
+
+test('settings panel gets its focus back when a menu that hid the view closes', () => {
+  assert.match(mainText, /static void HideViewIfReady\(\) \{[\s\S]*?if \(g\.settingsPanelOpen\.load\(std::memory_order_acquire\)\) \{\s*g\.panelFocusLostToHide\.store\(true/);
+  assert.match(mainText, /static bool TryShowView\(\) \{[\s\S]*?if \(g\.panelFocusLostToHide\.exchange\(false, std::memory_order_acq_rel\)\) \{\s*RestorePanelFocusAfterShow\(\);/);
+  assert.match(mainText, /static void RestorePanelFocusAfterShow\(\) \{\s*QueueGameTask\(/);
+  assert.match(mainText, /if \(TryFocusView\(\)\) \{[\s\S]*?TryInvoke\(TulliusWidgets::WidgetInteropContracts::kCloseSettingsScript\)\)/);
+  assert.match(mainText, /g\.panelFocusLostToHide\.store\(false, std::memory_order_release\);/);
+  assert.match(mainText, /eventCallbacks\.hasViewFocus = &ViewOwnsScreen;/);
+  assert.match(mainText, /callbacks\.hasViewFocus = \[\]\(\) \{\s*return ViewOwnsScreen\(\);/);
+  assert.match(mainText, /if \(g\.settingsPanelOpen\.exchange\(false, std::memory_order_acq_rel\)\) \{\s*TryInvoke\(TulliusWidgets::WidgetInteropContracts::kCloseSettingsScript\);/);
+  assert.match(mainText, /if \(!TryInvoke\(TulliusWidgets::WidgetInteropContracts::kCloseSettingsScript\)\) \{[\s\S]*?g\.settingsPanelOpen\.store\(false, std::memory_order_release\);[\s\S]*?TryUnfocusView\(\);/);
 });
 
 test('settings hotkey uses tracked settings-panel state and closes explicitly', () => {

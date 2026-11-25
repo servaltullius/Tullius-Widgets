@@ -467,6 +467,41 @@ describe('useSettings', () => {
     expect(syncResult).toBe(false);
   });
 
+  it('saves a change made without saving when the saving update that follows changes nothing', async () => {
+    vi.useFakeTimers();
+    const onSettingsChanged = vi.fn();
+    let updateSetting: UpdateSettingFn | null = null;
+    window.onSettingsChanged = onSettingsChanged;
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<UpdateSettingHarness onReady={value => { updateSetting = value; }} />);
+    });
+
+    // A sideways drag: X changes without saving, Y is written again with the value it had.
+    await act(async () => {
+      updateSetting?.('general.opacity', 61, { persist: false });
+      updateSetting?.('general.size', defaultSettings.general.size);
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(onSettingsChanged).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(onSettingsChanged.mock.calls[0]?.[0] as string) as WidgetSettings;
+    expect(payload.general.opacity).toBe(61);
+
+    // Nothing is waiting any more, so the same no-op update does not save again.
+    await act(async () => {
+      updateSetting?.('general.size', defaultSettings.general.size);
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(onSettingsChanged).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
   it('retries the last settings payload once after native sync failure', async () => {
     vi.useFakeTimers();
     const onSettingsChanged = vi.fn();

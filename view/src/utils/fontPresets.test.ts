@@ -61,6 +61,8 @@ describe('fontPresets', () => {
     const readable = resolveFontPresetVariables('readable');
 
     expect(readable['--tw-font-ui']).toContain('Noto Sans KR');
+    expect(readable['--tw-font-ui']).not.toContain('Tullius Pretendard');
+    expect(resolveFontPresetVariables('default')['--tw-font-ui'].startsWith('"Tullius Pretendard"')).toBe(true);
     expect(readable['--tw-font-hud']).toContain('Noto Sans KR');
   });
 });

@@ -16,6 +16,7 @@ inline constexpr char kOnImportSettings[] = "onImportSettings";
 inline constexpr char kOnRequestUnfocus[] = "onRequestUnfocus";
 inline constexpr char kOnSettingsVisibilityChanged[] = "onSettingsVisibilityChanged";
 inline constexpr char kOnHotkeyCapture[] = "onHotkeyCapture";
+inline constexpr char kOnEscapeOwner[] = "onEscapeOwner";
 
 inline constexpr char kOnExportResult[] = "onExportResult";
 inline constexpr char kOnImportResult[] = "onImportResult";
@@ -23,6 +24,7 @@ inline constexpr char kOnSettingsSyncResult[] = "onSettingsSyncResult";
 
 inline constexpr char kToggleSettingsScript[] = "toggleSettings()";
 inline constexpr char kCloseSettingsScript[] = "closeSettings()";
+inline constexpr char kHandleEscapeScript[] = "handleEscape()";
 inline constexpr char kToggleWidgetsVisibilityScript[] = "toggleWidgetsVisibility()";
 
 }  // namespace TulliusWidgets::WidgetInteropContracts

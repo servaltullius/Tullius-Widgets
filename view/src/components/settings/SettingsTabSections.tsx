@@ -1,11 +1,12 @@
 import { useContext, useEffect, useState } from 'react';
 import type { Language, UpdateSettingFn, WidgetSettings } from '../../types/settings';
 import { t, type LocalizationLanguageEntry } from '../../i18n/translations';
-import { AccordionSection, CustomSelect, Toggle } from './SettingsControls';
+import { LayoutEditGuide } from './LayoutEditGuide';
+import { GroupTitle, Note, SelectRow, SettingRow, SettingsSection, SliderRow, SubSettings, Toggle } from './SettingsControls';
+import type { PanelDockPreference } from './settingsPanelState';
 import { PresetSection } from './PresetSection';
 import { HotkeySettings } from './HotkeySettings';
 import { formatHotkey } from '../../utils/hotkeys';
-import { scalePanelPixels } from './panelScale';
 import { FONT_PRESET_OPTIONS } from '../../utils/fontPresets';
 import { buildItemLayoutsForHudStyle, captureLayoutSlot, shiftEffectListForLayout } from '../../utils/itemLayoutEditing';
 import { findIconPack, type IconPack } from '../../data/iconPacks';
@@ -14,7 +15,8 @@ import { findUserFont, type UserFont } from '../../data/userFonts';
 import { UserFontsContext } from '../../hooks/useUserFonts';
 import { MAX_HIDE_DELAY_SECONDS } from '../../data/defaultSettings';
 
-const SLOT_LOAD_CONFIRM_MS = 4000;
+// How long a "click again" confirmation (slot load, position reset) waits for the second click.
+const CONFIRM_AGAIN_MS = 4000;
 const AUTO_HIDE_CONDITIONS = [
   ['showInCombat', 'autoHideInCombat'],
   ['showWeaponDrawn', 'autoHideWeaponDrawn'],
@@ -29,40 +31,13 @@ const PRESET_COLORS = [
 
 interface SectionControlProps {
   lang: Language;
-  isSectionExpanded: (id: string) => boolean;
-  toggleSection: (id: string) => void;
+  /** Section ids to show; every section when omitted. */
+  sections?: readonly string[];
   panelScale?: number;
 }
 
-interface SelectRowProps {
-  label: string;
-  value: string;
-  options: { value: string; label: string }[];
-  onChange: (value: string) => void;
-  panelScale?: number;
-  testId?: string;
-}
-
-function SelectRow({
-  label,
-  value,
-  options,
-  onChange,
-  panelScale = 1,
-  testId,
-}: SelectRowProps) {
-  return (
-    <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${scalePanelPixels(8, panelScale)} 0` }}>
-      <span style={{ color: '#aaa', fontSize: scalePanelPixels(20, panelScale) }}>{label}</span>
-      <CustomSelect
-        value={value}
-        options={options}
-        onChange={onChange}
-        panelScale={panelScale}
-        testId={testId}
-      />
-    </label>
-  );
+function isShown(sections: readonly string[] | undefined, id: string): boolean {
+  return !sections || sections.includes(id);
 }
 
 function readItemVisibility(settings: WidgetSettings, itemId: string, fallback: boolean): boolean {
@@ -83,21 +58,18 @@ interface ItemVisibilityToggleProps {
   settings: WidgetSettings;
   onUpdate: UpdateSettingFn;
   config: ItemVisibilityToggleConfig;
-  panelScale?: number;
 }
 
 function ItemVisibilityToggle({
   settings,
   onUpdate,
   config,
-  panelScale = 1,
 }: ItemVisibilityToggleProps) {
   return (
     <Toggle
       label={config.label}
       checked={readItemVisibility(settings, config.itemId, config.fallback)}
       onChange={value => updateItemVisibility(onUpdate, config.itemId, value)}
-      panelScale={panelScale}
     />
   );
 }
@@ -144,18 +116,6 @@ function buildFontOptions(lang: Language, fonts: readonly UserFont[]) {
   ];
 }
 
-function slotButtonStyle(panelScale: number, enabled: boolean) {
-  return {
-    background: enabled ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)',
-    border: '1px solid rgba(255,255,255,0.2)',
-    color: enabled ? '#d7d7d7' : '#666',
-    fontSize: scalePanelPixels(17, panelScale),
-    borderRadius: scalePanelPixels(6, panelScale),
-    padding: `${scalePanelPixels(6, panelScale)} ${scalePanelPixels(12, panelScale)}`,
-    cursor: enabled ? 'pointer' : 'default',
-  } as const;
-}
-
 function buildHudStyleOptions(lang: Language) {
   return [
     { value: 'compact', label: t(lang, 'hudStyleCompact') },
@@ -189,6 +149,9 @@ interface GeneralTabSectionsProps extends SectionControlProps {
   onUpdate: UpdateSettingFn;
   accentColor: string;
   availableLanguages: LocalizationLanguageEntry[];
+  /** The drawer side; the row is shown only when the panel provides a handler. */
+  panelDock?: PanelDockPreference;
+  onPanelDockChange?: (dock: PanelDockPreference) => void;
 }
 
 export function GeneralTabSections({
@@ -199,9 +162,10 @@ export function GeneralTabSections({
   onUpdate,
   accentColor,
   availableLanguages,
-  isSectionExpanded,
-  toggleSection,
+  sections,
   panelScale = 1,
+  panelDock,
+  onPanelDockChange,
 }: GeneralTabSectionsProps) {
   const { fonts: userFonts, status: userFontStatus } = useContext(UserFontsContext);
   const { autoHide, freeCameraDisplay, fontPreset, userFont } = settings.general;
@@ -210,247 +174,238 @@ export function GeneralTabSections({
     || readItemVisibility(settings, 'player.stamina', settings.playerInfo.stamina);
   const activeUserFont = findUserFont(userFonts, userFont);
   const fontOptions = buildFontOptions(lang, userFonts);
-  // Folder names can be 192 bytes without spaces; wrap them instead of widening the panel.
-  const hintStyle = {
-    color: '#88a4c4',
-    fontSize: scalePanelPixels(18, panelScale),
-    margin: `0 0 ${scalePanelPixels(8, panelScale)} 0`,
-    overflowWrap: 'anywhere',
-  } as const;
   const compact = settings.general.hudStyle === 'compact';
   const iconPacks = useContext(IconPacksContext);
   const activeIconPack = compact ? findIconPack(iconPacks, settings.general.iconPack) : null;
   const iconThemeOptions = buildIconThemeOptions(lang, compact ? iconPacks : []);
+  const visibilityKey = formatHotkey(settings.general.visibilityHotkey);
 
   return (
-    <AccordionSection
-      id="generalMain"
-      title={t(lang, 'general')}
-      expanded={isSectionExpanded('generalMain')}
-      onToggle={toggleSection}
-      panelScale={panelScale}
-    >
-      <Toggle label={t(lang, 'showWidgets')} checked={effectiveVisible} onChange={value => onUpdate('general.visible', value)} panelScale={panelScale} />
-      {effectiveVisible !== settings.general.visible && (
-        <p style={{ color: '#a8bbd8', fontSize: scalePanelPixels(16, panelScale), margin: `0 0 ${scalePanelPixels(8, panelScale)} 0` }}>
-          {t(lang, 'sessionVisibilityHint').replace('{key}', formatHotkey(settings.general.visibilityHotkey))}
-        </p>
-      )}
-      <Toggle label={t(lang, 'autoHide')} checked={autoHide.enabled} onChange={value => onUpdate('general.autoHide.enabled', value)} panelScale={panelScale} />
-      {autoHide.enabled && (
-        <div style={{ paddingLeft: scalePanelPixels(20, panelScale) }}>
-          {AUTO_HIDE_CONDITIONS.map(([field, label]) => (
-            <Toggle key={field} label={t(lang, label)} checked={autoHide[field]} onChange={value => onUpdate(`general.autoHide.${field}`, value)} panelScale={panelScale} />
-          ))}
-          <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${scalePanelPixels(8, panelScale)} 0` }}>
-            <span style={{ color: '#aaa', fontSize: scalePanelPixels(20, panelScale) }}>
-              {t(lang, 'hideDelaySeconds')}: {autoHide.hideDelaySeconds}
-            </span>
-            <input
-              type="range"
+    <>
+      <SettingsSection id="display" title={t(lang, 'groupDisplay')} shown={isShown(sections, 'display')}>
+        <Toggle
+          label={t(lang, 'showWidgets')}
+          help={effectiveVisible !== settings.general.visible
+            ? t(lang, 'sessionVisibilityHint').replace('{key}', visibilityKey)
+            : undefined}
+          checked={effectiveVisible}
+          onChange={value => onUpdate('general.visible', value)}
+        />
+        <Toggle label={t(lang, 'autoHide')} checked={autoHide.enabled} onChange={value => onUpdate('general.autoHide.enabled', value)} />
+        {autoHide.enabled && (
+          <SubSettings>
+            {AUTO_HIDE_CONDITIONS.map(([field, label]) => (
+              <Toggle key={field} label={t(lang, label)} checked={autoHide[field]} onChange={value => onUpdate(`general.autoHide.${field}`, value)} />
+            ))}
+            <SliderRow
+              label={t(lang, 'hideDelaySeconds')}
+              value={autoHide.hideDelaySeconds}
               min={0}
               max={MAX_HIDE_DELAY_SECONDS}
-              step={1}
-              value={autoHide.hideDelaySeconds}
-              onChange={event => onUpdate('general.autoHide.hideDelaySeconds', Number(event.target.value))}
-              style={{ width: scalePanelPixels(180, panelScale) }}
+              onChange={value => onUpdate('general.autoHide.hideDelaySeconds', value)}
+              formatValue={value => t(lang, 'secondsValue').replace('{value}', String(value))}
             />
-          </label>
-        </div>
-      )}
-      <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${scalePanelPixels(8, panelScale)} 0` }}>
-        <span style={{ color: '#aaa', fontSize: scalePanelPixels(20, panelScale) }}>
-          {t(lang, 'changeDisplaySeconds')}: {settings.general.changeDisplaySeconds}
-        </span>
-        <input
-          type="range"
+          </SubSettings>
+        )}
+        <SliderRow
+          label={t(lang, 'changeDisplaySeconds')}
+          help={t(lang, 'changeDisplaySecondsHint')}
+          value={settings.general.changeDisplaySeconds}
           min={1}
           max={15}
-          value={settings.general.changeDisplaySeconds}
-          onChange={event => onUpdate('general.changeDisplaySeconds', Number(event.target.value))}
-          style={{ width: scalePanelPixels(180, panelScale) }}
+          onChange={value => onUpdate('general.changeDisplaySeconds', value)}
+          formatValue={value => t(lang, 'secondsValue').replace('{value}', String(value))}
         />
-      </label>
-      <p style={hintStyle}>{t(lang, 'changeDisplaySecondsHint')}</p>
-      <SelectRow
-        label={t(lang, 'freeCameraDisplay')}
-        value={freeCameraDisplay}
-        options={[
-          { value: 'hide', label: t(lang, 'freeCameraHide') },
-          { value: 'vitals', label: t(lang, 'freeCameraVitals') },
-          { value: 'all', label: t(lang, 'freeCameraAll') },
-        ]}
-        onChange={value => onUpdate('general.freeCameraDisplay', value)}
-        panelScale={panelScale}
-        testId="free-camera-display-select"
-      />
-      {freeCameraDisplay === 'vitals' && !hasEnabledVital && (
-        <p style={hintStyle}>{t(lang, 'freeCameraNoVitals')}</p>
-      )}
+        <SelectRow
+          label={t(lang, 'freeCameraDisplay')}
+          help={freeCameraDisplay === 'vitals' && !hasEnabledVital ? t(lang, 'freeCameraNoVitals') : t(lang, 'freeCameraHint')}
+          value={freeCameraDisplay}
+          options={[
+            { value: 'hide', label: t(lang, 'freeCameraHide') },
+            { value: 'vitals', label: t(lang, 'freeCameraVitals') },
+            { value: 'all', label: t(lang, 'freeCameraAll') },
+          ]}
+          onChange={value => onUpdate('general.freeCameraDisplay', value)}
+          panelScale={panelScale}
+          testId="free-camera-display-select"
+          variant="segmented"
+        />
+      </SettingsSection>
 
-      <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${scalePanelPixels(8, panelScale)} 0` }}>
-        <span style={{ color: '#ddd', fontSize: scalePanelPixels(24, panelScale) }}>{t(lang, settings.general.hudStyle === 'compact' ? 'compactSurfaceOpacity' : 'opacity')}: {settings.general.opacity}%</span>
-        <input
-          type="range"
+      <SettingsSection id="appearance" title={t(lang, 'groupAppearance')} shown={isShown(sections, 'appearance')}>
+        <SelectRow
+          label={t(lang, 'hudStyleLabel')}
+          help={t(lang, 'hudStyleHint')}
+          value={settings.general.hudStyle}
+          options={buildHudStyleOptions(lang)}
+          onChange={nextValue => {
+            const hudStyle = nextValue === 'classic' ? 'classic' : 'compact';
+            // The same style again keeps the arrangement; it only saves again after a failed save.
+            if (hudStyle === settings.general.hudStyle) {
+              onUpdate('general.hudStyle', hudStyle);
+              return;
+            }
+            const nextItemLayouts = buildItemLayoutsForHudStyle(settings, hudStyle);
+            onUpdate('positions', {}, { persist: false });
+            onUpdate('layouts', {}, { persist: false });
+            onUpdate('groupScales', {}, { persist: false });
+            onUpdate('general.hudStyle', hudStyle, { persist: false });
+            onUpdate('itemLayouts', nextItemLayouts);
+          }}
+          panelScale={panelScale}
+          testId="hud-style-select"
+          variant="segmented"
+        />
+        <SliderRow
+          label={t(lang, compact ? 'compactSurfaceOpacity' : 'opacity')}
+          value={settings.general.opacity}
           min={10}
           max={100}
-          value={settings.general.opacity}
-          onChange={event => onUpdate('general.opacity', Number(event.target.value))}
-          style={{ width: scalePanelPixels(220, panelScale), height: scalePanelPixels(8, panelScale) }}
+          onChange={value => onUpdate('general.opacity', value)}
+          formatValue={value => `${value}%`}
         />
-      </label>
+        {/* Both styles have a Dororong icon set; badges, accent tone and card transparency only
+            apply to the classic card style. */}
+        <SelectRow
+          label={t(lang, 'iconTheme')}
+          help={compact ? t(lang, 'iconThemeCompactHint') : undefined}
+          value={activeIconPack ? `${ICON_PACK_OPTION_PREFIX}${activeIconPack.id}` : settings.general.iconTheme}
+          options={iconThemeOptions}
+          onChange={nextValue => {
+            if (!compact) {
+              onUpdate('general.iconTheme', nextValue as WidgetSettings['general']['iconTheme']);
+              return;
+            }
+            // A pack draws over its base theme; picking a built-in theme drops the pack.
+            const pickedPack = nextValue.startsWith(ICON_PACK_OPTION_PREFIX)
+              ? findIconPack(iconPacks, nextValue.slice(ICON_PACK_OPTION_PREFIX.length))
+              : null;
+            if (nextValue.startsWith(ICON_PACK_OPTION_PREFIX) && !pickedPack) return;
+            const iconTheme = pickedPack ? pickedPack.base : nextValue as WidgetSettings['general']['iconTheme'];
+            const iconPack = pickedPack?.id ?? '';
+            if (iconTheme === settings.general.iconTheme) {
+              // Same layout and icon size: keep the player's arrangement.
+              onUpdate('general.iconPack', iconPack);
+              return;
+            }
+            // The compact Dororong icons are larger and use their own, roomier arrangement.
+            const nextItemLayouts = buildItemLayoutsForHudStyle(
+              { ...settings, general: { ...settings.general, iconTheme, iconPack } },
+              'compact',
+            );
+            onUpdate('positions', {}, { persist: false });
+            onUpdate('layouts', {}, { persist: false });
+            onUpdate('groupScales', {}, { persist: false });
+            onUpdate('general.iconTheme', iconTheme, { persist: false });
+            onUpdate('general.iconPack', iconPack, { persist: false });
+            onUpdate('itemLayouts', nextItemLayouts);
+          }}
+          panelScale={panelScale}
+          testId="icon-theme-select"
+        />
+        {compact && (
+          <Note testId="icon-pack-hint">
+            {activeIconPack?.author
+              ? t(lang, 'iconPackCredit').replace('{name}', activeIconPack.version ? `${activeIconPack.name} ${activeIconPack.version}` : activeIconPack.name).replace('{author}', activeIconPack.author)
+              : t(lang, 'iconPackHint')}
+          </Note>
+        )}
+        <SelectRow
+          label={t(lang, 'fontPreset')}
+          help={t(lang, 'userFontHint')}
+          value={activeUserFont ? `${USER_FONT_OPTION_PREFIX}${activeUserFont.id}` : fontPreset}
+          options={fontOptions}
+          onChange={nextValue => {
+            if (nextValue.startsWith(USER_FONT_OPTION_PREFIX)) {
+              const pickedFont = findUserFont(userFonts, nextValue.slice(USER_FONT_OPTION_PREFIX.length));
+              if (pickedFont) onUpdate('general.userFont', pickedFont.id);
+            } else if (userFont) {
+              onUpdate('general.fontPreset', nextValue, { persist: false });
+              onUpdate('general.userFont', '');
+            } else {
+              onUpdate('general.fontPreset', nextValue);
+            }
+          }}
+          panelScale={panelScale}
+          testId="font-preset-select"
+        />
+        {userFontStatus === 'loading' && (
+          <Note testId="user-font-loading">{t(lang, 'userFontLoading').replace('{name}', userFont)}</Note>
+        )}
+        {userFontStatus === 'missing' && (
+          <Note tone="warn">{t(lang, 'userFontMissing').replace('{name}', userFont)}</Note>
+        )}
+        {userFontStatus === 'failed' && (
+          <Note tone="warn">{t(lang, 'userFontLoadFailed').replace('{name}', userFont)}</Note>
+        )}
+        {!compact && (
+          <>
+            {settings.general.iconTheme === 'dororong' && (
+              <Toggle
+                label={t(lang, 'showIconBadges')}
+                checked={settings.general.showIconBadges}
+                onChange={value => onUpdate('general.showIconBadges', value)}
+              />
+            )}
+            <SettingRow
+              label={t(lang, 'accentColor')}
+              help={settings.general.accentColor ? settings.general.accentColor : t(lang, 'accentAuto')}
+            >
+              <span className="tw-p-swatches">
+                {PRESET_COLORS.map(color => (
+                  <button
+                    key={color || 'auto'}
+                    type="button"
+                    className="tw-p-swatch"
+                    aria-pressed={settings.general.accentColor === color}
+                    aria-label={color || t(lang, 'accentAuto')}
+                    title={color || t(lang, 'accentAuto')}
+                    onClick={() => onUpdate('general.accentColor', color)}
+                    style={{ background: color || 'linear-gradient(135deg, #6699cc, #cc6666, #66cc99)' }}
+                  />
+                ))}
+                <input
+                  type="color"
+                  className="tw-p-swatch"
+                  aria-label={t(lang, 'accentColor')}
+                  value={accentColor}
+                  onChange={event => onUpdate('general.accentColor', event.target.value)}
+                />
+              </span>
+            </SettingRow>
+            <Toggle label={t(lang, 'transparentBg')} checked={settings.general.transparentBg} onChange={value => onUpdate('general.transparentBg', value)} />
+          </>
+        )}
+      </SettingsSection>
 
-      <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${scalePanelPixels(8, panelScale)} 0` }}>
-        <span style={{ color: '#ddd', fontSize: scalePanelPixels(24, panelScale) }}>{t(lang, 'language')}</span>
-        <CustomSelect value={selectedLanguage}
+      <SettingsSection id="languageHotkeys" title={t(lang, 'groupLanguageHotkeys')} shown={isShown(sections, 'languageHotkeys')}>
+        <SelectRow
+          label={t(lang, 'language')}
+          value={selectedLanguage}
           options={availableLanguages.map(option => ({ value: option.code, label: option.label }))}
           onChange={nextValue => onUpdate('general.language', nextValue)}
           panelScale={panelScale}
+          testId="language-select"
         />
-      </label>
-
-      <SelectRow
-        label={t(lang, 'hudStyleLabel')}
-        value={settings.general.hudStyle}
-        options={buildHudStyleOptions(lang)}
-        onChange={nextValue => {
-          const hudStyle = nextValue === 'classic' ? 'classic' : 'compact';
-          if (hudStyle === settings.general.hudStyle) return;
-          const nextItemLayouts = buildItemLayoutsForHudStyle(settings, hudStyle);
-          onUpdate('positions', {}, { persist: false });
-          onUpdate('layouts', {}, { persist: false });
-          onUpdate('groupScales', {}, { persist: false });
-          onUpdate('general.hudStyle', hudStyle, { persist: false });
-          onUpdate('itemLayouts', nextItemLayouts);
-        }}
-        panelScale={panelScale}
-        testId="hud-style-select"
-      />
-      <p style={{ color: '#88a4c4', fontSize: scalePanelPixels(18, panelScale), margin: `0 0 ${scalePanelPixels(8, panelScale)} 0` }}>
-        {t(lang, 'hudStyleHint')}
-      </p>
-
-      <SelectRow
-        label={t(lang, 'fontPreset')}
-        value={activeUserFont ? `${USER_FONT_OPTION_PREFIX}${activeUserFont.id}` : fontPreset}
-        options={fontOptions}
-        onChange={nextValue => {
-          if (nextValue.startsWith(USER_FONT_OPTION_PREFIX)) {
-            const pickedFont = findUserFont(userFonts, nextValue.slice(USER_FONT_OPTION_PREFIX.length));
-            if (pickedFont) onUpdate('general.userFont', pickedFont.id);
-          } else if (userFont) {
-            onUpdate('general.fontPreset', nextValue, { persist: false });
-            onUpdate('general.userFont', '');
-          } else {
-            onUpdate('general.fontPreset', nextValue);
-          }
-        }}
-        panelScale={panelScale}
-        testId="font-preset-select"
-      />
-      <p style={hintStyle}>{t(lang, 'userFontHint')}</p>
-      {userFontStatus === 'loading' && (
-        <p data-testid="user-font-loading" style={hintStyle}>{t(lang, 'userFontLoading').replace('{name}', userFont)}</p>
-      )}
-      {userFontStatus === 'missing' && (
-        <p style={hintStyle}>{t(lang, 'userFontMissing').replace('{name}', userFont)}</p>
-      )}
-      {userFontStatus === 'failed' && (
-        <p style={hintStyle}>{t(lang, 'userFontLoadFailed').replace('{name}', userFont)}</p>
-      )}
-
-      {/* Both styles have a Dororong icon set; badges, accent tone and card transparency only
-          apply to the classic card style. */}
-      <SelectRow
-        label={t(lang, 'iconTheme')}
-        value={activeIconPack ? `${ICON_PACK_OPTION_PREFIX}${activeIconPack.id}` : settings.general.iconTheme}
-        options={iconThemeOptions}
-        onChange={nextValue => {
-          if (!compact) {
-            onUpdate('general.iconTheme', nextValue as WidgetSettings['general']['iconTheme']);
-            return;
-          }
-          // A pack draws over its base theme; picking a built-in theme drops the pack.
-          const pickedPack = nextValue.startsWith(ICON_PACK_OPTION_PREFIX)
-            ? findIconPack(iconPacks, nextValue.slice(ICON_PACK_OPTION_PREFIX.length))
-            : null;
-          if (nextValue.startsWith(ICON_PACK_OPTION_PREFIX) && !pickedPack) return;
-          const iconTheme = pickedPack ? pickedPack.base : nextValue as WidgetSettings['general']['iconTheme'];
-          const iconPack = pickedPack?.id ?? '';
-          if (iconTheme === settings.general.iconTheme) {
-            // Same layout and icon size: keep the player's arrangement.
-            onUpdate('general.iconPack', iconPack);
-            return;
-          }
-          // The compact Dororong icons are larger and use their own, roomier arrangement.
-          const nextItemLayouts = buildItemLayoutsForHudStyle(
-            { ...settings, general: { ...settings.general, iconTheme, iconPack } },
-            'compact',
-          );
-          onUpdate('positions', {}, { persist: false });
-          onUpdate('layouts', {}, { persist: false });
-          onUpdate('groupScales', {}, { persist: false });
-          onUpdate('general.iconTheme', iconTheme, { persist: false });
-          onUpdate('general.iconPack', iconPack, { persist: false });
-          onUpdate('itemLayouts', nextItemLayouts);
-        }}
-        panelScale={panelScale}
-        testId="icon-theme-select"
-      />
-      {compact && (
-        <p style={{ color: '#88a4c4', fontSize: scalePanelPixels(18, panelScale), margin: `0 0 ${scalePanelPixels(8, panelScale)} 0` }}>
-          {t(lang, 'iconThemeCompactHint')}
-        </p>
-      )}
-      {compact && (
-        <p data-testid="icon-pack-hint" style={{ color: '#88a4c4', fontSize: scalePanelPixels(18, panelScale), margin: `0 0 ${scalePanelPixels(8, panelScale)} 0` }}>
-          {activeIconPack?.author
-            ? t(lang, 'iconPackCredit').replace('{name}', activeIconPack.version ? `${activeIconPack.name} ${activeIconPack.version}` : activeIconPack.name).replace('{author}', activeIconPack.author)
-            : t(lang, 'iconPackHint')}
-        </p>
-      )}
-      {settings.general.hudStyle === 'classic' && (
-        <>
-        {settings.general.iconTheme === 'dororong' && (
-          <Toggle
-            label={t(lang, 'showIconBadges')}
-            checked={settings.general.showIconBadges}
-            onChange={value => onUpdate('general.showIconBadges', value)}
+        <HotkeySettings lang={lang} settings={settings} onUpdate={onUpdate} />
+        {onPanelDockChange && (
+          <SelectRow
+            label={t(lang, 'panelDockLabel')}
+            help={t(lang, 'panelDockHint')}
+            value={panelDock ?? 'auto'}
+            options={[
+              { value: 'auto', label: t(lang, 'panelDockAuto') },
+              { value: 'left', label: t(lang, 'panelDockLeft') },
+              { value: 'right', label: t(lang, 'panelDockRight') },
+            ]}
+            onChange={value => onPanelDockChange(value as PanelDockPreference)}
             panelScale={panelScale}
+            testId="panel-dock-select"
+            variant="segmented"
           />
         )}
-
-        <div style={{ padding: `${scalePanelPixels(8, panelScale)} 0` }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: scalePanelPixels(8, panelScale) }}>
-            <span style={{ color: '#ddd', fontSize: scalePanelPixels(24, panelScale) }}>{t(lang, 'accentColor')}</span>
-            <span style={{ color: '#888', fontSize: scalePanelPixels(18, panelScale) }}>
-              {settings.general.accentColor ? settings.general.accentColor : t(lang, 'accentAuto')}
-            </span>
-          </div>
-          <div style={{ display: 'flex', gap: scalePanelPixels(8, panelScale), flexWrap: 'wrap', alignItems: 'center' }}>
-            {PRESET_COLORS.map(color => (
-              <div key={color || 'auto'} onClick={() => onUpdate('general.accentColor', color)}
-                style={{
-                  width: scalePanelPixels(36, panelScale), height: scalePanelPixels(36, panelScale), borderRadius: scalePanelPixels(6, panelScale), cursor: 'pointer',
-                  background: color || 'linear-gradient(135deg, #6699cc, #cc6666, #66cc99)',
-                  border: settings.general.accentColor === color
-                    ? '3px solid #ffd700' : '2px solid rgba(255,255,255,0.2)',
-                  boxSizing: 'border-box',
-                }} title={color || t(lang, 'accentAuto')} />
-            ))}
-            <input
-              type="color"
-              value={accentColor}
-              onChange={event => onUpdate('general.accentColor', event.target.value)}
-              style={{ width: scalePanelPixels(36, panelScale), height: scalePanelPixels(36, panelScale), border: 'none', cursor: 'pointer', background: 'transparent' }}
-            />
-          </div>
-        </div>
-        <Toggle label={t(lang, 'transparentBg')} checked={settings.general.transparentBg} onChange={value => onUpdate('general.transparentBg', value)} panelScale={panelScale} />
-        </>
-      )}
-      <HotkeySettings lang={lang} settings={settings} onUpdate={onUpdate} panelScale={panelScale} />
-    </AccordionSection>
+      </SettingsSection>
+    </>
   );
 }
 
@@ -463,8 +418,7 @@ export function CombatTabSections({
   lang,
   settings,
   onUpdate,
-  isSectionExpanded,
-  toggleSection,
+  sections,
   panelScale = 1,
 }: WidgetTabSectionsProps) {
   const carryWeightDisplayOptions = buildCarryWeightDisplayOptions(lang);
@@ -573,44 +527,29 @@ export function CombatTabSections({
 
   return (
     <>
-      <AccordionSection
-        id="experience"
-        title={t(lang, 'progressionWidgetPanel')}
-        expanded={isSectionExpanded('experience')}
-        onToggle={toggleSection}
-        panelScale={panelScale}
-      >
+      <SettingsSection id="experience" title={t(lang, 'progressionWidgetPanel')} shown={isShown(sections, 'experience')}>
         {experienceToggles.map(config => (
           <ItemVisibilityToggle
             key={config.itemId}
             settings={settings}
             onUpdate={onUpdate}
             config={config}
-            panelScale={panelScale}
           />
         ))}
         <Toggle
           label={t(lang, 'experienceShowNumbers')}
           checked={settings.experience.showNumbers}
           onChange={value => onUpdate('experience.showNumbers', value)}
-          panelScale={panelScale}
         />
-      </AccordionSection>
+      </SettingsSection>
 
-      <AccordionSection
-        id="playerInfo"
-        title={t(lang, 'playerInfo')}
-        expanded={isSectionExpanded('playerInfo')}
-        onToggle={toggleSection}
-        panelScale={panelScale}
-      >
+      <SettingsSection id="playerInfo" title={t(lang, 'playerInfo')} shown={isShown(sections, 'playerInfo')}>
         {playerInfoToggles.slice(0, 3).map(config => (
           <ItemVisibilityToggle
             key={config.itemId}
             settings={settings}
             onUpdate={onUpdate}
             config={config}
-            panelScale={panelScale}
           />
         ))}
         <SelectRow
@@ -620,6 +559,7 @@ export function CombatTabSections({
           onChange={nextValue => onUpdate('playerInfo.carryWeightDisplay', nextValue)}
           panelScale={panelScale}
           testId="carry-weight-display-select"
+          variant="segmented"
         />
         {playerInfoToggles.slice(3).map(config => (
           <ItemVisibilityToggle
@@ -627,18 +567,11 @@ export function CombatTabSections({
             settings={settings}
             onUpdate={onUpdate}
             config={config}
-            panelScale={panelScale}
           />
         ))}
-      </AccordionSection>
+      </SettingsSection>
 
-      <AccordionSection
-        id="resistances"
-        title={t(lang, 'resistances')}
-        expanded={isSectionExpanded('resistances')}
-        onToggle={toggleSection}
-        panelScale={panelScale}
-      >
+      <SettingsSection id="resistances" title={t(lang, 'resistances')} shown={isShown(sections, 'resistances')}>
         <SelectRow
           label={t(lang, 'resistanceDisplay')}
           value={settings.resistances.displayMode}
@@ -646,6 +579,7 @@ export function CombatTabSections({
           onChange={nextValue => onUpdate('resistances.displayMode', nextValue)}
           panelScale={panelScale}
           testId="resistance-display-select"
+          variant="segmented"
         />
         {resistanceToggles.map(config => (
           <ItemVisibilityToggle
@@ -653,61 +587,39 @@ export function CombatTabSections({
             settings={settings}
             onUpdate={onUpdate}
             config={config}
-            panelScale={panelScale}
           />
         ))}
-      </AccordionSection>
+      </SettingsSection>
 
-      <AccordionSection
-        id="defense"
-        title={t(lang, 'defense')}
-        expanded={isSectionExpanded('defense')}
-        onToggle={toggleSection}
-        panelScale={panelScale}
-      >
+      <SettingsSection id="defense" title={t(lang, 'defense')} shown={isShown(sections, 'defense')}>
         {defenseToggles.map(config => (
           <ItemVisibilityToggle
             key={config.itemId}
             settings={settings}
             onUpdate={onUpdate}
             config={config}
-            panelScale={panelScale}
           />
         ))}
-      </AccordionSection>
+      </SettingsSection>
 
-      <AccordionSection
-        id="offense"
-        title={t(lang, 'offense')}
-        expanded={isSectionExpanded('offense')}
-        onToggle={toggleSection}
-        panelScale={panelScale}
-      >
+      <SettingsSection id="offense" title={t(lang, 'offense')} shown={isShown(sections, 'offense')}>
         {offenseToggles.map(config => (
           <ItemVisibilityToggle
             key={config.itemId}
             settings={settings}
             onUpdate={onUpdate}
             config={config}
-            panelScale={panelScale}
           />
         ))}
-      </AccordionSection>
+      </SettingsSection>
 
-      <AccordionSection
-        id="equipped"
-        title={t(lang, 'equipped')}
-        expanded={isSectionExpanded('equipped')}
-        onToggle={toggleSection}
-        panelScale={panelScale}
-      >
+      <SettingsSection id="equipped" title={t(lang, 'equipped')} shown={isShown(sections, 'equipped')}>
         {equippedToggles.map(config => (
           <ItemVisibilityToggle
             key={config.itemId}
             settings={settings}
             onUpdate={onUpdate}
             config={config}
-            panelScale={panelScale}
           />
         ))}
         {settings.general.hudStyle === 'compact' && (
@@ -718,27 +630,21 @@ export function CombatTabSections({
             onChange={nextValue => onUpdate('equipped.nameDisplay', nextValue)}
             panelScale={panelScale}
             testId="equip-name-display-select"
+            variant="segmented"
           />
         )}
-      </AccordionSection>
+      </SettingsSection>
 
-      <AccordionSection
-        id="movement"
-        title={t(lang, 'movement')}
-        expanded={isSectionExpanded('movement')}
-        onToggle={toggleSection}
-        panelScale={panelScale}
-      >
+      <SettingsSection id="movement" title={t(lang, 'movement')} shown={isShown(sections, 'movement')}>
         {movementToggles.map(config => (
           <ItemVisibilityToggle
             key={config.itemId}
             settings={settings}
             onUpdate={onUpdate}
             config={config}
-            panelScale={panelScale}
           />
         ))}
-      </AccordionSection>
+      </SettingsSection>
     </>
   );
 }
@@ -747,8 +653,7 @@ export function EffectsTabSections({
   lang,
   settings,
   onUpdate,
-  isSectionExpanded,
-  toggleSection,
+  sections,
   panelScale = 1,
 }: WidgetTabSectionsProps) {
   const showGameTime = readItemVisibility(settings, 'time.game', settings.time.gameDateTime);
@@ -771,44 +676,42 @@ export function EffectsTabSections({
 
   return (
     <>
-      <AccordionSection
-        id="time"
-        title={t(lang, 'time')}
-        expanded={isSectionExpanded('time')}
-        onToggle={toggleSection}
-        panelScale={panelScale}
-      >
+      <SettingsSection id="time" title={t(lang, 'time')} shown={isShown(sections, 'time')}>
         <ItemVisibilityToggle
           settings={settings}
           onUpdate={onUpdate}
           config={timeToggles[0]}
-          panelScale={panelScale}
         />
         {showGameTime && (
-          <SelectRow
-            label={t(lang, 'timeDisplay')}
-            value={settings.time.gameDisplay}
-            options={timeDisplayOptions}
-            onChange={nextValue => onUpdate('time.gameDisplay', nextValue)}
-            panelScale={panelScale}
-            testId="time-game-display-select"
-          />
+          <SubSettings>
+            <SelectRow
+              label={t(lang, 'timeDisplay')}
+              value={settings.time.gameDisplay}
+              options={timeDisplayOptions}
+              onChange={nextValue => onUpdate('time.gameDisplay', nextValue)}
+              panelScale={panelScale}
+              testId="time-game-display-select"
+              variant="segmented"
+            />
+          </SubSettings>
         )}
         <ItemVisibilityToggle
           settings={settings}
           onUpdate={onUpdate}
           config={timeToggles[1]}
-          panelScale={panelScale}
         />
         {showRealTime && (
-          <SelectRow
-            label={t(lang, 'timeDisplay')}
-            value={settings.time.realDisplay}
-            options={timeDisplayOptions}
-            onChange={nextValue => onUpdate('time.realDisplay', nextValue)}
-            panelScale={panelScale}
-            testId="time-real-display-select"
-          />
+          <SubSettings>
+            <SelectRow
+              label={t(lang, 'timeDisplay')}
+              value={settings.time.realDisplay}
+              options={timeDisplayOptions}
+              onChange={nextValue => onUpdate('time.realDisplay', nextValue)}
+              panelScale={panelScale}
+              testId="time-real-display-select"
+              variant="segmented"
+            />
+          </SubSettings>
         )}
         {timeToggles.slice(2).map(config => (
           <ItemVisibilityToggle
@@ -816,25 +719,17 @@ export function EffectsTabSections({
             settings={settings}
             onUpdate={onUpdate}
             config={config}
-            panelScale={panelScale}
           />
         ))}
-      </AccordionSection>
+      </SettingsSection>
 
-      <AccordionSection
-        id="timedEffects"
-        title={t(lang, 'timedEffects')}
-        expanded={isSectionExpanded('timedEffects')}
-        onToggle={toggleSection}
-        panelScale={panelScale}
-      >
+      <SettingsSection id="timedEffects" title={t(lang, 'timedEffects')} shown={isShown(sections, 'timedEffects')}>
         {timedEffectsToggles.map(config => (
           <ItemVisibilityToggle
             key={config.itemId}
             settings={settings}
             onUpdate={onUpdate}
             config={config}
-            panelScale={panelScale}
           />
         ))}
         <SelectRow
@@ -849,6 +744,7 @@ export function EffectsTabSections({
           }}
           panelScale={panelScale}
           testId="timed-effects-layout-select"
+          variant="segmented"
         />
         <SelectRow
           label={t(lang, 'timedEffectsFilter')}
@@ -861,6 +757,7 @@ export function EffectsTabSections({
           onChange={nextValue => onUpdate('timedEffects.filter', nextValue)}
           panelScale={panelScale}
           testId="timed-effects-filter-select"
+          variant="segmented"
         />
         <SelectRow
           label={t(lang, 'timedEffectsHideLong')}
@@ -873,21 +770,16 @@ export function EffectsTabSections({
           onChange={nextValue => onUpdate('timedEffects.hideLongerThanMin', Number(nextValue))}
           panelScale={panelScale}
           testId="timed-effects-hide-long-select"
+          variant="segmented"
         />
-        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: `${scalePanelPixels(8, panelScale)} 0` }}>
-          <span style={{ color: '#aaa', fontSize: scalePanelPixels(20, panelScale) }}>
-            {t(lang, 'timedEffectsMaxVisible')}: {settings.timedEffects.maxVisible}
-          </span>
-          <input
-            type="range"
-            min={1}
-            max={12}
-            value={settings.timedEffects.maxVisible}
-            onChange={event => onUpdate('timedEffects.maxVisible', Number(event.target.value))}
-            style={{ width: scalePanelPixels(180, panelScale) }}
-          />
-        </label>
-      </AccordionSection>
+        <SliderRow
+          label={t(lang, 'timedEffectsMaxVisible')}
+          value={settings.timedEffects.maxVisible}
+          min={1}
+          max={12}
+          onChange={value => onUpdate('timedEffects.maxVisible', value)}
+        />
+      </SettingsSection>
     </>
   );
 }
@@ -895,42 +787,50 @@ export function EffectsTabSections({
 interface PresetsTabSectionsProps extends SectionControlProps {
   settings: WidgetSettings;
   onUpdate: UpdateSettingFn;
+  /** Folds the settings window into the layout bar; the button is shown only with a handler. */
+  onStartLayoutEdit?: () => void;
 }
 
 export function PresetsTabSections({
   lang,
   settings,
   onUpdate,
-  isSectionExpanded,
-  toggleSection,
+  sections,
   panelScale = 1,
+  onStartLayoutEdit,
 }: PresetsTabSectionsProps) {
   const [pendingSlotLoad, setPendingSlotLoad] = useState<number | null>(null);
+  const [pendingReset, setPendingReset] = useState(false);
   // An unanswered load confirmation lapses so a much later single click cannot replace the layout.
   useEffect(() => {
     if (pendingSlotLoad === null) return;
-    const timer = window.setTimeout(() => setPendingSlotLoad(null), SLOT_LOAD_CONFIRM_MS);
+    const timer = window.setTimeout(() => setPendingSlotLoad(null), CONFIRM_AGAIN_MS);
     return () => window.clearTimeout(timer);
   }, [pendingSlotLoad]);
+  // Resetting moves every widget back at once, so it also asks for a second click.
+  useEffect(() => {
+    if (!pendingReset) return;
+    const timer = window.setTimeout(() => setPendingReset(false), CONFIRM_AGAIN_MS);
+    return () => window.clearTimeout(timer);
+  }, [pendingReset]);
   return (
     <>
-      <AccordionSection
-        id="presets"
-        title={t(lang, 'preset')}
-        expanded={isSectionExpanded('presets')}
-        onToggle={toggleSection}
-        panelScale={panelScale}
-      >
-        <PresetSection lang={lang} settings={settings} panelScale={panelScale} />
-      </AccordionSection>
 
-      <AccordionSection
-        id="layoutTools"
-        title={t(lang, 'layoutTools')}
-        expanded={isSectionExpanded('layoutTools')}
-        onToggle={toggleSection}
-        panelScale={panelScale}
-      >
+      <SettingsSection id="layoutTools" title={t(lang, 'layoutTools')} shown={isShown(sections, 'layoutTools')}>
+        {onStartLayoutEdit && (
+          <>
+            <button
+              type="button"
+              className="tw-p-btn is-primary"
+              data-layout-mode-start-inline="true"
+              onClick={onStartLayoutEdit}
+              style={{ width: '100%', marginTop: 'calc(16px * var(--ps))' }}
+            >
+              {t(lang, 'layoutModeStart')}
+            </button>
+            <Note>{t(lang, 'layoutModeStartHint')}</Note>
+          </>
+        )}
         {settings.general.hudStyle === 'compact' && (
           <>
             <SelectRow
@@ -944,6 +844,10 @@ export function PresetsTabSections({
               ]}
               onChange={nextValue => {
                 const compactAnchor = nextValue as WidgetSettings['general']['compactAnchor'];
+                if (compactAnchor === settings.general.compactAnchor) {
+                  onUpdate('general.compactAnchor', compactAnchor);
+                  return;
+                }
                 const nextItemLayouts = buildItemLayoutsForHudStyle(
                   { ...settings, general: { ...settings.general, compactAnchor } },
                   'compact',
@@ -968,6 +872,10 @@ export function PresetsTabSections({
               ]}
               onChange={nextValue => {
                 const size = nextValue as WidgetSettings['general']['size'];
+                if (size === settings.general.size) {
+                  onUpdate('general.size', size);
+                  return;
+                }
                 const nextItemLayouts = buildItemLayoutsForHudStyle(
                   { ...settings, general: { ...settings.general, size } },
                   'compact',
@@ -982,33 +890,52 @@ export function PresetsTabSections({
               testId="compact-size-select"
             />
             {typeof window !== 'undefined' && window.innerHeight < 900 && settings.general.size !== 'large' && (
-              <p data-compact-size-hint style={{ color: '#e4c07d', fontSize: scalePanelPixels(18, panelScale), margin: `0 0 ${scalePanelPixels(6, panelScale)} 0` }}>
+              <p className="tw-p-note tw-p-help is-warn" data-compact-size-hint>
                 {t(lang, 'compactSizeSmallScreenHint')}
               </p>
             )}
-            <p style={{ color: '#88a4c4', fontSize: scalePanelPixels(18, panelScale), margin: `0 0 ${scalePanelPixels(10, panelScale)} 0` }}>
-              {t(lang, 'compactAnchorHint')}
-            </p>
+            <Note>{t(lang, 'compactAnchorHint')}</Note>
           </>
         )}
-        <div data-layout-slots style={{ margin: `0 0 ${scalePanelPixels(12, panelScale)} 0` }}>
-          <div style={{ color: '#aaa', fontSize: scalePanelPixels(20, panelScale), marginBottom: scalePanelPixels(6, panelScale) }}>
-            {t(lang, 'layoutSlotsLabel')}
-          </div>
+        <GroupTitle>{t(lang, 'layoutEditingLabel')}</GroupTitle>
+        <LayoutEditGuide lang={lang} />
+        <Note>{t(lang, 'editVisibilityHint')}</Note>
+        <Note>{t(lang, 'layoutUndoHint')}</Note>
+        <button
+          type="button"
+          className={pendingReset ? 'tw-p-btn is-danger is-armed' : 'tw-p-btn is-danger'}
+          data-reset-positions="true"
+          data-confirm-pending={pendingReset ? 'true' : undefined}
+          onClick={() => {
+            if (!pendingReset) {
+              setPendingReset(true);
+              return;
+            }
+            setPendingReset(false);
+            onUpdate('positions', {}, { persist: false });
+            onUpdate('layouts', {}, { persist: false });
+            onUpdate('groupScales', {}, { persist: false });
+            onUpdate('itemLayouts', {});
+          }}
+          style={{ width: '100%', marginTop: 'calc(10px * var(--ps))' }}
+        >
+          {t(lang, pendingReset ? 'resetPositionsConfirm' : 'resetPositions')}
+        </button>
+      </SettingsSection>
+
+      <SettingsSection id="layoutSlots" title={t(lang, 'layoutSlotsLabel')} shown={isShown(sections, 'layoutSlots')}>
+        <div data-layout-slots>
           {settings.layoutSlots.map((slot, index) => (
-            <div
-              key={index}
-              data-layout-slot={index}
-              style={{ display: 'flex', alignItems: 'center', gap: scalePanelPixels(8, panelScale), padding: `${scalePanelPixels(4, panelScale)} 0` }}
-            >
-              <span style={{ flex: 1, color: '#ddd', fontSize: scalePanelPixels(19, panelScale) }}>
-                {t(lang, 'layoutSlotName')} {index + 1}
-                <span style={{ color: '#888', marginLeft: scalePanelPixels(8, panelScale) }}>
+            <div key={index} className="tw-p-row" data-layout-slot={index}>
+              <div>
+                <div className="tw-p-label">{t(lang, 'layoutSlotName')} {index + 1}</div>
+                <p className="tw-p-help">
                   {slot
                     ? `${t(lang, slot.hudStyle === 'compact' ? 'hudStyleCompact' : 'hudStyleClassic')} · ${new Date(slot.savedAt).toLocaleString(lang === 'ko' ? 'ko-KR' : 'en-US', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
                     : t(lang, 'layoutSlotEmpty')}
-                </span>
-              </span>
+                </p>
+              </div>
+              <span className="tw-p-button-row">
               <button
                 type="button"
                 data-layout-slot-save={index}
@@ -1018,7 +945,7 @@ export function PresetsTabSections({
                   next[index] = captureLayoutSlot(settings, Date.now(), { width: window.innerWidth, height: window.innerHeight });
                   onUpdate('layoutSlots', next);
                 }}
-                style={slotButtonStyle(panelScale, true)}
+                className="tw-p-btn is-small"
               >
                 {t(lang, 'layoutSlotSave')}
               </button>
@@ -1042,46 +969,20 @@ export function PresetsTabSections({
                   if (slot.size) onUpdate('general.size', slot.size, { persist: false });
                   onUpdate('itemLayouts', { ...slot.itemLayouts });
                 }}
-                style={slotButtonStyle(panelScale, Boolean(slot))}
+                className={pendingSlotLoad === index ? 'tw-p-btn is-small is-primary' : 'tw-p-btn is-small'}
               >
                 {t(lang, pendingSlotLoad === index ? 'layoutSlotConfirm' : 'layoutSlotLoad')}
               </button>
+              </span>
             </div>
           ))}
-          <p style={{ color: '#88a4c4', fontSize: scalePanelPixels(17, panelScale), margin: `${scalePanelPixels(4, panelScale)} 0 0 0` }}>
-            {t(lang, 'layoutSlotsHint')}
-          </p>
+          <Note>{t(lang, 'layoutSlotsHint')}</Note>
         </div>
-        <button
-          onClick={() => {
-            onUpdate('positions', {}, { persist: false });
-            onUpdate('layouts', {}, { persist: false });
-            onUpdate('groupScales', {}, { persist: false });
-            onUpdate('itemLayouts', {});
-          }}
-          style={{
-            background: 'rgba(255,100,100,0.2)',
-            border: '1px solid rgba(255,100,100,0.4)',
-            color: '#ff8888',
-            fontSize: scalePanelPixels(20, panelScale),
-            cursor: 'pointer',
-            borderRadius: scalePanelPixels(8, panelScale),
-            padding: `${scalePanelPixels(12, panelScale)} ${scalePanelPixels(20, panelScale)}`,
-            width: '100%',
-          }}
-        >
-          {t(lang, 'resetPositions')}
-        </button>
-        <p style={{ color: '#888', fontSize: scalePanelPixels(18, panelScale), margin: `${scalePanelPixels(10, panelScale)} 0 0 0`, textAlign: 'center' }}>
-          {t(lang, 'dragHint')}
-        </p>
-        <p style={{ color: '#88a4c4', fontSize: scalePanelPixels(18, panelScale), margin: `${scalePanelPixels(6, panelScale)} 0 0 0`, textAlign: 'center' }}>
-          {t(lang, 'editVisibilityHint')}
-        </p>
-        <p style={{ color: '#88a4c4', fontSize: scalePanelPixels(18, panelScale), margin: `${scalePanelPixels(6, panelScale)} 0 0 0`, textAlign: 'center' }}>
-          {t(lang, 'layoutUndoHint')}
-        </p>
-      </AccordionSection>
+      </SettingsSection>
+
+      <SettingsSection id="presets" title={t(lang, 'preset')} shown={isShown(sections, 'presets')}>
+        <PresetSection lang={lang} settings={settings} />
+      </SettingsSection>
     </>
   );
 }

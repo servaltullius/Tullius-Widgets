@@ -35,6 +35,33 @@ bool IsCaptureActive()
 {
     return NowMs() < g_captureUntilMs.load(std::memory_order_acquire);
 }
+
+// The page answers Esc itself while a hotkey button waits, a select menu is open, a widget is
+// selected or layout editing is on. When its own keydown took the last step it may give the key
+// back on the same press before our handler runs, so the same short grace as the capture keeps
+// that press from also closing the panel.
+std::atomic<bool> g_pageOwnsEscape{false};
+std::atomic<std::int64_t> g_pageEscapeReleasedAtMs{0};
+
+bool PageHoldsEscape()
+{
+    return g_pageOwnsEscape.load(std::memory_order_acquire);
+}
+
+bool PageReleasedEscapeJustNow()
+{
+    const auto releasedAt = g_pageEscapeReleasedAtMs.load(std::memory_order_acquire);
+    return releasedAt > 0 && NowMs() < releasedAt + kCaptureReleaseGraceMs;
+}
+
+// While the console or another menu that hides the HUD is open, Esc closes that menu; it is not
+// meant for the settings panel underneath. Read at key-press time, before the menu handles the
+// key and closes.
+bool AnotherMenuTakesEscape()
+{
+    auto* ui = RE::UI::GetSingleton();
+    return ui && WidgetVisibilityState::IsBlockingUiStateExceptFreeCamera(ui, true);
+}
 std::uint32_t g_settingsKey = 0;
 std::uint32_t g_visibilityKey = 0;
 KeyHandlerEvent g_settingsHandle = INVALID_REGISTRATION_HANDLE;
@@ -246,8 +273,25 @@ void RegisterDefaultHotkeys(const Callbacks& callbacks)
     }
 
     (void)keyHandler->Register(kEscapeScanCode, KeyEventType::KEY_DOWN, []() {
+        if (AnotherMenuTakesEscape()) {
+            return;  // Esc closes the console or the other menu, not the panel or its editing.
+        }
+        if (PageHoldsEscape()) {
+            // The page takes this press (stop the capture, close the menu, deselect, cancel
+            // layout editing). In game the view does not reliably see Esc itself, so the press
+            // is passed on; the page ignores the copy if its own keydown got there first.
+            DispatchToGameThread([]() {
+                if (IsViewReady() && IsGameLoaded() && IsSettingsPanelOpen()) {
+                    InvokeScript(TulliusWidgets::WidgetInteropContracts::kHandleEscapeScript);
+                }
+            });
+            return;
+        }
         if (IsCaptureActive()) {
             return;  // Esc cancels the capture on the page instead of closing the panel.
+        }
+        if (PageReleasedEscapeJustNow()) {
+            return;  // The page answered this press itself a moment ago (menu closed, selection cleared).
         }
         DispatchToGameThread([]() {
             if (IsViewReady() && IsGameLoaded() && IsSettingsPanelOpen()) {
@@ -296,6 +340,22 @@ void SetCaptureActive(bool active)
 void ClearCapture()
 {
     g_captureUntilMs.store(0, std::memory_order_release);
+}
+
+void SetPageOwnsEscape(bool owns, bool releasedByPageEsc)
+{
+    if (!owns) {
+        // Only a release that the page's own Esc keydown caused may share a press with our handler;
+        // after a click or a press we passed on, the next Esc closes the panel at once.
+        g_pageEscapeReleasedAtMs.store(releasedByPageEsc ? NowMs() : 0, std::memory_order_release);
+    }
+    g_pageOwnsEscape.store(owns, std::memory_order_release);
+}
+
+void ClearPageEscape()
+{
+    g_pageOwnsEscape.store(false, std::memory_order_release);
+    g_pageEscapeReleasedAtMs.store(0, std::memory_order_release);
 }
 
 }  // namespace TulliusWidgets::WidgetHotkeys

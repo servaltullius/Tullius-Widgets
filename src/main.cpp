@@ -11,6 +11,7 @@
 #include "WidgetJsListeners.h"
 #include "WidgetRuntime.h"
 #include "WidgetViewBridge.h"
+#include "WidgetVisibilityState.h"
 #include <atomic>
 #include <filesystem>
 #include <functional>
@@ -22,6 +23,10 @@ namespace {
 struct PluginState {
     TulliusWidgets::RuntimeDiagnostics::State runtimeDiagnostics{};
     std::atomic<bool> settingsPanelOpen{ false };
+    // Set when a menu (the console, the journal, ...) hides the view while the settings panel is
+    // open. Hiding takes the cursor and input focus away from the panel, so the next time the view
+    // is shown the panel gets them back instead of staying open with the game taking the input.
+    std::atomic<bool> panelFocusLostToHide{ false };
 };
 
 PluginState g;
@@ -74,12 +79,17 @@ static bool TryInvoke(const char* script) {
     return g_viewBridge.Invoke(script);
 }
 
+static void RestorePanelFocusAfterShow();
+
 static bool TryShowView() {
     SyncViewBridgeApi();
     if (!g_viewBridge.Show()) {
         return false;
     }
     TulliusWidgets::WidgetRuntime::NoteViewShown();
+    if (g.panelFocusLostToHide.exchange(false, std::memory_order_acq_rel)) {
+        RestorePanelFocusAfterShow();
+    }
     return true;
 }
 
@@ -87,12 +97,22 @@ static void HideViewIfReady() {
     SyncViewBridgeApi();
     if (g_viewBridge.Hide()) {
         TulliusWidgets::WidgetRuntime::NoteViewHidden();
+        if (g.settingsPanelOpen.load(std::memory_order_acquire)) {
+            g.panelFocusLostToHide.store(true, std::memory_order_release);
+        }
     }
 }
 
 static bool ViewHasFocus() {
     SyncViewBridgeApi();
     return g_viewBridge.HasFocus();
+}
+
+// The HUD visibility rules let a focused view stay up through pauses and the free camera. An open
+// settings panel counts as well even while something (the console) has taken its focus, so the
+// view can come back and get the focus again instead of waiting for the free camera to end.
+static bool ViewOwnsScreen() {
+    return g.settingsPanelOpen.load(std::memory_order_acquire) || ViewHasFocus();
 }
 
 static bool TryFocusView() {
@@ -165,7 +185,12 @@ static bool IsGameLoaded() {
 static void SetGameLoaded(bool loaded) {
     TulliusWidgets::WidgetRuntime::SetGameLoaded(loaded);
     if (!loaded) {
-        g.settingsPanelOpen.store(false, std::memory_order_release);
+        // Leaving for the main menu with the panel open: close it on the page too, so a kept page
+        // does not come back with the panel (or its layout bar) open while the plugin thinks it shut.
+        if (g.settingsPanelOpen.exchange(false, std::memory_order_acq_rel)) {
+            TryInvoke(TulliusWidgets::WidgetInteropContracts::kCloseSettingsScript);
+        }
+        g.panelFocusLostToHide.store(false, std::memory_order_release);
     }
 }
 
@@ -215,7 +240,7 @@ static void RegisterWidgetEventSinks() {
     TulliusWidgets::WidgetEvents::Callbacks eventCallbacks{};
     eventCallbacks.isViewReady = &IsViewReady;
     eventCallbacks.isGameLoaded = &IsGameLoaded;
-    eventCallbacks.hasViewFocus = &ViewHasFocus;
+    eventCallbacks.hasViewFocus = &ViewOwnsScreen;
     eventCallbacks.setGameLoaded = &SetGameLoaded;
     eventCallbacks.showView = &TryShowView;
     eventCallbacks.hideView = &HideViewIfReady;
@@ -252,13 +277,47 @@ static void QueueGameTask(std::function<void()> task) {
     task();
 }
 
+// Runs on the next task tick, like the settings hotkey, so the menu that just closed has finished
+// before the panel takes the cursor again. If the panel was closed meanwhile nothing happens; if
+// something still blocks the HUD, the next showing tries again; if focusing fails, the panel is
+// closed so it never stays open without a cursor.
+static void RestorePanelFocusAfterShow() {
+    QueueGameTask([]() {
+        if (!g.settingsPanelOpen.load(std::memory_order_acquire) || !IsViewReady() || !IsGameLoaded()) {
+            return;
+        }
+        if (ViewHasFocus()) {
+            return;
+        }
+        // Only menus that hide the HUD count here; the pause the panel's own focus brings does not.
+        if (TulliusWidgets::WidgetVisibilityState::IsBlockingUiState(RE::UI::GetSingleton(), true)) {
+            g.panelFocusLostToHide.store(true, std::memory_order_release);
+            return;
+        }
+        if (TryFocusView()) {
+            logger::info("Settings panel focus restored after the view was shown again");
+            return;
+        }
+        logger::warn("Could not give the settings panel focus back; closing it");
+        if (!TryInvoke(TulliusWidgets::WidgetInteropContracts::kCloseSettingsScript)) {
+            // The page did not take the close, so it will not report it either: end the panel
+            // state here so the next settings hotkey opens it instead of closing it.
+            logger::warn("Could not close the settings panel on the page; clearing the panel state");
+            g.settingsPanelOpen.store(false, std::memory_order_release);
+            TulliusWidgets::WidgetHotkeys::ClearCapture();
+            TulliusWidgets::WidgetHotkeys::ClearPageEscape();
+            TryUnfocusView();
+        }
+    });
+}
+
 static TulliusWidgets::WidgetRuntime::Callbacks BuildWidgetRuntimeCallbacks() {
     TulliusWidgets::WidgetRuntime::Callbacks callbacks{};
     callbacks.isInteropReady = []() {
         return IsInteropReady();
     };
     callbacks.hasViewFocus = []() {
-        return ViewHasFocus();
+        return ViewOwnsScreen();
     };
     callbacks.collectStatsJson = []() {
         return TulliusWidgets::StatsCollector::CollectStats();

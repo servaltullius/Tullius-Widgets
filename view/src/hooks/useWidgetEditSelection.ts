@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { isHotkeyCaptureActive } from '../utils/hotkeys';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { claimEscape } from '../utils/escapeOwners';
 
 export type WidgetInteractionMode = 'drag' | 'resize';
 
@@ -34,31 +34,19 @@ export function useWidgetEditSelection({
 
   const selectedItemId = settingsOpen ? rawSelectedItemId : null;
 
+  // A selected widget answers Esc (deselect), so the plugin must not close the panel on that key.
+  const clearSelectionRef = useRef(clearSelection);
   useEffect(() => {
-    if (!settingsOpen) {
-      queueMicrotask(() => {
-        clearSelection();
-      });
-      return;
-    }
+    clearSelectionRef.current = clearSelection;
+  }, [clearSelection]);
+  useEffect(() => (selectedItemId ? claimEscape('selection', () => clearSelectionRef.current()) : undefined), [selectedItemId]);
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || !rawSelectedItemId || isHotkeyCaptureActive()) {
-        return;
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
-      if (typeof event.stopImmediatePropagation === 'function') {
-        event.stopImmediatePropagation();
-      }
-
+  useEffect(() => {
+    if (settingsOpen) return;
+    queueMicrotask(() => {
       clearSelection();
-    };
-
-    window.addEventListener('keydown', handleKeyDown, true);
-    return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [clearSelection, rawSelectedItemId, settingsOpen]);
+    });
+  }, [clearSelection, settingsOpen]);
 
   const selectItem = useCallback((itemId: string) => {
     if (!settingsOpen) {

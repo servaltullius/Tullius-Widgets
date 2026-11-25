@@ -7,6 +7,7 @@ import { useGameStatsState } from './hooks/useGameStats';
 import { useAutoHide } from './hooks/useAutoHide';
 import { useSettings } from './hooks/useSettings';
 import { useWidgetEditSelection } from './hooks/useWidgetEditSelection';
+import { useWidgetWheelAdjust } from './hooks/useWidgetWheelAdjust';
 import { createSelectedItemLayoutActions } from './hooks/useSelectedItemLayoutActions';
 import { useWidgetKeyboardNudge } from './hooks/useWidgetKeyboardNudge';
 import { useLayoutHistory } from './hooks/useLayoutHistory';
@@ -16,7 +17,7 @@ import type { WidgetItemLayout } from './types/settings';
 import { getRuntimeWarningText, getSettingsSyncWarningText } from './utils/hudPresentation';
 import { formatHotkey } from './utils/hotkeys';
 import { applyTimedEffectFilter } from './utils/timedEffectFilter';
-import { measureWidgetBoundsMap } from './utils/widgetBounds';
+import { measureWidgetBounds, measureWidgetBoundsMap } from './utils/widgetBounds';
 import { snapWidgetMove, type AlignmentGuide } from './utils/widgetSnap';
 import { resolveFontPresetVariables } from './utils/fontPresets';
 import { FONTS_READY_EVENT } from './utils/fontsReady';
@@ -110,8 +111,10 @@ export function App() {
   const keyboardGuideTimeoutRef = useRef<number | null>(null);
   const {
     selectedItemId,
+    interactionMode,
     interactionResetToken,
     selectItem,
+    clearSelection,
     startInteraction,
     endInteraction,
   } = useWidgetEditSelection({ settingsOpen });
@@ -189,6 +192,15 @@ export function App() {
     itemLayouts,
   });
 
+  const measureSelectedItemBounds = useCallback(
+    (itemId: string) => measureWidgetBounds(itemElementRefs.current[itemId] ?? null),
+    [],
+  );
+  const measureHudWidgetBounds = useCallback(
+    () => Object.values(measureWidgetBoundsMap(itemElementRefs.current)),
+    [],
+  );
+
   const runtimeWarningText = getRuntimeWarningText(lang, runtimeDiagnostics);
   const settingsSyncWarningText = getSettingsSyncWarningText(lang, settingsSyncState, lastSettingsSyncOk);
 
@@ -261,11 +273,19 @@ export function App() {
   const restoreItemLayouts = useCallback((layouts: Record<string, WidgetItemLayout>) => {
     updateSetting('itemLayouts', layouts);
   }, [updateSetting]);
-  useLayoutHistory({
+  const layoutHistory = useLayoutHistory({
     enabled: settingsOpen,
     itemLayouts: settings.itemLayouts,
     onRestore: restoreItemLayouts,
     resetKey: `${settings.general.hudStyle}:${settings.general.compactAnchor}:${settings.general.size}`,
+  });
+
+  useWidgetWheelAdjust({
+    enabled: settingsOpen && interactionMode === null,
+    itemLayouts: canonicalItemLayouts,
+    opacity: settings.general.opacity,
+    updateSetting,
+    selectItem,
   });
 
   useWidgetKeyboardNudge({
@@ -407,6 +427,11 @@ export function App() {
           selectedItemId={selectedItemId}
           selectedItemLayout={selectedItemId ? itemLayouts[selectedItemId] ?? null : null}
           selectedItemLayoutActions={selectedItemLayoutActions}
+          measureWidgetBounds={measureHudWidgetBounds}
+          measureItemBounds={measureSelectedItemBounds}
+          interactionMode={interactionMode}
+          onDeselectItem={clearSelection}
+          onLayoutCheckpoint={layoutHistory.checkpoint}
         />
       </UserFontsContext.Provider>
     </div>

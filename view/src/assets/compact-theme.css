@@ -235,8 +235,10 @@
 }
 
 /* Set once the bundled fonts are ready: changing a text property forces one relayout, so any
-   line measured with the fallback font is measured again with Pretendard. */
-html.tw-fonts-ready .tw-compact {
+   line measured with the fallback font is measured again with Pretendard. The settings panel
+   uses the same bundled face by default. */
+html.tw-fonts-ready .tw-compact,
+html.tw-fonts-ready .tw-panel-layer {
   font-kerning: normal;
 }
 

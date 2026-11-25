@@ -6,6 +6,7 @@ export const BRIDGE_HANDLERS = {
   toggleSettings: 'toggleSettings',
   toggleWidgetsVisibility: 'toggleWidgetsVisibility',
   closeSettings: 'closeSettings',
+  handleEscape: 'handleEscape',
   setHUDColor: 'setHUDColor',
   updateIconPacks: 'updateIconPacks',
   updateUserFonts: 'updateUserFonts',
@@ -19,12 +20,15 @@ export const BRIDGE_CALLBACKS = {
   onRequestUnfocus: 'onRequestUnfocus',
   onSettingsVisibilityChanged: 'onSettingsVisibilityChanged',
   onHotkeyCapture: 'onHotkeyCapture',
+  onEscapeOwner: 'onEscapeOwner',
   onExportResult: 'onExportResult',
   onImportResult: 'onImportResult',
 } as const;
 
 export const SETTINGS_PANEL_STORAGE_KEYS = {
+  // Holds the settings category id now; older tab ids are ignored on read.
   activeTab: 'tulliusWidgets.settingsPanel.activeTab',
-  expandedSections: 'tulliusWidgets.settingsPanel.expandedSections',
-  position: 'tulliusWidgets.settingsPanel.position',
+  // The collapsible-section state ('tulliusWidgets.settingsPanel.expandedSections') is no longer used.
+  // The old free-floating position key ('tulliusWidgets.settingsPanel.position') is no longer read.
+  dock: 'tulliusWidgets.settingsPanel.dock',
 } as const;

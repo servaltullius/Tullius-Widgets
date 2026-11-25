@@ -1,21 +1,5 @@
 import { SETTINGS_PANEL_STORAGE_KEYS } from '../../constants/bridge';
-
-export type PanelTab = 'general' | 'combat' | 'effects' | 'presets';
-export interface PanelPosition {
-  left: number;
-  top: number;
-}
-
-function snapPanelCoordinate(value: number): number {
-  return Number.isFinite(value) ? Math.round(value) : 0;
-}
-
-function snapPanelPosition(position: PanelPosition): PanelPosition {
-  return {
-    left: snapPanelCoordinate(position.left),
-    top: snapPanelCoordinate(position.top),
-  };
-}
+import { DEFAULT_SETTINGS_CATEGORY, SETTINGS_CATEGORY_IDS, type SettingsCategoryId } from './settingsCategories';
 
 function readSessionStorageItem(key: string): string | null {
   try {
@@ -49,105 +33,27 @@ function writeLocalStorageItem(key: string, value: string): void {
   }
 }
 
-export function readStoredPanelTab(fallback: PanelTab, allowedTabs: readonly PanelTab[]): PanelTab {
+// The last category seen in this game session. Values from the older tab layout are not category
+// ids and fall back to the first category.
+export function readStoredSettingsCategory(): SettingsCategoryId {
   const stored = readSessionStorageItem(SETTINGS_PANEL_STORAGE_KEYS.activeTab);
-  if (!stored) {
-    return fallback;
-  }
-
-  return allowedTabs.includes(stored as PanelTab)
-    ? (stored as PanelTab)
-    : fallback;
+  return SETTINGS_CATEGORY_IDS.includes(stored as SettingsCategoryId)
+    ? stored as SettingsCategoryId
+    : DEFAULT_SETTINGS_CATEGORY;
 }
 
-export function writeStoredPanelTab(tab: PanelTab): void {
-  writeSessionStorageItem(SETTINGS_PANEL_STORAGE_KEYS.activeTab, tab);
+export function writeStoredSettingsCategory(category: SettingsCategoryId): void {
+  writeSessionStorageItem(SETTINGS_PANEL_STORAGE_KEYS.activeTab, category);
 }
 
-export function readStoredExpandedSections(
-  defaults: Record<string, boolean>,
-): Record<string, boolean> {
-  const stored = readSessionStorageItem(SETTINGS_PANEL_STORAGE_KEYS.expandedSections);
-  if (!stored) {
-    return { ...defaults };
-  }
+export type PanelDockPreference = 'auto' | 'left' | 'right';
+const PANEL_DOCK_PREFERENCES: readonly PanelDockPreference[] = ['auto', 'left', 'right'];
 
-  try {
-    const parsed = JSON.parse(stored) as Record<string, unknown>;
-    const next = { ...defaults };
-    for (const [key, value] of Object.entries(parsed)) {
-      if (typeof value === 'boolean') {
-        next[key] = value;
-      }
-    }
-    return next;
-  } catch {
-    return { ...defaults };
-  }
+export function readStoredPanelDock(): PanelDockPreference {
+  const stored = readLocalStorageItem(SETTINGS_PANEL_STORAGE_KEYS.dock);
+  return PANEL_DOCK_PREFERENCES.includes(stored as PanelDockPreference) ? stored as PanelDockPreference : 'auto';
 }
 
-export function writeStoredExpandedSections(expandedSections: Record<string, boolean>): void {
-  writeSessionStorageItem(
-    SETTINGS_PANEL_STORAGE_KEYS.expandedSections,
-    JSON.stringify(expandedSections),
-  );
-}
-
-export function readStoredPanelPosition(): PanelPosition | null {
-  const stored = readLocalStorageItem(SETTINGS_PANEL_STORAGE_KEYS.position);
-  if (!stored) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(stored) as Record<string, unknown>;
-    if (typeof parsed.left !== 'number' || typeof parsed.top !== 'number') {
-      return null;
-    }
-
-    return snapPanelPosition({
-      left: parsed.left,
-      top: parsed.top,
-    });
-  } catch {
-    return null;
-  }
-}
-
-export function writeStoredPanelPosition(position: PanelPosition): void {
-  writeLocalStorageItem(
-    SETTINGS_PANEL_STORAGE_KEYS.position,
-    JSON.stringify(snapPanelPosition(position)),
-  );
-}
-
-export function clampStoredPanelPosition(
-  position: PanelPosition,
-  panelRect: Pick<DOMRect, 'width' | 'height'>,
-  viewportWidth: number,
-  viewportHeight: number,
-): PanelPosition {
-  const maxLeft = Math.max(0, viewportWidth - Math.max(0, panelRect.width));
-  const maxTop = Math.max(0, viewportHeight - Math.max(0, panelRect.height));
-
-  return snapPanelPosition({
-    left: Math.min(Math.max(position.left, 0), maxLeft),
-    top: Math.min(Math.max(position.top, 0), maxTop),
-  });
-}
-
-export function centerPanelPosition(
-  panelRect: Pick<DOMRect, 'width' | 'height'>,
-  viewportWidth: number,
-  viewportHeight: number,
-): PanelPosition {
-  return clampStoredPanelPosition(
-    {
-      left: (viewportWidth - Math.max(0, panelRect.width)) / 2,
-      top: (viewportHeight - Math.max(0, panelRect.height)) / 2,
-    },
-    panelRect,
-    viewportWidth,
-    viewportHeight,
-  );
+export function writeStoredPanelDock(dock: PanelDockPreference): void {
+  writeLocalStorageItem(SETTINGS_PANEL_STORAGE_KEYS.dock, dock);
 }

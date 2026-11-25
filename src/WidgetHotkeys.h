@@ -27,4 +27,11 @@ void SetCaptureActive(bool active);
 // Ends any capture pause at once (settings panel closed); no grace period.
 void ClearCapture();
 
+// While the page answers Esc itself (an open select menu, a selected widget or group), the
+// plugin's Esc does not close the settings panel. Giving Esc back keeps a short grace so the
+// press that closed the menu is not handled twice.
+void SetPageOwnsEscape(bool owns, bool releasedByPageEsc);
+// Drops the page's Esc claim at once (settings panel closed); no grace period.
+void ClearPageEscape();
+
 }  // namespace TulliusWidgets::WidgetHotkeys

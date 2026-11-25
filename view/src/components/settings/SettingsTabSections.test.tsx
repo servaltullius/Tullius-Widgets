@@ -54,8 +54,6 @@ describe('SettingsTabSections', () => {
   it('hides the global size control and removes group layout selectors in phase 2', async () => {
     const settings = cloneSettings();
     const onUpdate = vi.fn();
-    const isSectionExpanded = () => true;
-    const toggleSection = vi.fn();
 
     await act(async () => {
       root = createRoot(container);
@@ -69,22 +67,16 @@ describe('SettingsTabSections', () => {
             onUpdate={onUpdate}
             accentColor="#ffffff"
             availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json' }]}
-            isSectionExpanded={isSectionExpanded}
-            toggleSection={toggleSection}
           />
           <CombatTabSections
             lang="ko"
             settings={settings}
             onUpdate={onUpdate}
-            isSectionExpanded={isSectionExpanded}
-            toggleSection={toggleSection}
           />
           <EffectsTabSections
             lang="ko"
             settings={settings}
             onUpdate={onUpdate}
-            isSectionExpanded={isSectionExpanded}
-            toggleSection={toggleSection}
           />
         </>,
       );
@@ -99,7 +91,7 @@ describe('SettingsTabSections', () => {
     await act(async () => {
       root = createRoot(container);
       root.render(
-        <EffectsTabSections lang="ko" settings={settings} onUpdate={onUpdate} isSectionExpanded={() => true} toggleSection={() => {}} />,
+        <EffectsTabSections lang="ko" settings={settings} onUpdate={onUpdate} />,
       );
     });
     const playtime = getToggleInputByLabel(container, '누적 플레이 시간');
@@ -126,8 +118,6 @@ describe('SettingsTabSections', () => {
           onUpdate={onUpdate}
           accentColor="#ffffff"
           availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json' }]}
-          isSectionExpanded={() => true}
-          toggleSection={() => {}}
         />,
       );
     });
@@ -161,16 +151,14 @@ describe('SettingsTabSections', () => {
         onUpdate={onUpdate}
         accentColor="#fff"
         availableLanguages={[]}
-        isSectionExpanded={() => true}
-        toggleSection={() => {}}
       />,
     );
     const onUpdate = vi.fn((path: string, value: unknown) => {
       settings = updateValueByPath(settings, path, value);
       render();
     });
-    const findSlider = (label: string) => Array.from(container.querySelectorAll('label'))
-      .find(element => element.textContent?.startsWith(label))?.querySelector('input[type="range"]');
+    const findSlider = (label: string) => Array.from(container.querySelectorAll('.tw-p-row'))
+      .find(row => row.querySelector('.tw-p-label')?.textContent === label)?.querySelector('input[type="range"]');
 
     await act(async () => {
       root = createRoot(container);
@@ -219,8 +207,6 @@ describe('SettingsTabSections', () => {
               onUpdate={onUpdate}
               accentColor="#fff"
               availableLanguages={[]}
-              isSectionExpanded={() => true}
-              toggleSection={() => {}}
             />
           </UserFontsContext.Provider>,
         );
@@ -282,8 +268,6 @@ describe('SettingsTabSections', () => {
           onUpdate={onUpdate}
           accentColor="#ffffff"
           availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json' }]}
-          isSectionExpanded={() => true}
-          toggleSection={() => {}}
         />,
       );
     });
@@ -316,8 +300,6 @@ describe('SettingsTabSections', () => {
           lang="ko"
           settings={settings}
           onUpdate={onUpdate}
-          isSectionExpanded={() => true}
-          toggleSection={() => {}}
         />,
       );
     });
@@ -341,8 +323,6 @@ describe('SettingsTabSections', () => {
           lang="ko"
           settings={withSlot}
           onUpdate={onUpdate}
-          isSectionExpanded={() => true}
-          toggleSection={() => {}}
         />,
       );
     });
@@ -376,8 +356,6 @@ describe('SettingsTabSections', () => {
           onUpdate={onUpdate}
           accentColor="#ffffff"
           availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json' }]}
-          isSectionExpanded={() => true}
-          toggleSection={() => {}}
         />,
       );
     });
@@ -398,7 +376,7 @@ describe('SettingsTabSections', () => {
     await act(async () => {
       root = createRoot(container);
       root.render(
-        <PresetsTabSections lang="ko" settings={settings} onUpdate={onUpdate} isSectionExpanded={() => true} toggleSection={() => {}} />,
+        <PresetsTabSections lang="ko" settings={settings} onUpdate={onUpdate} />,
       );
     });
     await act(async () => {
@@ -425,7 +403,7 @@ describe('SettingsTabSections', () => {
       await act(async () => {
         root = createRoot(container);
         root.render(
-          <PresetsTabSections lang="ko" settings={settings} onUpdate={onUpdate} isSectionExpanded={() => true} toggleSection={() => {}} />,
+          <PresetsTabSections lang="ko" settings={settings} onUpdate={onUpdate} />,
         );
       });
       const load = () => container.querySelector('[data-layout-slot-load="0"]') as HTMLButtonElement;
@@ -435,6 +413,32 @@ describe('SettingsTabSections', () => {
       expect(load().textContent).not.toContain('한 번 더');
       await act(async () => { load().click(); });
       expect(onUpdate).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('resets every widget position only on a second click, and the first click lapses', async () => {
+    vi.useFakeTimers();
+    try {
+      const onUpdate = vi.fn();
+      await act(async () => {
+        root = createRoot(container);
+        root.render(<PresetsTabSections lang="ko" settings={cloneSettings()} onUpdate={onUpdate} />);
+      });
+      const reset = () => container.querySelector('[data-reset-positions="true"]') as HTMLButtonElement;
+
+      await act(async () => { reset().click(); });
+      expect(onUpdate).not.toHaveBeenCalled();
+      expect(reset().textContent).toContain('한 번 더');
+      await act(async () => { vi.advanceTimersByTime(5000); });
+      expect(reset().textContent).not.toContain('한 번 더');
+      await act(async () => { reset().click(); });
+      expect(onUpdate).not.toHaveBeenCalled();
+
+      await act(async () => { reset().click(); });
+      expect(onUpdate).toHaveBeenCalledWith('itemLayouts', {});
+      expect(reset().textContent).not.toContain('한 번 더');
     } finally {
       vi.useRealTimers();
     }
@@ -456,8 +460,6 @@ describe('SettingsTabSections', () => {
           onUpdate={onUpdate}
           accentColor="#ffffff"
           availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json' }]}
-          isSectionExpanded={() => true}
-          toggleSection={() => {}}
         />,
       );
     });
@@ -488,8 +490,6 @@ describe('SettingsTabSections', () => {
           onUpdate={onUpdate}
           accentColor="#ffffff"
           availableLanguages={[{ code: 'ko', label: '한국어', file: 'ko.json' }]}
-          isSectionExpanded={() => true}
-          toggleSection={() => {}}
         />,
       );
     });
@@ -513,18 +513,21 @@ describe('SettingsTabSections', () => {
           lang="ko"
           settings={settings}
           onUpdate={onUpdate}
-          isSectionExpanded={() => true}
-          toggleSection={() => {}}
         />,
       );
     });
 
     const resetButton = Array.from(container.querySelectorAll('button')).find(
-      button => button.textContent?.includes('위치 초기화'),
+      button => button.textContent?.includes('배치 초기화'),
     );
 
     expect(resetButton).toBeTruthy();
 
+    // The first click only asks for confirmation; the second one resets.
+    await act(async () => {
+      resetButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(onUpdate).not.toHaveBeenCalled();
     await act(async () => {
       resetButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
@@ -546,8 +549,6 @@ describe('SettingsTabSections', () => {
           lang="ko"
           settings={settings}
           onUpdate={onUpdate}
-          isSectionExpanded={() => true}
-          toggleSection={() => {}}
         />,
       );
     });
@@ -562,9 +563,9 @@ describe('SettingsTabSections', () => {
 
     expect(progressionToggle).toBeTruthy();
     expect(standaloneLevelToggle).toBeTruthy();
-    expect(progressionToggle?.style.width).toBe('30px');
-    expect(progressionToggle?.style.height).toBe('30px');
-    expect(progressionToggle?.style.appearance).toBe('none');
+    // Toggles are switches: a real checkbox (kept for focus and screen readers) inside the switch.
+    expect(progressionToggle?.getAttribute('role')).toBe('switch');
+    expect(progressionToggle?.closest('.tw-p-switch')).not.toBeNull();
 
     await act(async () => {
       progressionToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -587,15 +588,11 @@ describe('SettingsTabSections', () => {
             lang="ko"
             settings={settings}
             onUpdate={onUpdate}
-            isSectionExpanded={() => true}
-            toggleSection={() => {}}
           />
           <EffectsTabSections
             lang="ko"
             settings={settings}
             onUpdate={onUpdate}
-            isSectionExpanded={() => true}
-            toggleSection={() => {}}
           />
         </>,
       );
@@ -634,19 +631,19 @@ describe('SettingsTabSections', () => {
     await act(async () => {
       gameTimeSelect?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    const gameTimeOnlyOption = getByTestIdFromDocument('time-game-display-select-option-timeOnly');
-    expect(gameTimeOnlyOption).toBeTruthy();
+    const gameDateTimeOption = getByTestIdFromDocument('time-game-display-select-option-dateTime');
+    expect(gameDateTimeOption).toBeTruthy();
     await act(async () => {
-      gameTimeOnlyOption?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      gameDateTimeOption?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
     await act(async () => {
       realTimeSelect?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    const realTimeOnlyOption = getByTestIdFromDocument('time-real-display-select-option-timeOnly');
-    expect(realTimeOnlyOption).toBeTruthy();
+    const realDateTimeOption = getByTestIdFromDocument('time-real-display-select-option-dateTime');
+    expect(realDateTimeOption).toBeTruthy();
     await act(async () => {
-      realTimeOnlyOption?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      realDateTimeOption?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
     await act(async () => {
@@ -654,15 +651,14 @@ describe('SettingsTabSections', () => {
     });
     const horizontalOption = getByTestIdFromDocument('timed-effects-layout-select-option-horizontal');
     expect(horizontalOption).toBeTruthy();
-    expect(container.contains(horizontalOption!)).toBe(false);
     await act(async () => {
       horizontalOption?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
     expect(onUpdate).toHaveBeenCalledWith('playerInfo.carryWeightDisplay', 'meterOnly');
     expect(onUpdate).toHaveBeenCalledWith('resistances.displayMode', 'rawOnly');
-    expect(onUpdate).toHaveBeenCalledWith('time.gameDisplay', 'timeOnly');
-    expect(onUpdate).toHaveBeenCalledWith('time.realDisplay', 'timeOnly');
+    expect(onUpdate).toHaveBeenCalledWith('time.gameDisplay', 'dateTime');
+    expect(onUpdate).toHaveBeenCalledWith('time.realDisplay', 'dateTime');
     expect(onUpdate).toHaveBeenCalledWith('timedEffects.listLayout', 'horizontal');
   });
 
@@ -678,8 +674,6 @@ describe('SettingsTabSections', () => {
           lang="ko"
           settings={settings}
           onUpdate={onUpdate}
-          isSectionExpanded={() => true}
-          toggleSection={() => {}}
         />,
       );
     });
@@ -722,8 +716,6 @@ describe('SettingsTabSections', () => {
           lang="ko"
           settings={settings}
           onUpdate={vi.fn()}
-          isSectionExpanded={() => true}
-          toggleSection={() => {}}
         />,
       );
     });
@@ -740,8 +732,6 @@ describe('SettingsTabSections', () => {
           lang="ko"
           settings={settings}
           onUpdate={vi.fn()}
-          isSectionExpanded={() => true}
-          toggleSection={() => {}}
         />,
       );
     });

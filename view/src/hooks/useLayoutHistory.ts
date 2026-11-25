@@ -91,5 +91,11 @@ export function useLayoutHistory({ enabled, itemLayouts, onRestore, resetKey = '
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [enabled, redo, undo]);
 
-  return { undo, redo };
+  // Makes the next layout change its own undo step even if it follows the last edit quickly, so a
+  // whole-session restore (cancelling layout mode) can be undone on its own.
+  const checkpoint = useCallback(() => {
+    lastRecordedAtRef.current = 0;
+  }, []);
+
+  return { undo, redo, checkpoint };
 }
