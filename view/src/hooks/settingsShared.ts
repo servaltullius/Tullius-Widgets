@@ -27,11 +27,30 @@ export function readRevision(value: unknown): number | null {
   return revision;
 }
 
-export function serializeSettingsPayload(settings: WidgetSettings, revision: number): string {
+/**
+ * The saved settings file this view took in this session, if any: every save carries it, so the
+ * plugin can tell a save that follows on from the file on disk from one that would replace a file
+ * the view never read (see src/SettingsBackups.h).
+ */
+export interface LoadedSettingsFile {
+  taken: boolean;
+  /** That file's revision; null when it had none (saved before revisions were recorded). */
+  rev: number | null;
+}
+
+export const NO_LOADED_SETTINGS_FILE: LoadedSettingsFile = { taken: false, rev: null };
+
+export function serializeSettingsPayload(
+  settings: WidgetSettings,
+  revision: number,
+  loaded: LoadedSettingsFile = NO_LOADED_SETTINGS_FILE,
+): string {
   return JSON.stringify({
     ...settings,
     schemaVersion: SETTINGS_SCHEMA_VERSION,
     rev: revision,
+    loadedFile: loaded.taken,
+    loadedRev: loaded.rev,
   });
 }
 

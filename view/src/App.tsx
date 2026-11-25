@@ -15,6 +15,7 @@ import { useLocalization } from './i18n/useLocalization';
 import { useWidgetItemLayouts } from './hooks/useWidgetItemLayouts';
 import type { WidgetItemLayout } from './types/settings';
 import { getRuntimeWarningText, getSettingsSyncWarningText } from './utils/hudPresentation';
+import { t } from './i18n/translations';
 import { formatHotkey } from './utils/hotkeys';
 import { applyTimedEffectFilter } from './utils/timedEffectFilter';
 import { measureWidgetBounds, measureWidgetBoundsMap } from './utils/widgetBounds';
@@ -59,6 +60,8 @@ export function App() {
     runtimeDiagnostics,
     lastSettingsSyncOk,
     settingsSyncState,
+    settingsFileNotice,
+    dismissSettingsFileNotice,
   } = useSettings();
   const stats = useMemo(
     () => applyTimedEffectFilter(rawStats, settings.timedEffects),
@@ -178,10 +181,13 @@ export function App() {
     });
   }, [clearPreviewState, interactionResetToken]);
 
+  // Not while the saved settings could not be read: opening the window to read that notice must
+  // not save over the file the notice says is untouched.
+  const savedSettingsUnread = settingsFileNotice?.kind === 'loadFailed';
   useEffect(() => {
-    if (!settingsOpen || settings.general.onboardingSeen) return;
+    if (!settingsOpen || settings.general.onboardingSeen || savedSettingsUnread) return;
     updateSetting('general.onboardingSeen', true);
-  }, [settings.general.onboardingSeen, settingsOpen, updateSetting]);
+  }, [savedSettingsUnread, settings.general.onboardingSeen, settingsOpen, updateSetting]);
 
   const { visibility, itemPresence } = useAutoHide({
     visible,
@@ -367,6 +373,16 @@ export function App() {
         />
       )}
 
+      {/* Points to the details in the settings window, where the notice can be dismissed. */}
+      {settingsFileNotice && !settingsOpen && (
+        <SettingsSyncWarningBanner
+          text={t(lang, settingsFileNotice.kind === 'backup' ? 'settingsBackupBanner' : 'settingsLoadFailedBanner')}
+          hasRuntimeWarning={Boolean(runtimeWarningText && runtimeDiagnostics)}
+          stackBelowSyncWarning={Boolean(settingsSyncWarningText)}
+          testId="settings-backup-banner"
+        />
+      )}
+
       {!settings.general.onboardingSeen && (
         <OnboardingPanel
           lang={lang}
@@ -432,6 +448,8 @@ export function App() {
           interactionMode={interactionMode}
           onDeselectItem={clearSelection}
           onLayoutCheckpoint={layoutHistory.checkpoint}
+          settingsFileNotice={settingsFileNotice}
+          onDismissSettingsFileNotice={dismissSettingsFileNotice}
         />
       </UserFontsContext.Provider>
     </div>

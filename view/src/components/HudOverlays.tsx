@@ -42,16 +42,22 @@ export function RuntimeWarningBanner({
 interface SettingsSyncWarningBannerProps {
   text: string;
   hasRuntimeWarning: boolean;
+  /** Set for a second banner shown while the save warning is up, so the two do not overlap. */
+  stackBelowSyncWarning?: boolean;
+  testId?: string;
 }
 
 export function SettingsSyncWarningBanner({
   text,
   hasRuntimeWarning,
+  stackBelowSyncWarning = false,
+  testId,
 }: SettingsSyncWarningBannerProps) {
+  const top = (hasRuntimeWarning ? 84 : 14) + (stackBelowSyncWarning ? 52 : 0);
   return (
-    <div style={{
+    <div data-testid={testId} style={{
       position: 'fixed',
-      top: hasRuntimeWarning ? '84px' : '14px',
+      top: `${top}px`,
       left: '50%',
       transform: 'translateX(-50%)',
       background: 'var(--tw-color-sync-bg)',

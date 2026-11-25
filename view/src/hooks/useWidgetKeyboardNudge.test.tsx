@@ -193,4 +193,35 @@ describe('useWidgetKeyboardNudge', () => {
       group.remove();
     }
   });
+  it('still nudges while a closed select trigger has focus, as after a pick in the card', async () => {
+    const actions: SelectedItemLayoutActions = {
+      setSelectedItemVisible: vi.fn(() => false),
+      setSelectedItemScale: vi.fn(() => false),
+      setSelectedItemLocked: vi.fn(() => false),
+      resetSelectedItemPosition: vi.fn(() => false),
+      nudgeSelectedItem: vi.fn(() => true),
+      bringSelectedItemForward: vi.fn(() => false),
+      sendSelectedItemBackward: vi.fn(() => false),
+    };
+    const trigger = document.createElement('button');
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+    document.body.appendChild(trigger);
+
+    try {
+      await act(async () => {
+        root = createRoot(container);
+        root.render(<Harness actions={actions} onKeyboardNudge={vi.fn()} />);
+      });
+
+      trigger.focus();
+      await act(async () => {
+        dispatchArrowKey('ArrowRight');
+      });
+
+      expect(actions.nudgeSelectedItem).toHaveBeenCalledExactlyOnceWith(1, 0);
+    } finally {
+      trigger.remove();
+    }
+  });
 });

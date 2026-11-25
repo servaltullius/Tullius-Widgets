@@ -106,6 +106,31 @@ test('settings bridge listener tracks settings panel visibility for native hotke
   assert.match(jsListenersText, /SetSettingsOpen\(open\)/);
 });
 
+test('settings saves keep the old file first and the view can report a failed load', () => {
+  const storageText = readFileSync(new URL('../src/NativeStorage.cpp', import.meta.url), 'utf8');
+  // Copies come first; a save they refuse is not written, and a failed write is retried alone.
+  assert.match(storageText, /auto prepared = KeepCopiesBeforeSave\(gameRootPath, jsonData\);\s*if \(prepared\.mustNotReplace\) \{[\s\S]*?prepared = KeepCopiesBeforeSave\(gameRootPath, jsonData\);\s*if \(prepared\.mustNotReplace\) return false;/);
+  assert.match(storageText, /if \(!WriteSettingsFile\(gameRootPath, jsonData\)\) \{[\s\S]*?if \(!WriteSettingsFile\(gameRootPath, jsonData\)\) \{[\s\S]*?return false;[\s\S]*?RecordWrittenSave\(prepared\);/);
+  assert.match(storageText, /SettingsBackups::PrepareForSave\([\s\S]*?lastWrittenRevision\)/);
+  // The notice is queued only once the file was really replaced.
+  assert.match(storageText, /void RecordWrittenSave\([^)]*\)\s*\{[\s\S]*?g_lastWrittenRevision = prepared\.incomingRevision;[\s\S]*?g_pendingBackupNotice = prepared\.unloadedBackup->filename\(\)\.string\(\);/);
+  // State the writer thread touches is declared before (destroyed after) the writer itself.
+  assert.ok(storageText.indexOf('std::optional<std::string> g_pendingBackupNotice;') < storageText.indexOf('std::jthread g_asyncSettingsWriter;'));
+  // A byte order mark is removed before the file reaches the view.
+  assert.match(storageText, /SettingsBackups::StripUtf8Bom\(out\)/);
+  // A file that is there but cannot be read is reported to the view instead of being skipped silently.
+  assert.match(mainText, /if \(json\.empty\(\)\) \{[\s\S]*?SettingsFileExists\([\s\S]*?TryInvoke\(TulliusWidgets::WidgetInteropContracts::kShowSettingsLoadFailureScript\)/);
+  assert.match(interopContractsText, /kShowSettingsLoadFailureScript\[] = "showSettingsLoadFailure\(\)"/);
+  // The view hears about a kept file after the save it belongs to.
+  assert.match(interopContractsText, /kShowSettingsBackupNotice\[] = "showSettingsBackupNotice"/);
+  assert.match(jsListenersText, /NotifySettingsSyncResult\(saved, revision\);\s*NotifyUnloadedBackup\(\);/);
+  assert.match(jsListenersText, /SettingsBackups::BuildBackupNoticeScript\(\s*TulliusWidgets::WidgetInteropContracts::kShowSettingsBackupNotice, \*fileName\)/);
+  assert.match(jsListenersText, /SettingsBackups::ClampUtf8\(reason, kMaxReasonLength\)/);
+  // A view that could not read the saved settings says why, and the plugin logs it.
+  assert.match(interopContractsText, /kOnSettingsLoadFailed\[] = "onSettingsLoadFailed"/);
+  assert.match(jsListenersText, /RegisterJSListener\(view, TulliusWidgets::WidgetInteropContracts::kOnSettingsLoadFailed,[\s\S]*?logger::warn\(\s*"The view could not apply the saved settings: \{\}"/);
+});
+
 test('settings sync bridge result includes optional revision-aware ack support', () => {
   assert.match(interopContractsText, /kOnSettingsSyncResult\[] = "onSettingsSyncResult"/);
   assert.match(jsListenersText, /TryReadUIntMember\(payloadView, \{ "rev" \}\)/);

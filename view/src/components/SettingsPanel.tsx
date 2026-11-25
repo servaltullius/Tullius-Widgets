@@ -4,6 +4,7 @@ import type { Language, UpdateSettingFn, WidgetItemLayout, WidgetSettings } from
 import type { SelectedItemLayoutActions } from '../hooks/useSelectedItemLayoutActions';
 import type { WidgetInteractionMode } from '../hooks/useWidgetEditSelection';
 import { t, type LocalizationLanguageEntry } from '../i18n/translations';
+import type { SettingsFileNotice } from '../types/settingsFileNotice';
 import {
   type PanelDockPreference,
   readStoredPanelDock,
@@ -62,6 +63,9 @@ interface SettingsPanelProps {
   onDeselectItem?: () => void;
   /** Starts a new undo step, so cancelling layout mode can itself be undone with Ctrl+Z. */
   onLayoutCheckpoint?: () => void;
+  /** The saved settings could not be read; see SettingsFileNotice. */
+  settingsFileNotice?: SettingsFileNotice | null;
+  onDismissSettingsFileNotice?: () => void;
 }
 
 const QUICK_EDIT_CARD_WIDTH_PX = 300;
@@ -105,6 +109,8 @@ export function SettingsPanel({
   interactionMode = null,
   onDeselectItem,
   onLayoutCheckpoint,
+  settingsFileNotice = null,
+  onDismissSettingsFileNotice,
 }: SettingsPanelProps) {
   const [category, setCategory] = useState<SettingsCategoryId>(() => readStoredSettingsCategory());
   const [mode, setMode] = useState<SettingsPanelMode>('settings');
@@ -387,6 +393,27 @@ export function SettingsPanel({
                   {t(lang, 'close')} <span className="tw-p-key">Esc</span>
                 </button>
               </header>
+              {settingsFileNotice && (
+                <div
+                  className="tw-w-notice"
+                  role="alert"
+                  data-settings-file-notice={settingsFileNotice.kind}
+                >
+                  <div className="tw-w-notice-body">
+                    <div className="tw-w-notice-title">{t(lang, 'settingsBackupNoticeTitle')}</div>
+                    <p className="tw-w-notice-text">
+                      {settingsFileNotice.kind === 'backup'
+                        ? t(lang, 'settingsBackupNoticeText').split('{file}').join(settingsFileNotice.fileName)
+                        : t(lang, 'settingsLoadFailedText')}
+                    </p>
+                  </div>
+                  {onDismissSettingsFileNotice && (
+                    <button type="button" className="tw-p-btn is-small" data-settings-file-notice-dismiss="true" onClick={onDismissSettingsFileNotice}>
+                      {t(lang, 'settingsBackupNoticeDismiss')}
+                    </button>
+                  )}
+                </div>
+              )}
               <div
                 ref={bodyRef}
                 id="tw-settings-category-body"

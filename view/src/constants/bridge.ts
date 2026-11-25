@@ -10,6 +10,8 @@ export const BRIDGE_HANDLERS = {
   setHUDColor: 'setHUDColor',
   updateIconPacks: 'updateIconPacks',
   updateUserFonts: 'updateUserFonts',
+  showSettingsBackupNotice: 'showSettingsBackupNotice',
+  showSettingsLoadFailure: 'showSettingsLoadFailure',
 } as const;
 
 export const BRIDGE_CALLBACKS = {
@@ -21,6 +23,7 @@ export const BRIDGE_CALLBACKS = {
   onSettingsVisibilityChanged: 'onSettingsVisibilityChanged',
   onHotkeyCapture: 'onHotkeyCapture',
   onEscapeOwner: 'onEscapeOwner',
+  onSettingsLoadFailed: 'onSettingsLoadFailed',
   onExportResult: 'onExportResult',
   onImportResult: 'onImportResult',
 } as const;

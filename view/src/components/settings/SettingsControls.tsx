@@ -2,6 +2,7 @@ import { useCallback, useContext, useEffect, useId, useRef, useState, type CSSPr
 import { createPortal } from 'react-dom';
 import { PanelPortalContext } from './panelPortal';
 import { claimEscape } from '../../utils/escapeOwners';
+import { isHotkeyCaptureActive } from '../../utils/hotkeys';
 
 export interface SelectOption {
   value: string;
@@ -182,9 +183,21 @@ const DROPDOWN_GAP_PX = 4;
 const DROPDOWN_OPTION_HEIGHT_PX = 38;
 const DROPDOWN_CHROME_PX = 10;
 
+// Keys that open a closed menu from its focused trigger. Once open, the menu answers the keys itself.
+// While a widget is selected its arrow-key nudge comes first, so there Enter or Space opens the menu.
+const SELECT_OPEN_KEYS = new Set(['ArrowDown', 'ArrowUp', 'Enter', ' ']);
+
 export function CustomSelect({ value, options, onChange, panelScale = 1, testId }: CustomSelectProps) {
   const [open, setOpen] = useState(false);
+  // The option the arrow keys and the pointer point at; Enter or Space picks it. Kept by value so
+  // it stays on the same option when the list changes while open (user fonts arriving, say); the
+  // index is the fallback once that option is gone. `scroll` counts key moves, so a key brings
+  // the option back into view even when it was already the active one (after a wheel scroll).
+  const [active, setActive] = useState<{ value: string | null; index: number; scroll: number }>(
+    { value: null, index: 0, scroll: 0 },
+  );
   const containerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const portalTarget = useContext(PanelPortalContext);
   const menuId = useId();
   const selected = options.find(option => option.value === value);
@@ -227,6 +240,83 @@ export function CustomSelect({ value, options, onChange, panelScale = 1, testId 
   // apart from the positioning below so re-renders that move the menu do not re-claim the key.
   useEffect(() => (open ? claimEscape('selectMenu', () => setOpen(false)) : undefined), [open]);
 
+  const selectedIndex = options.findIndex(option => option.value === value);
+  const lastIndex = options.length - 1;
+  const activeValueIndex = active.value === null ? -1 : options.findIndex(option => option.value === active.value);
+  const activeOption = !open || lastIndex < 0
+    ? -1
+    : activeValueIndex >= 0 ? activeValueIndex : Math.min(Math.max(0, active.index), lastIndex);
+  const optionId = (index: number) => `${menuId}-option-${index}`;
+
+  const pointAt = (list: readonly SelectOption[], index: number, fromKey: boolean) => {
+    setActive(current => ({
+      value: list[index]?.value ?? null,
+      index,
+      scroll: fromKey ? current.scroll + 1 : current.scroll,
+    }));
+  };
+
+  const openMenu = () => {
+    pointAt(options, Math.max(0, selectedIndex), true);
+    setOpen(true);
+  };
+
+  const latestRef = useRef({ options, onChange, activeOption, lastIndex });
+  useEffect(() => {
+    latestRef.current = { options, onChange, activeOption, lastIndex };
+  });
+
+  // While open the menu takes the arrow keys, Home, End, Enter and Space wherever the focus is (a
+  // mouse click may not leave it on the trigger), ahead of the widget arrow-key nudge. Tab closes it
+  // and moves on as usual; Esc is answered through the claim above.
+  useEffect(() => {
+    if (!open) return undefined;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // A hotkey button waiting for a key takes every key; the menu leaves them to it.
+      if (isHotkeyCaptureActive()) return;
+      const latest = latestRef.current;
+      let next: number | null = null;
+      if (event.key === 'ArrowDown') next = Math.min(latest.lastIndex, latest.activeOption + 1);
+      else if (event.key === 'ArrowUp') next = Math.max(0, latest.activeOption - 1);
+      else if (event.key === 'Home') next = 0;
+      else if (event.key === 'End') next = latest.lastIndex;
+      else if (event.key === 'Tab') {
+        setOpen(false);
+        return;
+      } else if (event.key !== 'Enter' && event.key !== ' ') {
+        return;
+      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (next !== null) {
+        pointAt(latest.options, next, true);
+        return;
+      }
+      if (event.repeat) return;
+      const picked = latest.options[latest.activeOption];
+      if (picked) latest.onChange(picked.value);
+      setOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [open]);
+
+  // Keeps the active option in view when the keys move it past the menu's scrolled edge, and shows
+  // the chosen one when the menu first appears. Not tied to the menu's position, which is set again
+  // on every scroll (the menu's own included), so wheel scrolling is not pulled back.
+  const menuShown = open && dropdownPosition !== null;
+  useEffect(() => {
+    if (!menuShown) return;
+    const menu = menuRef.current;
+    if (!menu || activeOption < 0) return;
+    const option = menu.querySelector<HTMLElement>(`[data-option-index="${activeOption}"]`);
+    if (!option) return;
+    const top = option.offsetTop;
+    const bottom = top + option.offsetHeight;
+    if (top < menu.scrollTop) menu.scrollTop = top;
+    else if (bottom > menu.scrollTop + menu.clientHeight) menu.scrollTop = bottom - menu.clientHeight;
+  }, [activeOption, menuShown, active.scroll]);
+
   useEffect(() => {
     if (!open) return;
     const syncDropdownPosition = () => {
@@ -266,27 +356,43 @@ export function CustomSelect({ value, options, onChange, panelScale = 1, testId 
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
-        onClick={() => setOpen(!open)}
+        aria-activedescendant={activeOption >= 0 ? optionId(activeOption) : undefined}
+        onClick={() => (open ? setOpen(false) : openMenu())}
+        onKeyDown={event => {
+          // Handled here rather than left to the button's click, so Space does not also click on
+          // key release and close the menu it just opened.
+          if (open || event.altKey || event.ctrlKey || event.metaKey || !SELECT_OPEN_KEYS.has(event.key)) return;
+          if (isHotkeyCaptureActive()) return;
+          event.preventDefault();
+          if (!event.repeat) openMenu();
+        }}
       >
         <span className="tw-p-select-value">{selected?.label ?? value}</span>
         <span className="tw-p-select-caret" aria-hidden="true">▾</span>
       </button>
       {open && dropdownPosition && createPortal(
         <div
+          ref={menuRef}
           id={menuId}
           role="listbox"
           className="tw-p-menu"
           data-select-menu={testId ?? 'custom-select'}
           style={{ ...dropdownPosition, overflowX: 'hidden', overflowY: 'auto' }}
         >
-          {options.map(option => (
+          {options.map((option, index) => (
             <div
               key={option.value}
+              id={optionId(index)}
               role="option"
               aria-selected={option.value === value}
               className="tw-p-option"
+              data-option-index={index}
+              data-active={index === activeOption ? 'true' : undefined}
               data-testid={testId ? `${testId}-option-${option.value}` : undefined}
               title={option.label}
+              // Move rather than enter, so a list scrolled by the keys under a resting pointer does
+              // not snap the active option back to it.
+              onMouseMove={() => { if (index !== activeOption) pointAt(options, index, false); }}
               onClick={() => { onChange(option.value); setOpen(false); }}
               style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
             >

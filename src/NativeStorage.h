@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -21,6 +22,13 @@ bool SaveSettingsAsync(
     std::string_view jsonData,
     SaveCompletion onComplete = {});
 std::string LoadSettings(const std::filesystem::path& gameRootPath);
+/** The settings file is there, or its presence cannot be told (then it may be). */
+bool SettingsFileExists(const std::filesystem::path& gameRootPath);
+/**
+ * The file name of a settings backup made because the view saved over a file it never took in
+ * (see SettingsBackups.h), once; empty when there is none to report.
+ */
+std::optional<std::string> TakeUnloadedBackupNotice();
 bool ExportPreset(const std::filesystem::path& gameRootPath, std::string_view jsonData);
 bool LoadPreset(const std::filesystem::path& gameRootPath, std::string& outJson);
 

@@ -134,6 +134,30 @@ describe('SettingsPanel', () => {
     expect(container.querySelector('[data-panel-portal="true"]')).not.toBeNull();
   });
 
+  it('shows the settings file notice, with the kept file name once there is one, until it is dismissed', async () => {
+    await renderPanel();
+    expect(document.querySelector('[data-settings-file-notice]')).toBeNull();
+
+    const onDismiss = vi.fn();
+    await rerenderPanel({ settingsFileNotice: { kind: 'loadFailed' }, onDismissSettingsFileNotice: onDismiss });
+    let notice = document.querySelector('[data-settings-file-notice]');
+    expect(notice?.getAttribute('data-settings-file-notice')).toBe('loadFailed');
+    expect(notice?.getAttribute('role')).toBe('alert');
+    expect(notice?.textContent).toContain('TulliusWidgets.log');
+
+    await rerenderPanel({
+      settingsFileNotice: { kind: 'backup', fileName: 'TulliusWidgets.json.unloaded-20261125-133800.bak' },
+      onDismissSettingsFileNotice: onDismiss,
+    });
+    notice = document.querySelector('[data-settings-file-notice]');
+    expect(notice?.getAttribute('data-settings-file-notice')).toBe('backup');
+    // The file name fills both places in the restore steps.
+    expect(notice?.textContent?.split('TulliusWidgets.json.unloaded-20261125-133800.bak').length).toBe(3);
+
+    await click(document.querySelector('[data-settings-file-notice-dismiss]'));
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
   it('places the window 32px from the chosen edge, vertically centred', async () => {
     setViewport(1920, 1080);
     await renderPanel();

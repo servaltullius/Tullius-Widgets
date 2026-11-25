@@ -145,6 +145,55 @@ describe('App quick-edit integration', () => {
     delete reactActEnvironment.IS_REACT_ACT_ENVIRONMENT;
   });
 
+  it('does not save anything when the window is only opened to read that the saved settings could not be read', async () => {
+    vi.useFakeTimers();
+    const onSettingsChanged = vi.fn();
+    window.onSettingsChanged = onSettingsChanged;
+    try {
+      await act(async () => {
+        root = createRoot(container);
+        root.render(<App />);
+      });
+      await act(async () => {
+        window.updateSettings?.('{"general":{"iconTheme":"doro');
+      });
+      expect(container.querySelector('[data-testid="settings-backup-banner"]')).not.toBeNull();
+
+      await act(async () => window.toggleSettings?.());
+      expect(document.querySelector('[data-settings-file-notice="loadFailed"]')).not.toBeNull();
+      await act(async () => vi.advanceTimersByTimeAsync(1000));
+      expect(onSettingsChanged).not.toHaveBeenCalled();
+    } finally {
+      delete window.onSettingsChanged;
+    }
+  });
+
+  it('points to the settings window while a settings backup notice is up, and drops it once dismissed', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<App />);
+    });
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({ schemaVersion: 7, general: { onboardingSeen: true } }));
+    });
+    expect(container.querySelector('[data-testid="settings-backup-banner"]')).toBeNull();
+
+    await act(async () => window.showSettingsBackupNotice?.('TulliusWidgets.json.unloaded-20261125-133800.bak'));
+    expect(container.querySelector('[data-testid="settings-backup-banner"]')).not.toBeNull();
+
+    // Opening the window trades the banner for the notice inside it, where it can be dismissed.
+    await act(async () => window.toggleSettings?.());
+    expect(container.querySelector('[data-testid="settings-backup-banner"]')).toBeNull();
+    const dismiss = document.querySelector<HTMLButtonElement>('[data-settings-file-notice-dismiss]');
+    expect(dismiss).not.toBeNull();
+    await act(async () => dismiss!.click());
+    expect(document.querySelector('[data-settings-file-notice]')).toBeNull();
+
+    await act(async () => window.toggleSettings?.());
+    expect(container.querySelector('[data-testid="settings-backup-banner"]')).toBeNull();
+    delete window.showSettingsBackupNotice;
+  });
+
   it('fades after a value-change window and hide delay without new stats or remounting widgets', async () => {
     vi.useFakeTimers();
     await act(async () => {

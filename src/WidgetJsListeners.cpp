@@ -2,6 +2,7 @@
 
 #include "JsonUtils.h"
 #include "NativeStorage.h"
+#include "SettingsBackups.h"
 #include "WidgetHotkeys.h"
 #include "WidgetInteropContracts.h"
 
@@ -39,6 +40,16 @@ void NotifyExportResult(bool success)
     (void)g_callbacks.invokeScript(success
         ? "onExportResult(true)"
         : "onExportResult(false)");
+}
+
+// Tells the view that a save kept the old settings file because the view never took it in.
+void NotifyUnloadedBackup()
+{
+    const auto fileName = TulliusWidgets::NativeStorage::TakeUnloadedBackupNotice();
+    if (!fileName || !g_callbacks.invokeScript) return;
+    const auto script = TulliusWidgets::SettingsBackups::BuildBackupNoticeScript(
+        TulliusWidgets::WidgetInteropContracts::kShowSettingsBackupNotice, *fileName);
+    (void)g_callbacks.invokeScript(script.c_str());
 }
 
 void NotifySettingsSyncResult(bool success, std::optional<std::uint32_t> revision = std::nullopt)
@@ -124,6 +135,7 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
                 [revision](bool saved) {
                     DispatchToGameThread([saved, revision]() {
                         NotifySettingsSyncResult(saved, revision);
+                        NotifyUnloadedBackup();
                     });
                 });
             if (!success) {
@@ -131,6 +143,16 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
                 NotifySettingsSyncResult(false, revision);
             }
         });
+    });
+
+    // The view could not take in the saved settings it was sent. Logged so the cause shows up the
+    // next time; the backup in SettingsBackups.h keeps the file itself.
+    prismaUI->RegisterJSListener(view, TulliusWidgets::WidgetInteropContracts::kOnSettingsLoadFailed, [](const char* data) -> void {
+        constexpr std::size_t kMaxReasonLength = 500;
+        const std::string_view reason = data ? std::string_view(data) : std::string_view("(no reason)");
+        logger::warn(
+            "The view could not apply the saved settings: {}",
+            TulliusWidgets::SettingsBackups::ClampUtf8(reason, kMaxReasonLength));
     });
 
     prismaUI->RegisterJSListener(view, TulliusWidgets::WidgetInteropContracts::kOnExportSettings, [](const char* data) -> void {

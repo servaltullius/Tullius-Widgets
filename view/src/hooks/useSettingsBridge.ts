@@ -13,6 +13,8 @@ interface SettingsBridgeHandlers {
   toggleWidgetsVisibility: NonNullable<TulliusWidgetsBridgeV1['toggleWidgetsVisibility']>;
   closeSettings: NonNullable<TulliusWidgetsBridgeV1['closeSettings']>;
   setHUDColor: NonNullable<TulliusWidgetsBridgeV1['setHUDColor']>;
+  showSettingsBackupNotice: NonNullable<TulliusWidgetsBridgeV1['showSettingsBackupNotice']>;
+  showSettingsLoadFailure: NonNullable<TulliusWidgetsBridgeV1['showSettingsLoadFailure']>;
 }
 
 interface UseSettingsBridgeParams {
@@ -23,6 +25,8 @@ interface UseSettingsBridgeParams {
   closeSettings: () => void;
   setHUDColor: (hex: string) => void;
   handleSettingsSyncResult: (success: boolean, revision?: number) => void;
+  showSettingsBackupNotice: (fileName: string) => void;
+  showSettingsLoadFailure: () => void;
 }
 
 function readRuntimeWarningCode(value: unknown): RuntimeWarningCode {
@@ -57,6 +61,8 @@ function registerSettingsBridgeHandlers(handlers: SettingsBridgeHandlers): Array
     // The plugin passes on an Esc press the page owns, in case the view never sees the key itself.
     registerDualBridgeHandler(BRIDGE_HANDLERS.handleEscape, handleEscapeFromPlugin),
     registerDualBridgeHandler(BRIDGE_HANDLERS.setHUDColor, handlers.setHUDColor),
+    registerDualBridgeHandler(BRIDGE_HANDLERS.showSettingsBackupNotice, handlers.showSettingsBackupNotice),
+    registerDualBridgeHandler(BRIDGE_HANDLERS.showSettingsLoadFailure, handlers.showSettingsLoadFailure),
   ];
 }
 
@@ -68,6 +74,8 @@ export function useSettingsBridge({
   closeSettings,
   setHUDColor,
   handleSettingsSyncResult,
+  showSettingsBackupNotice,
+  showSettingsLoadFailure,
 }: UseSettingsBridgeParams) {
   useEffect(() => {
     const updateSettingsHandler = (jsonString: string) => {
@@ -96,6 +104,8 @@ export function useSettingsBridge({
       toggleWidgetsVisibility,
       closeSettings,
       setHUDColor,
+      showSettingsBackupNotice,
+      showSettingsLoadFailure,
     });
 
     window[BRIDGE_CALLBACKS.onSettingsSyncResult] = handleSettingsSyncResult;
@@ -115,6 +125,8 @@ export function useSettingsBridge({
     handleSettingsSyncResult,
     setHUDColor,
     setRuntimeDiagnostics,
+    showSettingsBackupNotice,
+    showSettingsLoadFailure,
     toggleSettings,
     toggleWidgetsVisibility,
   ]);

@@ -6,6 +6,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { defaultSettings } from '../data/defaultSettings';
 import type { WidgetSettings } from '../types/settings';
 import { useSettingsSync } from './useSettingsSync';
+import { NO_LOADED_SETTINGS_FILE, type LoadedSettingsFile } from './settingsShared';
 
 interface SyncHarnessValue {
   lastSettingsSyncOk: boolean | null;
@@ -23,7 +24,8 @@ function readRevisionFromPayload(payload: unknown): number {
 
 function SyncHarness({ onReady }: { onReady: (value: SyncHarnessValue) => void }) {
   const settingsRevisionRef = useRef(0);
-  const sync = useSettingsSync({ settingsRevisionRef });
+  const loadedSettingsFileRef = useRef<LoadedSettingsFile>(NO_LOADED_SETTINGS_FILE);
+  const sync = useSettingsSync({ settingsRevisionRef, loadedSettingsFileRef });
 
   useEffect(() => {
     onReady(sync);

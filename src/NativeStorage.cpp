@@ -1,6 +1,10 @@
 #include "NativeStorage.h"
 
+#include "SettingsBackups.h"
+
 #include <atomic>
+#include <chrono>
+#include <ctime>
 #include <condition_variable>
 #include <functional>
 #include <fstream>
@@ -16,6 +20,16 @@ struct PendingSettingsWrite {
     std::string jsonData;
     SaveCompletion onComplete;
 };
+
+// Declared before the writer thread so they outlive it: statics are destroyed in reverse order,
+// and the writer may still finish a save while the plugin unloads. See SettingsBackups.h.
+std::mutex g_backupStateMutex;
+// The ".prev" copy for this game session has been made (or there was no file to copy).
+bool g_sessionCopyKept = false;
+// The revision this plugin last wrote, so its own earlier saves count as followed on from.
+std::optional<std::uint32_t> g_lastWrittenRevision;
+// A backup the view has not been told about yet.
+std::optional<std::string> g_pendingBackupNotice;
 
 std::mutex g_asyncSettingsMutex;
 std::condition_variable_any g_asyncSettingsCv;
@@ -180,7 +194,83 @@ bool ReplaceFileWithRollback(
     return true;
 }
 
-bool SaveSettingsSync(const std::filesystem::path& gameRootPath, std::string_view jsonData)
+// Local time, so the name matches what the player sees; UTC if the local time cannot be had.
+// Either way the same sortable shape as SettingsBackups.h expects.
+std::string MakeBackupStamp()
+{
+    const auto now = std::time(nullptr);
+    std::tm parts{};
+    if (localtime_s(&parts, &now) != 0 && gmtime_s(&parts, &now) != 0) {
+        return "00000000-000000";
+    }
+    char buffer[32]{};
+    if (std::strftime(buffer, sizeof(buffer), "%Y%m%d-%H%M%S", &parts) == 0) {
+        return "00000000-000000";
+    }
+    return buffer;
+}
+
+std::string FormatRevision(const std::optional<std::uint32_t>& revision)
+{
+    return revision ? std::to_string(*revision) : std::string("unreadable");
+}
+
+// Makes the copies due before a save and says whether the file may be replaced; see
+// SettingsBackups.h. Runs on the settings writer thread (or the caller's, for SaveSettings).
+SettingsBackups::PrepareResult KeepCopiesBeforeSave(const std::filesystem::path& gameRootPath, std::string_view jsonData)
+{
+    bool firstSaveThisSession = false;
+    std::optional<std::uint32_t> lastWrittenRevision;
+    {
+        std::scoped_lock lock(g_backupStateMutex);
+        firstSaveThisSession = !g_sessionCopyKept;
+        lastWrittenRevision = g_lastWrittenRevision;
+    }
+
+    const auto settingsPath = GetSettingsPath(gameRootPath);
+    auto result = SettingsBackups::PrepareForSave(
+        settingsPath, jsonData, firstSaveThisSession, MakeBackupStamp(), kMaxSettingsFileBytes, lastWrittenRevision);
+
+    for (const auto& error : result.errors) {
+        logger::warn("Settings backup problem: {}", error);
+    }
+    if (firstSaveThisSession && (result.previousCopied || !result.hadExistingFile)) {
+        std::scoped_lock lock(g_backupStateMutex);
+        g_sessionCopyKept = true;
+    }
+    if (result.previousCopied) {
+        logger::info(
+            "Kept the settings file from before this session's first save: {}",
+            SettingsBackups::PreviousCopyPath(settingsPath).string());
+    }
+    if (result.unloadedBackup && result.unloadedBackupIsPrecaution) {
+        logger::info(
+            "Kept a copy of the settings file saved before revisions were recorded: {}",
+            result.unloadedBackup->string());
+    } else if (result.unloadedBackup) {
+        logger::warn(
+            "Saving revision {} over settings revision {} that the view did not take in; kept the old file as {}",
+            FormatRevision(result.incomingRevision),
+            FormatRevision(result.existingRevision),
+            result.unloadedBackup->string());
+    }
+    if (result.mustNotReplace) {
+        logger::error("Not saving settings, to keep the existing file: {}", result.refusal);
+    }
+    return result;
+}
+
+// After the file was replaced: remembers the revision and queues the notice for a kept backup.
+void RecordWrittenSave(const SettingsBackups::PrepareResult& prepared)
+{
+    std::scoped_lock lock(g_backupStateMutex);
+    g_lastWrittenRevision = prepared.incomingRevision;
+    if (prepared.unloadedBackup && !prepared.unloadedBackupIsPrecaution) {
+        g_pendingBackupNotice = prepared.unloadedBackup->filename().string();
+    }
+}
+
+bool WriteSettingsFile(const std::filesystem::path& gameRootPath, std::string_view jsonData)
 {
     if (!EnsureSettingsDirectory(gameRootPath)) return false;
 
@@ -217,6 +307,35 @@ bool SaveSettingsSync(const std::filesystem::path& gameRootPath, std::string_vie
     return true;
 }
 
+// One save with its copies. A write that fails is tried once more; a save refused to protect the
+// file (it could not be checked or kept) is prepared once more after a moment, since the usual
+// cause is another program holding the file briefly.
+bool SaveSettingsSync(const std::filesystem::path& gameRootPath, std::string_view jsonData)
+{
+    if (jsonData.size() > kMaxSettingsFileBytes) {
+        logger::error("Refusing to save settings larger than {} bytes: {}", kMaxSettingsFileBytes, jsonData.size());
+        return false;
+    }
+
+    auto prepared = KeepCopiesBeforeSave(gameRootPath, jsonData);
+    if (prepared.mustNotReplace) {
+        constexpr auto kRefusalRetryDelay = std::chrono::milliseconds(200);
+        std::this_thread::sleep_for(kRefusalRetryDelay);
+        prepared = KeepCopiesBeforeSave(gameRootPath, jsonData);
+        if (prepared.mustNotReplace) return false;
+    }
+
+    if (!WriteSettingsFile(gameRootPath, jsonData)) {
+        logger::warn("Settings save failed, retrying once");
+        if (!WriteSettingsFile(gameRootPath, jsonData)) {
+            logger::error("Settings save retry also failed");
+            return false;
+        }
+    }
+    RecordWrittenSave(prepared);
+    return true;
+}
+
 void RunAsyncSettingsWriter(std::stop_token stopToken)
 {
     std::unique_lock lock(g_asyncSettingsMutex);
@@ -233,18 +352,14 @@ void RunAsyncSettingsWriter(std::stop_token stopToken)
         lock.unlock();
 
         if (!SaveSettingsSync(write.gameRootPath, write.jsonData)) {
-            logger::warn("Async settings save failed, retrying once");
-            if (!SaveSettingsSync(write.gameRootPath, write.jsonData)) {
-                logger::error("Async settings save retry also failed");
-                if (write.onComplete) {
-                    write.onComplete(false);
-                }
-                lock.lock();
-                if (stopToken.stop_requested() && !g_pendingSettingsWrite.has_value()) {
-                    break;
-                }
-                continue;
+            if (write.onComplete) {
+                write.onComplete(false);
             }
+            lock.lock();
+            if (stopToken.stop_requested() && !g_pendingSettingsWrite.has_value()) {
+                break;
+            }
+            continue;
         }
 
         if (write.onComplete) {
@@ -284,6 +399,14 @@ std::filesystem::path GetPresetPath(const std::filesystem::path& gameRootPath)
     return GetSettingsDirectoryPath(gameRootPath) / "TulliusWidgets_preset.json";
 }
 
+std::optional<std::string> TakeUnloadedBackupNotice()
+{
+    std::scoped_lock lock(g_backupStateMutex);
+    auto notice = std::move(g_pendingBackupNotice);
+    g_pendingBackupNotice.reset();
+    return notice;
+}
+
 bool SaveSettings(const std::filesystem::path& gameRootPath, std::string_view jsonData)
 {
     return SaveSettingsSync(gameRootPath, jsonData);
@@ -312,7 +435,20 @@ std::string LoadSettings(const std::filesystem::path& gameRootPath)
 {
     std::string out;
     if (!ReadTextFileWithLimit(GetSettingsPath(gameRootPath), kMaxSettingsFileBytes, "Settings", out)) return "";
+    // A file saved by a text editor may start with a byte order mark, which the view cannot parse.
+    const auto withoutBom = SettingsBackups::StripUtf8Bom(out);
+    if (withoutBom.size() != out.size()) {
+        logger::info("Removed a byte order mark from the start of the settings file before reading it");
+        return std::string(withoutBom);
+    }
     return out;
+}
+
+bool SettingsFileExists(const std::filesystem::path& gameRootPath)
+{
+    std::error_code ec;
+    const bool exists = std::filesystem::exists(GetSettingsPath(gameRootPath), ec);
+    return exists || ec;
 }
 
 bool ExportPreset(const std::filesystem::path& gameRootPath, std::string_view jsonData)
