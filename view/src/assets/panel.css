@@ -191,7 +191,8 @@
   font-size: calc(14px * var(--ps)); color: var(--p-text-2); cursor: pointer;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.tw-p-option:hover { background: rgba(236, 231, 219, 0.06); color: var(--p-text); }
+/* The pointer makes the option under it active, so one highlight serves the mouse and the keys. */
+.tw-p-option[data-active='true'] { background: rgba(236, 231, 219, 0.06); color: var(--p-text); }
 .tw-p-option[aria-selected='true'] { color: var(--p-gold); }
 
 /* Slider */

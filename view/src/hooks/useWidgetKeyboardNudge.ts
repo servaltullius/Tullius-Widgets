@@ -18,6 +18,8 @@ function isFormControlElement(element: Element | null): boolean {
   const tagName = element.tagName.toLowerCase();
   return element.isContentEditable || tagName === 'input' || tagName === 'select' || tagName === 'textarea'
     // Segmented controls and the category list in the settings window use the arrow keys themselves.
+    // A closed select trigger does not: after a pick in the widget's card the arrows still move the
+    // widget, and Enter or Space opens the menu.
     || element.closest('[role="radiogroup"], [role="tablist"]') !== null;
 }
 
