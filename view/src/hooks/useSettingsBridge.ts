@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import type { RuntimeDiagnostics, RuntimeWarningCode } from '../types/runtime';
 import { isPlainObject, readBoolean, readText } from '../utils/normalize';
 import { registerDualBridgeHandler } from '../utils/bridge';
+import { handleEscapeFromPlugin } from '../utils/escapeOwners';
 
 interface SettingsBridgeHandlers {
   updateSettings: NonNullable<TulliusWidgetsBridgeV1['updateSettings']>;
@@ -53,6 +54,8 @@ function registerSettingsBridgeHandlers(handlers: SettingsBridgeHandlers): Array
     registerDualBridgeHandler(BRIDGE_HANDLERS.toggleSettings, handlers.toggleSettings),
     registerDualBridgeHandler(BRIDGE_HANDLERS.toggleWidgetsVisibility, handlers.toggleWidgetsVisibility),
     registerDualBridgeHandler(BRIDGE_HANDLERS.closeSettings, handlers.closeSettings),
+    // The plugin passes on an Esc press the page owns, in case the view never sees the key itself.
+    registerDualBridgeHandler(BRIDGE_HANDLERS.handleEscape, handleEscapeFromPlugin),
     registerDualBridgeHandler(BRIDGE_HANDLERS.setHUDColor, handlers.setHUDColor),
   ];
 }

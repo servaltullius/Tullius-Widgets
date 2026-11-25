@@ -21,6 +21,7 @@ import {
   mergeWithDefaults,
   warnFutureSettingsSchemaVersion,
 } from './settingsSchema';
+import { isEscapeKey } from '../utils/escapeOwners';
 import { useSettingsBridge } from './useSettingsBridge';
 import { useSettingsSync } from './useSettingsSync';
 
@@ -288,7 +289,7 @@ export function useSettings() {
   // ESC key closes settings and requests unfocus.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && settingsOpen) {
+      if (isEscapeKey(e) && settingsOpen && !e.defaultPrevented && !e.repeat) {
         setSettingsOpen(false);
         window[BRIDGE_CALLBACKS.onRequestUnfocus]?.('');
       }
@@ -301,6 +302,11 @@ export function useSettings() {
     window[BRIDGE_CALLBACKS.onSettingsVisibilityChanged]?.(settingsOpen ? 'open' : 'closed');
   }, [settingsOpen]);
 
+  // A change made with persist: false waits for the next saving update to carry it. When that
+  // update turns out to change nothing (a drag that kept its Y, the same option picked again),
+  // the waiting change is saved anyway instead of being lost on restart.
+  const unsavedChangeRef = useRef(false);
+
   const updateSetting = useCallback<UpdateSettingFn>((path: string, value: unknown, options?: UpdateSettingOptions) => {
     const canonicalItemId = typeof value === 'boolean'
       ? getWidgetItemIdByVisibilityPath(path)
@@ -309,7 +315,8 @@ export function useSettings() {
       ? `itemLayouts.${canonicalItemId}.visible`
       : path;
 
-    if (options?.persist !== false) {
+    const persist = options?.persist !== false;
+    if (persist && !unsavedChangeRef.current) {
       const currentSettings = settingsRef.current;
       const seededCurrentSettings = prepareCanonicalItemLayoutForCurrentViewport(currentSettings, effectivePath);
       if (updateValueByPath(seededCurrentSettings, effectivePath, value) === seededCurrentSettings && retryPersistedSettings(currentSettings)) {
@@ -321,6 +328,10 @@ export function useSettings() {
       const seededPrev = prepareCanonicalItemLayoutForCurrentViewport(prev, effectivePath);
       const next = updateValueByPath(seededPrev, effectivePath, value);
       if (next === seededPrev) {
+        if (persist && unsavedChangeRef.current) {
+          unsavedChangeRef.current = false;
+          notifySettingsChanged(prev);
+        }
         return prev;
       }
 
@@ -328,8 +339,11 @@ export function useSettings() {
         dispatchVisibleOverride({ type: 'reset' });
       }
 
-      if (options?.persist !== false) {
+      if (persist) {
+        unsavedChangeRef.current = false;
         notifySettingsChanged(next);
+      } else {
+        unsavedChangeRef.current = true;
       }
 
       return next;

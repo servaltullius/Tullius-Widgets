@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import type { SelectedItemLayoutActions } from './useSelectedItemLayoutActions';
 import { isHotkeyCaptureActive } from '../utils/hotkeys';
+import { isSelectMenuOpen } from '../utils/escapeOwners';
 
 interface UseWidgetKeyboardNudgeParams {
   enabled: boolean;
@@ -15,7 +16,9 @@ function isFormControlElement(element: Element | null): boolean {
   }
 
   const tagName = element.tagName.toLowerCase();
-  return element.isContentEditable || tagName === 'input' || tagName === 'select' || tagName === 'textarea';
+  return element.isContentEditable || tagName === 'input' || tagName === 'select' || tagName === 'textarea'
+    // Segmented controls and the category list in the settings window use the arrow keys themselves.
+    || element.closest('[role="radiogroup"], [role="tablist"]') !== null;
 }
 
 export function useWidgetKeyboardNudge({
@@ -34,7 +37,7 @@ export function useWidgetKeyboardNudge({
         return;
       }
 
-      if (isFormControlElement(document.activeElement) || isHotkeyCaptureActive()) {
+      if (isFormControlElement(document.activeElement) || isHotkeyCaptureActive() || isSelectMenuOpen()) {
         return;
       }
 

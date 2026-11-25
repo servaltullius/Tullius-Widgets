@@ -115,9 +115,14 @@
       "damageReductionClamped": true
     }
   },
-  "isInCombat": false
+  "isInCombat": false,
+  "weaponDrawn": false,
+  "sneaking": false,
+  "freeCamera": false
 }
 ```
+
+- `weaponDrawn`, `sneaking`, `freeCamera`: 자동 숨김 조건과 자유 카메라 표시에 쓰는 플레이어 상태입니다. 없으면 `false`로 봅니다(구버전 플러그인과의 호환).
 
 ### 핵심 규칙
 

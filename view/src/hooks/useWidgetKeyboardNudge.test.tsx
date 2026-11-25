@@ -159,4 +159,38 @@ describe('useWidgetKeyboardNudge', () => {
     expect(actions.nudgeSelectedItem).not.toHaveBeenCalled();
     expect(onKeyboardNudge).not.toHaveBeenCalled();
   });
+
+  it.each(['radiogroup', 'tablist'])('ignores arrow keys while a %s in the panel has focus', async role => {
+    const actions: SelectedItemLayoutActions = {
+      setSelectedItemVisible: vi.fn(() => false),
+      setSelectedItemScale: vi.fn(() => false),
+      setSelectedItemLocked: vi.fn(() => false),
+      resetSelectedItemPosition: vi.fn(() => false),
+      nudgeSelectedItem: vi.fn(() => true),
+      bringSelectedItemForward: vi.fn(() => false),
+      sendSelectedItemBackward: vi.fn(() => false),
+    };
+    const group = document.createElement('div');
+    group.setAttribute('role', role);
+    const radio = document.createElement('button');
+    radio.setAttribute('role', role === 'tablist' ? 'tab' : 'radio');
+    group.appendChild(radio);
+    document.body.appendChild(group);
+
+    try {
+      await act(async () => {
+        root = createRoot(container);
+        root.render(<Harness actions={actions} onKeyboardNudge={vi.fn()} />);
+      });
+
+      radio.focus();
+      await act(async () => {
+        dispatchArrowKey('ArrowRight');
+      });
+
+      expect(actions.nudgeSelectedItem).not.toHaveBeenCalled();
+    } finally {
+      group.remove();
+    }
+  });
 });

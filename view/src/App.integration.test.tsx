@@ -145,6 +145,90 @@ describe('App quick-edit integration', () => {
     delete reactActEnvironment.IS_REACT_ACT_ENVIRONMENT;
   });
 
+  it('fades after a value-change window and hide delay without new stats or remounting widgets', async () => {
+    vi.useFakeTimers();
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<App />);
+    });
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({
+        schemaVersion: 7,
+        general: { onboardingSeen: true, changeDisplaySeconds: 4, autoHide: { enabled: true, showInCombat: false, hideDelaySeconds: 3 } },
+      }));
+    });
+
+    const hud = container.querySelector<HTMLDivElement>('.tw-hud-font-root')!;
+    const gold = getWidget(container, 'player.gold');
+    expect(gold).not.toBeNull();
+    expect(hud.style.opacity).toBe('0');
+    await act(async () => window.updateStats?.(JSON.stringify({ isInCombat: true })));
+    expect(hud.style.opacity).toBe('0');
+
+    await act(async () => window.updateStats?.(JSON.stringify({ playerInfo: { gold: 123 } })));
+    expect(hud.style.opacity).toBe('1');
+    expect(hud.style.transition).toBe('opacity 200ms');
+    await act(async () => vi.advanceTimersByTimeAsync(4000));
+    expect(hud.style.opacity).toBe('1');
+    await act(async () => vi.advanceTimersByTimeAsync(2999));
+    expect(hud.style.opacity).toBe('1');
+    await act(async () => vi.advanceTimersByTimeAsync(1));
+    expect(hud.style.opacity).toBe('0');
+    expect(hud.style.transition).toBe('opacity 500ms');
+    expect(getWidget(container, 'player.gold')).toBe(gold);
+
+    await act(async () => window.updateStats?.(JSON.stringify({ weaponDrawn: true })));
+    expect(hud.style.opacity).toBe('1');
+    expect(getWidget(container, 'player.gold')).toBe(gold);
+    await act(async () => window.updateStats?.(JSON.stringify({ weaponDrawn: false })));
+    await act(async () => vi.advanceTimersByTimeAsync(3000));
+    expect(hud.style.opacity).toBe('0');
+    await act(async () => window.toggleSettings?.());
+    expect(hud.style.opacity).toBe('1');
+    expect(getWidget(container, 'player.gold')).toBe(gold);
+  });
+
+  it('does not wake the HUD when a widget is switched on, and only fades with auto-hide on', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<App />);
+    });
+    const hud = container.querySelector<HTMLDivElement>('.tw-hud-font-root')!;
+    // The plugin sends the saved settings before the first stats.
+    await act(async () => window.updateSettings?.(JSON.stringify({ schemaVersion: 7, general: { onboardingSeen: true } })));
+    // Same values as the stats already shown, so this sample is not a value change.
+    await act(async () => window.updateStats?.(JSON.stringify({ isInCombat: false })));
+    // Auto-hide off: F11, the settings panel and the free camera switch without a fade.
+    expect(hud.style.opacity).toBe('1');
+    expect(hud.style.transition).toBe('none');
+
+    const changeOnly = {
+      enabled: true,
+      showInCombat: false,
+      showWeaponDrawn: false,
+      showSneaking: false,
+      showResourcesNotFull: false,
+      showOnChange: true,
+      hideDelaySeconds: 0,
+    };
+    await act(async () => window.updateSettings?.(JSON.stringify({
+      schemaVersion: 7,
+      general: { onboardingSeen: true, autoHide: changeOnly },
+    })));
+    expect(hud.style.opacity).toBe('0');
+
+    await act(async () => window.updateSettings?.(JSON.stringify({
+      schemaVersion: 7,
+      general: { onboardingSeen: true, autoHide: changeOnly },
+      itemLayouts: { 'player.level': { ...getDefaultPlayerLevelLayout(), visible: true } },
+    })));
+    expect(getWidget(container, 'player.level')).not.toBeNull();
+    expect(hud.style.opacity).toBe('0');
+
+    await act(async () => window.updateStats?.(JSON.stringify({ playerInfo: { gold: 987654 } })));
+    expect(hud.style.opacity).toBe('1');
+  });
+
   it.each([
     { style: 'classic', textSelector: '.tw-stat-value', appliedKerning: 'normal', presetKerning: 'auto' },
     { style: 'compact', textSelector: '.tw-compact-value', appliedKerning: 'auto', presetKerning: 'normal' },
@@ -632,6 +716,237 @@ describe('App quick-edit integration', () => {
     expect(parsePx(unchangedWidget!.style.top)).toBe(originalY);
   });
 
+  it('answers Esc in order: open menu, then widget selection, then the panel, and tells the plugin who owns Esc', async () => {
+    const escapeOwnerReports: string[] = [];
+    window.onEscapeOwner = (argument: string) => {
+      escapeOwnerReports.push(argument);
+    };
+    const pressEscape = async () => {
+      await act(async () => {
+        document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      });
+    };
+
+    try {
+      await act(async () => {
+        root = createRoot(container);
+        root.render(<App />);
+      });
+      await act(async () => {
+        window.updateSettings?.(JSON.stringify({
+          itemLayouts: { 'player.level': { ...getDefaultPlayerLevelLayout(), visible: true } },
+        }));
+      });
+      await act(async () => {
+        (window as TestWindow).toggleSettings?.();
+      });
+
+      const widget = getWidget(container, 'player.level');
+      if (!widget) throw new Error('expected player.level widget to render');
+      const x = parsePx(widget.style.left) + 8;
+      const y = parsePx(widget.style.top) + 8;
+      await act(async () => {
+        widget.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: x, clientY: y }));
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: x, clientY: y }));
+      });
+      expect(container.querySelector('[data-selected-widget-quick-edit-card]')).not.toBeNull();
+      expect(escapeOwnerReports).toEqual(['1']);
+
+      await act(async () => {
+        container.querySelector<HTMLElement>('[data-testid="selected-widget-show-when"]')?.click();
+      });
+      expect(document.querySelector('[role="listbox"]')).not.toBeNull();
+
+      await pressEscape();
+      expect(document.querySelector('[role="listbox"]')).toBeNull();
+      expect(container.querySelector('[data-selected-widget-quick-edit-card]')).not.toBeNull();
+      expect(container.querySelector('[data-settings-panel-shell="true"]')).not.toBeNull();
+
+      await pressEscape();
+      expect(container.querySelector('[data-selected-widget-quick-edit-card]')).toBeNull();
+      expect(container.querySelector('[data-settings-panel-shell="true"]')).not.toBeNull();
+      expect(escapeOwnerReports).toEqual(['1', '0e']);
+
+      await pressEscape();
+      expect(container.querySelector('[data-settings-panel-shell="true"]')).toBeNull();
+    } finally {
+      delete window.onEscapeOwner;
+    }
+  });
+
+  // In game the view may never see Esc; the plugin then passes each press the page owns to
+  // handleEscape() and closes the panel itself once the page owns nothing.
+  it.each(['keydown', 'plugin'] as const)('in layout mode answers Esc (%s) in order: menu, selection, cancel editing, then close', async route => {
+    const escapeOwnerReports: string[] = [];
+    window.onEscapeOwner = (argument: string) => {
+      escapeOwnerReports.push(argument);
+    };
+    // A clock of its own, far in the past, so copies left waiting by earlier tests are long
+    // expired here and the ones this test leaves are expired for the tests after it, whatever the
+    // real clock reads.
+    let clock = -1e9;
+    vi.spyOn(performance, 'now').mockImplementation(() => (clock += 1));
+    const pressEscape = async () => {
+      await act(async () => {
+        if (route === 'keydown') {
+          document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+        } else if (escapeOwnerReports[escapeOwnerReports.length - 1] === '1') {
+          (window as TestWindow).handleEscape?.();
+        } else {
+          (window as TestWindow).closeSettings?.();
+        }
+      });
+    };
+    const mode = () => (container.querySelector('.tw-panel-layer') as HTMLElement | null)?.dataset.panelMode ?? 'closed';
+
+    try {
+      await act(async () => {
+        root = createRoot(container);
+        root.render(<App />);
+      });
+      await act(async () => {
+        window.updateSettings?.(JSON.stringify({
+          itemLayouts: { 'player.level': { ...getDefaultPlayerLevelLayout(), visible: true } },
+        }));
+      });
+      await act(async () => {
+        (window as TestWindow).toggleSettings?.();
+      });
+      await act(async () => {
+        container.querySelector<HTMLElement>('[data-layout-mode-start="true"]')?.click();
+      });
+      expect(mode()).toBe('layout');
+      expect(escapeOwnerReports).toEqual(['1']);
+
+      const widget = getWidget(container, 'player.level');
+      if (!widget) throw new Error('expected player.level widget to render');
+      const x = parsePx(widget.style.left) + 8;
+      const y = parsePx(widget.style.top) + 8;
+      await act(async () => {
+        widget.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: x, clientY: y }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: x, clientY: y }));
+      });
+      await act(async () => {
+        container.querySelector<HTMLElement>('[data-testid="selected-widget-show-when"]')?.click();
+      });
+      expect(document.querySelector('[role="listbox"]')).not.toBeNull();
+
+      await pressEscape();
+      expect(document.querySelector('[role="listbox"]')).toBeNull();
+      expect(container.querySelector('[data-selected-widget-quick-edit-card]')).not.toBeNull();
+      expect(mode()).toBe('layout');
+
+      await pressEscape();
+      expect(container.querySelector('[data-selected-widget-quick-edit-card]')).toBeNull();
+      expect(mode()).toBe('layout');
+
+      await pressEscape();
+      expect(mode()).toBe('settings');
+      // A release the page's own keydown caused is marked, so the plugin skips that same press.
+      expect(escapeOwnerReports).toEqual(['1', route === 'keydown' ? '0e' : '0']);
+
+      await pressEscape();
+      expect(mode()).toBe('closed');
+    } finally {
+      delete window.onEscapeOwner;
+      vi.restoreAllMocks();
+    }
+  });
+
+  it('gives the arrow keys to the widget clicked again, not to the setting focused in between', async () => {
+    const left = () => parsePx(getWidget(container, 'player.level')!.style.left);
+    const clickWidget = async () => {
+      const widget = getWidget(container, 'player.level')!;
+      const x = parsePx(widget.style.left) + 8;
+      const y = parsePx(widget.style.top) + 8;
+      await act(async () => {
+        widget.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: x, clientY: y }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: x, clientY: y }));
+      });
+    };
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<App />);
+    });
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({
+        general: { hudStyle: 'classic' },
+        itemLayouts: { 'player.level': { ...getDefaultPlayerLevelLayout(), visible: true } },
+      }));
+    });
+    await act(async () => {
+      (window as TestWindow).toggleSettings?.();
+    });
+
+    await clickWidget();
+    const styleOption = container.querySelector<HTMLButtonElement>('[data-testid="hud-style-select-option-classic"]');
+    expect(styleOption).not.toBeNull();
+    styleOption!.focus();
+    expect(document.activeElement).toBe(styleOption);
+
+    await clickWidget();
+    const before = left();
+    await act(async () => {
+      dispatchArrowKey('ArrowRight');
+    });
+    expect(left()).toBeGreaterThan(before);
+    expect(container.querySelector('[data-testid="hud-style-select-option-classic"]')?.getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('cancels layout editing with Esc back to the start, and Ctrl+Z brings the edit back', async () => {
+    const pressKey = async (init: KeyboardEventInit) => {
+      await act(async () => {
+        document.body.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init }));
+      });
+    };
+    const left = () => parsePx(getWidget(container, 'player.level')!.style.left);
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<App />);
+    });
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({
+        itemLayouts: { 'player.level': { ...getDefaultPlayerLevelLayout(), visible: true } },
+      }));
+    });
+    await act(async () => {
+      (window as TestWindow).toggleSettings?.();
+    });
+    await act(async () => {
+      container.querySelector<HTMLElement>('[data-layout-mode-start="true"]')?.click();
+    });
+    const originalLeft = left();
+
+    const widget = getWidget(container, 'player.level')!;
+    const x = originalLeft + 8;
+    const y = parsePx(widget.style.top) + 8;
+    await act(async () => {
+      widget.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: x, clientY: y }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: x, clientY: y }));
+    });
+    await act(async () => {
+      dispatchArrowKey('ArrowRight');
+    });
+    const movedLeft = left();
+    expect(movedLeft).toBeGreaterThan(originalLeft);
+
+    await pressKey({ key: 'Escape' });
+    await pressKey({ key: 'Escape' });
+    expect((container.querySelector('.tw-panel-layer') as HTMLElement).dataset.panelMode).toBe('settings');
+    expect(left()).toBe(originalLeft);
+
+    await pressKey({ key: 'z', ctrlKey: true });
+    expect(left()).toBe(movedLeft);
+  });
+
   it('applies resistance display mode and disease visibility changes from the settings panel to the live HUD', async () => {
     await act(async () => {
       root = createRoot(container);
@@ -642,22 +957,13 @@ describe('App quick-edit integration', () => {
       (window as TestWindow).toggleSettings?.();
     });
 
-    const combatTab = Array.from(container.querySelectorAll('button')).find(
-      button => button.textContent?.includes('전투 수치'),
+    const combatCategory = Array.from(container.querySelectorAll('[role="tab"]')).find(
+      button => button.textContent === '저항·방어·공격',
     );
-    expect(combatTab).toBeTruthy();
+    expect(combatCategory).toBeTruthy();
 
     await act(async () => {
-      combatTab?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    const resistancesAccordion = Array.from(container.querySelectorAll('button')).find(
-      button => button.textContent?.includes('저항력'),
-    );
-    expect(resistancesAccordion).toBeTruthy();
-
-    await act(async () => {
-      resistancesAccordion?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      combatCategory?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
     const displaySelect = container.querySelector('[data-testid="resistance-display-select"]') as HTMLDivElement | null;

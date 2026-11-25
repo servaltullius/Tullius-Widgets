@@ -3,6 +3,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultSettings } from '../../data/defaultSettings';
+import { handleEscapeFromPlugin } from '../../utils/escapeOwners';
 import { isHotkeyCaptureActive } from '../../utils/hotkeys';
 import { HotkeySettings } from './HotkeySettings';
 
@@ -72,5 +73,35 @@ describe('HotkeySettings', () => {
     expect(onUpdate).not.toHaveBeenCalled();
     press('Escape', 27);
     expect((container.querySelector('[data-hotkey-field="visibilityHotkey"]') as HTMLButtonElement).textContent).toBe('F11');
+  });
+
+  it('keeps waiting through other setting changes, checks the latest keys and stops on a plugin Esc', () => {
+    const onUpdate = vi.fn();
+    const onEscapeOwner = vi.fn();
+    window.onEscapeOwner = onEscapeOwner;
+    try {
+      const settings = structuredClone(defaultSettings);
+      act(() => root!.render(<HotkeySettings lang="ko" settings={settings} onUpdate={onUpdate} />));
+      const button = () => container.querySelector('[data-hotkey-field="visibilityHotkey"]') as HTMLButtonElement;
+      act(() => button().click());
+      expect(onEscapeOwner.mock.calls).toEqual([['1']]);
+
+      // Shift+wheel changes the opacity while the button waits; the settings key moves to Home.
+      const changed = { ...settings, general: { ...settings.general, opacity: 55, settingsHotkey: 0xC7 } };
+      act(() => root!.render(<HotkeySettings lang="ko" settings={changed} onUpdate={onUpdate} />));
+      expect(onEscapeOwner.mock.calls).toEqual([['1']]);
+      expect(isHotkeyCaptureActive()).toBe(true);
+
+      press('Home', 36);
+      expect(container.textContent).toContain('이미 쓰는 키');
+      expect(onUpdate).not.toHaveBeenCalled();
+
+      act(() => handleEscapeFromPlugin());
+      expect(button().textContent).toBe('F11');
+      expect(isHotkeyCaptureActive()).toBe(false);
+      expect(onEscapeOwner.mock.calls).toEqual([['1'], ['0']]);
+    } finally {
+      delete window.onEscapeOwner;
+    }
   });
 });

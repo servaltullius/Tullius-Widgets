@@ -21,6 +21,9 @@ bool IsGameLoaded();
 void SetGameLoaded(bool loaded);
 void ScheduleStatsUpdateAfter(std::chrono::milliseconds delay);
 void RequestStatsDispatch(bool force);
+void RequestVisibilityCheck();
+void NoteViewHidden();
+void NoteViewShown();
 void StartHeartbeat();
 
 }  // namespace TulliusWidgets::WidgetRuntime

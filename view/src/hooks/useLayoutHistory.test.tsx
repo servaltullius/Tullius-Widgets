@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act } from 'react';
+import { act, useEffect } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WidgetItemLayout } from '../types/settings';
@@ -64,6 +64,30 @@ describe('useLayoutHistory', () => {
 
     press('y');
     expect(onRestore).toHaveBeenLastCalledWith(c);
+  });
+
+  it('keeps a change right after a checkpoint as its own undo step', () => {
+    const onRestore = vi.fn();
+    const api: { checkpoint: () => void } = { checkpoint: () => {} };
+    function CheckpointHarness({ layouts, onCheckpoint }: { layouts: Layouts; onCheckpoint: (checkpoint: () => void) => void }) {
+      const { checkpoint } = useLayoutHistory({ enabled: true, itemLayouts: layouts, onRestore });
+      useEffect(() => onCheckpoint(checkpoint), [checkpoint, onCheckpoint]);
+      return null;
+    }
+    const keepCheckpoint = (checkpoint: () => void) => {
+      api.checkpoint = checkpoint;
+    };
+    const a = layoutAt(0);
+    const b = layoutAt(10);
+    const restored = layoutAt(0);
+
+    act(() => root!.render(<CheckpointHarness layouts={a} onCheckpoint={keepCheckpoint} />));
+    act(() => { vi.advanceTimersByTime(1000); root!.render(<CheckpointHarness layouts={b} onCheckpoint={keepCheckpoint} />); });
+    // A cancel right after the edit would normally merge with it; the checkpoint keeps it apart.
+    act(() => { vi.advanceTimersByTime(50); api.checkpoint(); root!.render(<CheckpointHarness layouts={restored} onCheckpoint={keepCheckpoint} />); });
+
+    press('z');
+    expect(onRestore).toHaveBeenLastCalledWith(b);
   });
 
   it('starts a fresh history when the reset key changes', () => {

@@ -25,6 +25,24 @@ describe('SelectedWidgetQuickEditCard', () => {
     vi.restoreAllMocks();
   });
 
+  it('shows fractional positions as whole numbers', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <SelectedWidgetQuickEditCard
+          lang="ko"
+          title="레벨"
+          layout={{ visible: true, x: 148.4, y: 594.667, scale: 1, locked: false, zIndex: 1 }}
+          minScale={0.7}
+          maxScale={2.4}
+        />,
+      );
+    });
+
+    const values = Array.from(container.querySelectorAll('.tw-p-nudge-value')).map(node => node.textContent);
+    expect(values).toEqual(['148', '595']);
+  });
+
   it('renders a compact selected-widget shell and emits quick-edit callbacks', async () => {
     const onToggleVisible = vi.fn();
     const onScaleChange = vi.fn();
@@ -76,12 +94,10 @@ describe('SelectedWidgetQuickEditCard', () => {
     const bringForwardButton = container.querySelector('button[data-quick-edit-bring-forward="true"]') as HTMLButtonElement | null;
     const sendBackwardButton = container.querySelector('button[data-quick-edit-send-backward="true"]') as HTMLButtonElement | null;
 
-    expect(visibilityToggle?.style.width).toBe('18px');
-    expect(visibilityToggle?.style.height).toBe('18px');
-    expect(visibilityToggle?.style.appearance).toBe('none');
-    expect(lockToggle?.style.width).toBe('18px');
-    expect(lockToggle?.style.height).toBe('18px');
-    expect(lockToggle?.style.appearance).toBe('none');
+    expect(visibilityToggle?.getAttribute('role')).toBe('switch');
+    expect(lockToggle?.getAttribute('role')).toBe('switch');
+    expect(container.textContent).toContain('X 위치');
+    expect(container.textContent).toContain('Y 위치');
 
     await act(async () => {
       visibilityToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }));

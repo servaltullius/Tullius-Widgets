@@ -28,6 +28,7 @@ struct RuntimeState {
     std::atomic<bool> statsDispatchPending{ false };
     std::atomic<bool> statsDispatchForcePending{ false };
     std::atomic<bool> menusWereHidden{ false };
+    std::atomic<bool> visibilityCheckRequested{ false };
     std::jthread heartbeatThread;
 };
 
@@ -125,6 +126,8 @@ void SendStatsToView(bool force)
     }
 
     auto* ui = RE::UI::GetSingleton();
+    // A hidden view needs no stats. When the free camera ends, the visibility check shows the
+    // view again and forces a dispatch, so the page learns the camera state at that point.
     if (WidgetVisibilityState::IsBlockingUiState(ui, HasViewFocus())) {
         ScheduleStatsUpdateAfter(kPausedRetryDelay);
         return;
@@ -218,6 +221,21 @@ void ScheduleStatsUpdateAfter(std::chrono::milliseconds delay)
     }
 }
 
+void RequestVisibilityCheck()
+{
+    g_state.visibilityCheckRequested.store(true, std::memory_order_release);
+}
+
+void NoteViewHidden()
+{
+    g_state.menusWereHidden.store(true, std::memory_order_release);
+}
+
+void NoteViewShown()
+{
+    g_state.menusWereHidden.store(false, std::memory_order_release);
+}
+
 void StartHeartbeat()
 {
     if (g_state.heartbeatStarted.exchange(true, std::memory_order_acq_rel)) {
@@ -245,7 +263,8 @@ void StartHeartbeat()
             const auto nowMs = SteadyNowMs();
             const bool heartbeatDue = now >= nextHeartbeatDue;
             const bool scheduledDue = TryConsumeScheduledStatsUpdate(nowMs);
-            const bool visibilityCheckDue = now >= nextVisibilityCheck;
+            const bool visibilityCheckRequested = g_state.visibilityCheckRequested.exchange(false, std::memory_order_acq_rel);
+            const bool visibilityCheckDue = visibilityCheckRequested || now >= nextVisibilityCheck;
             if (!heartbeatDue && !scheduledDue && !visibilityCheckDue) {
                 continue;
             }
@@ -259,21 +278,22 @@ void StartHeartbeat()
                     return;
                 }
 
+                bool recoveredView = false;
                 if (visibilityCheckDue || heartbeatDue) {
                     auto* ui = RE::UI::GetSingleton();
                     if (WidgetVisibilityState::IsBlockingUiState(ui, HasViewFocus())) {
                         HideView();
-                        g_state.menusWereHidden.store(true, std::memory_order_release);
                         return;
                     }
                     if (g_state.menusWereHidden.exchange(false, std::memory_order_acq_rel)) {
-                        if (ShowView()) {
-                            RequestStatsDispatch(true);
+                        recoveredView = ShowView();
+                        if (!recoveredView) {
+                            NoteViewHidden();
                         }
                     }
                 }
 
-                if (heartbeatDue || scheduledDue) {
+                if (recoveredView || heartbeatDue || scheduledDue) {
                     RequestStatsDispatch(true);
                 }
             });

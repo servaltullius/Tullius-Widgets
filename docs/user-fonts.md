@@ -1,8 +1,8 @@
 # 사용자 글꼴 / User fonts
 
-글꼴 파일을 폴더에 넣으면 설정 → 일반 → 글꼴 프리셋에서 **사용자 글꼴**을 고를 수 있습니다. 클래식 카드와 컴팩트 HUD 모두에 적용됩니다. 설정 창은 기존 프리셋 글꼴을 사용합니다.
+글꼴 파일을 폴더에 넣으면 설정 → 표시와 모양 → 글꼴 프리셋에서 **사용자 글꼴**을 고를 수 있습니다. 클래식 카드와 컴팩트 HUD 모두에 적용됩니다. 설정 창은 기존 프리셋 글꼴을 사용합니다.
 
-Install font files in a folder, then pick it in Settings > General > Font Preset. User fonts apply to both HUD styles. The settings panel keeps the preset font.
+Install font files in a folder, then pick it in Settings > Display and appearance > Font Preset. User fonts apply to both HUD styles. The settings panel keeps the preset font.
 
 ## 폴더 구조 / Layout
 

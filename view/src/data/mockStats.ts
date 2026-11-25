@@ -104,4 +104,7 @@ export const mockStats: CombatStats = {
     },
   },
   isInCombat: false,
+  weaponDrawn: false,
+  sneaking: false,
+  freeCamera: false,
 };

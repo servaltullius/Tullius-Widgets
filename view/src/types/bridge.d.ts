@@ -9,6 +9,7 @@ declare global {
     toggleSettings?: () => void;
     toggleWidgetsVisibility?: () => void;
     closeSettings?: () => void;
+    handleEscape?: () => void;
     setHUDColor?: (hex: string) => void;
     updateIconPacks?: (jsonString: string) => void;
     updateUserFonts?: (jsonString: string) => void;
@@ -29,6 +30,7 @@ declare global {
     toggleSettings?: () => void;
     toggleWidgetsVisibility?: () => void;
     closeSettings?: () => void;
+    handleEscape?: () => void;
     setHUDColor?: (hex: string) => void;
     updateIconPacks?: (jsonString: string) => void;
     updateUserFonts?: (jsonString: string) => void;
@@ -40,6 +42,7 @@ declare global {
     onRequestUnfocus?: (argument: string) => void;
     onSettingsVisibilityChanged?: (argument: string) => void;
     onHotkeyCapture?: (argument: string) => void;
+    onEscapeOwner?: (argument: string) => void;
 
     onExportResult?: (success: boolean) => void;
     onImportResult?: (success: boolean) => void;

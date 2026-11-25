@@ -179,6 +179,7 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
             SetSettingsOpen(open);
             if (!open) {
                 TulliusWidgets::WidgetHotkeys::ClearCapture();
+                TulliusWidgets::WidgetHotkeys::ClearPageEscape();
             }
         });
     });
@@ -186,6 +187,12 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
     prismaUI->RegisterJSListener(view, TulliusWidgets::WidgetInteropContracts::kOnHotkeyCapture, [](const char* data) -> void {
         const bool active = data && std::string_view(data) == "1";
         TulliusWidgets::WidgetHotkeys::SetCaptureActive(active);
+    });
+
+    prismaUI->RegisterJSListener(view, TulliusWidgets::WidgetInteropContracts::kOnEscapeOwner, [](const char* data) -> void {
+        const std::string_view state = data ? std::string_view(data) : std::string_view{};
+        // "1" owned, "0" released, "0e" released by the page's own Esc keydown.
+        TulliusWidgets::WidgetHotkeys::SetPageOwnsEscape(state == "1", state == "0e");
     });
 }
 

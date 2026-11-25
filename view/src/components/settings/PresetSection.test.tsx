@@ -21,6 +21,12 @@ function PresetRoundTrip() {
   );
 }
 
+function AutoHidePresetRoundTrip({ onSettings }: { onSettings: (settings: WidgetSettings) => void }) {
+  const { settings } = useSettings();
+  onSettings(settings);
+  return <PresetSection lang="ko" settings={settings} />;
+}
+
 describe('PresetSection', () => {
   let container: HTMLDivElement;
   let root: Root | null = null;
@@ -101,5 +107,43 @@ describe('PresetSection', () => {
     expect(container.querySelector('output')?.textContent).toBe('');
     await act(async () => window.importSettingsFromNative?.(exported));
     expect(container.querySelector('output')?.textContent).toBe(userFont);
+  });
+
+  it('round-trips auto-hide and free camera while preserving the destination hotkeys and slots', async () => {
+    const onExport = vi.fn<(json: string) => void>();
+    window.onExportSettings = onExport;
+    const onSettings = vi.fn<(settings: WidgetSettings) => void>();
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<AutoHidePresetRoundTrip onSettings={onSettings} />);
+    });
+
+    const autoHide = { ...defaultSettings.general.autoHide, enabled: true, showSneaking: true, hideDelaySeconds: 17 };
+    await act(async () => window.updateSettings?.(JSON.stringify({ schemaVersion: 7, general: {
+      autoHide, freeCameraDisplay: 'vitals', settingsHotkey: 0xD2, visibilityHotkey: 0x57,
+    } })));
+    const exportButton = Array.from(container.querySelectorAll('button')).find(button => button.textContent?.includes('프리셋 내보내기'))!;
+    await act(async () => exportButton.click());
+    const exported = onExport.mock.calls[0][0];
+    const parsed = JSON.parse(exported);
+    expect(parsed).not.toHaveProperty('schemaVersion');
+    expect(parsed).not.toHaveProperty('layoutSlots');
+    expect(parsed.general).toMatchObject({ autoHide, freeCameraDisplay: 'vitals' });
+    expect(parsed.general).not.toHaveProperty('settingsHotkey');
+    expect(parsed.general).not.toHaveProperty('visibilityHotkey');
+
+    const slot = {
+      savedAt: 42, hudStyle: 'compact', compactAnchor: 'bottomLeft',
+      itemLayouts: { 'player.gold': { visible: true, x: 1, y: 2, scale: 1, locked: false, zIndex: 1 } },
+    };
+    await act(async () => window.updateSettings?.(JSON.stringify({
+      schemaVersion: 7, general: { settingsHotkey: 0xC7, visibilityHotkey: 0xCF }, layoutSlots: [slot, null, null],
+    })));
+    const destination = onSettings.mock.lastCall![0];
+    expect(destination.layoutSlots[0]?.savedAt).toBe(42);
+    await act(async () => window.importSettingsFromNative?.(exported));
+    const imported = onSettings.mock.lastCall![0];
+    expect(imported.general).toMatchObject({ autoHide, freeCameraDisplay: 'vitals', settingsHotkey: 0xC7, visibilityHotkey: 0xCF });
+    expect(imported.layoutSlots).toEqual(destination.layoutSlots);
   });
 });

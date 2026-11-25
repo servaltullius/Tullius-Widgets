@@ -138,6 +138,9 @@ struct StatsPayload {
     AlertDataSnapshot alertData{};
     std::vector<TimedEffectEntry> timedEffects{};
     bool inCombat{false};
+    bool weaponDrawn{false};
+    bool sneaking{false};
+    bool freeCamera{false};
 };
 
 StatsPayload CollectStatsPayload(RE::PlayerCharacter* player);

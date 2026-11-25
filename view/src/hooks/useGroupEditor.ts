@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { UpdateSettingFn, WidgetSize } from '../types/settings';
-import { isHotkeyCaptureActive } from '../utils/hotkeys';
+import { claimEscape } from '../utils/escapeOwners';
 
 export type GroupInteractionMode = 'drag' | 'resize';
 
@@ -84,29 +84,14 @@ export function useGroupEditor({
   }, [interaction, rawSelectedGroupId, syncResizePreview]);
 
   const selectedGroupId = settingsOpen ? rawSelectedGroupId : null;
-  const interactionMode = settingsOpen ? interaction?.mode ?? null : null;
 
+  // A selected group answers Esc (deselect), so the plugin must not close the panel on that key.
+  const clearSelectionRef = useRef(clearSelection);
   useEffect(() => {
-    if (!settingsOpen) {
-      return undefined;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || !selectedGroupId || isHotkeyCaptureActive()) {
-        return;
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
-      if (typeof event.stopImmediatePropagation === 'function') {
-        event.stopImmediatePropagation();
-      }
-      clearSelection();
-    };
-
-    window.addEventListener('keydown', handleKeyDown, true);
-    return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [clearSelection, selectedGroupId, settingsOpen]);
+    clearSelectionRef.current = clearSelection;
+  }, [clearSelection]);
+  useEffect(() => (selectedGroupId ? claimEscape('selection', () => clearSelectionRef.current()) : undefined), [selectedGroupId]);
+  const interactionMode = settingsOpen ? interaction?.mode ?? null : null;
 
   const selectGroup = useCallback((groupId: string) => {
     if (!settingsOpen) {

@@ -20,9 +20,9 @@ Data/PrismaUI/views/TulliusWidgets/icon-packs/
 - 팩 이름(폴더 이름)은 64자까지, 한글·영문·숫자·공백·`_ - . ( ) ' [ ]`를 쓸 수 있습니다. `.`으로 시작하거나 `..`가 들어간 이름은 무시됩니다.
 - 아이콘 파일 이름은 영문·숫자·`_`·`-`만, 확장자는 `.png`입니다. 대소문자는 구분하지 않습니다.
 - MO2에서는 모드 하나로 만들어 `PrismaUI/views/TulliusWidgets/icon-packs/<팩 이름>/`에 넣으면 됩니다.
-- 새 팩은 게임을 다시 시작하거나 세이브를 불러오면 설정 → 일반 → 아이콘 스타일 목록에 "아이콘 팩: <이름>"으로 나타납니다(컴팩트 HUD 전용).
+- 새 팩은 게임을 다시 시작하거나 세이브를 불러오면 설정 → 표시와 모양 → 아이콘 스타일 목록에 "아이콘 팩: <이름>"으로 나타납니다(컴팩트 HUD 전용).
 
-Folder names: up to 64 characters (letters in any script, digits, spaces and `_ - . ( ) ' [ ]`); names starting with `.` or containing `..` are skipped. Icon file names: ASCII letters, digits, `_` and `-`, extension `.png`, case-insensitive. A new pack appears in Settings > General > Icon Style after restarting the game or loading a save.
+Folder names: up to 64 characters (letters in any script, digits, spaces and `_ - . ( ) ' [ ]`); names starting with `.` or containing `..` are skipped. Icon file names: ASCII letters, digits, `_` and `-`, extension `.png`, case-insensitive. A new pack appears in Settings > Display and appearance > Icon Style after restarting the game or loading a save.
 
 ## pack.json
 

@@ -102,6 +102,35 @@ describe('useSettings', () => {
     expect(latest!.general.size).toBe('xsmall');
   });
 
+  it('persists legacy auto-hide migration on the next settings edit', async () => {
+    vi.useFakeTimers();
+    const onSettingsChanged = vi.fn<(json: string) => void>();
+    vi.stubGlobal('onSettingsChanged', onSettingsChanged);
+    let updateSetting: UpdateSettingFn | null = null;
+    try {
+      await act(async () => {
+        root = createRoot(container);
+        root.render(<SettingsAndUpdateHarness onSettings={settings => { latest = settings; }} onReady={value => { updateSetting = value; }} />);
+      });
+      // Supply saved layouts so the existing layout backfill does not independently persist them.
+      const itemLayouts = resolveWidgetItemLayouts({ settings: defaultSettings, viewportWidth: 1920, viewportHeight: 1080 });
+      await act(async () => window.updateSettings?.(JSON.stringify({ schemaVersion: 7, general: { combatOnly: true }, itemLayouts })));
+      await act(async () => vi.advanceTimersByTimeAsync(250));
+      expect(latest!.general.autoHide).toMatchObject({ enabled: true, showInCombat: true, hideDelaySeconds: 0 });
+      expect(onSettingsChanged).not.toHaveBeenCalled();
+
+      await act(async () => updateSetting?.('general.opacity', 80));
+      await act(async () => vi.advanceTimersByTimeAsync(250));
+      expect(onSettingsChanged).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(onSettingsChanged.mock.calls[0][0])).toMatchObject({
+        schemaVersion: 7,
+        general: { opacity: 80, combatOnly: false, showOnChangeOnly: false, autoHide: latest!.general.autoHide },
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('starts with the standalone level widget hidden in fresh stage 2 defaults', async () => {
     await act(async () => {
       root = createRoot(container);
@@ -436,6 +465,41 @@ describe('useSettings', () => {
     });
 
     expect(syncResult).toBe(false);
+  });
+
+  it('saves a change made without saving when the saving update that follows changes nothing', async () => {
+    vi.useFakeTimers();
+    const onSettingsChanged = vi.fn();
+    let updateSetting: UpdateSettingFn | null = null;
+    window.onSettingsChanged = onSettingsChanged;
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<UpdateSettingHarness onReady={value => { updateSetting = value; }} />);
+    });
+
+    // A sideways drag: X changes without saving, Y is written again with the value it had.
+    await act(async () => {
+      updateSetting?.('general.opacity', 61, { persist: false });
+      updateSetting?.('general.size', defaultSettings.general.size);
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(onSettingsChanged).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(onSettingsChanged.mock.calls[0]?.[0] as string) as WidgetSettings;
+    expect(payload.general.opacity).toBe(61);
+
+    // Nothing is waiting any more, so the same no-op update does not save again.
+    await act(async () => {
+      updateSetting?.('general.size', defaultSettings.general.size);
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(onSettingsChanged).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
   });
 
   it('retries the last settings payload once after native sync failure', async () => {

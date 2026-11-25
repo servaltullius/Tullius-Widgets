@@ -4,13 +4,11 @@ import { mockStats } from '../data/mockStats';
 import { resolveWidgetItemLayouts } from '../hooks/useWidgetItemLayouts';
 import {
   buildItemChangeSignatures,
-  buildTrackedChangeSignature,
   getVisibleHudItemIds,
   hasChangeDrivenItems,
   getRuntimeWarningText,
   getSettingsSyncWarningText,
   resolveExperienceProgress,
-  resolveHudVisibility,
   buildClassicEquipDetail,
   formatThousands,
   getCompactEffectRowLimit,
@@ -24,6 +22,10 @@ function cloneSettings(): WidgetSettings {
 
 function cloneStats(): CombatStats {
   return structuredClone(mockStats);
+}
+
+function getItemSignatureText(...args: Parameters<typeof buildItemChangeSignatures>): string {
+  return Object.values(buildItemChangeSignatures(...args)).join('|');
 }
 
 describe('hudPresentation', () => {
@@ -69,7 +71,7 @@ describe('hudPresentation', () => {
     itemLayouts['resistance.disease'] = { ...itemLayouts['resistance.disease'], visible: false };
     itemLayouts['player.health'] = { ...itemLayouts['player.health'], visible: false };
 
-    const signature = buildTrackedChangeSignature(stats, itemLayouts);
+    const signature = getItemSignatureText(stats, itemLayouts);
 
     expect(signature).toContain(`res.magic:${stats.resistances.magic}`);
     expect(signature).not.toContain(`res.disease:${stats.resistances.disease}`);
@@ -89,18 +91,22 @@ describe('hudPresentation', () => {
       itemLayouts[itemId] = { ...itemLayouts[itemId], visible: true };
     }
 
-    const before = buildTrackedChangeSignature(stats, itemLayouts);
+    const before = getItemSignatureText(stats, itemLayouts);
     stats.time.minute = (stats.time.minute + 1) % 60;
     stats.time.hour = (stats.time.hour + 1) % 24;
     stats.timedEffects = stats.timedEffects.map(effect => ({ ...effect, remainingSec: Math.max(0, effect.remainingSec - 5) }));
-    expect(buildTrackedChangeSignature(stats, itemLayouts)).toBe(before);
+    expect(getItemSignatureText(stats, itemLayouts)).toBe(before);
+    // The plugin sorts effects by remaining time, so equal effects can swap places while counting down.
+    expect(stats.timedEffects.length).toBeGreaterThan(1);
+    stats.timedEffects = [...stats.timedEffects].reverse();
+    expect(getItemSignatureText(stats, itemLayouts)).toBe(before);
 
     stats.equipped.voice = 'Whirlwind Sprint';
-    const afterVoice = buildTrackedChangeSignature(stats, itemLayouts);
+    const afterVoice = getItemSignatureText(stats, itemLayouts);
     expect(afterVoice).not.toBe(before);
 
     stats.timedEffects = stats.timedEffects.slice(1);
-    expect(buildTrackedChangeSignature(stats, itemLayouts)).not.toBe(afterVoice);
+    expect(getItemSignatureText(stats, itemLayouts)).not.toBe(afterVoice);
   });
 
   it('shows every compact widget by default and hides combat-or-change ones while exploring', () => {
@@ -173,9 +179,9 @@ describe('hudPresentation', () => {
     }
     itemLayouts['resistance.fire'] = { ...itemLayouts['resistance.fire'], visible: true };
 
-    const before = buildTrackedChangeSignature(stats, itemLayouts);
+    const before = getItemSignatureText(stats, itemLayouts);
     stats.calcMeta.rawResistances.fire = 130;
-    const after = buildTrackedChangeSignature(stats, itemLayouts);
+    const after = getItemSignatureText(stats, itemLayouts);
 
     expect(before).not.toBe(after);
   });
@@ -196,9 +202,9 @@ describe('hudPresentation', () => {
     itemLayouts['experience.progress'] = { ...itemLayouts['experience.progress'], visible: true };
     itemLayouts['player.level'] = { ...itemLayouts['player.level'], visible: false };
 
-    const before = buildTrackedChangeSignature(stats, itemLayouts);
+    const before = getItemSignatureText(stats, itemLayouts);
     stats.playerInfo.level = 43;
-    const after = buildTrackedChangeSignature(stats, itemLayouts);
+    const after = getItemSignatureText(stats, itemLayouts);
 
     expect(before).toContain('pi.level:42');
     expect(before).toContain(`xp.current:${mockStats.playerInfo.experience}`);
@@ -255,68 +261,6 @@ describe('hudPresentation', () => {
 
     const noTotal: PlayerInfo = { ...pending, experience: 100, expToNextLevel: 300, nextLevelTotalXp: 0 };
     expect(resolveExperienceProgress(noTotal)).toEqual({ currentXp: 100, totalXpForNextLevel: 400 });
-  });
-
-  it('resolves overall HUD visibility from combat and change-window rules', () => {
-    const settings = cloneSettings();
-    const stats = cloneStats();
-
-    settings.general.showOnChangeOnly = true;
-    settings.general.changeDisplaySeconds = 1;
-    settings.general.combatOnly = true;
-    stats.isInCombat = true;
-
-    expect(resolveHudVisibility({
-      visible: true,
-      hasLiveStats: true,
-      settings,
-      stats,
-      settingsOpen: false,
-      nowMs: 6000,
-      lastChangeAtMs: 4000,
-    }).shouldShow).toBe(false);
-
-    expect(resolveHudVisibility({
-      visible: true,
-      hasLiveStats: true,
-      settings,
-      stats,
-      settingsOpen: false,
-      nowMs: 4700,
-      lastChangeAtMs: 4000,
-    }).shouldShow).toBe(true);
-
-    stats.isInCombat = false;
-    expect(resolveHudVisibility({
-      visible: true,
-      hasLiveStats: true,
-      settings,
-      stats,
-      settingsOpen: false,
-      nowMs: 4700,
-      lastChangeAtMs: 4000,
-    }).shouldShow).toBe(false);
-  });
-
-  it('keeps editable groups visible while settings are open even if global gates would hide them', () => {
-    const settings = cloneSettings();
-    const stats = cloneStats();
-
-    settings.general.visible = false;
-    settings.general.combatOnly = true;
-    settings.general.showOnChangeOnly = true;
-    settings.general.changeDisplaySeconds = 1;
-    stats.isInCombat = false;
-
-    expect(resolveHudVisibility({
-      visible: false,
-      hasLiveStats: true,
-      settings,
-      stats,
-      settingsOpen: true,
-      nowMs: 6000,
-      lastChangeAtMs: 4000,
-    }).shouldShow).toBe(true);
   });
 
   it('maps runtime and settings sync warnings to translated text', () => {

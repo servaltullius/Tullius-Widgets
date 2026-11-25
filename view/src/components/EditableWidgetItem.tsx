@@ -2,12 +2,14 @@ import {
   memo,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
 } from 'react';
 import type { WidgetInteractionMode } from '../hooks/useWidgetEditSelection';
 import { computeResizeScale } from '../utils/widgetSnap';
+import { releaseKeyboardFocus } from '../utils/keyboardFocus';
 
 interface EditableWidgetItemProps {
   itemId: string;
@@ -133,7 +135,9 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
     };
   }, [itemId, onSelect, onInteractionStart, onInteractionEnd, onMove, onDragEnd, onResize, onResizeEnd]);
 
-  useEffect(() => {
+  // Registered before paint: the settings window measures the widgets in the same commit that
+  // shows a HUD hidden until then, to pick the side it covers less.
+  useLayoutEffect(() => {
     onElementRef?.(itemId, containerRef.current);
     return () => onElementRef?.(itemId, null);
   }, [itemId, onElementRef]);
@@ -146,6 +150,7 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
     }
 
     event.preventDefault();
+    releaseKeyboardFocus();
     callbacksRef.current.onSelect(itemId);
     if (locked) {
       return;
@@ -174,6 +179,7 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
 
     event.preventDefault();
     event.stopPropagation();
+    releaseKeyboardFocus();
     callbacksRef.current.onSelect(itemId);
     if (locked) {
       return;
