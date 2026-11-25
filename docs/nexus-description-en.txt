@@ -6,10 +6,23 @@ A modern combat HUD and STB Widgets alternative for Skyrim SE/AE, powered by [ur
 Since v1.8.0 the cardless [b]Compact HUD[/b] is the default for new installs, and the original card-based Classic style is still available.
 Every widget stays independently movable and configurable. Standard icons are the default, and a Dororong icon theme is available as an option.
 
+[size=3][b]New in v1.10.0[/b][/size]
+
+[list]
+[*][b]New settings window[/b]: a category list on the left and wide content. The old General tab is split into [b]Display and appearance[/b] and [b]Hotkeys and language[/b]
+[*][b]Layout edit mode[/b]: drag widgets anywhere, wheel to resize, Shift+wheel for opacity; Apply keeps it, Esc puts it back. A [b]quick-edit card[/b] appears next to the selected widget
+[*][b]HUD auto-hide[/b] (like iHUD, off by default): shows only in combat, with a weapon drawn, while sneaking, when a resource is not full, or when a value changes
+[*][b]Free camera display[/b]: hide / health, magicka and stamina only / everything (SexLab and OStim scenes, console tfc)
+[*][b]Your own fonts[/b]: put TTF, OTF and other font files in [font=Courier New]PrismaUI/views/TulliusWidgets/user-fonts/<font name>/[/font] to use them for the HUD. [url=https://github.com/servaltullius/Tullius-Widgets/blob/master/docs/user-fonts.md]User font guide[/url]
+[*][b]Settings file protection[/b]: if the saved settings cannot be read you are told at once, and the old file is backed up before anything is saved over it
+[*]Esc steps back one level at a time, and dropdowns work with the keyboard
+[*]Fixes: a crash right after loading when another mod passes a corrupted menu name, positions moved only sideways not being saved, the cursor vanishing after closing the console
+[/list]
+
 [size=3][b]New in v1.9.0: icon packs[/b][/size]
 
 [list]
-[*]Reskin the Compact HUD with your own PNGs: put files named like [font=Courier New]health.png[/font] or [font=Courier New]slot-sword.png[/font] in [font=Courier New]PrismaUI/views/TulliusWidgets/icon-packs/<pack name>/[/font] and pick the pack in Settings → General → Icon Style
+[*]Reskin the Compact HUD with your own PNGs: put files named like [font=Courier New]health.png[/font] or [font=Courier New]slot-sword.png[/font] in [font=Courier New]PrismaUI/views/TulliusWidgets/icon-packs/<pack name>/[/font] and pick the pack in Settings → Display and appearance → Icon style
 [*]Only the icons you add change; the rest stay built-in, so partial packs work. Packs can be shared as their own mods
 [*]How to make one, with every icon name: [url=https://github.com/servaltullius/Tullius-Widgets/blob/master/docs/icon-packs.md]icon pack guide[/url]
 [/list]
@@ -28,7 +41,7 @@ Every widget stays independently movable and configurable. Standard icons are th
 [*]Ships the Pretendard font so the HUD looks the same in game
 [*]Removed the screen-edge vignette alerts
 [*]Skyrim 1.7.x support; damage reduction now matches the game's calculation
-[*]Existing settings keep the Classic style and layout. Switch in Settings → General → HUD style
+[*]Existing settings keep the Classic style and layout. Switch in Settings → Display and appearance → HUD style
 [/list]
 
 [center][img]https://raw.githubusercontent.com/servaltullius/Tullius-Widgets/master/docs/screenshot-compact-dororong.jpg[/img][/center]
@@ -40,7 +53,8 @@ Every widget stays independently movable and configurable. Standard icons are th
 [list]
 [*][b]28 independently positioned HUD items[/b] covering progression, player stats, resistances, defense, offense, equipment, time and weather, movement, and timed effects
 [*]Two styles: [b]Compact HUD[/b] and [b]Classic cards[/b]
-[*][b]Icon packs[/b]: reskin the Compact HUD with your own PNGs
+[*][b]Icon packs[/b] (your own PNGs) and [b]your own fonts[/b] for the Compact HUD
+[*][b]Auto-hide[/b] like iHUD, and a choice of what shows in free camera
 [*]Uses familiar [b]standard icons by default[/b], with the Dororong theme and optional identifier badges available
 [*]Per-widget [b]move, resize, lock, visibility, layer order[/b] and [b]show conditions[/b]
 [*]Direct drag editing, neighbor snapping, alignment guides, 1px/10px keyboard movement, and undo
@@ -111,7 +125,8 @@ Data/
 [list]
 [*][b]Insert[/b] - Open / close the settings panel (remappable in Settings)
 [*][b]F11[/b] - Toggle widget visibility (remappable in Settings)
-[*][b]ESC[/b] - Close the settings panel
+[*][b]ESC[/b] - Step back one level: open menu → widget selection → layout editing → settings panel
+[*][b]Mouse wheel[/b] / [b]Shift + wheel[/b] - Resize the selected widget / change overall opacity while editing the layout
 [*][b]Drag / Resize[/b] - Edit widgets while the settings panel is open
 [*][b]Arrow keys[/b] - Move the selected widget by 1px
 [*][b]Shift + Arrow keys[/b] - Move the selected widget by 10px
@@ -166,6 +181,7 @@ If some translation keys are missing, the UI falls back to the bundled [b]Englis
 [list]
 [*]Settings: [font=Courier New]Data/SKSE/Plugins/TulliusWidgets.json[/font]
 [*]Preset export/import: [font=Courier New]Data/SKSE/Plugins/TulliusWidgets_preset.json[/font]
+[*]Backups in the same folder: [font=Courier New]TulliusWidgets.json.prev[/font] (before the first save of each game) and [font=Courier New]TulliusWidgets.json.unloaded-<date-time>.bak[/font] (before unread settings are saved over)
 [/list]
 
 [line]
