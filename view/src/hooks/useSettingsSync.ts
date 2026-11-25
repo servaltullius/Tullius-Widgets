@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { BRIDGE_CALLBACKS } from '../constants/bridge';
 import type { WidgetSettings } from '../types/settings';
-import { serializeSettingsPayload } from './settingsShared';
+import { serializeSettingsPayload, type LoadedSettingsFile } from './settingsShared';
 
 export type SettingsSyncState = 'idle' | 'retrying' | 'failed' | 'saved';
 
 interface UseSettingsSyncParams {
   settingsRevisionRef: MutableRefObject<number>;
+  /** The saved file this view took in; sent with every save. */
+  loadedSettingsFileRef: MutableRefObject<LoadedSettingsFile>;
 }
 
-export function useSettingsSync({ settingsRevisionRef }: UseSettingsSyncParams) {
+export function useSettingsSync({ settingsRevisionRef, loadedSettingsFileRef }: UseSettingsSyncParams) {
   const [lastSettingsSyncOk, setLastSettingsSyncOk] = useState<boolean | null>(null);
   const [settingsSyncState, setSettingsSyncState] = useState<SettingsSyncState>('idle');
   const debounceTimerRef = useRef<number | null>(null);
@@ -41,7 +43,7 @@ export function useSettingsSync({ settingsRevisionRef }: UseSettingsSyncParams) 
       : settingsRevisionRef.current + 1;
     settingsRevisionRef.current = Math.max(settingsRevisionRef.current, nextRevision);
 
-    const json = serializeSettingsPayload(nextSettings, settingsRevisionRef.current);
+    const json = serializeSettingsPayload(nextSettings, settingsRevisionRef.current, loadedSettingsFileRef.current);
     if (json === lastQueuedSettingsJsonRef.current) {
       return;
     }
@@ -53,18 +55,28 @@ export function useSettingsSync({ settingsRevisionRef }: UseSettingsSyncParams) 
     allowSameValueRetryRef.current = false;
     setSettingsSyncState('idle');
     dispatchSettingsJson(json, settingsRevisionRef.current);
-  }, [dispatchSettingsJson, settingsRevisionRef]);
+  }, [dispatchSettingsJson, loadedSettingsFileRef, settingsRevisionRef]);
 
   const rememberQueuedSettings = useCallback((settings: WidgetSettings, explicitRevision?: number) => {
     const revision = explicitRevision ?? settingsRevisionRef.current;
     settingsRevisionRef.current = Math.max(settingsRevisionRef.current, revision);
-    lastQueuedSettingsJsonRef.current = serializeSettingsPayload(settings, settingsRevisionRef.current);
+    // Settings that just came in from the file replace anything still waiting to be sent: a save
+    // queued before them would otherwise write the older state over the file just read.
+    if (debounceTimerRef.current !== null) {
+      window.clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    lastQueuedSettingsJsonRef.current = serializeSettingsPayload(
+      settings,
+      settingsRevisionRef.current,
+      loadedSettingsFileRef.current,
+    );
     lastQueuedSettingsRevisionRef.current = settingsRevisionRef.current;
     lastRetriedSettingsJsonRef.current = '';
     lastRetriedSettingsRevisionRef.current = null;
     allowSameValueRetryRef.current = false;
     setSettingsSyncState('idle');
-  }, [settingsRevisionRef]);
+  }, [loadedSettingsFileRef, settingsRevisionRef]);
 
   const handleSettingsSyncResult = useCallback((success: boolean, revision?: number) => {
     const queuedRevision = lastQueuedSettingsRevisionRef.current;

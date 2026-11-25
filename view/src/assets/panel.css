@@ -245,3 +245,13 @@
 .tw-p-btn.is-icon { padding: calc(2px * var(--ps)) calc(8px * var(--ps)); font-size: calc(16px * var(--ps)); line-height: 1; }
 .tw-p-card-title { font-size: calc(15px * var(--ps)); font-weight: 600; }
 .tw-p-button-row { display: flex; flex-wrap: wrap; align-items: center; gap: calc(6px * var(--ps)); }
+
+/* Notice: the plugin kept the saved settings file because the view could not read it. */
+.tw-w-notice {
+  display: flex; align-items: flex-start; gap: calc(12px * var(--ps));
+  margin: calc(12px * var(--ps)) calc(28px * var(--ps)) calc(4px * var(--ps)); padding: calc(10px * var(--ps)) calc(14px * var(--ps));
+  border: 1px solid rgba(230, 184, 102, 0.45); border-radius: calc(8px * var(--ps)); background: rgba(230, 184, 102, 0.08);
+}
+.tw-w-notice-body { flex: 1; min-width: 0; }
+.tw-w-notice-title { font-size: calc(14px * var(--ps)); font-weight: 600; color: var(--p-warn); }
+.tw-w-notice-text { margin: calc(4px * var(--ps)) 0 0; font-size: calc(13px * var(--ps)); line-height: 1.5; color: var(--p-text-2); overflow-wrap: anywhere; }

@@ -7,6 +7,7 @@ import { defaultSettings } from '../data/defaultSettings';
 import { buildItemLayoutsFromLegacySettings, resolveWidgetItemLayouts } from '../data/widgetItemRegistry';
 import { useSettings } from './useSettings';
 import type { UpdateSettingFn, WidgetSettings } from '../types/settings';
+import type { SettingsFileNotice } from '../types/settingsFileNotice';
 
 function Harness({ onSettings }: { onSettings: (settings: WidgetSettings) => void }) {
   const { settings } = useSettings();
@@ -81,6 +82,9 @@ describe('useSettings', () => {
     delete window.onSettingsSyncResult;
     delete window.onImportResult;
     delete window.onSettingsVisibilityChanged;
+    delete window.onSettingsLoadFailed;
+    delete window.showSettingsBackupNotice;
+    delete window.showSettingsLoadFailure;
     delete window.TulliusWidgetsBridge;
   });
 
@@ -619,6 +623,209 @@ describe('useSettings', () => {
     });
 
     expect(onImportResult).toHaveBeenCalledWith(false);
+  });
+
+  it.each([
+    ['broken JSON', '{"general":{"iconTheme":"doro', /^JSON parse error: /],
+    ['a non-object payload', '[]', /^payload is not an object/],
+  ])('tells the plugin why the saved settings could not be read (%s) and keeps the defaults', async (_label, payload, reason) => {
+    const onSettingsLoadFailed = vi.fn();
+    window.onSettingsLoadFailed = onSettingsLoadFailed;
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onSettings={settings => { latest = settings; }} />);
+    });
+    await act(async () => {
+      window.updateSettings?.(payload);
+    });
+
+    expect(onSettingsLoadFailed).toHaveBeenCalledTimes(1);
+    expect(onSettingsLoadFailed.mock.calls[0]?.[0]).toMatch(reason);
+    expect(onSettingsLoadFailed.mock.calls[0]?.[0]).toContain(`(${payload.length} chars)`);
+    expect(latest!.general.iconTheme).toBe(defaultSettings.general.iconTheme);
+  });
+
+  it('does not report a failed preset import as a saved-settings load failure', async () => {
+    const onSettingsLoadFailed = vi.fn();
+    window.onSettingsLoadFailed = onSettingsLoadFailed;
+    window.onImportResult = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<Harness onSettings={settings => { latest = settings; }} />);
+    });
+    await act(async () => {
+      window.importSettingsFromNative?.('[]');
+    });
+
+    expect(onSettingsLoadFailed).not.toHaveBeenCalled();
+  });
+
+  it('tells the player at once when the saved settings could not be read, then names the kept backup', async () => {
+    let notice: SettingsFileNotice | null | undefined;
+    let dismiss: (() => void) | null = null;
+    function NoticeHarness() {
+      const { settingsFileNotice, dismissSettingsFileNotice } = useSettings();
+      useEffect(() => {
+        notice = settingsFileNotice;
+        dismiss = dismissSettingsFileNotice;
+      }, [settingsFileNotice, dismissSettingsFileNotice]);
+      return null;
+    }
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<NoticeHarness />);
+    });
+    expect(notice).toBeNull();
+
+    await act(async () => {
+      window.updateSettings?.('{"general":{"iconTheme":"doro');
+    });
+    expect(notice).toEqual({ kind: 'loadFailed' });
+
+    await act(async () => {
+      window.showSettingsBackupNotice?.('  ');
+    });
+    expect(notice).toEqual({ kind: 'loadFailed' });
+
+    await act(async () => {
+      window.showSettingsBackupNotice?.('TulliusWidgets.json.unloaded-20261125-133800.bak');
+    });
+    expect(notice).toEqual({ kind: 'backup', fileName: 'TulliusWidgets.json.unloaded-20261125-133800.bak' });
+
+    // A later copy of the file that reads fine does not hide news of a kept backup.
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({ general: { iconTheme: 'dororong' }, rev: 3 }));
+    });
+    expect(notice).toEqual({ kind: 'backup', fileName: 'TulliusWidgets.json.unloaded-20261125-133800.bak' });
+
+    await act(async () => {
+      dismiss?.();
+    });
+    expect(notice).toBeNull();
+  });
+
+  it('drops the load failure notice when a later copy of the saved settings reads fine', async () => {
+    let notice: SettingsFileNotice | null | undefined;
+    function NoticeHarness() {
+      const { settingsFileNotice } = useSettings();
+      useEffect(() => {
+        notice = settingsFileNotice;
+      }, [settingsFileNotice]);
+      return null;
+    }
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<NoticeHarness />);
+    });
+    await act(async () => {
+      window.updateSettings?.('[]');
+    });
+    expect(notice).toEqual({ kind: 'loadFailed' });
+
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({ general: { iconTheme: 'dororong' }, rev: 3 }));
+    });
+    expect(notice).toBeNull();
+  });
+
+  it('tells the plugin with every save which saved file it took in', async () => {
+    vi.useFakeTimers();
+    const onSettingsChanged = vi.fn();
+    window.onSettingsChanged = onSettingsChanged;
+    let updateSetting: UpdateSettingFn | null = null;
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<UpdateSettingHarness onReady={fn => { updateSetting = fn; }} />);
+    });
+    await act(async () => {
+      updateSetting?.('general.opacity', 61);
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+    const beforeLoad = JSON.parse(onSettingsChanged.mock.calls[onSettingsChanged.mock.calls.length - 1]?.[0] as string) as Record<string, unknown>;
+    expect(beforeLoad.loadedFile).toBe(false);
+    expect(beforeLoad.loadedRev).toBeNull();
+
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({ general: { opacity: 50 }, rev: 40 }));
+    });
+    await act(async () => {
+      updateSetting?.('general.opacity', 62);
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+    const afterLoad = JSON.parse(onSettingsChanged.mock.calls[onSettingsChanged.mock.calls.length - 1]?.[0] as string) as Record<string, unknown>;
+    expect(afterLoad.loadedFile).toBe(true);
+    expect(afterLoad.loadedRev).toBe(40);
+    delete window.onSettingsChanged;
+  });
+
+  it('drops a save still waiting to go out when the saved file arrives, so it cannot overwrite it', async () => {
+    vi.useFakeTimers();
+    const onSettingsChanged = vi.fn();
+    window.onSettingsChanged = onSettingsChanged;
+    let updateSetting: UpdateSettingFn | null = null;
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<UpdateSettingHarness onReady={fn => { updateSetting = fn; }} />);
+    });
+    await act(async () => {
+      updateSetting?.('general.opacity', 61);
+    });
+    // The file arrives inside the 200 ms the change waits before it is sent.
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({ general: { opacity: 50 }, rev: 40 }));
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(500);
+    });
+
+    for (const [payload] of onSettingsChanged.mock.calls) {
+      const sent = JSON.parse(payload as string) as WidgetSettings & { loadedRev?: number | null };
+      expect(sent.general.opacity).not.toBe(61);
+      expect(sent.loadedRev).toBe(40);
+    }
+    delete window.onSettingsChanged;
+  });
+
+  it('shows the plugin\'s load failure only while no saved file was taken in, and keeps it off once one was', async () => {
+    let notice: SettingsFileNotice | null | undefined;
+    function NoticeHarness() {
+      const { settingsFileNotice } = useSettings();
+      useEffect(() => {
+        notice = settingsFileNotice;
+      }, [settingsFileNotice]);
+      return null;
+    }
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<NoticeHarness />);
+    });
+    await act(async () => {
+      window.showSettingsLoadFailure?.();
+    });
+    expect(notice).toEqual({ kind: 'loadFailed' });
+
+    await act(async () => {
+      window.updateSettings?.(JSON.stringify({ general: { opacity: 50 }, rev: 40 }));
+    });
+    expect(notice).toBeNull();
+
+    // With the file in use, a failed copy later (a game load resending it) is not news.
+    await act(async () => {
+      window.showSettingsLoadFailure?.();
+      window.updateSettings?.('{"general":');
+    });
+    expect(notice).toBeNull();
   });
 
   it('reports settings panel visibility changes to native bridge listeners', async () => {

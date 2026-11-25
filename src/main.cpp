@@ -164,7 +164,15 @@ static void SendSettingsToView() {
     SendIconPacksToView();
     SendUserFontsToView();
     std::string json = TulliusWidgets::NativeStorage::LoadSettings(ResolveStorageBasePath());
-    if (json.empty()) return;
+    if (json.empty()) {
+        // A file that is there but empty, too large or unreadable never reaches the view, which
+        // then starts from defaults: tell it, so the player hears about it before changing anything.
+        if (TulliusWidgets::NativeStorage::SettingsFileExists(ResolveStorageBasePath())) {
+            logger::warn("The saved settings file could not be read; the view starts from defaults");
+            (void)TryInvoke(TulliusWidgets::WidgetInteropContracts::kShowSettingsLoadFailureScript);
+        }
+        return;
+    }
     // The view adopts the file it receives here, so the plugin applies the same file: otherwise a
     // failed save earlier in the session leaves the two on different hotkeys or camera policy.
     TulliusWidgets::WidgetHotkeys::ApplyHotkeysFromSettingsJson(json);

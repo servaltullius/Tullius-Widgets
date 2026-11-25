@@ -13,6 +13,8 @@ declare global {
     setHUDColor?: (hex: string) => void;
     updateIconPacks?: (jsonString: string) => void;
     updateUserFonts?: (jsonString: string) => void;
+    showSettingsBackupNotice?: (fileName: string) => void;
+    showSettingsLoadFailure?: () => void;
   }
 
   interface TulliusWidgetsBridgeNamespace {
@@ -34,6 +36,8 @@ declare global {
     setHUDColor?: (hex: string) => void;
     updateIconPacks?: (jsonString: string) => void;
     updateUserFonts?: (jsonString: string) => void;
+    showSettingsBackupNotice?: (fileName: string) => void;
+    showSettingsLoadFailure?: () => void;
 
     onSettingsChanged?: (jsonString: string) => void;
     onSettingsSyncResult?: (success: boolean, revision?: number) => void;
@@ -43,6 +47,7 @@ declare global {
     onSettingsVisibilityChanged?: (argument: string) => void;
     onHotkeyCapture?: (argument: string) => void;
     onEscapeOwner?: (argument: string) => void;
+    onSettingsLoadFailed?: (reason: string) => void;
 
     onExportResult?: (success: boolean) => void;
     onImportResult?: (success: boolean) => void;

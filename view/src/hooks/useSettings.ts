@@ -14,8 +14,9 @@ import {
   resolveWidgetItemLayouts,
 } from '../data/widgetItemRegistry';
 import type { RuntimeDiagnostics } from '../types/runtime';
+import type { SettingsFileNotice } from '../types/settingsFileNotice';
 import { isPlainObject } from '../utils/normalize';
-import { updateValueByPath } from './settingsShared';
+import { NO_LOADED_SETTINGS_FILE, readRevision, updateValueByPath, type LoadedSettingsFile } from './settingsShared';
 import {
   acceptIncomingSettingsRevision,
   mergeWithDefaults,
@@ -193,6 +194,10 @@ export function useSettings() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [hudColor, setHudColor] = useState('#ffffff');
   const [runtimeDiagnostics, setRuntimeDiagnostics] = useState<RuntimeDiagnostics | null>(null);
+  // Tells the player when the saved settings could not be read: first that the view started from
+  // defaults (the file is untouched until something is changed), then, once a change has been
+  // saved over it, the name the plugin kept the old file under. Shown until dismissed.
+  const [settingsFileNotice, setSettingsFileNotice] = useState<SettingsFileNotice | null>(null);
   // useReducer instead of useState to guarantee state update even when the
   // computed value is the same as the previous one (Object.is skip issue).
   type VisibleAction = { type: 'toggle'; settingsVisible: boolean } | { type: 'reset' };
@@ -205,6 +210,7 @@ export function useSettings() {
   );
   const settingsRevisionRef = useRef(0);
   const lastAppliedSettingsRevisionRef = useRef<number | null>(null);
+  const loadedSettingsFileRef = useRef<LoadedSettingsFile>(NO_LOADED_SETTINGS_FILE);
   const warnedFutureSettingsSchemaRef = useRef(false);
   const settingsRef = useRef(settings);
   const {
@@ -214,21 +220,50 @@ export function useSettings() {
     rememberQueuedSettings,
     handleSettingsSyncResult,
     retryPersistedSettings,
-  } = useSettingsSync({ settingsRevisionRef });
+  } = useSettingsSync({ settingsRevisionRef, loadedSettingsFileRef });
 
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
 
   const applyIncomingSettings = useCallback((jsonString: string, persist: boolean): boolean => {
+    // The saved file (not an imported preset, which reports its own result) could not be taken
+    // in: the plugin logs why, so the next occurrence can be traced.
+    const reportLoadFailure = (reason: string) => {
+      if (persist) return;
+      // Only news while nothing was read yet: a copy that fails later leaves the settings in use.
+      if (!loadedSettingsFileRef.current.taken) {
+        setSettingsFileNotice(current => current ?? { kind: 'loadFailed' });
+      }
+      try {
+        window[BRIDGE_CALLBACKS.onSettingsLoadFailed]?.(`${reason} (${jsonString.length} chars)`);
+      } catch (error) {
+        console.error('[TulliusWidgets] Failed to report a settings load failure:', error);
+      }
+    };
+    // Restored when the settings are not applied after all, so a file that failed is not counted
+    // as taken in (and a good copy of it that follows is not turned away as stale).
+    let revisionsBeforeAccept: { lastApplied: number | null; settings: number } | null = null;
     try {
-      const parsed = JSON.parse(jsonString);
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(jsonString);
+      } catch (e) {
+        console.error('Failed to parse settings JSON:', e);
+        reportLoadFailure(`JSON parse error: ${e instanceof Error ? e.message : String(e)}`);
+        return false;
+      }
       if (!isPlainObject(parsed)) {
         console.error('Failed to apply settings: payload is not an object');
+        reportLoadFailure('payload is not an object');
         return false;
       }
 
       warnFutureSettingsSchemaVersion(parsed, warnedFutureSettingsSchemaRef);
+      revisionsBeforeAccept = {
+        lastApplied: lastAppliedSettingsRevisionRef.current,
+        settings: settingsRevisionRef.current,
+      };
       if (!acceptIncomingSettingsRevision(parsed, lastAppliedSettingsRevisionRef, settingsRevisionRef)) {
         return true;
       }
@@ -247,6 +282,11 @@ export function useSettings() {
       const shouldPersistStampedLayouts = !persist && merged !== mergedWithDefaults;
       setSettings(merged);
       dispatchVisibleOverride({ type: 'reset' });
+      if (!persist) {
+        loadedSettingsFileRef.current = { taken: true, rev: readRevision(parsed.rev) };
+        // A later copy of the saved file was read after all; only a kept backup is still news.
+        setSettingsFileNotice(current => (current?.kind === 'loadFailed' ? null : current));
+      }
 
       if (persist || shouldPersistStampedLayouts) {
         notifySettingsChanged(merged);
@@ -255,10 +295,31 @@ export function useSettings() {
       }
       return true;
     } catch (e) {
-      console.error('Failed to parse settings JSON:', e);
+      console.error('Failed to apply settings:', e);
+      if (revisionsBeforeAccept) {
+        lastAppliedSettingsRevisionRef.current = revisionsBeforeAccept.lastApplied;
+        settingsRevisionRef.current = revisionsBeforeAccept.settings;
+      }
+      reportLoadFailure(`apply error: ${e instanceof Error ? e.message : String(e)}`);
       return false;
     }
   }, [notifySettingsChanged, rememberQueuedSettings]);
+
+  // The plugin found the saved file but could not read it (empty, too large or locked), so it
+  // never reached this view.
+  const showSettingsLoadFailure = useCallback(() => {
+    if (loadedSettingsFileRef.current.taken) return;
+    setSettingsFileNotice(current => current ?? { kind: 'loadFailed' });
+  }, []);
+
+  const showSettingsBackupNotice = useCallback((fileName: string) => {
+    if (typeof fileName !== 'string' || fileName.trim() === '') return;
+    setSettingsFileNotice({ kind: 'backup', fileName: fileName.trim() });
+  }, []);
+
+  const dismissSettingsFileNotice = useCallback(() => {
+    setSettingsFileNotice(null);
+  }, []);
 
   const toggleSettings = useCallback(() => {
     setSettingsOpen(prev => !prev);
@@ -284,6 +345,8 @@ export function useSettings() {
     closeSettings: closeSettingsFromBridge,
     setHUDColor,
     handleSettingsSyncResult,
+    showSettingsBackupNotice,
+    showSettingsLoadFailure,
   });
 
   // ESC key closes settings and requests unfocus.
@@ -373,5 +436,7 @@ export function useSettings() {
     runtimeDiagnostics,
     lastSettingsSyncOk,
     settingsSyncState,
+    settingsFileNotice,
+    dismissSettingsFileNotice,
   };
 }

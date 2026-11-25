@@ -15,8 +15,10 @@ function BridgeHarness(props: {
   closeSettings: () => void;
   setHUDColor: (hex: string) => void;
   handleSettingsSyncResult: (success: boolean, revision?: number) => void;
+  showSettingsBackupNotice?: (fileName: string) => void;
+  showSettingsLoadFailure?: () => void;
 }) {
-  useSettingsBridge(props);
+  useSettingsBridge({ showSettingsBackupNotice: () => {}, showSettingsLoadFailure: () => {}, ...props });
   useEffect(() => undefined, []);
   return null;
 }
@@ -48,6 +50,7 @@ describe('useSettingsBridge', () => {
     delete window.onSettingsSyncResult;
     delete window.TulliusWidgetsBridge;
     delete window.onImportResult;
+    delete window.showSettingsBackupNotice;
   });
 
   it('registers both legacy and namespaced bridge handlers and cleans them up on unmount', async () => {
@@ -153,5 +156,30 @@ describe('useSettingsBridge', () => {
       ...createRuntimeDiagnosticsPayload(),
       warningCode: 'none',
     });
+  });
+  it('passes the plugin\'s settings backup notice on to the view', async () => {
+    const showSettingsBackupNotice = vi.fn();
+    root = createRoot(container);
+    await act(async () => {
+      root!.render(
+        <BridgeHarness
+          applyIncomingSettings={vi.fn(() => true)}
+          setRuntimeDiagnostics={vi.fn()}
+          toggleSettings={vi.fn()}
+          toggleWidgetsVisibility={vi.fn()}
+          closeSettings={vi.fn()}
+          setHUDColor={vi.fn()}
+          handleSettingsSyncResult={vi.fn()}
+          showSettingsBackupNotice={showSettingsBackupNotice}
+        />,
+      );
+    });
+
+    window.showSettingsBackupNotice?.('TulliusWidgets.json.unloaded-20261125-133800.bak');
+    window.TulliusWidgetsBridge?.v1?.showSettingsBackupNotice?.('second.bak');
+    expect(showSettingsBackupNotice.mock.calls).toEqual([
+      ['TulliusWidgets.json.unloaded-20261125-133800.bak'],
+      ['second.bak'],
+    ]);
   });
 });
