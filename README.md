@@ -178,8 +178,17 @@ npm install
 npm run build
 ```
 
+테스트:
+```bash
+cd view
+npm test                                     # 단위 테스트(vitest, jsdom)
+npx playwright install --only-shell chromium # 처음 한 번: 브라우저 테스트용 Chromium
+npm run e2e                                  # 브라우저 테스트(Playwright, e2e/*.e2e.ts)
+```
+브라우저 테스트는 Vite 개발 서버를 1920×1080 Chromium으로 열고, 플러그인 대신 화면의 브리지 함수(`updateSettings`, `updateStats`, `toggleSettings`)로 설정과 상태를 넣습니다. 위젯 위치, 드래그, 설정 창 같은 화면 동작을 확인하며 GitHub Actions에서도 돕니다. 게임 화면 엔진(Ultralight)에서만 드러나는 동작은 게임에서 확인해야 합니다.
+
 ### C++ SKSE Plugin (Windows MSVC 필수)
-Windows PowerShell 또는 Developer Command Prompt에서 실행:
+일반 Windows PowerShell에서 실행합니다. Developer Command Prompt의 PATH에서는 xmake가 비정상 종료할 수 있습니다([로컬 릴리즈 가이드](docs/local-release.ko.md) 참고):
 
 ```powershell
 xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false

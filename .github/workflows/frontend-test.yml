@@ -12,7 +12,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -36,6 +36,20 @@ jobs:
 
       - name: Test
         run: cd view && npm run test
+
+      - name: Install browser for browser tests
+        run: cd view && npx playwright install --with-deps --only-shell chromium
+
+      - name: Browser tests
+        run: cd view && npm run e2e
+
+      - name: Upload browser test traces
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces
+          path: view/test-results
+          retention-days: 7
 
       - name: Contract tests
         run: node --test scripts/*.test.mjs
