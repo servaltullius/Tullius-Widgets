@@ -132,6 +132,16 @@
   width: 532px;
 }
 
+/* Growing up: the first (most pressing) row sits at the anchored bottom edge. */
+.tw-ceffect-list[data-grow='up'] {
+  flex-direction: column-reverse;
+}
+
+.tw-ceffect-list[data-layout='horizontal'][data-grow='up'] {
+  flex-direction: row;
+  flex-wrap: wrap-reverse;
+}
+
 .tw-ceffect-list[data-layout='horizontal'] .tw-ceffect-row {
   width: 250px;
 }

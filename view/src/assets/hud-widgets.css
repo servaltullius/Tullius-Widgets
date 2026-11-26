@@ -331,6 +331,15 @@
   flex-flow: row-reverse wrap;
 }
 
+/* Growing up: the first (most pressing) card sits at the anchored bottom edge. */
+.tw-effect-list[data-layout="vertical"][data-grow="up"] {
+  flex-direction: column-reverse;
+}
+
+.tw-effect-list[data-layout="horizontal"][data-grow="up"] {
+  flex-flow: row-reverse wrap-reverse;
+}
+
 .tw-effect-empty {
   color: var(--tw-hud-muted);
   font-family: var(--tw-font-hud);

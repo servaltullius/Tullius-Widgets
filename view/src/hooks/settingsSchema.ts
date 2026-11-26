@@ -10,6 +10,7 @@ import type {
   Language,
   ResistanceDisplayMode,
   TimeDisplayMode,
+  TimedEffectGrowDirection,
   TimedEffectListLayout,
   WidgetLayout,
   WidgetSettings,
@@ -46,6 +47,7 @@ function readAccentColor(value: unknown, fallback: string): string {
 }
 
 const TIMED_EFFECT_LIST_LAYOUTS = ['vertical', 'horizontal'] as const;
+const TIMED_EFFECT_GROW_DIRECTIONS = ['down', 'up'] as const;
 const CARRY_WEIGHT_DISPLAY_MODES = ['combined', 'valueOnly', 'meterOnly'] as const;
 const RESISTANCE_DISPLAY_MODES = ['effectiveOnly', 'rawOnly', 'both'] as const;
 const TIME_DISPLAY_MODES = ['dateTime', 'timeOnly'] as const;
@@ -124,6 +126,9 @@ function sanitizeLayoutSlots(incoming: unknown): WidgetSettings['layoutSlots'] {
       hudStyle: readEnum<HudStyle>(raw.hudStyle, 'compact', HUD_STYLES),
       compactAnchor: readEnum<CompactAnchor>(raw.compactAnchor, 'bottomLeft', ['bottomLeft', 'bottomRight', 'topLeft', 'topRight']),
       ...(typeof raw.size === 'string' && WIDGET_SIZES.includes(raw.size as WidgetSize) ? { size: raw.size as WidgetSize } : {}),
+      ...(raw.effectsGrowDirection === 'up' || raw.effectsGrowDirection === 'down'
+        ? { effectsGrowDirection: raw.effectsGrowDirection }
+        : {}),
       itemLayouts,
     };
   }
@@ -265,6 +270,11 @@ function mergeTimedEffectsSettings(target: WidgetSettings['timedEffects'], incom
     incoming.listLayout,
     target.listLayout,
     TIMED_EFFECT_LIST_LAYOUTS,
+  );
+  target.growDirection = readEnum<TimedEffectGrowDirection>(
+    incoming.growDirection,
+    target.growDirection,
+    TIMED_EFFECT_GROW_DIRECTIONS,
   );
   target.filter = readEnum<TimedEffectFilter>(incoming.filter, target.filter, TIMED_EFFECT_FILTERS);
   target.hideLongerThanMin = TIMED_EFFECT_LONG_LIMITS.includes(incoming.hideLongerThanMin as number)

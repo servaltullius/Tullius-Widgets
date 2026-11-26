@@ -117,6 +117,28 @@ describe('TimedEffectList', () => {
     expect(list?.lastElementChild?.textContent).toBe('+1');
   });
 
+  it('marks a list growing up so the most pressing effect sits at its anchored bottom, with "+N" on top', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <TimedEffectList
+          effects={buildEffects()}
+          maxVisible={2}
+          emptyLabel="없음"
+          layout="vertical"
+          growDirection="up"
+          variant="compact"
+        />,
+      );
+    });
+
+    const list = container.firstElementChild as HTMLDivElement | null;
+    expect(list?.classList.contains('tw-ceffect-list')).toBe(true);
+    expect(list?.getAttribute('data-grow')).toBe('up');
+    // The DOM keeps the priority order; the stylesheet reverses it from the bottom edge.
+    expect(list?.lastElementChild?.textContent).toBe('+1');
+  });
+
   it('renders the empty label when no effects are visible', async () => {
     await act(async () => {
       root = createRoot(container);

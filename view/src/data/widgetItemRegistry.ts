@@ -36,7 +36,7 @@ export interface LegacyWidgetLayoutSource {
   defense: WidgetSettings['defense'];
   offense: WidgetSettings['offense'];
   equipped: WidgetSettings['equipped'];
-  timedEffects: Pick<WidgetSettings['timedEffects'], 'enabled'> & Partial<Pick<WidgetSettings['timedEffects'], 'listLayout'>>;
+  timedEffects: Pick<WidgetSettings['timedEffects'], 'enabled'> & Partial<Pick<WidgetSettings['timedEffects'], 'listLayout' | 'growDirection'>>;
   movement: WidgetSettings['movement'];
   time: WidgetSettings['time'];
   experience: WidgetSettings['experience'];
@@ -199,6 +199,14 @@ function getCompactAnchorOffset(
     x: right ? width - COMPACT_CLUSTER_ANCHOR.x - scaledRight : 0,
     y: top ? COMPACT_TOP_MARGIN - scaledTop : 0,
   };
+}
+
+/** Items whose saved y is their bottom edge: the effect list while it grows upward. */
+export function isBottomAnchoredItem(
+  itemId: string,
+  settings: { timedEffects: Partial<Pick<WidgetSettings['timedEffects'], 'growDirection'>> },
+): boolean {
+  return itemId === 'timedEffects.list' && settings.timedEffects.growDirection === 'up';
 }
 
 export const ITEM_SHOW_WHEN_VALUES: readonly ItemShowWhen[] = ['always', 'combat', 'change', 'combatOrChange'];
@@ -612,15 +620,37 @@ function readVisibilityByPath(source: LegacyWidgetLayoutSource, path: string): b
   return cursor === true;
 }
 
+// Where a list growing up keeps its bottom-left corner by default (1080p baseline). Compact: just
+// above the resource-bar zone, which a downward list stops at, and right of the level widget,
+// which stands in the downward list's column: the column above stays free as the list climbs to
+// the top of the screen. Classic: below its downward spot at the top of the screen, leaving room
+// for a column of cards above.
+const EFFECT_LIST_GROW_UP_POSITIONS: Record<'classic' | 'compact' | 'compactDororong', Partial<GroupPosition>> = {
+  classic: { y: 400 },
+  compact: { x: 656, y: 975 },
+  compactDororong: { x: 756, y: 975 },
+};
+
+function withGrowUpEffectList(
+  table: Record<string, GroupPosition>,
+  source: LegacyWidgetLayoutSource,
+  style: keyof typeof EFFECT_LIST_GROW_UP_POSITIONS,
+): Record<string, GroupPosition> {
+  if (!isBottomAnchoredItem('timedEffects.list', source)) return table;
+  const down = table['timedEffects.list'] ?? { x: 0, y: 0 };
+  return { ...table, 'timedEffects.list': { ...down, ...EFFECT_LIST_GROW_UP_POSITIONS[style] } };
+}
+
 export function buildNordicDefaultItemLayouts(
   source: LegacyWidgetLayoutSource,
 ): Record<string, WidgetItemLayout> {
   const scale = NORDIC_DEFAULT_SIZE_SCALE_MAP[source.general.size];
+  const positions = withGrowUpEffectList(NORDIC_DEFAULT_ITEM_POSITIONS, source, 'classic');
 
   return Object.fromEntries(
     WIDGET_ITEM_IDS.map(itemId => {
       const entry = getWidgetItemRegistryEntry(itemId);
-      const position = NORDIC_DEFAULT_ITEM_POSITIONS[itemId] ?? { x: 0, y: 0 };
+      const position = positions[itemId] ?? { x: 0, y: 0 };
       return [
         itemId,
         {
@@ -642,7 +672,12 @@ export function buildCompactDefaultItemLayouts(
   source: LegacyWidgetLayoutSource,
 ): Record<string, WidgetItemLayout> {
   const scale = NORDIC_DEFAULT_SIZE_SCALE_MAP[source.general.size];
-  const table = getCompactPositions(source.general.iconTheme);
+  // The grow-up list sits further right, so a right-hand corner moves the cluster by its edge too.
+  const table = withGrowUpEffectList(
+    getCompactPositions(source.general.iconTheme),
+    source,
+    source.general.iconTheme === 'dororong' ? 'compactDororong' : 'compact',
+  );
   const offset = getCompactAnchorOffset(source.general.compactAnchor, scale, source.timedEffects.listLayout, table);
 
   return Object.fromEntries(

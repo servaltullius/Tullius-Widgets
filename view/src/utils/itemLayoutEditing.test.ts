@@ -6,7 +6,10 @@ import {
   bringVisibleItemForward,
   buildItemLayoutsForHudStyle,
   captureLayoutSlot,
+  effectListYForGrowDirection,
+  estimateEffectListBounds,
   normalizeItemLayoutZIndices,
+  pinItemLayoutsForGrowSwitch,
   nudgeItemLayout,
   resetItemToDefaultPlacement,
   shiftEffectListForLayout,
@@ -46,6 +49,91 @@ describe('itemLayoutEditing', () => {
       viewportHeight: 1080,
     });
     expect(restored['player.gold']).toMatchObject({ x: 900, y: 300, scale: 1.2 });
+  });
+
+  it('stores the effect list direction with a layout slot', () => {
+    const settings = cloneSettings();
+    settings.timedEffects.growDirection = 'up';
+    expect(captureLayoutSlot(settings, 1, { width: 1920, height: 1080 }).effectsGrowDirection).toBe('up');
+  });
+
+  it('keeps the effect list in place when it changes direction by moving its y to the new anchored edge', () => {
+    const bounds = { top: 700, bottom: 820 };
+    expect(effectListYForGrowDirection('up', bounds)).toBe(820);
+    expect(effectListYForGrowDirection('down', bounds)).toBe(700);
+  });
+
+  it('estimates a switched-off list as its empty line at its saved spot, on the side it grows from', () => {
+    const settings = cloneSettings();
+    settings.itemLayouts['timedEffects.list'] = { visible: false, x: 576, y: 790, scale: 1, locked: false, zIndex: 1, viewportWidth: 1920, viewportHeight: 1080 };
+    expect(estimateEffectListBounds(settings, { width: 1920, height: 1080 })).toEqual({ top: 790, bottom: 805 });
+    settings.timedEffects.growDirection = 'up';
+    expect(estimateEffectListBounds(settings, { width: 1920, height: 1080 })).toEqual({ top: 775, bottom: 790 });
+  });
+
+  it('saves the widgets where they are when the list changes direction in a right-hand corner', () => {
+    // The right-hand corner cluster is placed by its right edge, which the grow-up list moves.
+    for (const iconTheme of ['standard', 'dororong'] as const) {
+      const settings = cloneSettings();
+      settings.general.hudStyle = 'compact';
+      settings.general.iconTheme = iconTheme;
+      settings.general.compactAnchor = 'bottomRight';
+      settings.itemLayouts = {};
+      const viewport = { width: 1920, height: 1080 };
+      const before = resolveWidgetItemLayouts({ settings, viewportWidth: viewport.width, viewportHeight: viewport.height });
+
+      const pinned = pinItemLayoutsForGrowSwitch(settings, viewport, 975);
+      const after = resolveWidgetItemLayouts({
+        settings: { ...settings, timedEffects: { ...settings.timedEffects, growDirection: 'up' }, itemLayouts: pinned },
+        viewportWidth: viewport.width,
+        viewportHeight: viewport.height,
+      });
+      for (const itemId of Object.keys(before)) {
+        if (itemId === 'timedEffects.list') continue;
+        expect(after[itemId], itemId).toMatchObject({ x: before[itemId].x, y: before[itemId].y, visible: before[itemId].visible });
+      }
+      expect(after['timedEffects.list']).toMatchObject({ x: before['timedEffects.list'].x, y: 975 });
+    }
+  });
+
+  it('saves the widgets where they are on a 4K screen, with the shown ones saved at 1080p as on loading', () => {
+    const settings = cloneSettings();
+    settings.general.hudStyle = 'compact';
+    settings.general.compactAnchor = 'bottomRight';
+    settings.itemLayouts = {};
+    // Loading saves the shown widgets at the 1080p baseline and leaves the hidden ones to the defaults.
+    const seeded = resolveWidgetItemLayouts({ settings, viewportWidth: 1920, viewportHeight: 1080 });
+    settings.itemLayouts = Object.fromEntries(
+      Object.entries(seeded)
+        .filter(([, layout]) => layout.visible)
+        .map(([itemId, layout]) => [itemId, { ...layout, viewportWidth: 1920, viewportHeight: 1080 }]),
+    );
+    const viewport = { width: 3840, height: 2160 };
+    const before = resolveWidgetItemLayouts({ settings, viewportWidth: viewport.width, viewportHeight: viewport.height });
+
+    const pinned = pinItemLayoutsForGrowSwitch(settings, viewport, 1950);
+    const after = resolveWidgetItemLayouts({
+      settings: { ...settings, timedEffects: { ...settings.timedEffects, growDirection: 'up' }, itemLayouts: pinned },
+      viewportWidth: viewport.width,
+      viewportHeight: viewport.height,
+    });
+    for (const itemId of Object.keys(before)) {
+      if (itemId === 'timedEffects.list') continue;
+      expect(after[itemId].x, itemId).toBeCloseTo(before[itemId].x, 1);
+      expect(after[itemId].y, itemId).toBeCloseTo(before[itemId].y, 1);
+    }
+    expect(after['timedEffects.list'].x).toBeCloseTo(before['timedEffects.list'].x, 1);
+    expect(after['timedEffects.list'].y).toBeCloseTo(1950, 1);
+  });
+
+  it('keeps saved widgets as they are and leaves the list y alone when it could not be placed', () => {
+    const settings = cloneSettings();
+    const saved = { visible: true, x: 10, y: 20, scale: 1.5, locked: true, zIndex: 3, viewportWidth: 2560, viewportHeight: 1440 };
+    settings.itemLayouts = { 'player.level': saved };
+    const pinned = pinItemLayoutsForGrowSwitch(settings, { width: 1920, height: 1080 }, null);
+    expect(pinned['player.level']).toBe(saved);
+    const shown = resolveWidgetItemLayouts({ settings, viewportWidth: 1920, viewportHeight: 1080 });
+    expect(pinned['timedEffects.list']).toMatchObject({ y: shown['timedEffects.list'].y, viewportWidth: 1920, viewportHeight: 1080 });
   });
 
   it('normalizes zIndex into contiguous order while preserving hidden item relative order', () => {

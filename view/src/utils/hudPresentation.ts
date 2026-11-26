@@ -182,7 +182,8 @@ export function buildItemChangeSignatures(
 
 // The compact effect list grows downward from its top edge. Cap the rows so it stops above the
 // resource-bar zone at the bottom of the screen (or the screen edge when it was placed lower);
-// the list's own "+N" line, which needs one more row, reports the rest.
+// the list's own "+N" line, which needs one more row, reports the rest. Growing up from its
+// bottom edge (its y), it stops at the top of the screen instead.
 const COMPACT_EFFECT_ROW_PITCH = 24;
 const RESOURCE_BAR_ZONE = 0.91;
 
@@ -190,12 +191,15 @@ export function getCompactEffectRowLimit(
   layout: Pick<WidgetItemLayout, 'y' | 'scale' | 'viewportHeight'> | undefined,
   listLayout: WidgetSettings['timedEffects']['listLayout'],
   fallbackViewportHeight: number,
+  growDirection: WidgetSettings['timedEffects']['growDirection'] = 'down',
 ): number {
   if (!layout) return Number.POSITIVE_INFINITY;
   const viewportHeight = layout.viewportHeight ?? fallbackViewportHeight;
   const barZoneTop = viewportHeight * RESOURCE_BAR_ZONE;
-  const bottom = layout.y < barZoneTop ? barZoneTop : viewportHeight;
-  const rows = Math.floor((bottom - layout.y) / (COMPACT_EFFECT_ROW_PITCH * Math.max(0.1, layout.scale))) - 1;
+  const room = growDirection === 'up'
+    ? layout.y
+    : (layout.y < barZoneTop ? barZoneTop : viewportHeight) - layout.y;
+  const rows = Math.floor(room / (COMPACT_EFFECT_ROW_PITCH * Math.max(0.1, layout.scale))) - 1;
   return Math.max(1, rows) * (listLayout === 'horizontal' ? 2 : 1);
 }
 

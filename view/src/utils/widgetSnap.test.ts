@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { WidgetBounds } from './widgetBounds';
-import { computeResizeScale, snapWidgetMove } from './widgetSnap';
+import { computeResizeScale, snapWidgetMove, snapWidgetMoveWithAnchor } from './widgetSnap';
 
 function bounds({
   left,
@@ -130,5 +130,28 @@ describe('widgetSnap', () => {
       minScale: 0.7,
       maxScale: 1.5,
     })).toBe(0.7);
+  });
+  it('snaps a bottom-anchored widget by its top edge and keeps its y as the bottom edge', () => {
+    // The list is 120px tall; its bottom edge is dragged to y=905, so its top lands at 785, 3px
+    // below a neighbour whose bottom edge is at 782 and snaps onto it.
+    const boundsById = {
+      list: bounds({ left: 600, top: 700, width: 250, height: 120 }),
+      level: bounds({ left: 600, top: 740, width: 70, height: 42 }),
+    };
+    const anchored = snapWidgetMoveWithAnchor({
+      activeId: 'list',
+      rawX: 600,
+      rawY: 905,
+      boundsById,
+      snapThreshold: 6,
+      grid: 1,
+      anchorBottom: true,
+    });
+    expect(anchored.position).toEqual({ x: 600, y: 902 });
+
+    // Top-anchored widgets pass through unchanged.
+    const plain = snapWidgetMove({ activeId: 'list', rawX: 600, rawY: 905, boundsById, snapThreshold: 6, grid: 1 });
+    expect(snapWidgetMoveWithAnchor({ activeId: 'list', rawX: 600, rawY: 905, boundsById, snapThreshold: 6, grid: 1, anchorBottom: false }))
+      .toEqual(plain);
   });
 });

@@ -53,6 +53,14 @@ describe('hudPresentation', () => {
     expect(getCompactEffectRowLimit(undefined, 'vertical', 1080)).toBe(Number.POSITIVE_INFINITY);
   });
 
+  it('lets a list growing up use the room above its bottom edge', () => {
+    // Default grow-up spot just above the bars: rows up to the top of the screen, minus "+N".
+    expect(getCompactEffectRowLimit({ y: 975, scale: 1, viewportHeight: 1080 }, 'vertical', 1080, 'up')).toBe(39);
+    expect(getCompactEffectRowLimit({ y: 975, scale: 2, viewportHeight: 2160 }, 'horizontal', 2160, 'up')).toBe(38);
+    // Near the top edge it still keeps one row.
+    expect(getCompactEffectRowLimit({ y: 30, scale: 1, viewportHeight: 1080 }, 'vertical', 1080, 'up')).toBe(1);
+  });
+
   it('groups thousands like the en-US locale without calling it', () => {
     for (const value of [0, 7, 999, 1000, 8876, 12500, 1234567, -3624, 42.6]) {
       expect(formatThousands(value), String(value)).toBe(Math.round(value).toLocaleString('en-US'));

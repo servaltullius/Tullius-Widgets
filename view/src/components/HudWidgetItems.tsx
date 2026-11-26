@@ -10,7 +10,7 @@ import { CompactIconThemeContext, type CompactIconSource } from './compact/compa
 import { findIconPack } from '../data/iconPacks';
 import { IconPacksContext } from '../hooks/useIconPacks';
 import { t } from '../i18n/translations';
-import { getWidgetItemRegistryEntry } from '../data/widgetItemRegistry';
+import { getWidgetItemRegistryEntry, isBottomAnchoredItem } from '../data/widgetItemRegistry';
 import type { WidgetInteractionMode } from '../hooks/useWidgetEditSelection';
 import type { Language, WidgetItemLayout, WidgetSettings } from '../types/settings';
 import type { CombatStats } from '../types/stats';
@@ -162,6 +162,7 @@ function renderItemShell(
   child: ReactNode,
   options?: {
     surface?: 'card' | 'bare';
+    anchorBottom?: boolean;
     editable: boolean;
     selected: boolean;
     minScale: number;
@@ -206,6 +207,7 @@ function renderItemShell(
       accentColor={accentColor}
       transparentBg={transparentBg}
       surface={resolvedOptions.surface ?? 'card'}
+      anchorBottom={resolvedOptions.anchorBottom ?? false}
       editable={resolvedOptions.editable}
       selected={resolvedOptions.selected}
       onSelect={resolvedOptions.onSelect}
@@ -315,6 +317,7 @@ export function HudWidgetItems({
           child,
           {
             surface: compact ? 'bare' : 'card',
+            anchorBottom: isBottomAnchoredItem(itemId, settings),
             editable,
             selected: selectedItemId === itemId,
             minScale: registryEntry.minScale,
@@ -767,6 +770,7 @@ export function HudWidgetItems({
                 maxVisible={settings.timedEffects.maxVisible}
                 emptyLabel={t(lang, 'timedEffectsEmpty')}
                 layout={settings.timedEffects.listLayout}
+                growDirection={settings.timedEffects.growDirection}
               />
             ));
           default:

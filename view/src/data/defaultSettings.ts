@@ -64,6 +64,7 @@ export const defaultSettings: WidgetSettings = {
     enabled: true,
     maxVisible: 6,
     listLayout: 'vertical',
+    growDirection: 'down',
     filter: 'all',
     hideLongerThanMin: 0,
   },

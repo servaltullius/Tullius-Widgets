@@ -8,7 +8,15 @@ import { PresetSection } from './PresetSection';
 import { HotkeySettings } from './HotkeySettings';
 import { formatHotkey } from '../../utils/hotkeys';
 import { FONT_PRESET_OPTIONS } from '../../utils/fontPresets';
-import { buildItemLayoutsForHudStyle, captureLayoutSlot, shiftEffectListForLayout } from '../../utils/itemLayoutEditing';
+import {
+  buildItemLayoutsForHudStyle,
+  captureLayoutSlot,
+  effectListYForGrowDirection,
+  estimateEffectListBounds,
+  pinItemLayoutsForGrowSwitch,
+  shiftEffectListForLayout,
+} from '../../utils/itemLayoutEditing';
+import type { WidgetBounds } from '../../utils/widgetBounds';
 import { findIconPack, type IconPack } from '../../data/iconPacks';
 import { IconPacksContext } from '../../hooks/useIconPacks';
 import { findUserFont, type UserFont } from '../../data/userFonts';
@@ -649,13 +657,19 @@ export function CombatTabSections({
   );
 }
 
+interface EffectsTabSectionsProps extends WidgetTabSectionsProps {
+  /** Measures a widget on screen; keeps the effect list in place when its direction changes. */
+  measureItemBounds?: (itemId: string) => WidgetBounds | null;
+}
+
 export function EffectsTabSections({
   lang,
   settings,
   onUpdate,
   sections,
   panelScale = 1,
-}: WidgetTabSectionsProps) {
+  measureItemBounds,
+}: EffectsTabSectionsProps) {
   const showGameTime = readItemVisibility(settings, 'time.game', settings.time.gameDateTime);
   const showRealTime = readItemVisibility(settings, 'time.real', settings.time.realDateTime);
   const timeDisplayOptions = buildTimeDisplayOptions(lang);
@@ -745,6 +759,31 @@ export function EffectsTabSections({
           }}
           panelScale={panelScale}
           testId="timed-effects-layout-select"
+          variant="segmented"
+        />
+        <SelectRow
+          label={t(lang, 'timedEffectsGrow')}
+          help={t(lang, 'timedEffectsGrowHelp')}
+          value={settings.timedEffects.growDirection}
+          options={[
+            { value: 'down', label: t(lang, 'timedEffectsGrowDown') },
+            { value: 'up', label: t(lang, 'timedEffectsGrowUp') },
+          ]}
+          onChange={nextValue => {
+            const growDirection = nextValue as WidgetSettings['timedEffects']['growDirection'];
+            // Nothing moves on screen: the list's y moves to the edge it now grows from, and the
+            // other widgets are saved where they are. A list switched off cannot be measured; its
+            // empty line's height stands in for it.
+            if (growDirection !== settings.timedEffects.growDirection) {
+              const viewport = { width: window.innerWidth, height: window.innerHeight };
+              const bounds = measureItemBounds?.('timedEffects.list') ?? estimateEffectListBounds(settings, viewport);
+              const listY = bounds ? effectListYForGrowDirection(growDirection, bounds) : null;
+              onUpdate('itemLayouts', pinItemLayoutsForGrowSwitch(settings, viewport, listY), { persist: false });
+            }
+            onUpdate('timedEffects.growDirection', growDirection);
+          }}
+          panelScale={panelScale}
+          testId="timed-effects-grow-select"
           variant="segmented"
         />
         <SelectRow
@@ -968,6 +1007,8 @@ export function PresetsTabSections({
                   onUpdate('general.hudStyle', slot.hudStyle, { persist: false });
                   onUpdate('general.compactAnchor', slot.compactAnchor, { persist: false });
                   if (slot.size) onUpdate('general.size', slot.size, { persist: false });
+                  // The list's y means its top or bottom edge depending on this (older slots: down).
+                  onUpdate('timedEffects.growDirection', slot.effectsGrowDirection ?? 'down', { persist: false });
                   onUpdate('itemLayouts', { ...slot.itemLayouts });
                 }}
                 className={pendingSlotLoad === index ? 'tw-p-btn is-small is-primary' : 'tw-p-btn is-small'}

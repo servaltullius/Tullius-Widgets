@@ -14,12 +14,13 @@ import { useLayoutHistory } from './hooks/useLayoutHistory';
 import { useLocalization } from './i18n/useLocalization';
 import { useWidgetItemLayouts } from './hooks/useWidgetItemLayouts';
 import type { WidgetItemLayout } from './types/settings';
+import { isBottomAnchoredItem } from './data/widgetItemRegistry';
 import { getRuntimeWarningText, getSettingsSyncWarningText } from './utils/hudPresentation';
 import { t } from './i18n/translations';
 import { formatHotkey } from './utils/hotkeys';
 import { applyTimedEffectFilter } from './utils/timedEffectFilter';
 import { measureWidgetBounds, measureWidgetBoundsMap } from './utils/widgetBounds';
-import { snapWidgetMove, type AlignmentGuide } from './utils/widgetSnap';
+import { snapWidgetMoveWithAnchor, type AlignmentGuide } from './utils/widgetSnap';
 import { resolveFontPresetVariables } from './utils/fontPresets';
 import { FONTS_READY_EVENT } from './utils/fontsReady';
 import { IconPacksContext, useIconPacksBridge } from './hooks/useIconPacks';
@@ -226,16 +227,18 @@ export function App() {
     itemElementRefs.current[itemId] = element;
   }, []);
 
+  const effectsGrowDirection = settings.timedEffects.growDirection;
   const computeMovePreview = useCallback((itemId: string, rawX: number, rawY: number) => {
-    return snapWidgetMove({
+    return snapWidgetMoveWithAnchor({
       activeId: itemId,
       rawX,
       rawY,
       boundsById: measureWidgetBoundsMap(itemElementRefs.current),
       snapThreshold: SNAP_THRESHOLD,
       grid: GRID,
+      anchorBottom: isBottomAnchoredItem(itemId, { timedEffects: { growDirection: effectsGrowDirection } }),
     });
-  }, []);
+  }, [effectsGrowDirection]);
 
   const handleMoveItem = useCallback((itemId: string, rawX: number, rawY: number) => {
     const snapped = computeMovePreview(itemId, rawX, rawY);
@@ -283,7 +286,9 @@ export function App() {
     enabled: settingsOpen,
     itemLayouts: settings.itemLayouts,
     onRestore: restoreItemLayouts,
-    resetKey: `${settings.general.hudStyle}:${settings.general.compactAnchor}:${settings.general.size}`,
+    // Starts over when these change, as they change what a saved position means; the effect list
+    // direction does too (its y is its top or its bottom edge).
+    resetKey: `${settings.general.hudStyle}:${settings.general.compactAnchor}:${settings.general.size}:${settings.timedEffects.growDirection}`,
   });
 
   useWidgetWheelAdjust({

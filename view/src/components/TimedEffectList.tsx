@@ -74,6 +74,11 @@ interface TimedEffectListProps {
   maxVisible: number;
   emptyLabel: string;
   layout?: 'vertical' | 'horizontal';
+  /**
+   * 'up' anchors the list at its bottom edge: the most pressing effect sits at the bottom and
+   * the list grows upward, with the "+N" line on top.
+   */
+  growDirection?: 'down' | 'up';
   variant?: 'card' | 'compact';
 }
 
@@ -133,6 +138,7 @@ export function TimedEffectList({
   maxVisible,
   emptyLabel,
   layout = 'vertical',
+  growDirection = 'down',
   variant = 'card',
 }: TimedEffectListProps) {
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -185,7 +191,7 @@ export function TimedEffectList({
 
   if (variant === 'compact') {
     return (
-      <div className="tw-ceffect-list" data-layout={layout}>
+      <div className="tw-ceffect-list" data-layout={layout} data-grow={growDirection}>
         {visible.map(({ effect, displayedRemainingSec, progressPct, urgent }) => (
           <div
             className="tw-ceffect-row"
@@ -232,7 +238,7 @@ export function TimedEffectList({
   }
 
   return (
-    <div className="tw-effect-list" data-layout={layout}>
+    <div className="tw-effect-list" data-layout={layout} data-grow={growDirection}>
       {visible.map(({ effect, displayedRemainingSec, progressPct, urgent }) => (
         <div
           className="tw-effect-row"

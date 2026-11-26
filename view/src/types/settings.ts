@@ -1,6 +1,8 @@
 export type WidgetSize = 'xsmall' | 'small' | 'medium' | 'large';
 export type WidgetLayout = 'vertical' | 'horizontal';
 export type TimedEffectListLayout = 'vertical' | 'horizontal';
+/** Which way the timed effect list grows from its anchor: down from its top edge, or up from its bottom edge. */
+export type TimedEffectGrowDirection = 'down' | 'up';
 export type CarryWeightDisplayMode = 'combined' | 'valueOnly' | 'meterOnly';
 export type ResistanceDisplayMode = 'effectiveOnly' | 'rawOnly' | 'both';
 export type TimeDisplayMode = 'dateTime' | 'timeOnly';
@@ -47,6 +49,8 @@ export interface LayoutSlot {
   compactAnchor: CompactAnchor;
   /** Compact size preset in effect when saved (older slots: unset). */
   size?: WidgetSize;
+  /** Effect list direction when saved; it sets what the list's y means (older slots: down). */
+  effectsGrowDirection?: TimedEffectGrowDirection;
   itemLayouts: Record<string, WidgetItemLayout>;
 }
 
@@ -108,6 +112,8 @@ export interface WidgetSettings {
     enabled: boolean;
     maxVisible: number;
     listLayout: TimedEffectListLayout;
+    /** With 'up' the list's saved y is its bottom edge, and the most pressing effect sits there. */
+    growDirection: TimedEffectGrowDirection;
     /** all | debuffs (harmful only) | buffs (helpful only) */
     filter: 'all' | 'debuffs' | 'buffs';
     /** Hide effects whose full duration exceeds this many minutes (0: show all). */

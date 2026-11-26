@@ -43,6 +43,25 @@ describe('SelectedWidgetQuickEditCard', () => {
     expect(values).toEqual(['148', '595']);
   });
 
+  it('says the Y position is the bottom edge for a list growing up', async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <SelectedWidgetQuickEditCard
+          lang="ko"
+          title="지속 효과"
+          layout={{ visible: true, x: 656, y: 975, scale: 1, locked: false, zIndex: 1 }}
+          minScale={0.7}
+          maxScale={2.4}
+          anchorBottom
+        />,
+      );
+    });
+
+    expect(container.textContent).toContain('Y 위치(아래 끝)');
+    expect(container.querySelector('[data-quick-edit-nudge-y="+1"]')?.getAttribute('aria-label')).toBe('Y 위치(아래 끝) +1');
+  });
+
   it('renders a compact selected-widget shell and emits quick-edit callbacks', async () => {
     const onToggleVisible = vi.fn();
     const onScaleChange = vi.fn();

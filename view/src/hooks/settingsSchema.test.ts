@@ -122,6 +122,22 @@ describe('settingsSchema', () => {
     expect(mergeWithDefaults({ schemaVersion: 7 }).layoutSlots).toEqual([null, null, null]);
   });
 
+  it('reads the effect list direction, defaulting to down, and keeps it with layout slots', () => {
+    expect(mergeWithDefaults({ schemaVersion: 7 }).timedEffects.growDirection).toBe('down');
+    expect(mergeWithDefaults({ schemaVersion: 7, timedEffects: { growDirection: 'up' } }).timedEffects.growDirection).toBe('up');
+    expect(mergeWithDefaults({ schemaVersion: 7, timedEffects: { growDirection: 'sideways' } }).timedEffects.growDirection).toBe('down');
+
+    const merged = mergeWithDefaults({
+      schemaVersion: 7,
+      layoutSlots: [
+        { savedAt: 5, hudStyle: 'compact', effectsGrowDirection: 'up', itemLayouts: { 'player.gold': { visible: true, x: 1, y: 2, scale: 1 } } },
+        { savedAt: 6, hudStyle: 'compact', effectsGrowDirection: 'sideways', itemLayouts: { 'player.gold': { visible: true, x: 1, y: 2, scale: 1 } } },
+      ],
+    });
+    expect(merged.layoutSlots[0]?.effectsGrowDirection).toBe('up');
+    expect(merged.layoutSlots[1]?.effectsGrowDirection).toBeUndefined();
+  });
+
   it('uses standard icons without badges for fresh schema v6 settings', () => {
     const merged = mergeWithDefaults({
       schemaVersion: 6,

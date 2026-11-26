@@ -25,6 +25,11 @@ interface EditableWidgetItemProps {
   transparentBg: boolean;
   /** 'bare' draws no card: the compact HUD renders text and icons straight on the scene. */
   surface?: 'card' | 'bare';
+  /**
+   * The item's y is its bottom edge and it grows upward from there (the effect list set to grow
+   * up). Drawn by moving it up its own height and scaling about the bottom-left corner.
+   */
+  anchorBottom?: boolean;
   editable: boolean;
   selected: boolean;
   onSelect: (itemId: string) => void;
@@ -52,8 +57,9 @@ interface DragState {
 }
 
 interface ResizeState {
-  left: number;
-  top: number;
+  // The corner that stays put while the item scales: top left, or bottom left when it grows up.
+  originX: number;
+  originY: number;
   originDistance: number;
   originScale: number;
   currentScale: number;
@@ -80,6 +86,7 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
   accentColor,
   transparentBg,
   surface = 'card',
+  anchorBottom = false,
   editable,
   selected,
   onSelect,
@@ -105,8 +112,8 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
     started: false,
   });
   const resizeStateRef = useRef<ResizeState>({
-    left: 0,
-    top: 0,
+    originX: 0,
+    originY: 0,
     originDistance: 1,
     originScale: scale,
     currentScale: scale,
@@ -185,15 +192,16 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
       return;
     }
     callbacksRef.current.onInteractionStart(itemId, 'resize');
+    const originY = anchorBottom ? rect.bottom : rect.top;
     resizeStateRef.current = {
-      left: rect.left,
-      top: rect.top,
-      originDistance: Math.max(1, Math.hypot(event.clientX - rect.left, event.clientY - rect.top)),
+      originX: rect.left,
+      originY,
+      originDistance: Math.max(1, Math.hypot(event.clientX - rect.left, event.clientY - originY)),
       originScale: scale,
       currentScale: scale,
     };
     setPointerMode('resize');
-  }, [editable, itemId, locked, scale, selected]);
+  }, [anchorBottom, editable, itemId, locked, scale, selected]);
 
   useEffect(() => {
     if (!activePointerMode) {
@@ -237,8 +245,8 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
       const nextDistance = Math.max(
         1,
         Math.hypot(
-          event.clientX - resizeStateRef.current.left,
-          event.clientY - resizeStateRef.current.top,
+          event.clientX - resizeStateRef.current.originX,
+          event.clientY - resizeStateRef.current.originY,
         ),
       );
       const nextScale = computeResizeScale({
@@ -313,8 +321,8 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
         top: `${y}px`,
         opacity: bare ? 1 : opacity / 100,
         ...(bare ? { '--c-surface-alpha': String(Math.round((opacity / 100) * 0.42 * 100) / 100) } : {}),
-        transform: `scale(${scale})`,
-        transformOrigin: 'top left',
+        transform: anchorBottom ? `translateY(-100%) scale(${scale})` : `scale(${scale})`,
+        transformOrigin: anchorBottom ? 'bottom left' : 'top left',
         background: showBg
           ? `linear-gradient(135deg, ${hexToRgba(accentColor, 0.045)} 0%, rgba(16,20,24,0.9) 34%, rgba(7,9,12,0.86) 100%)`
           : 'transparent',

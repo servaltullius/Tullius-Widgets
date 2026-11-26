@@ -8,6 +8,7 @@ import { resolveWidgetItemLayouts } from '../../data/widgetItemRegistry';
 import { UserFontsContext } from '../../hooks/useUserFonts';
 import { updateValueByPath } from '../../hooks/settingsShared';
 import { t } from '../../i18n/translations';
+import { effectListYForGrowDirection, estimateEffectListBounds } from '../../utils/itemLayoutEditing';
 import type { WidgetSettings } from '../../types/settings';
 import { CombatTabSections, EffectsTabSections, GeneralTabSections, PresetsTabSections } from './SettingsTabSections';
 
@@ -686,6 +687,67 @@ describe('SettingsTabSections', () => {
     });
 
     expect(onUpdate).toHaveBeenCalledWith('itemLayouts.equipped.voice.visible', true);
+  });
+
+  it('switches the effect list direction while keeping the list where it is on screen', async () => {
+    const settings = cloneSettings();
+    const onUpdate = vi.fn();
+    const measureItemBounds = vi.fn(() => ({ left: 576, top: 700, width: 250, height: 120, right: 826, bottom: 820, centerX: 701, centerY: 760 }));
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <EffectsTabSections lang="ko" settings={settings} onUpdate={onUpdate} measureItemBounds={measureItemBounds} />,
+      );
+    });
+
+    await act(async () => {
+      getByTestIdFromDocument('timed-effects-grow-select-option-up')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(measureItemBounds).toHaveBeenCalledWith('timedEffects.list');
+    expect(onUpdate.mock.calls).toEqual([
+      ['itemLayouts', expect.objectContaining({ 'timedEffects.list': expect.objectContaining({ y: 820 }) }), { persist: false }],
+      ['timedEffects.growDirection', 'up'],
+    ]);
+    // The other widgets are saved where they are, so a direction-dependent default cannot move them.
+    const pinned = onUpdate.mock.calls[0][1] as WidgetSettings['itemLayouts'];
+    const shown = resolveWidgetItemLayouts({ settings, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight });
+    expect(pinned['player.level']).toMatchObject({ x: shown['player.level'].x, y: shown['player.level'].y });
+
+    // Picking the current direction again only retries the save; the list does not move.
+    onUpdate.mockClear();
+    measureItemBounds.mockClear();
+    await act(async () => {
+      getByTestIdFromDocument('timed-effects-grow-select-option-down')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(measureItemBounds).not.toHaveBeenCalled();
+    expect(onUpdate.mock.calls).toEqual([['timedEffects.growDirection', 'down']]);
+  });
+
+  it('keeps a switched-off list in place by its empty line when its direction changes', async () => {
+    const settings = cloneSettings();
+    const onUpdate = vi.fn();
+    const estimate = estimateEffectListBounds(settings, { width: window.innerWidth, height: window.innerHeight });
+    expect(estimate).not.toBeNull();
+    expect(estimate!.bottom).toBeGreaterThan(estimate!.top);
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <EffectsTabSections lang="ko" settings={settings} onUpdate={onUpdate} measureItemBounds={() => null} />,
+      );
+    });
+    await act(async () => {
+      getByTestIdFromDocument('timed-effects-grow-select-option-up')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(onUpdate.mock.calls).toEqual([
+      [
+        'itemLayouts',
+        expect.objectContaining({ 'timedEffects.list': expect.objectContaining({ y: effectListYForGrowDirection('up', estimate!) }) }),
+        { persist: false },
+      ],
+      ['timedEffects.growDirection', 'up'],
+    ]);
   });
 
   it('shows time display selectors only while the corresponding time widgets are enabled', async () => {

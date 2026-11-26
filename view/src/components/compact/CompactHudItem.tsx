@@ -338,10 +338,16 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs, layout }:
           effects={stats.timedEffects}
           maxVisible={Math.min(
             settings.timedEffects.maxVisible,
-            getCompactEffectRowLimit(layout, settings.timedEffects.listLayout, window.innerHeight),
+            getCompactEffectRowLimit(
+              layout,
+              settings.timedEffects.listLayout,
+              window.innerHeight,
+              settings.timedEffects.growDirection,
+            ),
           )}
           emptyLabel={t(lang, 'timedEffectsEmpty')}
           layout={settings.timedEffects.listLayout}
+          growDirection={settings.timedEffects.growDirection}
           variant="compact"
         />
       );
