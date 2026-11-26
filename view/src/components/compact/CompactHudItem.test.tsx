@@ -75,6 +75,11 @@ describe('CompactHudItem', () => {
     expect(render('time.playtime', stats => { stats.playerInfo.playtimeHours = 137.4; })).toContain('137시간 24분');
   });
 
+  it('shows the whole game days passed, as the vanilla stats menu counts them', () => {
+    expect(render('time.daysPassed', stats => { stats.time.daysPassed = 41; })).toMatch(/지난\s*41일/);
+    expect(render('time.daysPassed', stats => { stats.time.daysPassed = 1234; })).toContain('1,234일');
+  });
+
   it('shows the left slot as taken while a two-handed weapon fills both hands', () => {
     const text = render('equipped.leftHand', stats => {
       stats.equipped.rightHand = '긴 활';

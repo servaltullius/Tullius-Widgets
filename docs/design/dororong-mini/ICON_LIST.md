@@ -26,6 +26,7 @@
 | small-gameTime.png | 게임 시간 | 왼쪽 해·오른쪽 초승달이 반반인 둥근 다이얼 |
 | small-realTime.png | 현실 시간 | 동그란 벽시계 |
 | small-playtime.png | 플레이 시간 | 스톱워치 |
+| small-daysPassed.png | 지난 날짜 | 큰 초록 체크가 있는 탁상용 넘기는 달력 |
 | small-clear.png | 맑음 | 노란 해 |
 | small-cloudy.png | 흐림 | 회색 구름 |
 | small-rain.png | 비 | 빗방울 떨어지는 파란 구름 |

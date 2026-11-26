@@ -33,6 +33,7 @@ import {
   formatGameDateTime,
   formatGameTimeOnly,
   formatRealDateTime,
+  formatDaysPassed,
   formatPlaytime,
   formatRealTimeOnly,
   TIME_WIDGET_VALUE_MAX_WIDTH,
@@ -726,6 +727,17 @@ export function HudWidgetItems({
                 icon="playtime"
                 iconColor="#c3bdb0"
                 value={formatPlaytime(stats.playerInfo.playtimeHours, t(lang, 'playtimeFormat'))}
+                visible
+                prominence="secondary"
+              />
+            ));
+          case 'time.daysPassed':
+            return renderEditableItem((
+              <StatWidget
+                {...statIconProps}
+                icon="daysPassed"
+                iconColor="#d8b96b"
+                value={formatDaysPassed(stats.time.daysPassed, t(lang, 'daysPassedFormatOne'), t(lang, 'daysPassedFormat'))}
                 visible
                 prominence="secondary"
               />

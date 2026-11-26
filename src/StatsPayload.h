@@ -46,6 +46,7 @@ struct GameTimeEntry {
     float timeScale{0.0f};
     std::string monthName{};
     std::string weather{"unknown"};  // clear | cloudy | rain | snow | indoor | unknown
+    std::uint32_t daysPassed{0};     // whole game days since the game started (vanilla "Days Passed")
 };
 
 struct ResistanceSnapshot {

@@ -189,6 +189,12 @@ export function formatPlaytime(hours: number, template: string): string {
     .replace('{m}', String(totalMinutes % 60).padStart(2, '0'));
 }
 
+/** Whole game days, as the vanilla stats menu counts them; `one` is used for exactly one day. */
+export function formatDaysPassed(days: number, one: string, many: string): string {
+  const whole = Math.max(0, Math.floor(days));
+  return (whole === 1 ? one : many).replace('{n}', formatThousands(whole));
+}
+
 // Compact HUD formats: short enough to sit in a single HUD line.
 export function formatGameCompact(gameTime: GameTimeInfo, nowMs: number, withDate: boolean): string {
   const current = advanceGameTime(gameTime, nowMs);

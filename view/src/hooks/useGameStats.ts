@@ -6,6 +6,9 @@ import { isPlainObject, readBoolean, readNumber, readText } from '../utils/norma
 import { registerDualBridgeHandler } from '../utils/bridge';
 import { SKYRIM_MONTH_NAMES } from '../data/constants';
 
+// Older payloads have no daysPassed; the ceiling only guards against a malformed number.
+const MAX_DAYS_PASSED = 4_000_000_000;
+
 const isDev = !('sendDataToSKSE' in window);
 const STATS_SCHEMA_VERSION = 1;
 
@@ -164,6 +167,7 @@ function normalizeGameTime(value: unknown, fallback?: GameTimeInfo): GameTimeInf
       monthName: fallbackMonthName,
       timeScale: readNumber(fallbackTimeScale, 20, 0, 2000),
       weather: fallback?.weather ?? 'unknown',
+      daysPassed: Math.floor(readNumber(fallback?.daysPassed ?? 0, 0, 0, MAX_DAYS_PASSED)),
       snapshotAtMs,
     };
   }
@@ -180,6 +184,7 @@ function normalizeGameTime(value: unknown, fallback?: GameTimeInfo): GameTimeInf
     monthName,
     timeScale: readNumber(value.timeScale, fallbackTimeScale, 0, 2000),
     weather: readWeatherKind(value.weather, fallback?.weather ?? 'unknown'),
+    daysPassed: Math.floor(readNumber(value.daysPassed, fallback?.daysPassed ?? 0, 0, MAX_DAYS_PASSED)),
     snapshotAtMs,
   };
 }

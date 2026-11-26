@@ -665,6 +665,7 @@ export function EffectsTabSections({
     { itemId: 'time.real', fallback: settings.time.realDateTime, label: t(lang, 'realDateTime') },
     { itemId: 'time.weather', fallback: settings.time.weather, label: t(lang, 'weather') },
     { itemId: 'time.playtime', fallback: settings.time.playtime, label: t(lang, 'playtime') },
+    { itemId: 'time.daysPassed', fallback: settings.time.daysPassed, label: t(lang, 'daysPassed') },
   ];
   const timedEffectsToggles: ItemVisibilityToggleConfig[] = [
     {

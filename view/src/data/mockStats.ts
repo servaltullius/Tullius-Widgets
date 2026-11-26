@@ -50,6 +50,7 @@ export const mockStats: CombatStats = {
     monthName: 'Last Seed',
     timeScale: 20,
     weather: 'clear',
+    daysPassed: 41,
     snapshotAtMs: Date.now(),
   },
   playerInfo: {
