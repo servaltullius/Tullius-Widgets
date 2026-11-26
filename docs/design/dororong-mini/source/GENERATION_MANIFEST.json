@@ -2111,5 +2111,19 @@
     "status": "saved",
     "generationMethod": "built-in image_gen",
     "completedAt": "2026-10-13"
+  },
+  {
+    "name": "small-daysPassed.png",
+    "status": "saved",
+    "refs": [
+      "view/.qa/dororong-mini/codex-handoff/output/small-fire.png",
+      "view/.qa/dororong-mini/codex-handoff/reference/doro-ref-2.png",
+      "view/.qa/dororong-mini/codex-handoff/reference/doro-ref-4.png",
+      "view/.qa/dororong-mini/codex-handoff/reference/doro-ref-5.png",
+      "view/.qa/dororong-mini/codex-handoff/reference/doro-ref-8.png"
+    ],
+    "prompt": "Use case: illustration-story. Produce ONE finished Doro/Dororong HUD icon, square PNG with true transparent alpha.\nImage 1 is the selected existing icon and supplies the approved character drawing and layout. Images 2–5 are the original Doro comic frames and are the primary identity/style references. Match that original character and the approved icon closely.\nKeep the pink bob and divided fringe, small outward hair flick, pale broad face, two-tone lavender oval eyes with white glints, slanting dark brows, tiny omega mouth, pink cheek marks, and simple continuous white torso with plain rounded mitten arms and short wide feet. There is ONE visible spiral rose hair ornament with a pale-blue bow and hanging pale tails on the viewer's RIGHT. Retain this asymmetric design. The viewer's left hair outline is a simple bob with a small outward tuft. No second rose, no twin ponytails. Keep the head orientation even when a different hand holds the prop.\nSimple dark outlines and restrained pastel flat cartoon color treatment, few details, matching the supplied original frames and selected icon. No text, letters, numerals, captions, watermarks, clothing, scenery, frame, floor, cast shadow, thick white sticker border, or extra characters. One icon, not a sheet. Keep the whole silhouette inside the canvas with a small safe margin. Preserve real transparency, never draw a checkerboard.\nRequested icon: small-daysPassed. Replace the flame prop in image 1 with one large, bold desk flip calendar with a rectangular silhouette, a red header band, two binding rings at the top, and a few white sheets visibly flipping over. Put a single large green check mark in the center of the front sheet, with no letters or numerals. The prop is large, bold and clearly readable at 22-pixel HUD size, with a silhouette immediately distinguishable from a sun/moon game-time dial, a stopwatch, and a wall clock. Doro peeks beside or behind it on the RIGHT with the same recognizable face, hair, one visible rose and small white mitten arms holding its edge. Adjust the arms to fit the prop; retain the approved character design. The prop is the main visual symbol. Remove every part of the old fire prop. Deliver a 256 × 256 PNG.",
+    "generationMethod": "built-in image_gen",
+    "completedAt": "2026-11-25"
   }
 ]

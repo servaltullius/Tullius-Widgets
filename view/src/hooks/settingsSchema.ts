@@ -309,6 +309,7 @@ function mergeTimeSettings(target: WidgetSettings['time'], incoming: unknown): v
   );
   target.weather = readBoolean(incoming.weather, target.weather);
   target.playtime = readBoolean(incoming.playtime, target.playtime);
+  target.daysPassed = readBoolean(incoming.daysPassed, target.daysPassed);
 }
 
 function mergePlayerInfoSettings(target: WidgetSettings['playerInfo'], incoming: unknown): void {

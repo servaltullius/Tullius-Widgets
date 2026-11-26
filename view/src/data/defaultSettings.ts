@@ -77,6 +77,7 @@ export const defaultSettings: WidgetSettings = {
     realDisplay: 'timeOnly',
     weather: false,
     playtime: false,
+    daysPassed: false,
   },
   experience: {
     enabled: true,

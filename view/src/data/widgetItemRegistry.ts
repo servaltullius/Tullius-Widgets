@@ -82,6 +82,8 @@ const NORDIC_DEFAULT_ITEM_POSITIONS: Record<string, GroupPosition> = {
   'time.real': { x: 1700, y: 205 },
   'time.weather': { x: 1760, y: 145 },
   'time.playtime': { x: 1480, y: 690 },
+  // Below the play time: a classic card is too wide to sit beside it on the right edge.
+  'time.daysPassed': { x: 1480, y: 750 },
   'movement.speedMult': { x: 1760, y: 390 },
   'timedEffects.list': { x: 1100, y: 60 },
 };
@@ -109,6 +111,8 @@ const COMPACT_DEFAULT_ITEM_POSITIONS: Record<string, GroupPosition> = {
   'time.real': { x: 378, y: 858 },
   'time.weather': { x: 504, y: 858 },
   'time.playtime': { x: 272, y: 760 },
+  // Leaves room for a four-digit play time ("1,234시간 56분") and stays left of the level.
+  'time.daysPassed': { x: 452, y: 760 },
   'experience.progress': { x: 34, y: 898 },
   'equipped.rightHand': { x: 222, y: 892 },
   'equipped.leftHand': { x: 306, y: 892 },
@@ -143,6 +147,7 @@ const COMPACT_DORORONG_ITEM_POSITIONS: Record<string, GroupPosition> = {
   'time.real': { x: 436, y: 858 },
   'time.weather': { x: 560, y: 858 },
   'time.playtime': { x: 316, y: 734 },
+  'time.daysPassed': { x: 526, y: 734 },
   'experience.progress': { x: 34, y: 908 },
   'equipped.rightHand': { x: 214, y: 904 },
   'equipped.leftHand': { x: 300, y: 904 },
@@ -515,6 +520,16 @@ const WIDGET_ITEM_REGISTRY_ENTRIES: WidgetItemRegistryEntry[] = [
     minScale: DEFAULT_MIN_SCALE,
     maxScale: DEFAULT_MAX_SCALE,
     defaultPlacementHint: { groupId: 'time', order: 3 },
+  },
+  {
+    id: 'time.daysPassed',
+    rendererKind: 'stat',
+    legacyGroupId: 'time',
+    visibilityPath: 'time.daysPassed',
+    labelKey: 'daysPassed',
+    minScale: DEFAULT_MIN_SCALE,
+    maxScale: DEFAULT_MAX_SCALE,
+    defaultPlacementHint: { groupId: 'time', order: 4 },
   },
 ];
 

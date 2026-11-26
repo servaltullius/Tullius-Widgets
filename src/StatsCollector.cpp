@@ -354,6 +354,14 @@ static GameTimeEntry CollectGameTime()
         out.minute = 0;
     }
 
+    // GameDaysPassed, floored here as the vanilla stats menu shows "Days Passed": the JSON keeps
+    // two decimals, which would round 41.996 up to the next day.
+    const float rawDaysPassed = calendar->GetDaysPassed();
+    if (std::isfinite(rawDaysPassed) && rawDaysPassed >= 0.0f) {
+        constexpr float kMaxDays = 4'000'000'000.0f;
+        out.daysPassed = static_cast<std::uint32_t>(std::floor((std::min)(rawDaysPassed, kMaxDays)));
+    }
+
     if (calendar->timeScale) {
         const float rawTimeScale = calendar->timeScale->value;
         if (std::isfinite(rawTimeScale) && rawTimeScale >= 0.0f) {

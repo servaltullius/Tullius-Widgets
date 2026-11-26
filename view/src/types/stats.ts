@@ -71,6 +71,8 @@ export interface GameTimeInfo {
   monthName: string;
   timeScale: number;
   weather: WeatherKind;
+  /** Whole game days since the game started (the vanilla "Days Passed"). */
+  daysPassed: number;
   snapshotAtMs: number;
 }
 

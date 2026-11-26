@@ -11,7 +11,7 @@ import {
   LOW_RESOURCE_THRESHOLDS,
   resolveExperienceProgress,
 } from '../../utils/hudPresentation';
-import { formatGameCompact, formatPlaytime, formatRealCompact } from '../../utils/timeWidgetShared';
+import { formatDaysPassed, formatGameCompact, formatPlaytime, formatRealCompact } from '../../utils/timeWidgetShared';
 import { TimedEffectList } from '../TimedEffectList';
 import {
   CompactEquipSlot,
@@ -315,6 +315,17 @@ export function CompactHudItem({ itemId, stats, settings, lang, nowMs, layout }:
           label={t(lang, 'compactPlaytime')}
           value={formatPlaytime(stats.playerInfo.playtimeHours, t(lang, 'playtimeFormat'))}
           iconSize={14}
+        />
+      );
+    case 'time.daysPassed':
+      return (
+        <CompactStat
+          icon="daysPassed"
+          iconColor={COLORS.text2}
+          label={t(lang, 'compactDaysPassed')}
+          value={formatDaysPassed(stats.time.daysPassed, t(lang, 'daysPassedFormatOne'), t(lang, 'daysPassedFormat'))}
+          iconSize={14}
+          title={t(lang, 'daysPassed')}
         />
       );
     case 'time.weather': {

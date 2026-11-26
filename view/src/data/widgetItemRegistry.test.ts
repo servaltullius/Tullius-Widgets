@@ -44,6 +44,7 @@ describe('widgetItemRegistry', () => {
       'time.weather',
       'equipped.potion',
       'time.playtime',
+      'time.daysPassed',
     ]);
 
     for (const itemId of WIDGET_ITEM_IDS) {

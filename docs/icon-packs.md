@@ -75,7 +75,7 @@ Square, transparent PNGs of 96–256px work best. They are drawn small (see the 
 | `rightHandDamage` `leftHandDamage` `crit` | 손별 공격력, 치명타 / per-hand damage, critical chance |
 | `speed` | 이동 속도 / movement speed |
 | `gold` `weight` `level` | 금화, 소지 무게, 레벨 / gold, carry weight, level |
-| `gameTime` `realTime` `playtime` | 게임 시계, 현실 시계, 누적 플레이 시간 / clocks, time played |
+| `gameTime` `realTime` `playtime` `daysPassed` | 게임 시계, 현실 시계, 누적 플레이 시간, 지난 날짜 / clocks, time played, days passed |
 | `clear` `cloudy` `rain` `snow` `indoor` | 날씨 / weather |
 
 ### 지속 효과 분류 / Timed effect categories

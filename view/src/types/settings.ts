@@ -123,6 +123,7 @@ export interface WidgetSettings {
     realDisplay: TimeDisplayMode;
     weather: boolean;
     playtime: boolean;
+    daysPassed: boolean;
   };
   experience: {
     enabled: boolean;

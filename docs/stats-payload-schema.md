@@ -54,6 +54,7 @@
     "minute": 18,
     "monthName": "Last Seed",
     "weather": "clear",
+    "daysPassed": 41,
     "timeScale": 20.0
   },
   "playerInfo": {
@@ -142,6 +143,8 @@
   - `equipped.rightHandPoisonCount` / `leftHandPoisonCount`는 해당 손 무기에 바른 독의 남은 횟수입니다(없으면 0).
 - 플레이 시간:
   - `playerInfo.playtimeHours`는 현재 캐릭터의 누적 실제 플레이 시간(시간 단위, 엔진 `totalPlayingTime` 기준)입니다.
+- 지난 날짜:
+  - `time.daysPassed`는 게임을 시작한 뒤 지난 게임 날 수입니다. 엔진 `Calendar::GetDaysPassed`를 내림한 정수라서, 바닐라 통계의 "지난 날"과 같습니다. 구버전 payload에서는 생략될 수 있습니다.
 - 날씨 계약:
   - `time.weather`는 `clear | cloudy | rain | snow | indoor | unknown` 중 하나입니다. 비/눈은 하늘의 전환(fade) 상태를 반영하며, 실내는 `indoor`입니다. 구버전 payload에서는 생략될 수 있고 UI는 이전 값(없으면 `unknown`)을 유지합니다.
 - 장착 표시 계약:
