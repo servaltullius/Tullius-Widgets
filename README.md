@@ -161,10 +161,10 @@ Data/
 - Windows
   - Visual Studio C++ Build Tools 또는 Visual Studio Community
   - [XMake](https://xmake.io/)
-  - PowerShell
+  - PowerShell 7 (`pwsh`). 패키징(`release-local.ps1`)은 Windows PowerShell 5.1에서 돌지 않습니다. 5.1은 zip 안 경로를 `\`로 씁니다.
 - WSL/Linux
   - Node.js 22+, npm
-  - `powershell.exe` 사용 가능한 WSL 환경
+  - Windows 쪽 PowerShell 7(`pwsh.exe`)을 부를 수 있는 WSL 환경. 없으면 `package.sh`가 WSL에서 압축하며, 이때는 `zip`이 필요합니다.
 
 ### 권장 빌드 경로
 - 프런트만 확인할 때는 WSL/Linux에서 `view` 기준으로 빌드하면 됩니다.
@@ -214,7 +214,7 @@ xmake build -y -v
 WSL에서 개발 중이라면 직접 `xmake`를 WSL 안에서 호출하지 말고, 아래 패키징/검증 스크립트를 사용하는 편이 안전합니다.
 
 ### 전체 검증 (권장)
-Windows PowerShell:
+Windows의 PowerShell 7(`pwsh`):
 
 ```powershell
 pwsh -File .\scripts\verify-runtime-windows.ps1
@@ -226,7 +226,7 @@ pwsh -File .\scripts\verify-runtime-windows.ps1
 - WSL UNC worktree 사용 시 임시 Windows 스테이징 경로를 통한 빌드
 
 ### Packaging
-Windows PowerShell:
+Windows의 PowerShell 7(`pwsh`):
 
 ```powershell
 pwsh -File .\scripts\release-local.ps1 -NoPublish
@@ -240,7 +240,7 @@ WSL/Linux:
 
 동작 방식:
 - WSL에서 `./scripts/package.sh` 실행 시 프런트는 WSL에서 빌드
-- 네이티브 DLL과 zip 패키징은 Windows `release-local.ps1`로 위임
+- 네이티브 DLL과 zip 패키징은 Windows `release-local.ps1`로 위임(`pwsh.exe`로 실행. 없으면 WSL에서 `zip`으로 압축)
 - 결과물: `TulliusWidgets-v<version>.zip`
 - GitHub 게시 시 WSL UNC worktree에서는 WSL `gh`를 우선 사용하고, 일반 Windows 경로에서는 로컬 `gh` 결과를 명시적으로 판정해 릴리즈 존재 확인과 업로드를 진행
 
@@ -251,7 +251,7 @@ Windows 검증 스크립트:
 pwsh -File .\scripts\verify-runtime-windows.ps1
 ```
 
-- Windows PowerShell에서 실행하는 검증 진입점입니다.
+- Windows의 PowerShell에서 실행하는 검증 진입점입니다. `-CreateLocalPackage`로 zip까지 만들려면 PowerShell 7(`pwsh`)이어야 합니다.
 - WSL UNC worktree에서 호출해도 필요한 frontend/plugin 빌드는 임시 로컬 경로로 스테이징해서 실행합니다.
 
 ### Optional pre-commit hook

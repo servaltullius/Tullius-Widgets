@@ -86,7 +86,9 @@ is_wsl() {
 echo "=== Validating release note ==="
 validate_release_note
 
-if is_wsl && command -v powershell.exe >/dev/null 2>&1; then
+# The Windows release script runs only under PowerShell 7 (pwsh.exe): Windows PowerShell 5.1
+# (powershell.exe) packs zip entry names with '\'. Without pwsh.exe the package is made here.
+if is_wsl && command -v pwsh.exe >/dev/null 2>&1; then
   echo "=== Cleaning dist ==="
   rm -rf "${DIST_DIR}"
 
@@ -95,11 +97,22 @@ if is_wsl && command -v powershell.exe >/dev/null 2>&1; then
 
   echo "=== Delegating native build/package to Windows release-local script ==="
   RELEASE_LOCAL_WIN="$(wslpath -w "${ROOT_DIR}/scripts/release-local.ps1")"
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${RELEASE_LOCAL_WIN}" -NoPublish -SkipLint -SkipFrontendBuild
+  pwsh.exe -NoProfile -ExecutionPolicy Bypass -File "${RELEASE_LOCAL_WIN}" -NoPublish -SkipLint -SkipFrontendBuild
   echo "=== Package ready ==="
   echo "Artifact: ${ZIP_PATH}"
   echo "Install by extracting into Skyrim Special Edition/Data/"
   exit 0
+fi
+
+if is_wsl && command -v powershell.exe >/dev/null 2>&1; then
+  echo "WARNING: pwsh.exe (PowerShell 7) was not found, so the Windows release script is not used; packaging here instead." >&2
+fi
+
+# Checked before anything is cleaned or built: the zip at the end needs one of these.
+if ! command -v zip >/dev/null 2>&1 && ! command -v pwsh.exe >/dev/null 2>&1; then
+  echo "ERROR: zip and pwsh.exe (PowerShell 7) are both unavailable. Cannot create zip artifact." >&2
+  echo "       Install zip (for example: sudo apt install zip) or PowerShell 7 on Windows, then run again." >&2
+  exit 1
 fi
 
 echo "=== Cleaning dist ==="
@@ -141,12 +154,13 @@ echo "=== Creating zip artifact: ${ZIP_NAME} ==="
 rm -f "${ZIP_PATH}"
 if command -v zip >/dev/null 2>&1; then
   (cd "${DIST_DIR}" && zip -r "${ZIP_PATH}" .)
-elif command -v powershell.exe >/dev/null 2>&1; then
+elif command -v pwsh.exe >/dev/null 2>&1; then
+  # PowerShell 7, not powershell.exe: see the note on the Windows release script above.
   WIN_DIST="$(wslpath -w "${DIST_DIR}")"
   WIN_ZIP="$(wslpath -w "${ZIP_PATH}")"
-  powershell.exe -NoProfile -Command "if (Test-Path '${WIN_ZIP}') { Remove-Item '${WIN_ZIP}' -Force }; Compress-Archive -Path '${WIN_DIST}\\*' -DestinationPath '${WIN_ZIP}'"
+  pwsh.exe -NoProfile -Command "if (Test-Path '${WIN_ZIP}') { Remove-Item '${WIN_ZIP}' -Force }; Compress-Archive -Path '${WIN_DIST}\\*' -DestinationPath '${WIN_ZIP}'"
 else
-  echo "ERROR: zip and powershell.exe are both unavailable. Cannot create zip artifact." >&2
+  echo "ERROR: zip and pwsh.exe (PowerShell 7) are both unavailable. Cannot create zip artifact." >&2
   exit 1
 fi
 
