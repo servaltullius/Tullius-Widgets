@@ -1,10 +1,31 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { boxOf, makeEffects, openHud, openSettings, overlaps, savedSettings, sendStats, widget } from './hud';
 
 // The timed effect list growing up from its bottom edge (docs/plans/2026-11-26-effects-grow-up.md).
 
 const COMPACT = { general: { onboardingSeen: true, hudStyle: 'compact', iconTheme: 'standard', language: 'ko' } };
 const EFFECTS = '효과·시간';
+
+/** Presses Ctrl+Z; true when the layout history took the key (it prevents the default only when it undid something). */
+async function pressUndo(page: Page): Promise<boolean> {
+  // Listening before the key goes down, so the press cannot overtake the listener.
+  await page.evaluate(() => {
+    const target = window as Window & { __undoTaken?: boolean };
+    delete target.__undoTaken;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== 'z') return;
+      window.removeEventListener('keydown', onKeyDown);
+      // After every other listener has had the event.
+      window.setTimeout(() => {
+        target.__undoTaken = event.defaultPrevented;
+      }, 0);
+    };
+    window.addEventListener('keydown', onKeyDown);
+  });
+  await page.keyboard.press('Control+z');
+  await page.waitForFunction(() => (window as Window & { __undoTaken?: boolean }).__undoTaken !== undefined);
+  return page.evaluate(() => (window as Window & { __undoTaken?: boolean }).__undoTaken === true);
+}
 
 test.describe('timed effect list growing up', () => {
   test('switching direction keeps the list in place and puts the most pressing effect at the bottom', async ({ page }) => {
@@ -86,11 +107,22 @@ test.describe('timed effect list growing up', () => {
     await expect(list.locator('.tw-ceffect-row')).toHaveCount(3);
 
     await openSettings(page, new RegExp(EFFECTS));
+
+    // First, Ctrl+Z does undo a layout edit here, so a key that undoes nothing below is the
+    // history starting over, not the key missing the page.
+    const before = await boxOf(list);
+    await page.mouse.click(before.left + 40, (before.top + before.bottom) / 2);
+    await page.keyboard.press('ArrowDown');
+    await expect.poll(async () => (await boxOf(list)).top).toBeGreaterThan(before.top + 0.5);
+    expect(await pressUndo(page)).toBe(true);
+    await expect.poll(async () => Math.round((await boxOf(list)).top)).toBe(Math.round(before.top));
+
+    // Switching direction starts the history over (its y is now the other edge), so Ctrl+Z right
+    // after has nothing to undo and the list stays where it is.
     await page.getByTestId('timed-effects-grow-select-option-up').click();
     await expect(list.locator('.tw-ceffect-list')).toHaveAttribute('data-grow', 'up');
     const switched = await boxOf(list);
-
-    await page.keyboard.press('Control+z');
+    expect(await pressUndo(page)).toBe(false);
     // Undo works on a frame; give it one before measuring.
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => resolve(null))));
     const afterUndo = await boxOf(list);
