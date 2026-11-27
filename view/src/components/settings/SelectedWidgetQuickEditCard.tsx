@@ -24,6 +24,8 @@ interface SelectedWidgetQuickEditCardProps {
   onShowRelatedSettings?: () => void;
   /** Deselects the widget; the close button is hidden without it. */
   onClose?: () => void;
+  /** The widget's y is its bottom edge (the effect list growing up), so the label says so. */
+  anchorBottom?: boolean;
   panelScale?: number;
 }
 
@@ -53,8 +55,10 @@ export function SelectedWidgetQuickEditCard({
   onShowWhenChange,
   onShowRelatedSettings,
   onClose,
+  anchorBottom = false,
   panelScale = 1,
 }: SelectedWidgetQuickEditCardProps) {
+  const positionYLabel = t(lang, anchorBottom ? 'positionYBottom' : 'positionY');
   const reorderDisabled = layout.locked || !layout.visible;
   const scaleDisabled = layout.locked;
   const span = maxScale - minScale;
@@ -127,11 +131,11 @@ export function SelectedWidgetQuickEditCard({
         </span>
       </div>
       <div className="tw-p-row">
-        <span className="tw-p-label">{t(lang, 'positionY')}</span>
+        <span className="tw-p-label">{positionYLabel}</span>
         <span className="tw-p-button-row">
-          <button type="button" className="tw-p-btn is-small" data-quick-edit-nudge-y="-1" aria-label={`${t(lang, 'positionY')} -1`} onClick={() => onNudgeY(-1)}>−1</button>
+          <button type="button" className="tw-p-btn is-small" data-quick-edit-nudge-y="-1" aria-label={`${positionYLabel} -1`} onClick={() => onNudgeY(-1)}>−1</button>
           <span className="tw-p-nudge-value">{Math.round(layout.y)}</span>
-          <button type="button" className="tw-p-btn is-small" data-quick-edit-nudge-y="+1" aria-label={`${t(lang, 'positionY')} +1`} onClick={() => onNudgeY(1)}>+1</button>
+          <button type="button" className="tw-p-btn is-small" data-quick-edit-nudge-y="+1" aria-label={`${positionYLabel} +1`} onClick={() => onNudgeY(1)}>+1</button>
         </span>
       </div>
       {showWhen && onShowWhenChange && (

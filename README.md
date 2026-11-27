@@ -11,7 +11,7 @@ Skyrim SE용 전투 스탯 HUD 모드. [Prisma UI](https://www.nexusmods.com/sky
 - **컴팩트 HUD (신규 설치 기본값)** — 카드 없이 화면에 녹아드는 왼쪽 아래 계기형 배치. 자원 바(바닐라/TrueHUD/SkyHUD) 위 공간을 비워 둡니다. 기본은 항상 표시이며, 위젯마다 전투 중·값 변화 시에만 보이도록 바꿀 수 있습니다
   - 경험치 링(레벨 + 진행률), 금화·무게·게임/현실 시계·날씨 한 줄, 저항 띠, 방어/치명/이동 줄
   - **장비 슬롯 R / L / Z / P** — 무기·주문 종류 아이콘, 손별 공격력, 마법부여 충전률 바, 무기에 바른 독의 남은 횟수, 활·석궁 화살 수, 포효 재사용 대기시간(남은 초)과 배운/해금 단어, 마지막으로 마신 물약과 남은 개수
-  - 지속 효과: 분류 아이콘(체력/속성 저항/방어/투명화 등), 효과 크기, 남은 시간, 해로운 효과 강조, 해로운/이로운 효과만·긴 효과 숨김 필터
+  - 지속 효과: 분류 아이콘(체력/속성 저항/방어/투명화 등), 효과 크기, 남은 시간, 해로운 효과 강조, 해로운/이로운 효과만·긴 효과 숨김 필터, 아래로/위로 쌓기(위로 쌓으면 아래쪽 끝이 고정되고 중요한 효과가 맨 아래)
   - 금화·경험치 증감(+120 등) 짧은 표시, 원값이 다를 때만 원값 표시, 상한/음수는 색으로 구분
   - 게임 안에서도 같은 모양이 나오도록 폰트(Pretendard, OFL)를 함께 배포
 - **클래식 카드 스타일** — 기존 노르딕 카드형 HUD. 업데이트 전부터 쓰던 설정은 자동으로 클래식을 유지하며, 설정 → 표시와 모양에서 언제든 전환 가능. 무기 카드에 충전률·독·탄약 한 줄 표시
@@ -178,8 +178,17 @@ npm install
 npm run build
 ```
 
+테스트:
+```bash
+cd view
+npm test                                     # 단위 테스트(vitest, jsdom)
+npx playwright install --only-shell chromium # 처음 한 번: 브라우저 테스트용 Chromium
+npm run e2e                                  # 브라우저 테스트(Playwright, e2e/*.e2e.ts)
+```
+브라우저 테스트는 Vite 개발 서버를 1920×1080 Chromium으로 열고, 플러그인 대신 화면의 브리지 함수(`updateSettings`, `updateStats`, `toggleSettings`)로 설정과 상태를 넣습니다. 위젯 위치, 드래그, 설정 창 같은 화면 동작을 확인하며 GitHub Actions에서도 돕니다. 게임 화면 엔진(Ultralight)에서만 드러나는 동작은 게임에서 확인해야 합니다.
+
 ### C++ SKSE Plugin (Windows MSVC 필수)
-Windows PowerShell 또는 Developer Command Prompt에서 실행:
+일반 Windows PowerShell에서 실행합니다. Developer Command Prompt의 PATH에서는 xmake가 비정상 종료할 수 있습니다([로컬 릴리즈 가이드](docs/local-release.ko.md) 참고):
 
 ```powershell
 xmake f -p windows -a x64 -m release -y --skyrim_se=true --skyrim_ae=true --skyrim_vr=false

@@ -244,3 +244,17 @@ export function snapWidgetMove({
     guides: [xSnap.guide, ySnap.guide],
   };
 }
+
+/**
+ * snapWidgetMove for a widget whose y may be its bottom edge (the effect list growing up). Snapping
+ * works on top edges, so the bottom edge becomes a top edge for it and back again afterwards.
+ */
+export function snapWidgetMoveWithAnchor(
+  params: SnapWidgetMoveParams & { anchorBottom: boolean },
+): { position: { x: number; y: number }; guides: AlignmentGuide[] } {
+  const { anchorBottom, ...snapParams } = params;
+  const height = anchorBottom ? params.boundsById[params.activeId]?.height ?? 0 : 0;
+  const snapped = snapWidgetMove({ ...snapParams, rawY: params.rawY - height });
+  if (height === 0) return snapped;
+  return { ...snapped, position: { x: snapped.position.x, y: Number((snapped.position.y + height).toFixed(3)) } };
+}

@@ -25,6 +25,45 @@ describe('EditableWidgetItem', () => {
     vi.restoreAllMocks();
   });
 
+  it('draws a bottom-anchored widget above its y, scaling from the bottom-left corner', async () => {
+    const noop = vi.fn();
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <EditableWidgetItem
+          itemId="timedEffects.list"
+          x={576}
+          y={975}
+          scale={1.5}
+          minScale={0.7}
+          maxScale={2.4}
+          opacity={100}
+          accentColor="#4fd1c5"
+          transparentBg={false}
+          anchorBottom
+          editable={false}
+          selected={false}
+          locked={false}
+          zIndex={1}
+          onSelect={noop}
+          onInteractionStart={noop}
+          onInteractionEnd={noop}
+          onMove={noop}
+          onDragEnd={noop}
+          onResize={noop}
+          onResizeEnd={noop}
+        >
+          <div>effects</div>
+        </EditableWidgetItem>,
+      );
+    });
+
+    const widget = container.querySelector('[data-widget-item-id="timedEffects.list"]') as HTMLDivElement | null;
+    expect(widget?.style.top).toBe('975px');
+    expect(widget?.style.transform).toBe('translateY(-100%) scale(1.5)');
+    expect(widget?.style.transformOrigin).toBe('bottom left');
+  });
+
   it('keeps locked widgets selectable while blocking drag and resize', async () => {
     const onSelect = vi.fn();
     const onInteractionStart = vi.fn();

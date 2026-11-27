@@ -36,6 +36,7 @@ import {
   getWidgetItemDefaultZIndex,
   getWidgetItemRegistryEntry,
   getItemShowWhenOptions,
+  isBottomAnchoredItem,
   resolveItemShowWhen,
 } from '../data/widgetItemRegistry';
 
@@ -441,7 +442,14 @@ export function SettingsPanel({
                   <CombatTabSections lang={lang} settings={settings} onUpdate={onUpdate} sections={sections} panelScale={panelScale} />
                 )}
                 {renderer === 'effects' && (
-                  <EffectsTabSections lang={lang} settings={settings} onUpdate={onUpdate} sections={sections} panelScale={panelScale} />
+                  <EffectsTabSections
+                    lang={lang}
+                    settings={settings}
+                    onUpdate={onUpdate}
+                    sections={sections}
+                    panelScale={panelScale}
+                    measureItemBounds={measureItemBounds}
+                  />
                 )}
                 {renderer === 'layout' && (
                   <PresetsTabSections
@@ -510,6 +518,7 @@ export function SettingsPanel({
               lang={lang}
               title={t(lang, selectedRegistryEntry.labelKey)}
               layout={resolvedSelectedItemLayout}
+              anchorBottom={isBottomAnchoredItem(selectedItemId, settings)}
               minScale={selectedRegistryEntry.minScale}
               maxScale={selectedRegistryEntry.maxScale}
               onToggleVisible={selectedItemLayoutActions?.setSelectedItemVisible}

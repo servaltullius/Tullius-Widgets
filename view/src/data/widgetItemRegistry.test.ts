@@ -5,8 +5,10 @@ import {
   WIDGET_ITEM_IDS,
   WIDGET_ITEM_REGISTRY,
   buildItemLayoutsFromLegacySettings,
+  buildCompactDefaultItemLayouts,
   buildNordicDefaultItemLayouts,
   getWidgetItemRegistryEntry,
+  isBottomAnchoredItem,
   getItemShowWhenOptions,
   resolveItemShowWhen,
   resolveWidgetItemLayouts,
@@ -360,5 +362,33 @@ describe('widgetItemRegistry', () => {
       .filter(layout => layout.visible)
       .map(layout => `${layout.x}:${layout.y}`);
     expect(new Set(visiblePositions).size).toBe(visiblePositions.length);
+  });
+  it('anchors only the effect list at its bottom edge, and only while it grows up', () => {
+    expect(isBottomAnchoredItem('timedEffects.list', { timedEffects: { growDirection: 'up' } })).toBe(true);
+    expect(isBottomAnchoredItem('timedEffects.list', { timedEffects: { growDirection: 'down' } })).toBe(false);
+    expect(isBottomAnchoredItem('player.gold', { timedEffects: { growDirection: 'up' } })).toBe(false);
+  });
+
+  it('places a list growing up with its bottom edge where the downward list would stop', () => {
+    const up = { ...defaultSettings, timedEffects: { ...defaultSettings.timedEffects, growDirection: 'up' as const } };
+    const compactDown = buildCompactDefaultItemLayouts(defaultSettings)['timedEffects.list'];
+    const compactUp = buildCompactDefaultItemLayouts(up)['timedEffects.list'];
+    expect(compactUp.y).toBeGreaterThan(compactDown.y);
+    expect(compactUp.y).toBeLessThanOrEqual(1080 * 0.91);
+    // Right of the level widget, which stands in the downward list's column, so nothing is above it.
+    for (const iconTheme of ['standard', 'dororong'] as const) {
+      const themed = { ...up, general: { ...up.general, iconTheme } };
+      const layouts = buildCompactDefaultItemLayouts(themed);
+      expect(layouts['timedEffects.list'].x).toBeGreaterThan(layouts['player.level'].x + 60);
+      const above = Object.entries(layouts).filter(([id, layout]) => id !== 'timedEffects.list'
+        && layout.x >= layouts['timedEffects.list'].x && layout.y < layouts['timedEffects.list'].y);
+      expect(above).toEqual([]);
+    }
+    // A right-hand corner still keeps the whole list on screen.
+    const right = buildCompactDefaultItemLayouts({ ...up, general: { ...up.general, compactAnchor: 'bottomRight' } })['timedEffects.list'];
+    expect(right.x + 250 * right.scale).toBeLessThanOrEqual(1920);
+    // Other widgets keep their spots.
+    expect(buildCompactDefaultItemLayouts(up)['player.gold']).toEqual(buildCompactDefaultItemLayouts(defaultSettings)['player.gold']);
+    expect(buildNordicDefaultItemLayouts(up)['timedEffects.list'].y).toBe(400);
   });
 });

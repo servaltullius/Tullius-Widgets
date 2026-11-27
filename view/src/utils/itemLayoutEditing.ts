@@ -6,6 +6,7 @@ import {
   getWidgetItemDefaultZIndex,
 } from '../data/widgetItemRegistry';
 import type { HudStyle, LayoutSlot, WidgetItemLayout, WidgetSettings } from '../types/settings';
+import type { WidgetBounds } from './widgetBounds';
 
 function stampLayoutViewport(
   layout: WidgetItemLayout,
@@ -250,6 +251,7 @@ export function captureLayoutSlot(
     hudStyle: settings.general.hudStyle,
     compactAnchor: settings.general.compactAnchor,
     size: settings.general.size,
+    effectsGrowDirection: settings.timedEffects.growDirection,
     itemLayouts: Object.fromEntries(
       Object.entries(resolved).map(([itemId, layout]) => [
         itemId,
@@ -257,6 +259,63 @@ export function captureLayoutSlot(
       ]),
     ),
   };
+}
+
+/**
+ * The effect list's y after switching which way it grows, so it stays where it is on screen:
+ * growing up its y is the bottom edge, growing down the top edge. `bounds` is the list as drawn
+ * now, in the same screen pixels the current viewport's layouts use.
+ */
+export function effectListYForGrowDirection(
+  next: WidgetSettings['timedEffects']['growDirection'],
+  bounds: Pick<WidgetBounds, 'top' | 'bottom'>,
+): number {
+  return Number((next === 'up' ? bounds.bottom : bounds.top).toFixed(3));
+}
+
+// Height of an effect list showing only its empty line, before scaling: the best guess for a list
+// that is switched off and so cannot be measured.
+const EMPTY_EFFECT_LIST_HEIGHT = { compact: 15, classic: 34 } as const;
+
+/**
+ * Where the effect list would be on screen, for when it is switched off and cannot be measured:
+ * its saved spot with the height of its empty line, so changing its direction then still keeps
+ * the empty list in place once it is shown again.
+ */
+export function estimateEffectListBounds(
+  settings: WidgetSettings,
+  viewport: { width: number; height: number },
+): Pick<WidgetBounds, 'top' | 'bottom'> | null {
+  const layout = resolveWidgetItemLayouts({ settings, viewportWidth: viewport.width, viewportHeight: viewport.height })['timedEffects.list'];
+  if (!layout) return null;
+  const height = EMPTY_EFFECT_LIST_HEIGHT[settings.general.hudStyle] * layout.scale;
+  return settings.timedEffects.growDirection === 'up'
+    ? { top: layout.y - height, bottom: layout.y }
+    : { top: layout.y, bottom: layout.y + height };
+}
+
+/**
+ * The item layouts to save as the effect list changes direction. Widgets not yet saved are
+ * written down where they are now: the default arrangement depends on the direction (a right-hand
+ * compact corner moves the cluster by the grow-up list's column), so leaving them to the defaults
+ * would move them when only the list's growth should change. The list itself gets `listY`, the
+ * edge it grows from next, when it could be measured or estimated.
+ */
+export function pinItemLayoutsForGrowSwitch(
+  settings: WidgetSettings,
+  viewport: { width: number; height: number },
+  listY: number | null,
+): Record<string, WidgetItemLayout> {
+  const resolved = resolveWidgetItemLayouts({ settings, viewportWidth: viewport.width, viewportHeight: viewport.height });
+  const pinned: Record<string, WidgetItemLayout> = { ...settings.itemLayouts };
+  for (const [itemId, layout] of Object.entries(resolved)) {
+    if (!pinned[itemId]) pinned[itemId] = stampLayoutViewport(layout, viewport.width, viewport.height);
+  }
+  const list = resolved['timedEffects.list'];
+  if (list && listY !== null) {
+    pinned['timedEffects.list'] = { ...stampLayoutViewport(list, viewport.width, viewport.height), y: listY };
+  }
+  return pinned;
 }
 
 // In a right-hand compact corner the effect list hugs the right edge; switching between the
