@@ -11,7 +11,6 @@ Every widget stays independently movable and configurable. Standard icons are th
 [list]
 [*][b]Timed effect list can grow upward[/b]: pick [b]Up[/b] under Settings → Effects and time → List grows. The list keeps its bottom edge and grows upward as effects are added, so a list near the bottom of the screen is no longer pushed off it. It stops below the compass row and counts the rest as "+N"
 [*][b]Days passed widget[/b] (off by default): the number of days since the game started. Turn it on in the time section of Settings → Effects and time
-[*][b]In-game self-test[/b] (for mod authors and bug reports): with a [font=Courier New]SKSE/Plugins/TulliusWidgets.selftest[/font] file in place, the widgets test themselves inside the game and leave the result in the SKSE log folder. That launch neither reads nor saves your settings. [url=https://github.com/servaltullius/Tullius-Widgets#게임-안-자체-시험]How to use it[/url]
 [*]Before going back to an older version, set the list direction back to [b]Down[/b]
 [/list]
 
