@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { BRIDGE_CALLBACKS } from '../../constants/bridge';
+import { callNative } from '../../utils/nativeCalls';
 import type { Language, WidgetSettings } from '../../types/settings';
 import { t } from '../../i18n/translations';
 
@@ -60,10 +61,10 @@ export function PresetSection({ lang, settings }: PresetSectionProps) {
   return (
     <>
       <div className="tw-p-button-row" style={{ marginTop: 'calc(4px * var(--ps))' }}>
-        <button type="button" className="tw-p-btn" style={{ flex: 1 }} onClick={() => window[BRIDGE_CALLBACKS.onExportSettings]?.(buildPresetExportPayload(settings))}>
+        <button type="button" className="tw-p-btn" style={{ flex: 1 }} onClick={() => callNative(BRIDGE_CALLBACKS.onExportSettings, buildPresetExportPayload(settings))}>
           {t(lang, 'exportPreset')}
         </button>
-        <button type="button" className="tw-p-btn" style={{ flex: 1 }} onClick={() => window[BRIDGE_CALLBACKS.onImportSettings]?.('')}>
+        <button type="button" className="tw-p-btn" style={{ flex: 1 }} onClick={() => callNative(BRIDGE_CALLBACKS.onImportSettings, '')}>
           {t(lang, 'importPreset')}
         </button>
       </div>

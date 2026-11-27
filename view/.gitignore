@@ -27,3 +27,5 @@ dist-ssr
 # Playwright browser test output
 test-results/
 playwright-report/
+# Production build the self-test browser test runs against
+e2e-dist/

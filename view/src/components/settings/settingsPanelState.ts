@@ -57,3 +57,31 @@ export function readStoredPanelDock(): PanelDockPreference {
 export function writeStoredPanelDock(dock: PanelDockPreference): void {
   writeLocalStorageItem(SETTINGS_PANEL_STORAGE_KEYS.dock, dock);
 }
+
+/** What the settings window keeps between openings, as stored (null: nothing stored). */
+export interface SettingsPanelStorageSnapshot {
+  activeTab: string | null;
+  dock: string | null;
+}
+
+export function snapshotSettingsPanelStorage(): SettingsPanelStorageSnapshot {
+  return {
+    activeTab: readSessionStorageItem(SETTINGS_PANEL_STORAGE_KEYS.activeTab),
+    dock: readLocalStorageItem(SETTINGS_PANEL_STORAGE_KEYS.dock),
+  };
+}
+
+function putStorageItem(storage: () => Storage, key: string, value: string | null): void {
+  try {
+    if (value === null) storage().removeItem(key);
+    else storage().setItem(key, value);
+  } catch {
+    // Ignore storage failures in constrained overlay environments.
+  }
+}
+
+/** Puts back what a snapshot saw, each value in the storage that holds it. */
+export function restoreSettingsPanelStorage(snapshot: SettingsPanelStorageSnapshot): void {
+  putStorageItem(() => window.sessionStorage, SETTINGS_PANEL_STORAGE_KEYS.activeTab, snapshot.activeTab);
+  putStorageItem(() => window.localStorage, SETTINGS_PANEL_STORAGE_KEYS.dock, snapshot.dock);
+}

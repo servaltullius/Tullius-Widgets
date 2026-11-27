@@ -187,6 +187,20 @@ npm run e2e                                  # 브라우저 테스트(Playwright
 ```
 브라우저 테스트는 Vite 개발 서버를 1920×1080 Chromium으로 열고, 플러그인 대신 화면의 브리지 함수(`updateSettings`, `updateStats`, `toggleSettings`)로 설정과 상태를 넣습니다. 위젯 위치, 드래그, 설정 창 같은 화면 동작을 확인하며 GitHub Actions에서도 돕니다. 게임 화면 엔진(Ultralight)에서만 드러나는 동작은 게임에서 확인해야 합니다.
 
+#### 게임 안 자체 시험
+브라우저 테스트와 같은 시나리오 14개를 게임 화면 엔진(Ultralight) 안에서 돌리고, 결과를 파일로 남깁니다.
+
+1. `Data/SKSE/Plugins/TulliusWidgets.selftest` 파일을 만듭니다. MO2를 쓰면 이 모드 폴더의 `SKSE/Plugins/` 아래에 둡니다. 내용은 비어 있어도 됩니다.
+2. 게임을 켜고 세이브를 불러옵니다. 몇 초 뒤 시험이 저절로 돌고, 화면 아래쪽 띠에 진행과 결과가 나옵니다.
+3. 결과는 SKSE 로그 폴더(보통 `문서/My Games/Skyrim Special Edition/SKSE/`)의 `TulliusWidgets-selftest.json`에 남습니다. 요약 한 줄은 `TulliusWidgets.log`에도 남습니다.
+4. 끝나면 표시 파일을 지우고 게임을 다시 시작합니다.
+
+표시 파일이 있는 동안에는 다음과 같습니다.
+- 그 게임 실행 전체가 시험 전용입니다. 설정 파일을 읽지도 쓰지도 않고, 프리셋 내보내기·가져오기와 단축키(설정 창, 위젯 숨기기, Esc)도 꺼집니다.
+- 실제 게임 수치 대신 시험이 넣는 값을 보여 줍니다.
+- 실제 마우스 입력 변환과 플러그인의 Esc 처리는 시험하지 못합니다. 이 부분은 게임에서 손으로 확인합니다.
+- 자세한 설계: [`docs/plans/2026-11-26-in-game-self-test.md`](docs/plans/2026-11-26-in-game-self-test.md)
+
 ### C++ SKSE Plugin (Windows MSVC 필수)
 일반 Windows PowerShell에서 실행합니다. Developer Command Prompt의 PATH에서는 xmake가 비정상 종료할 수 있습니다([로컬 릴리즈 가이드](docs/local-release.ko.md) 참고):
 

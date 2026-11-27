@@ -15,6 +15,8 @@ declare global {
     updateUserFonts?: (jsonString: string) => void;
     showSettingsBackupNotice?: (fileName: string) => void;
     showSettingsLoadFailure?: () => void;
+    enterSelfTestSession?: () => void;
+    runSelfTest?: (runId: string, pluginVersion?: string) => void;
   }
 
   interface TulliusWidgetsBridgeNamespace {
@@ -38,6 +40,8 @@ declare global {
     updateUserFonts?: (jsonString: string) => void;
     showSettingsBackupNotice?: (fileName: string) => void;
     showSettingsLoadFailure?: () => void;
+    enterSelfTestSession?: () => void;
+    runSelfTest?: (runId: string, pluginVersion?: string) => void;
 
     onSettingsChanged?: (jsonString: string) => void;
     onSettingsSyncResult?: (success: boolean, revision?: number) => void;
@@ -51,5 +55,6 @@ declare global {
 
     onExportResult?: (success: boolean) => void;
     onImportResult?: (success: boolean) => void;
+    onSelfTestReport?: (jsonString: string) => void;
   }
 }

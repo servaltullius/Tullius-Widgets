@@ -1,4 +1,5 @@
 #include "WidgetRuntime.h"
+#include "SelfTestSession.h"
 #include "WidgetInteropContracts.h"
 #include "WidgetVisibilityState.h"
 
@@ -122,6 +123,10 @@ StatsDispatchMode SelectStatsDispatchMode(bool force)
 void SendStatsToView(bool force)
 {
     if (!IsInteropReady() || !g_state.gameLoaded.load(std::memory_order_acquire)) {
+        return;
+    }
+    // A self-test session feeds the page its own stats; the game's would overwrite them.
+    if (SelfTestSession::IsActive()) {
         return;
     }
 
@@ -279,6 +284,7 @@ void StartHeartbeat()
                 }
 
                 bool recoveredView = false;
+                bool viewShown = false;
                 if (visibilityCheckDue || heartbeatDue) {
                     auto* ui = RE::UI::GetSingleton();
                     if (WidgetVisibilityState::IsBlockingUiState(ui, HasViewFocus())) {
@@ -291,6 +297,11 @@ void StartHeartbeat()
                             NoteViewHidden();
                         }
                     }
+                    viewShown = !g_state.menusWereHidden.load(std::memory_order_acquire);
+                }
+
+                if (viewShown && IsInteropReady() && g_callbacks.onVisibleHeartbeat) {
+                    g_callbacks.onVisibleHeartbeat();
                 }
 
                 if (recoveredView || heartbeatDue || scheduledDue) {

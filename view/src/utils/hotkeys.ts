@@ -1,3 +1,6 @@
+import { BRIDGE_CALLBACKS } from '../constants/bridge';
+import { callNative } from './nativeCalls';
+
 // Hotkeys are stored as DirectInput scan codes, the codes the SKSE key handler matches.
 
 export const DEFAULT_SETTINGS_HOTKEY = 0xD2; // Insert
@@ -93,7 +96,7 @@ export function setHotkeyCaptureActive(active: boolean): void {
   captureActive = active;
   // The plugin's own hotkeys (and Esc) stand aside too, so the pressed key reaches the page.
   try {
-    window.onHotkeyCapture?.(active ? '1' : '0');
+    callNative(BRIDGE_CALLBACKS.onHotkeyCapture, active ? '1' : '0');
   } catch (error) {
     console.error('[TulliusWidgets] Failed to report hotkey capture:', error);
   }
