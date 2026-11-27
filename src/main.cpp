@@ -2,6 +2,8 @@
 #include "NativeStorage.h"
 #include "PrismaUI_API.h"
 #include "RuntimeDiagnostics.h"
+#include "SelfTestRuntime.h"
+#include "SelfTestSession.h"
 #include "StatsCollector.h"
 #include "UserFonts.h"
 #include "WidgetBootstrap.h"
@@ -160,6 +162,12 @@ static void SendUserFontsToView() {
 
 static void SendSettingsToView() {
     if (!IsInteropReady()) return;
+    // A self-test session never shows the page the real settings: the page puts up its session
+    // notice and starts from its own test settings when the run begins.
+    if (TulliusWidgets::SelfTestSession::IsActive()) {
+        (void)TryInvoke(TulliusWidgets::WidgetInteropContracts::kEnterSelfTestSessionScript);
+        return;
+    }
     // Send available assets before applying the saved selections.
     SendIconPacksToView();
     SendUserFontsToView();
@@ -342,6 +350,9 @@ static TulliusWidgets::WidgetRuntime::Callbacks BuildWidgetRuntimeCallbacks() {
     callbacks.queueGameTask = [](std::function<void()> task) {
         QueueGameTask(std::move(task));
     };
+    callbacks.onVisibleHeartbeat = []() {
+        TulliusWidgets::SelfTestRuntime::PollOnVisibleHeartbeat(&TryInvoke);
+    };
     return callbacks;
 }
 
@@ -391,6 +402,7 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message) {
         }
         TulliusWidgets::StatsCollector::ResetPlaytimeTracking();
         TulliusWidgets::WidgetBootstrap::SyncOnGameLoaded(bootstrapCallbacks);
+        TulliusWidgets::SelfTestRuntime::NoteGameLoaded();
         break;
     }
     }
@@ -410,6 +422,8 @@ SKSE_PLUGIN_LOAD(const SKSE::LoadInterface* a_skse) {
 
     SKSE::Init(a_skse);
     InitializeRuntimeDiagnostics(a_skse);
+    // Before the view exists (kDataLoaded), so a self-test session never sends it the real settings.
+    TulliusWidgets::SelfTestRuntime::InitializeForLaunch(ResolveStorageBasePath());
 
     if (!g.runtimeDiagnostics.runtimeSupported) {
         logger::warn(

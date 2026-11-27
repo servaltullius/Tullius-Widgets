@@ -12,6 +12,9 @@ export const BRIDGE_HANDLERS = {
   updateUserFonts: 'updateUserFonts',
   showSettingsBackupNotice: 'showSettingsBackupNotice',
   showSettingsLoadFailure: 'showSettingsLoadFailure',
+  // Self-test session only (docs/plans/2026-11-26-in-game-self-test.md).
+  enterSelfTestSession: 'enterSelfTestSession',
+  runSelfTest: 'runSelfTest',
 } as const;
 
 export const BRIDGE_CALLBACKS = {
@@ -26,6 +29,7 @@ export const BRIDGE_CALLBACKS = {
   onSettingsLoadFailed: 'onSettingsLoadFailed',
   onExportResult: 'onExportResult',
   onImportResult: 'onImportResult',
+  onSelfTestReport: 'onSelfTestReport',
 } as const;
 
 export const SETTINGS_PANEL_STORAGE_KEYS = {

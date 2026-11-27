@@ -1,4 +1,5 @@
 import { BRIDGE_CALLBACKS } from '../constants/bridge';
+import { callNative } from './nativeCalls';
 
 // Things on the page that answer Esc themselves: a hotkey button waiting for a key stops waiting,
 // an open select menu closes, a selected widget or group is deselected, the layout editing mode
@@ -49,11 +50,9 @@ export type EscapeOwnerReport = '1' | '0' | '0e';
 function reportToPlugin(): void {
   const owned = owners.size > 0;
   if (owned === reportedOwned) return;
-  const report = window[BRIDGE_CALLBACKS.onEscapeOwner];
-  if (typeof report !== 'function') return;
   const releasedByKeydown = !owned && lastKeydownStepAt !== null && isWithinWindow(lastKeydownStepAt);
   try {
-    report(owned ? '1' : releasedByKeydown ? '0e' : '0');
+    if (!callNative(BRIDGE_CALLBACKS.onEscapeOwner, owned ? '1' : releasedByKeydown ? '0e' : '0')) return;
     reportedOwned = owned;
   } catch (error) {
     console.error('[TulliusWidgets] Failed to report Esc ownership:', error);

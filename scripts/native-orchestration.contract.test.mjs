@@ -67,7 +67,8 @@ test('saved hotkey bindings apply at startup and on every settings save', () => 
   assert.match(interopContractsText, /kHandleEscapeScript\[] = "handleEscape\(\)"/);
   assert.match(hotkeysText, /if \(PageHoldsEscape\(\)\) \{[\s\S]*?InvokeScript\(TulliusWidgets::WidgetInteropContracts::kHandleEscapeScript\);[\s\S]*?return;\s*\}/);
   assert.match(hotkeysText, /if \(PageReleasedEscapeJustNow\(\)\) \{\s*return;/);
-  assert.match(hotkeysText, /Register\(kEscapeScanCode, KeyEventType::KEY_DOWN, \[\]\(\) \{\s*if \(AnotherMenuTakesEscape\(\)\) \{\s*return;/);
+  // A self-test session turns the key off first (self-test-session.contract.test.mjs); then the menu check.
+  assert.match(hotkeysText, /Register\(kEscapeScanCode, KeyEventType::KEY_DOWN, \[\]\(\) \{\s*(?:if \(SelfTestSession::IsActive\(\)\) \{\s*return;\s*\}\s*)?if \(AnotherMenuTakesEscape\(\)\) \{\s*return;/);
   assert.match(hotkeysText, /IsBlockingUiStateExceptFreeCamera\(ui, true\)/);
 });
 

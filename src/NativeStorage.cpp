@@ -1,5 +1,6 @@
 #include "NativeStorage.h"
 
+#include "SelfTestSession.h"
 #include "SettingsBackups.h"
 
 #include <atomic>
@@ -312,6 +313,10 @@ bool WriteSettingsFile(const std::filesystem::path& gameRootPath, std::string_vi
 // cause is another program holding the file briefly.
 bool SaveSettingsSync(const std::filesystem::path& gameRootPath, std::string_view jsonData)
 {
+    if (SelfTestSession::IsActive()) {
+        logger::warn("Self-test session: refusing to write the settings file");
+        return false;
+    }
     if (jsonData.size() > kMaxSettingsFileBytes) {
         logger::error("Refusing to save settings larger than {} bytes: {}", kMaxSettingsFileBytes, jsonData.size());
         return false;
@@ -417,6 +422,10 @@ bool SaveSettingsAsync(
     std::string_view jsonData,
     SaveCompletion onComplete)
 {
+    if (SelfTestSession::IsActive()) {
+        logger::warn("Self-test session: refusing to queue a settings save");
+        return false;
+    }
     if (jsonData.size() > kMaxSettingsFileBytes) {
         logger::error("Refusing to queue settings larger than {} bytes: {}", kMaxSettingsFileBytes, jsonData.size());
         return false;
@@ -433,6 +442,11 @@ bool SaveSettingsAsync(
 
 std::string LoadSettings(const std::filesystem::path& gameRootPath)
 {
+    // A self-test session runs on the page's own settings, hotkey bindings included.
+    if (SelfTestSession::IsActive()) {
+        logger::info("Self-test session: not reading the settings file");
+        return "";
+    }
     std::string out;
     if (!ReadTextFileWithLimit(GetSettingsPath(gameRootPath), kMaxSettingsFileBytes, "Settings", out)) return "";
     // A file saved by a text editor may start with a byte order mark, which the view cannot parse.
@@ -453,6 +467,10 @@ bool SettingsFileExists(const std::filesystem::path& gameRootPath)
 
 bool ExportPreset(const std::filesystem::path& gameRootPath, std::string_view jsonData)
 {
+    if (SelfTestSession::IsActive()) {
+        logger::warn("Self-test session: refusing to write the preset file");
+        return false;
+    }
     if (!EnsureSettingsDirectory(gameRootPath)) return false;
 
     const auto presetPath = GetPresetPath(gameRootPath);

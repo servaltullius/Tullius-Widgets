@@ -1,6 +1,7 @@
 #include "WidgetHotkeys.h"
 
 #include "JsonUtils.h"
+#include "SelfTestSession.h"
 #include "WidgetInteropContracts.h"
 #include "WidgetRuntime.h"
 #include "WidgetVisibilityState.h"
@@ -186,6 +187,10 @@ std::uint32_t CurrentVisibilityKey()
 
 void OnSettingsKey()
 {
+    // A self-test session runs the page on its own; a key press would disturb the run.
+    if (SelfTestSession::IsActive()) {
+        return;
+    }
     // Read at key-press time: the page may end the capture before the queued task runs.
     if (IsCaptureActive()) {
         return;
@@ -222,6 +227,9 @@ void OnSettingsKey()
 
 void OnVisibilityKey()
 {
+    if (SelfTestSession::IsActive()) {
+        return;
+    }
     if (IsCaptureActive()) {
         return;
     }
@@ -273,6 +281,9 @@ void RegisterDefaultHotkeys(const Callbacks& callbacks)
     }
 
     (void)keyHandler->Register(kEscapeScanCode, KeyEventType::KEY_DOWN, []() {
+        if (SelfTestSession::IsActive()) {
+            return;
+        }
         if (AnotherMenuTakesEscape()) {
             return;  // Esc closes the console or the other menu, not the panel or its editing.
         }

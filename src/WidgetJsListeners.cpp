@@ -2,6 +2,8 @@
 
 #include "JsonUtils.h"
 #include "NativeStorage.h"
+#include "SelfTestRuntime.h"
+#include "SelfTestSession.h"
 #include "SettingsBackups.h"
 #include "WidgetHotkeys.h"
 #include "WidgetInteropContracts.h"
@@ -119,6 +121,12 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
 
     prismaUI->RegisterJSListener(view, TulliusWidgets::WidgetInteropContracts::kOnSettingsChanged, [](const char* data) -> void {
         if (!data) return;
+        // A self-test session saves nothing and answers nothing: a failure answer would make the
+        // page retry and show a save warning, which no scenario expects.
+        if (TulliusWidgets::SelfTestSession::IsActive()) {
+            DispatchToGameThread([]() { TulliusWidgets::SelfTestRuntime::LogIgnoredOnce("settings saves"); });
+            return;
+        }
         const std::string_view payloadView(data);
         if (!IsPayloadWithinLimit(payloadView, "Settings update")) {
             NotifySettingsSyncResult(false);
@@ -157,6 +165,13 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
 
     prismaUI->RegisterJSListener(view, TulliusWidgets::WidgetInteropContracts::kOnExportSettings, [](const char* data) -> void {
         if (!data) return;
+        if (TulliusWidgets::SelfTestSession::IsActive()) {
+            DispatchToGameThread([]() {
+                TulliusWidgets::SelfTestRuntime::LogIgnoredOnce("preset exports");
+                NotifyExportResult(false);
+            });
+            return;
+        }
         const std::string_view payload(data);
         if (!IsPayloadWithinLimit(payload, "Preset export")) {
             NotifyExportResult(false);
@@ -172,6 +187,11 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
 
     prismaUI->RegisterJSListener(view, TulliusWidgets::WidgetInteropContracts::kOnImportSettings, [](const char*) -> void {
         DispatchToGameThread([]() {
+            if (TulliusWidgets::SelfTestSession::IsActive()) {
+                TulliusWidgets::SelfTestRuntime::LogIgnoredOnce("preset imports");
+                NotifyImportResult(false);
+                return;
+            }
             std::string json;
             if (!TulliusWidgets::NativeStorage::LoadPreset(ResolveStorageBasePath(), json)) {
                 NotifyImportResult(false);
@@ -215,6 +235,15 @@ void Register(PRISMA_UI_API::IVPrismaUI1* prismaUI, PrismaView view, const Callb
         const std::string_view state = data ? std::string_view(data) : std::string_view{};
         // "1" owned, "0" released, "0e" released by the page's own Esc keydown.
         TulliusWidgets::WidgetHotkeys::SetPageOwnsEscape(state == "1", state == "0e");
+    });
+
+    // Self-test session: the page reports its run (started, after each scenario, finished).
+    prismaUI->RegisterJSListener(view, TulliusWidgets::WidgetInteropContracts::kOnSelfTestReport, [](const char* data) -> void {
+        if (!data) return;
+        std::string payload(data);
+        DispatchToGameThread([payload = std::move(payload)]() {
+            TulliusWidgets::SelfTestRuntime::HandleReport(payload);
+        });
     });
 }
 

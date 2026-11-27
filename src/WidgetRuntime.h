@@ -14,6 +14,8 @@ struct Callbacks {
     std::function<bool()> showView;
     std::function<void()> hideView;
     std::function<void(std::function<void()>)> queueGameTask;
+    /** Runs on the game thread at a heartbeat while the view is shown and no menu hides it. */
+    std::function<void()> onVisibleHeartbeat;
 };
 
 void Initialize(const Callbacks& callbacks);

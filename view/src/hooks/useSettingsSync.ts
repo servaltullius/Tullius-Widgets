@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { BRIDGE_CALLBACKS } from '../constants/bridge';
+import { callNative } from '../utils/nativeCalls';
 import type { WidgetSettings } from '../types/settings';
 import { serializeSettingsPayload, type LoadedSettingsFile } from './settingsShared';
 
@@ -33,7 +34,7 @@ export function useSettingsSync({ settingsRevisionRef, loadedSettingsFileRef }: 
       debounceTimerRef.current = null;
       lastDispatchedSettingsJsonRef.current = json;
       lastDispatchedSettingsRevisionRef.current = revision;
-      window[BRIDGE_CALLBACKS.onSettingsChanged]?.(json);
+      callNative(BRIDGE_CALLBACKS.onSettingsChanged, json);
     }, 200);
   }, []);
 

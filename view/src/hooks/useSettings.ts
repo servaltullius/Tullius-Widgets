@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { BRIDGE_CALLBACKS } from '../constants/bridge';
+import { callNative } from '../utils/nativeCalls';
 import type {
   UpdateSettingFn,
   UpdateSettingOptions,
@@ -236,7 +237,7 @@ export function useSettings() {
         setSettingsFileNotice(current => current ?? { kind: 'loadFailed' });
       }
       try {
-        window[BRIDGE_CALLBACKS.onSettingsLoadFailed]?.(`${reason} (${jsonString.length} chars)`);
+        callNative(BRIDGE_CALLBACKS.onSettingsLoadFailed, `${reason} (${jsonString.length} chars)`);
       } catch (error) {
         console.error('[TulliusWidgets] Failed to report a settings load failure:', error);
       }
@@ -354,7 +355,7 @@ export function useSettings() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isEscapeKey(e) && settingsOpen && !e.defaultPrevented && !e.repeat) {
         setSettingsOpen(false);
-        window[BRIDGE_CALLBACKS.onRequestUnfocus]?.('');
+        callNative(BRIDGE_CALLBACKS.onRequestUnfocus, '');
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -362,7 +363,7 @@ export function useSettings() {
   }, [settingsOpen]);
 
   useEffect(() => {
-    window[BRIDGE_CALLBACKS.onSettingsVisibilityChanged]?.(settingsOpen ? 'open' : 'closed');
+    callNative(BRIDGE_CALLBACKS.onSettingsVisibilityChanged, settingsOpen ? 'open' : 'closed');
   }, [settingsOpen]);
 
   // A change made with persist: false waits for the next saving update to carry it. When that
@@ -415,7 +416,7 @@ export function useSettings() {
 
   const closeSettings = useCallback(() => {
     setSettingsOpen(false);
-    window[BRIDGE_CALLBACKS.onRequestUnfocus]?.('');
+    callNative(BRIDGE_CALLBACKS.onRequestUnfocus, '');
   }, []);
 
   // Resolved accent color: manual override > auto HUD color.
