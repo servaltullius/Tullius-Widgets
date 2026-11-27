@@ -387,6 +387,90 @@ function topLimitScenario(look: {
   };
 }
 
+// --- widgetRightEdge.e2e.ts ---
+
+/** How many cards share the line of the first card. */
+function cardsOnFirstLine(rows: HTMLElement[]): number {
+  const tops = rows.map(row => Math.round(row.getBoundingClientRect().top));
+  return tops.filter(top => Math.abs(top - tops[0]) <= 1).length;
+}
+
+const RIGHT_EDGE_ROOM = 520;
+
+/**
+ * A fresh HUD with the classic list in rows at x and this scale, showing `count` effects. Checks
+ * what holds anywhere: the list stays at x, and its content is no wider than its own box.
+ */
+async function classicRowsAt(context: ScenarioContext, x: number, scale: number, count: number): Promise<{ list: Box; perLine: number }> {
+  await context.openHud({
+    general: { onboardingSeen: true, hudStyle: 'classic', language: 'ko' },
+    timedEffects: { maxVisible: 12, listLayout: 'horizontal' },
+    itemLayouts: {
+      'timedEffects.list': {
+        visible: true,
+        x,
+        y: 600,
+        scale,
+        locked: false,
+        zIndex: 0,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+      },
+    },
+  });
+  context.sendStats({ timedEffects: makeEffects(count) });
+  const rows = await effectRows(count, '.tw-effect-row');
+  await nextFrame();
+  const shell = widget('timedEffects.list');
+  check(shell !== null, 'the effect list is not on the page');
+  const list = boxOf(shell);
+  const perLine = cardsOnFirstLine(rows);
+  context.record(`x ${round1(x)}, scale ${scale}`, {
+    box: roundBox(list),
+    perLine,
+    contentWidth: shell.scrollWidth,
+    boxWidth: shell.clientWidth,
+  });
+  checkClose(list.left, x, `left edge at ${scale}×`);
+  check(shell.scrollWidth <= shell.clientWidth + 1, `at ${scale}× the cards (${shell.scrollWidth}px) are wider than the list's box (${shell.clientWidth}px)`);
+  return { list, perLine };
+}
+
+const scaledRowsStayOnScreen: Scenario = {
+  id: 'right-edge/scaled-rows',
+  name: 'classic rows near the right edge wrap to the room they have at any scale',
+  async run(context) {
+    const x = window.innerWidth - RIGHT_EDGE_ROOM;
+    const at = async (scale: number) => {
+      const { list, perLine } = await classicRowsAt(context, x, scale, 8);
+      check(list.right <= window.innerWidth + 1, `at ${scale}× the list runs to ${round1(list.right)}, past the right edge (${window.innerWidth})`);
+      return perLine;
+    };
+
+    const atOne = await at(1);
+    check(atOne > 1, `only ${atOne} card on a line at its own size`);
+    const larger = await at(1.5);
+    check(larger < atOne, `made larger, ${larger} cards still share a line (${atOne} at its own size)`);
+    const smaller = await at(0.7);
+    check(smaller > atOne, `made smaller, only ${smaller} cards share a line (${atOne} at its own size)`);
+  },
+};
+
+const roomyRowsKeepOneLine: Scenario = {
+  id: 'right-edge/far-from-edge',
+  name: 'classic rows with room to spare keep three cards on one line at its own size and made larger',
+  async run(context) {
+    // A box that came out narrower than its cards (the shell's sizing read differently by the
+    // engine) would push the third card down even here.
+    const atOne = await classicRowsAt(context, 300, 1, 3);
+    check(atOne.perLine === 3, `at its own size only ${atOne.perLine} of 3 cards share a line`);
+    const larger = await classicRowsAt(context, 300, 1.5, 3);
+    check(larger.perLine === 3, `made larger, only ${larger.perLine} of 3 cards share a line`);
+    const ratio = (larger.list.right - larger.list.left) / (atOne.list.right - atOne.list.left);
+    checkClose(ratio, 1.5, 'width made larger, relative to its own size', 0.05);
+  },
+};
+
 // --- daysPassed.e2e.ts ---
 
 function daysPassedScenario(layout: { id: string; name: string; hudStyle: string; iconTheme: string; text: RegExp }): Scenario {
@@ -516,8 +600,8 @@ export const SCENARIOS: readonly Scenario[] = [
     id: 'classic-rows',
     name: 'classic rows near the right edge',
     // At its own size, 400px from the right edge and with its bottom 400px down at any screen
-    // size: one wide card fills a line, and twelve lines reach the compass row. (A scaled list
-    // wraps by its unscaled width, so scaling it would change how many share a line.)
+    // size: one wide card fills a line, and twelve lines reach the compass row. (Scaled, it would
+    // wrap to that room divided by its scale, and a different number would share a line.)
     settings: () => ({
       general: { onboardingSeen: true, hudStyle: 'classic', language: 'ko' },
       timedEffects: { growDirection: 'up', maxVisible: 12, listLayout: 'horizontal' },
@@ -546,6 +630,8 @@ export const SCENARIOS: readonly Scenario[] = [
     more: '.tw-ceffect-more',
     effects: makeEffects(12),
   }),
+  scaledRowsStayOnScreen,
+  roomyRowsKeepOneLine,
   daysPassedScenario({ id: 'compact-standard', name: 'compact, standard icons', hudStyle: 'compact', iconTheme: 'standard', text: /지난\s*41일/ }),
   daysPassedScenario({ id: 'compact-dororong', name: 'compact, Dororong icons', hudStyle: 'compact', iconTheme: 'dororong', text: /지난\s*41일/ }),
   daysPassedScenario({ id: 'classic', name: 'classic', hudStyle: 'classic', iconTheme: 'standard', text: /41일/ }),
