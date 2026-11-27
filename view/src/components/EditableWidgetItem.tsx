@@ -10,6 +10,7 @@ import {
 import type { WidgetInteractionMode } from '../hooks/useWidgetEditSelection';
 import { computeResizeScale } from '../utils/widgetSnap';
 import { releaseKeyboardFocus } from '../utils/keyboardFocus';
+import { wrapRoomStyle } from '../utils/widgetWrapRoom';
 
 interface EditableWidgetItemProps {
   itemId: string;
@@ -319,6 +320,7 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
         position: 'fixed',
         left: `${x}px`,
         top: `${y}px`,
+        ...wrapRoomStyle(x, scale),
         opacity: bare ? 1 : opacity / 100,
         ...(bare ? { '--c-surface-alpha': String(Math.round((opacity / 100) * 0.42 * 100) / 100) } : {}),
         transform: anchorBottom ? `translateY(-100%) scale(${scale})` : `scale(${scale})`,
