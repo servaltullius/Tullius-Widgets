@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { boxOf, makeEffects, openHud, sendStats, widget } from './hud';
+import { boxOf, makeEffects, openHud, sendSettings, sendStats, widget } from './hud';
 
 // A list growing up stops below the compass row at the top of the screen (72px at 1080p), the
 // strip the top-corner presets keep clear, and counts the rest on its "+N" line.
@@ -78,8 +78,61 @@ test.describe('a list growing up stops below the compass row', () => {
     const list = widget(page, 'timedEffects.list');
     await expect(list.locator('.tw-effect-hidden-count')).toBeVisible();
     const shown = await list.locator('.tw-effect-row').count();
+    expect(shown).toBeGreaterThan(1);
     expect(shown).toBeLessThan(12);
     expect(await hiddenCount(page, '.tw-effect-hidden-count')).toBe(12 - shown);
+    expect((await boxOf(list)).top).toBeGreaterThanOrEqual(TOP_LIMIT - 1);
+  });
+
+  test('classic column at the default count: six cards and "+1" fit with second lines', async ({ page }) => {
+    await openHud(page, { ...CLASSIC, timedEffects: { growDirection: 'up' } });
+    await sendStats(page, { timedEffects: namedEffects(7) });
+    const list = widget(page, 'timedEffects.list');
+    await expect(list.locator('.tw-effect-row')).toHaveCount(6);
+    expect(await hiddenCount(page, '.tw-effect-hidden-count')).toBe(1);
+    expect((await boxOf(list)).top).toBeGreaterThanOrEqual(TOP_LIMIT - 1);
+  });
+
+  test('classic column made larger and then smaller again: the cards come back', async ({ page }) => {
+    const at = (scale: number) => ({
+      ...CLASSIC,
+      timedEffects: { growDirection: 'up', maxVisible: 12 },
+      itemLayouts: {
+        'timedEffects.list': { visible: true, x: 1100, y: 400, scale, locked: false, zIndex: 0, viewportWidth: 1920, viewportHeight: 1080 },
+      },
+    });
+    await openHud(page, at(1));
+    await sendStats(page, { timedEffects: namedEffects(12) });
+    const list = widget(page, 'timedEffects.list');
+    const rows = list.locator('.tw-effect-row');
+    await expect(list.locator('.tw-effect-hidden-count')).toBeVisible();
+    const atOne = await rows.count();
+
+    await sendSettings(page, at(1.5));
+    await expect.poll(() => rows.count()).toBeLessThan(atOne);
+    expect((await boxOf(list)).top).toBeGreaterThanOrEqual(TOP_LIMIT - 1);
+
+    await sendSettings(page, at(1));
+    await expect.poll(() => rows.count()).toBe(atOne);
+    expect((await boxOf(list)).top).toBeGreaterThanOrEqual(TOP_LIMIT - 1);
+  });
+
+  test('classic rows moved from the right edge to a wide spot: every card comes back', async ({ page }) => {
+    const at = (x: number) => ({
+      ...CLASSIC,
+      timedEffects: { growDirection: 'up', maxVisible: 12, listLayout: 'horizontal' },
+      itemLayouts: {
+        'timedEffects.list': { visible: true, x, y: 400, scale: 1, locked: false, zIndex: 0, viewportWidth: 1920, viewportHeight: 1080 },
+      },
+    });
+    await openHud(page, at(1560));
+    await sendStats(page, { timedEffects: namedEffects(12) });
+    const list = widget(page, 'timedEffects.list');
+    await expect(list.locator('.tw-effect-hidden-count')).toBeVisible();
+
+    await sendSettings(page, at(200));
+    await expect(list.locator('.tw-effect-row')).toHaveCount(12);
+    await expect(list.locator('.tw-effect-hidden-count')).toHaveCount(0);
     expect((await boxOf(list)).top).toBeGreaterThanOrEqual(TOP_LIMIT - 1);
   });
 
