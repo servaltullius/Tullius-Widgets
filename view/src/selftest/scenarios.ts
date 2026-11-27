@@ -15,6 +15,7 @@ import {
   pathBetween,
   press,
   query,
+  round1,
   roundBox,
   sleep,
   textOf,
@@ -332,6 +333,41 @@ function defaultSpotScenario(iconTheme: 'standard' | 'dororong'): Scenario {
   };
 }
 
+// --- effectsTopLimit.e2e.ts ---
+
+/** Effects whose source and effect names differ, so each classic card has its second, taller line. */
+function namedEffects(count: number) {
+  return makeEffects(count).map((effect, index) => ({
+    ...effect,
+    sourceName: `Potion of Effect ${index}`,
+    effectName: `Fortify Effect ${index}`,
+  }));
+}
+
+function topLimitScenario(look: { id: string; name: string; settings: object; row: string; more: string; effects: object[] }): Scenario {
+  return {
+    id: `grow-up/top-limit-${look.id}`,
+    name: `a list growing up stops below the compass row and counts the rest (${look.name})`,
+    async run(context) {
+      await context.openHud(look.settings);
+      context.sendStats({ timedEffects: look.effects });
+      const more = await waitFor('the "+N" count', () => {
+        const element = query(`[data-widget-item-id="timedEffects.list"] ${look.more}`);
+        return isShown(element) ? element : null;
+      });
+      const shown = document.querySelectorAll(`[data-widget-item-id="timedEffects.list"] ${look.row}`).length;
+      const hidden = Number(textOf(more).replace('+', ''));
+      // The compass row: 72px at 1080p, as the top-corner presets keep clear.
+      const topLimit = window.innerHeight * (72 / 1080);
+      const list = listBox();
+      context.record('list', { box: roundBox(list), topLimit: round1(topLimit), shown, hidden });
+      check(shown > 1 && shown < look.effects.length, `${shown} of ${look.effects.length} cards shown`);
+      check(hidden === look.effects.length - shown, `"+${hidden}" does not count the ${look.effects.length - shown} cards left out`);
+      check(list.top >= topLimit - 1, `the list reaches ${round1(list.top)}, above the compass row (${round1(topLimit)})`);
+    },
+  };
+}
+
 // --- daysPassed.e2e.ts ---
 
 function daysPassedScenario(layout: { id: string; name: string; hudStyle: string; iconTheme: string; text: RegExp }): Scenario {
@@ -449,6 +485,22 @@ export const SCENARIOS: readonly Scenario[] = [
   }),
   defaultSpotScenario('standard'),
   defaultSpotScenario('dororong'),
+  topLimitScenario({
+    id: 'classic',
+    name: 'classic column',
+    settings: { general: { onboardingSeen: true, hudStyle: 'classic', language: 'ko' }, timedEffects: { growDirection: 'up', maxVisible: 12 } },
+    row: '.tw-effect-row',
+    more: '.tw-effect-hidden-count',
+    effects: namedEffects(12),
+  }),
+  topLimitScenario({
+    id: 'compact-top-corner',
+    name: 'compact, top-left corner',
+    settings: { general: { ...COMPACT.general, compactAnchor: 'topLeft' }, timedEffects: { growDirection: 'up', maxVisible: 12 } },
+    row: '.tw-ceffect-row',
+    more: '.tw-ceffect-more',
+    effects: makeEffects(12),
+  }),
   daysPassedScenario({ id: 'compact-standard', name: 'compact, standard icons', hudStyle: 'compact', iconTheme: 'standard', text: /지난\s*41일/ }),
   daysPassedScenario({ id: 'compact-dororong', name: 'compact, Dororong icons', hudStyle: 'compact', iconTheme: 'dororong', text: /지난\s*41일/ }),
   daysPassedScenario({ id: 'classic', name: 'classic', hudStyle: 'classic', iconTheme: 'standard', text: /41일/ }),

@@ -12,6 +12,7 @@ import {
   buildClassicEquipDetail,
   formatThousands,
   getCompactEffectRowLimit,
+  getEffectListTopLimit,
 } from './hudPresentation';
 import type { CombatStats, PlayerInfo } from '../types/stats';
 import type { WidgetSettings } from '../types/settings';
@@ -53,12 +54,21 @@ describe('hudPresentation', () => {
     expect(getCompactEffectRowLimit(undefined, 'vertical', 1080)).toBe(Number.POSITIVE_INFINITY);
   });
 
-  it('lets a list growing up use the room above its bottom edge', () => {
-    // Default grow-up spot just above the bars: rows up to the top of the screen, minus "+N".
-    expect(getCompactEffectRowLimit({ y: 975, scale: 1, viewportHeight: 1080 }, 'vertical', 1080, 'up')).toBe(39);
-    expect(getCompactEffectRowLimit({ y: 975, scale: 2, viewportHeight: 2160 }, 'horizontal', 2160, 'up')).toBe(38);
-    // Near the top edge it still keeps one row.
+  it('lets a list growing up use the room above its bottom edge, below the compass row', () => {
+    // Default grow-up spot just above the bars: rows up to the compass row (72px at 1080p), minus "+N".
+    expect(getCompactEffectRowLimit({ y: 975, scale: 1, viewportHeight: 1080 }, 'vertical', 1080, 'up')).toBe(36);
+    expect(getCompactEffectRowLimit({ y: 975, scale: 2, viewportHeight: 2160 }, 'horizontal', 2160, 'up')).toBe(32);
+    // A top-corner cluster puts the list's bottom edge high: (257 - 72) / 24 = 7 rows, minus "+N".
+    expect(getCompactEffectRowLimit({ y: 257, scale: 1, viewportHeight: 1080 }, 'vertical', 1080, 'up')).toBe(6);
+    // Inside the compass row already it may use the screen edge, and always keeps one row.
     expect(getCompactEffectRowLimit({ y: 30, scale: 1, viewportHeight: 1080 }, 'vertical', 1080, 'up')).toBe(1);
+  });
+
+  it('keeps a list growing up below the compass row unless it starts inside it', () => {
+    expect(getEffectListTopLimit(975, 1080)).toBe(72);
+    expect(getEffectListTopLimit(1950, 2160)).toBe(144);
+    expect(getEffectListTopLimit(72, 1080)).toBe(0);
+    expect(getEffectListTopLimit(30, 1080)).toBe(0);
   });
 
   it('groups thousands like the en-US locale without calling it', () => {

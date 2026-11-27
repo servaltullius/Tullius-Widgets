@@ -176,7 +176,9 @@ const COMPACT_CLUSTER_ANCHOR = { x: 34 } as const;
 // Widest compact element: the timed-effect list (fixed widths in compact-theme.css).
 export const COMPACT_EFFECT_COLUMN_WIDTH = 250;
 export const COMPACT_EFFECT_ROW_WIDTH = 532;
-const COMPACT_TOP_MARGIN = 72;
+// The strip at the top of the screen (1080p baseline) that the top-corner presets keep clear: the
+// compass row. A list growing up stops below it too (getEffectListTopLimit in hudPresentation).
+export const COMPACT_TOP_MARGIN = 72;
 
 // Corner presets move the whole cluster, using its real bounds (hidden items included) at the
 // current size scale so no item can land off-screen.

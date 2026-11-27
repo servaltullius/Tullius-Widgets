@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Battery,
   BookOpen,
@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import type { EffectCategory, TimedEffect } from '../types/stats';
 import { CompactIconThemeContext, getCompactStatArt } from './compact/compactIconTheme';
+import { useEffectListFit } from '../hooks/useEffectListFit';
 
 const EFFECT_CATEGORY_ICONS: Record<EffectCategory, LucideIcon> = {
   health: Heart,
@@ -76,7 +77,9 @@ interface TimedEffectListProps {
   layout?: 'vertical' | 'horizontal';
   /**
    * 'up' anchors the list at its bottom edge: the most pressing effect sits at the bottom and
-   * the list grows upward, with the "+N" line on top.
+   * the list grows upward, with the "+N" line on top. A classic list growing up shows only the
+   * cards that fit below the compass row (useEffectListFit); the compact one is capped by its
+   * caller, whose rows have a fixed height.
    */
   growDirection?: 'down' | 'up';
   variant?: 'card' | 'compact';
@@ -143,6 +146,7 @@ export function TimedEffectList({
 }: TimedEffectListProps) {
   const [nowMs, setNowMs] = useState(() => Date.now());
   const iconSource = useContext(CompactIconThemeContext);
+  const cardListRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -151,7 +155,6 @@ export function TimedEffectList({
     return () => window.clearInterval(timer);
   }, []);
 
-  const visibleLimit = Math.max(1, maxVisible);
   const sorted = useMemo(() => {
     const active = effects
       .map(effect => ({
@@ -182,6 +185,8 @@ export function TimedEffectList({
     return active;
   }, [effects, nowMs]);
 
+  const cardFit = useEffectListFit(cardListRef, variant === 'card' && growDirection === 'up', layout, sorted.length);
+  const visibleLimit = Math.max(1, Math.min(maxVisible, cardFit));
   const visible = sorted.slice(0, visibleLimit);
   const hiddenCount = Math.max(0, sorted.length - visible.length);
 
@@ -238,7 +243,7 @@ export function TimedEffectList({
   }
 
   return (
-    <div className="tw-effect-list" data-layout={layout} data-grow={growDirection}>
+    <div ref={cardListRef} className="tw-effect-list" data-layout={layout} data-grow={growDirection}>
       {visible.map(({ effect, displayedRemainingSec, progressPct, urgent }) => (
         <div
           className="tw-effect-row"

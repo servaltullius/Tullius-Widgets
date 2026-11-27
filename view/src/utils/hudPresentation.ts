@@ -1,4 +1,9 @@
-import { resolveItemShowWhen, WIDGET_ITEM_IDS } from '../data/widgetItemRegistry';
+import {
+  COMPACT_TOP_MARGIN,
+  NORDIC_DEFAULT_BASELINE_VIEWPORT,
+  resolveItemShowWhen,
+  WIDGET_ITEM_IDS,
+} from '../data/widgetItemRegistry';
 import { t } from '../i18n/translations';
 import type { HudStyle, Language, WidgetItemLayout, WidgetSettings } from '../types/settings';
 import type { RuntimeDiagnostics } from '../types/runtime';
@@ -180,10 +185,20 @@ export function buildItemChangeSignatures(
   return out;
 }
 
+// A list growing up stops below the compass row at the top of the screen, the strip the top-corner
+// presets keep clear, unless its bottom edge already sits inside that strip (then the screen edge).
+const EFFECT_LIST_TOP_ZONE = COMPACT_TOP_MARGIN / NORDIC_DEFAULT_BASELINE_VIEWPORT.height;
+
+/** How high a list growing up from `bottomEdge` may reach, in the same units as the viewport height. */
+export function getEffectListTopLimit(bottomEdge: number, viewportHeight: number): number {
+  const zoneBottom = viewportHeight * EFFECT_LIST_TOP_ZONE;
+  return bottomEdge > zoneBottom ? zoneBottom : 0;
+}
+
 // The compact effect list grows downward from its top edge. Cap the rows so it stops above the
 // resource-bar zone at the bottom of the screen (or the screen edge when it was placed lower);
 // the list's own "+N" line, which needs one more row, reports the rest. Growing up from its
-// bottom edge (its y), it stops at the top of the screen instead.
+// bottom edge (its y), it stops below the compass row instead (getEffectListTopLimit).
 const COMPACT_EFFECT_ROW_PITCH = 24;
 const RESOURCE_BAR_ZONE = 0.91;
 
@@ -197,7 +212,7 @@ export function getCompactEffectRowLimit(
   const viewportHeight = layout.viewportHeight ?? fallbackViewportHeight;
   const barZoneTop = viewportHeight * RESOURCE_BAR_ZONE;
   const room = growDirection === 'up'
-    ? layout.y
+    ? layout.y - getEffectListTopLimit(layout.y, viewportHeight)
     : (layout.y < barZoneTop ? barZoneTop : viewportHeight) - layout.y;
   const rows = Math.floor(room / (COMPACT_EFFECT_ROW_PITCH * Math.max(0.1, layout.scale))) - 1;
   return Math.max(1, rows) * (listLayout === 'horizontal' ? 2 : 1);
