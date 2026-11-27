@@ -172,23 +172,41 @@ test.describe('timed effect list growing up', () => {
 
     await openSettings(page, new RegExp(EFFECTS));
     const start = await boxOf(list);
-    // A click selects the list and shows its resize handle at the bottom-right corner.
+    // A click selects the list and shows its resize handle on the top-right corner, across from
+    // the bottom-left corner that stays put.
     await page.mouse.click(start.left + 40, (start.top + start.bottom) / 2);
-    const handle = await boxOf(page.locator('[data-resize-handle="timedEffects.list"]'));
-    const handleX = (handle.left + handle.right) / 2;
-    const handleY = (handle.top + handle.bottom) / 2;
-    await page.mouse.move(handleX, handleY);
-    await page.mouse.down();
-    await page.mouse.move(handleX + 50, handleY, { steps: 5 });
-    await page.mouse.move(handleX + 100, handleY, { steps: 5 });
-    await page.mouse.up();
+    const handleLocator = page.locator('[data-resize-handle="timedEffects.list"]');
 
-    const resized = await boxOf(list);
-    expect(resized.left).toBeCloseTo(start.left, 0);
-    expect(resized.bottom).toBeCloseTo(start.bottom, 0);
-    // The corner the handle sits on follows the cursor (within a couple of pixels of rounding).
-    expect(Math.abs(resized.right - (start.right + 100))).toBeLessThan(3);
-    expect(resized.top).toBeLessThan(start.top);
+    // Drags the handle along the line from the fixed corner through it, to `factor` of the way.
+    const dragHandle = async (factor: number) => {
+      const before = await boxOf(list);
+      const handle = await boxOf(handleLocator);
+      const from = { x: (handle.left + handle.right) / 2, y: (handle.top + handle.bottom) / 2 };
+      const to = { x: before.left + (from.x - before.left) * factor, y: before.bottom + (from.y - before.bottom) * factor };
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.mouse.move((from.x + to.x) / 2, (from.y + to.y) / 2, { steps: 5 });
+      await page.mouse.move(to.x, to.y, { steps: 5 });
+      await page.mouse.up();
+      return { before, to, after: await boxOf(list) };
+    };
+
+    // Toward the fixed corner it shrinks, only from the top and the right. (Shrinking first keeps
+    // the handle clear of the settings window docked beside the list.)
+    const shrunk = await dragHandle(0.8);
+    expect(shrunk.after.left).toBeCloseTo(start.left, 0);
+    expect(shrunk.after.bottom).toBeCloseTo(start.bottom, 0);
+    expect(shrunk.after.right).toBeLessThan(start.right - 10);
+    expect(shrunk.after.top).toBeGreaterThan(start.top + 5);
+
+    // Away from it it grows, and the corner the handle sits on follows the cursor (within a
+    // couple of pixels of rounding).
+    const grown = await dragHandle(1.2);
+    expect(grown.after.left).toBeCloseTo(start.left, 0);
+    expect(grown.after.bottom).toBeCloseTo(start.bottom, 0);
+    expect(Math.abs(grown.after.right - grown.to.x)).toBeLessThan(3);
+    expect(Math.abs(grown.after.top - grown.to.y)).toBeLessThan(3);
+    expect(grown.after.top).toBeLessThan(grown.before.top);
   });
 
   for (const look of [

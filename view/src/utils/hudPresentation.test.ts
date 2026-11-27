@@ -183,6 +183,19 @@ describe('hudPresentation', () => {
     expect(changed).toEqual(['resistance.fire']);
   });
 
+  it('counts a new day as a change of the days-passed widget', () => {
+    const settings = cloneSettings();
+    const stats = cloneStats();
+    const itemLayouts = resolveWidgetItemLayouts({ settings, viewportWidth: 1920, viewportHeight: 1080 });
+    itemLayouts['time.daysPassed'] = { ...itemLayouts['time.daysPassed'], visible: true, showWhen: 'change' };
+    const before = buildItemChangeSignatures(stats, itemLayouts);
+    expect(before['time.daysPassed']).toBeDefined();
+    stats.time.daysPassed += 1;
+    const after = buildItemChangeSignatures(stats, itemLayouts);
+    const changed = Object.keys(after).filter(itemId => after[itemId] !== before[itemId]);
+    expect(changed).toEqual(['time.daysPassed']);
+  });
+
   it('tracks raw resistance changes when the visible widget presentation includes raw values', () => {
     const settings = cloneSettings();
     const stats = cloneStats();

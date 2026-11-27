@@ -145,6 +145,8 @@ function collectItemSignature(itemId: string, stats: CombatStats): string | null
     case 'equipped.potion': return `eq.potion:${stats.equipped.potionName}:${stats.equipped.potionCount ?? -1}`;
     case 'movement.speedMult': return `move.speed:${stats.movement.speedMult}`;
     case 'time.weather': return `weather:${stats.time.weather}`;
+    // Whole days only, as shown: the day turning over is the change.
+    case 'time.daysPassed': return `days:${Math.floor(stats.time.daysPassed)}`;
     case 'player.level': return `pi.level:${stats.playerInfo.level}`;
     case 'player.gold': return `pi.gold:${stats.playerInfo.gold}`;
     case 'player.carryWeight': return `pi.carry:${stats.playerInfo.carryWeight}|pi.maxCarry:${stats.playerInfo.maxCarryWeight}`;

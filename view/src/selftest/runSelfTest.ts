@@ -158,6 +158,8 @@ export async function enterSelfTestSession(): Promise<void> {
   setSelfTestProgress({ phase: 'waiting', total: SCENARIOS.length });
   try {
     await waitFor('the app', () => typeof window.updateSettings === 'function', 5000);
+    // A run that began meanwhile has given the page its own settings.
+    if (running || getSelfTestProgress().phase !== 'waiting') return;
     sendSettingsPayload(NEUTRAL_SETTINGS);
   } catch (error) {
     console.error('[TulliusWidgets] The self-test session could not set up the page:', error);
@@ -218,13 +220,13 @@ export async function runSelfTest(runId: string, pluginVersion = '', scenarios: 
     } catch (error) {
       cleanupError = error instanceof Error ? error.message : String(error);
     }
-    restoreSettingsPanelStorage(panelStorage);
 
     lastReport = build('finished', cleanupError ? { cleanupError } : {});
     sendReport(lastReport);
     setSelfTestProgress({ phase: 'finished' });
     return lastReport;
   } finally {
+    restoreSettingsPanelStorage(panelStorage);
     running = false;
   }
 }

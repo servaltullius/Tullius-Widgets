@@ -279,17 +279,19 @@ const resizeKeepsBottomLeft: Scenario = {
       const element = query('[data-resize-handle="timedEffects.list"]');
       return isShown(element) ? element : null;
     });
+    // The handle sits on the top-right corner, across from the bottom-left corner that stays put;
+    // dragging it part of the way toward that corner shrinks the list under the cursor.
     const handleBox = boxOf(handle);
     const from = { x: (handleBox.left + handleBox.right) / 2, y: (handleBox.top + handleBox.bottom) / 2 };
-    // Shrinks by a share of the width, so the scale stays inside its limits at any screen size.
-    const delta = Math.round(start.width * 0.15);
-    await drag(from, pathBetween(from, { x: from.x - delta, y: from.y }, 10), handle, 'the resize handle');
+    const to = { x: start.left + (from.x - start.left) * 0.85, y: start.bottom + (from.y - start.bottom) * 0.85 };
+    await drag(from, pathBetween(from, to, 10), handle, 'the resize handle');
 
     const resized = listBox();
-    context.record('boxes', { start: roundBox(start), resized: roundBox(resized), delta });
+    context.record('boxes', { start: roundBox(start), handle: roundBox(handleBox), to: { x: round1(to.x), y: round1(to.y) }, resized: roundBox(resized) });
     checkClose(resized.left, start.left, 'left edge');
     checkClose(resized.bottom, start.bottom, 'bottom edge');
-    checkClose(resized.right, start.right - delta, 'right edge under the cursor', 3);
+    checkClose(resized.right, to.x, 'right edge under the cursor', 3);
+    checkClose(resized.top, to.y, 'top edge under the cursor', 3);
     check(resized.top > start.top, 'the list did not shrink toward its bottom edge');
   },
 };
@@ -344,12 +346,29 @@ function namedEffects(count: number) {
   }));
 }
 
-function topLimitScenario(look: { id: string; name: string; settings: object; row: string; more: string; effects: object[] }): Scenario {
+/** Long names make wide classic cards: near the right edge, one to a line. */
+function wideEffects(count: number) {
+  return makeEffects(count).map((effect, index) => ({
+    ...effect,
+    sourceName: `Long source name number ${index} of something`,
+    effectName: `Fortify detail ${index}`,
+  }));
+}
+
+function topLimitScenario(look: {
+  id: string;
+  name: string;
+  /** Saved settings, or a function giving them for the screen the run has. */
+  settings: object | (() => object);
+  row: string;
+  more: string;
+  effects: object[];
+}): Scenario {
   return {
     id: `grow-up/top-limit-${look.id}`,
     name: `a list growing up stops below the compass row and counts the rest (${look.name})`,
     async run(context) {
-      await context.openHud(look.settings);
+      await context.openHud(typeof look.settings === 'function' ? look.settings() : look.settings);
       context.sendStats({ timedEffects: look.effects });
       const more = await waitFor('the "+N" count', () => {
         const element = query(`[data-widget-item-id="timedEffects.list"] ${look.more}`);
@@ -492,6 +511,32 @@ export const SCENARIOS: readonly Scenario[] = [
     row: '.tw-effect-row',
     more: '.tw-effect-hidden-count',
     effects: namedEffects(12),
+  }),
+  topLimitScenario({
+    id: 'classic-rows',
+    name: 'classic rows near the right edge',
+    // At its own size, 400px from the right edge and with its bottom 400px down at any screen
+    // size: one wide card fills a line, and twelve lines reach the compass row. (A scaled list
+    // wraps by its unscaled width, so scaling it would change how many share a line.)
+    settings: () => ({
+      general: { onboardingSeen: true, hudStyle: 'classic', language: 'ko' },
+      timedEffects: { growDirection: 'up', maxVisible: 12, listLayout: 'horizontal' },
+      itemLayouts: {
+        'timedEffects.list': {
+          visible: true,
+          x: window.innerWidth - 400,
+          y: 400,
+          scale: 1,
+          locked: false,
+          zIndex: 0,
+          viewportWidth: window.innerWidth,
+          viewportHeight: window.innerHeight,
+        },
+      },
+    }),
+    row: '.tw-effect-row',
+    more: '.tw-effect-hidden-count',
+    effects: wideEffects(12),
   }),
   topLimitScenario({
     id: 'compact-top-corner',

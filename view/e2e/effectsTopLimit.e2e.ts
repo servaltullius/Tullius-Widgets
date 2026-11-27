@@ -136,6 +136,39 @@ test.describe('a list growing up stops below the compass row', () => {
     expect((await boxOf(list)).top).toBeGreaterThanOrEqual(TOP_LIMIT - 1);
   });
 
+  test('classic rows: as many narrower effects in place of wide ones all come back', async ({ page }) => {
+    await openHud(page, {
+      ...CLASSIC,
+      timedEffects: { growDirection: 'up', maxVisible: 12, listLayout: 'horizontal' },
+      itemLayouts: {
+        'timedEffects.list': { visible: true, x: 1100, y: 250, scale: 1, locked: false, zIndex: 0, viewportWidth: 1920, viewportHeight: 1080 },
+      },
+    });
+    // Long names make wide cards: two to a line, so not all twelve fit.
+    const wide = makeEffects(12).map((effect, index) => ({
+      ...effect,
+      sourceName: `Long source name number ${index} of something`,
+      effectName: `Fortify detail ${index}`,
+    }));
+    await sendStats(page, { timedEffects: wide });
+    const list = widget(page, 'timedEffects.list');
+    await expect(list.locator('.tw-effect-hidden-count')).toBeVisible();
+    expect(await list.locator('.tw-effect-row').count()).toBeLessThan(12);
+
+    // Twelve other effects, with short names: several fit on a line, so all of them fit.
+    const narrow = makeEffects(12).map((effect, index) => ({
+      ...effect,
+      instanceId: 900 + index,
+      sourceFormId: 0x1100 + index,
+      effectFormId: 0x1200 + index,
+      spellFormId: 0x1300 + index,
+    }));
+    await sendStats(page, { timedEffects: narrow });
+    await expect(list.locator('.tw-effect-row')).toHaveCount(12);
+    await expect(list.locator('.tw-effect-hidden-count')).toHaveCount(0);
+    expect((await boxOf(list)).top).toBeGreaterThanOrEqual(TOP_LIMIT - 1);
+  });
+
   test('compact top corner: stops at the limit and counts the rest', async ({ page }) => {
     await openHud(page, {
       general: { onboardingSeen: true, hudStyle: 'compact', iconTheme: 'standard', language: 'ko', compactAnchor: 'topLeft' },

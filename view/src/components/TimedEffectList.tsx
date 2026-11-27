@@ -185,7 +185,8 @@ export function TimedEffectList({
     return active;
   }, [effects, nowMs]);
 
-  const cardFit = useEffectListFit(cardListRef, variant === 'card' && growDirection === 'up', layout, sorted.length);
+  const effectsKey = sorted.map(item => item.effect.stableKey).join('|');
+  const cardFit = useEffectListFit(cardListRef, variant === 'card' && growDirection === 'up', layout, effectsKey);
   const visibleLimit = Math.max(1, Math.min(maxVisible, cardFit));
   const visible = sorted.slice(0, visibleLimit);
   const hiddenCount = Math.max(0, sorted.length - visible.length);
