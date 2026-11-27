@@ -191,7 +191,7 @@ export function formatPlaytime(hours: number, template: string): string {
 
 /** Whole game days, as the vanilla stats menu counts them; `one` is used for exactly one day. */
 export function formatDaysPassed(days: number, one: string, many: string): string {
-  const whole = Math.max(0, Math.floor(days));
+  const whole = Number.isFinite(days) ? Math.max(0, Math.floor(days)) : 0;
   return (whole === 1 ? one : many).replace('{n}', formatThousands(whole));
 }
 

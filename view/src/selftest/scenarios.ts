@@ -15,6 +15,7 @@ import {
   pathBetween,
   press,
   query,
+  round1,
   roundBox,
   sleep,
   textOf,
@@ -278,17 +279,19 @@ const resizeKeepsBottomLeft: Scenario = {
       const element = query('[data-resize-handle="timedEffects.list"]');
       return isShown(element) ? element : null;
     });
+    // The handle sits on the top-right corner, across from the bottom-left corner that stays put;
+    // dragging it part of the way toward that corner shrinks the list under the cursor.
     const handleBox = boxOf(handle);
     const from = { x: (handleBox.left + handleBox.right) / 2, y: (handleBox.top + handleBox.bottom) / 2 };
-    // Shrinks by a share of the width, so the scale stays inside its limits at any screen size.
-    const delta = Math.round(start.width * 0.15);
-    await drag(from, pathBetween(from, { x: from.x - delta, y: from.y }, 10), handle, 'the resize handle');
+    const to = { x: start.left + (from.x - start.left) * 0.85, y: start.bottom + (from.y - start.bottom) * 0.85 };
+    await drag(from, pathBetween(from, to, 10), handle, 'the resize handle');
 
     const resized = listBox();
-    context.record('boxes', { start: roundBox(start), resized: roundBox(resized), delta });
+    context.record('boxes', { start: roundBox(start), handle: roundBox(handleBox), to: { x: round1(to.x), y: round1(to.y) }, resized: roundBox(resized) });
     checkClose(resized.left, start.left, 'left edge');
     checkClose(resized.bottom, start.bottom, 'bottom edge');
-    checkClose(resized.right, start.right - delta, 'right edge under the cursor', 3);
+    checkClose(resized.right, to.x, 'right edge under the cursor', 3);
+    checkClose(resized.top, to.y, 'top edge under the cursor', 3);
     check(resized.top > start.top, 'the list did not shrink toward its bottom edge');
   },
 };
@@ -328,6 +331,58 @@ function defaultSpotScenario(iconTheme: 'standard' | 'dororong'): Scenario {
       context.record('boxes', { list: roundBox(list), level: roundBox(level) });
       check(!overlaps(list, level), 'the list covers the level widget');
       check(list.top >= 0, 'the list runs off the top of the screen');
+    },
+  };
+}
+
+// --- effectsTopLimit.e2e.ts ---
+
+/** Effects whose source and effect names differ, so each classic card has its second, taller line. */
+function namedEffects(count: number) {
+  return makeEffects(count).map((effect, index) => ({
+    ...effect,
+    sourceName: `Potion of Effect ${index}`,
+    effectName: `Fortify Effect ${index}`,
+  }));
+}
+
+/** Long names make wide classic cards: near the right edge, one to a line. */
+function wideEffects(count: number) {
+  return makeEffects(count).map((effect, index) => ({
+    ...effect,
+    sourceName: `Long source name number ${index} of something`,
+    effectName: `Fortify detail ${index}`,
+  }));
+}
+
+function topLimitScenario(look: {
+  id: string;
+  name: string;
+  /** Saved settings, or a function giving them for the screen the run has. */
+  settings: object | (() => object);
+  row: string;
+  more: string;
+  effects: object[];
+}): Scenario {
+  return {
+    id: `grow-up/top-limit-${look.id}`,
+    name: `a list growing up stops below the compass row and counts the rest (${look.name})`,
+    async run(context) {
+      await context.openHud(typeof look.settings === 'function' ? look.settings() : look.settings);
+      context.sendStats({ timedEffects: look.effects });
+      const more = await waitFor('the "+N" count', () => {
+        const element = query(`[data-widget-item-id="timedEffects.list"] ${look.more}`);
+        return isShown(element) ? element : null;
+      });
+      const shown = document.querySelectorAll(`[data-widget-item-id="timedEffects.list"] ${look.row}`).length;
+      const hidden = Number(textOf(more).replace('+', ''));
+      // The compass row: 72px at 1080p, as the top-corner presets keep clear.
+      const topLimit = window.innerHeight * (72 / 1080);
+      const list = listBox();
+      context.record('list', { box: roundBox(list), topLimit: round1(topLimit), shown, hidden });
+      check(shown > 1 && shown < look.effects.length, `${shown} of ${look.effects.length} cards shown`);
+      check(hidden === look.effects.length - shown, `"+${hidden}" does not count the ${look.effects.length - shown} cards left out`);
+      check(list.top >= topLimit - 1, `the list reaches ${round1(list.top)}, above the compass row (${round1(topLimit)})`);
     },
   };
 }
@@ -449,6 +504,48 @@ export const SCENARIOS: readonly Scenario[] = [
   }),
   defaultSpotScenario('standard'),
   defaultSpotScenario('dororong'),
+  topLimitScenario({
+    id: 'classic',
+    name: 'classic column',
+    settings: { general: { onboardingSeen: true, hudStyle: 'classic', language: 'ko' }, timedEffects: { growDirection: 'up', maxVisible: 12 } },
+    row: '.tw-effect-row',
+    more: '.tw-effect-hidden-count',
+    effects: namedEffects(12),
+  }),
+  topLimitScenario({
+    id: 'classic-rows',
+    name: 'classic rows near the right edge',
+    // At its own size, 400px from the right edge and with its bottom 400px down at any screen
+    // size: one wide card fills a line, and twelve lines reach the compass row. (A scaled list
+    // wraps by its unscaled width, so scaling it would change how many share a line.)
+    settings: () => ({
+      general: { onboardingSeen: true, hudStyle: 'classic', language: 'ko' },
+      timedEffects: { growDirection: 'up', maxVisible: 12, listLayout: 'horizontal' },
+      itemLayouts: {
+        'timedEffects.list': {
+          visible: true,
+          x: window.innerWidth - 400,
+          y: 400,
+          scale: 1,
+          locked: false,
+          zIndex: 0,
+          viewportWidth: window.innerWidth,
+          viewportHeight: window.innerHeight,
+        },
+      },
+    }),
+    row: '.tw-effect-row',
+    more: '.tw-effect-hidden-count',
+    effects: wideEffects(12),
+  }),
+  topLimitScenario({
+    id: 'compact-top-corner',
+    name: 'compact, top-left corner',
+    settings: { general: { ...COMPACT.general, compactAnchor: 'topLeft' }, timedEffects: { growDirection: 'up', maxVisible: 12 } },
+    row: '.tw-ceffect-row',
+    more: '.tw-ceffect-more',
+    effects: makeEffects(12),
+  }),
   daysPassedScenario({ id: 'compact-standard', name: 'compact, standard icons', hudStyle: 'compact', iconTheme: 'standard', text: /지난\s*41일/ }),
   daysPassedScenario({ id: 'compact-dororong', name: 'compact, Dororong icons', hudStyle: 'compact', iconTheme: 'dororong', text: /지난\s*41일/ }),
   daysPassedScenario({ id: 'classic', name: 'classic', hudStyle: 'classic', iconTheme: 'standard', text: /41일/ }),

@@ -7,11 +7,13 @@ const HUD_FONT_WEIGHTS = [400, 500, 600, 700];
 // Fired once when the flag is set. A user font switch leaves its own relayout class on the HUD,
 // which outranks the startup rule, so the HUD listens and forces the relayout itself.
 export const FONTS_READY_EVENT = 'tw-fonts-ready';
+// Set on the document root once the bundled fonts are ready.
+export const FONTS_READY_CLASS = 'tw-fonts-ready';
 
 export function markFontsReadyWhenLoaded(root: HTMLElement = document.documentElement): void {
   const mark = () => {
-    if (root.classList.contains('tw-fonts-ready')) return;
-    root.classList.add('tw-fonts-ready');
+    if (root.classList.contains(FONTS_READY_CLASS)) return;
+    root.classList.add(FONTS_READY_CLASS);
     window.dispatchEvent(new Event(FONTS_READY_EVENT));
   };
   const fallback = window.setTimeout(mark, 2000);

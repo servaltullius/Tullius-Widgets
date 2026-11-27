@@ -360,6 +360,8 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
     >
       {children}
       {showSelectionFrame && (
+        // The handle sits on the corner across from the one that stays put (bottom-left for an
+        // item anchored at its bottom edge), so dragging it toward that corner shrinks the item.
         <button
           type="button"
           aria-label={`Resize ${itemId}`}
@@ -368,14 +370,16 @@ export const EditableWidgetItem = memo(function EditableWidgetItem({
           style={{
             position: 'absolute',
             right: `${-Math.round(RESIZE_HANDLE_SIZE / 2)}px`,
-            bottom: `${-Math.round(RESIZE_HANDLE_SIZE / 2)}px`,
+            ...(anchorBottom
+              ? { top: `${-Math.round(RESIZE_HANDLE_SIZE / 2)}px` }
+              : { bottom: `${-Math.round(RESIZE_HANDLE_SIZE / 2)}px` }),
             width: `${RESIZE_HANDLE_SIZE}px`,
             height: `${RESIZE_HANDLE_SIZE}px`,
             borderRadius: '4px',
             border: `1px solid ${hexToRgba('#fff8dc', 0.95)}`,
             background: `linear-gradient(135deg, ${hexToRgba('#ffd700', 0.95)} 0%, ${hexToRgba('#ffb300', 0.9)} 100%)`,
             boxShadow: `0 0 10px ${hexToRgba('#ffd700', 0.35)}`,
-            cursor: locked ? 'not-allowed' : 'nwse-resize',
+            cursor: locked ? 'not-allowed' : anchorBottom ? 'nesw-resize' : 'nwse-resize',
             opacity: locked ? 0.55 : 1,
           }}
         />

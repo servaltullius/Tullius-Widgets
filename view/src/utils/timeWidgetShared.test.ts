@@ -13,6 +13,11 @@ describe('formatDaysPassed', () => {
     expect(formatDaysPassed(-3, '{n}일', '{n}일')).toBe('0일');
   });
 
+  it('shows zero rather than NaN for a value that is not a number', () => {
+    expect(formatDaysPassed(Number.NaN, '{n} day', '{n} days')).toBe('0 days');
+    expect(formatDaysPassed(Number.POSITIVE_INFINITY, '{n} day', '{n} days')).toBe('0 days');
+  });
+
   it('groups thousands', () => {
     expect(formatDaysPassed(1234, '{n} day', '{n} days')).toBe('1,234 days');
   });
