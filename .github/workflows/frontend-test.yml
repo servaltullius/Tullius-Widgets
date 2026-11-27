@@ -43,12 +43,18 @@ jobs:
       - name: Browser tests
         run: cd view && npm run e2e
 
+      # Also after a pass: a test that failed and then passed on its retry keeps the failed
+      # attempt's trace, and the job still succeeds. Only traces are uploaded, so a clean run
+      # leaves no artifact.
       - name: Upload browser test traces
-        if: failure()
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
           name: playwright-traces
-          path: view/test-results
+          path: |
+            view/test-results/**/trace.zip
+            view/test-results/**/error-context.md
+          if-no-files-found: ignore
           retention-days: 7
 
       - name: Contract tests
