@@ -23,6 +23,9 @@ function Invoke-ReleaseLocal {
     [switch]$NoPublish
   )
 
+  # Before anything is built: the zip this run makes has to be packed by PowerShell 7.
+  Assert-ReleasePowerShell
+
   $repoRoot = Split-Path -Parent $scriptDir
   $workRoot = $repoRoot
   $usesUncWorkRoot = $workRoot.StartsWith("\\")
@@ -161,6 +164,13 @@ function Invoke-ReleaseLocal {
       Remove-Item $zipName -Force
     }
     Compress-Archive -Path (Join-Path $packageStageRoot "*") -DestinationPath $zipName
+    try {
+      Assert-ZipEntryPathsUseForwardSlashes -Path $zipName
+    } catch {
+      # Not left under the release name, where an upload made outside this script would find it.
+      Remove-Item -LiteralPath $zipName -Force -ErrorAction SilentlyContinue
+      throw
+    }
     Write-Host "Created local package: $zipName"
 
     if ($NoPublish) {

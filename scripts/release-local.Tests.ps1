@@ -631,9 +631,24 @@ exit /b 1
       [System.IO.FileShare]::Read)
 
     try {
-      { Publish-StagedFrontendDist -StagedViewDist $stagedViewDist -RepoViewDist $repoViewDist } | Should Throw
+      # Caught here rather than with "Should Throw": Pester 3.4 under PowerShell 7 did not report
+      # this error as thrown, though the function stops with it (checked outside Pester too).
+      $swapError = $null
+      try {
+        Publish-StagedFrontendDist -StagedViewDist $stagedViewDist -RepoViewDist $repoViewDist
+      }
+      catch {
+        $swapError = $_
+      }
       $lock.Dispose()
       $lock = $null
+      $swapError | Should Not BeNullOrEmpty
+      # The refused move, not some earlier step, by its type: the message depends on the language.
+      $cause = $swapError.Exception
+      while ($cause.InnerException) {
+        $cause = $cause.InnerException
+      }
+      ($cause -is [System.UnauthorizedAccessException] -or $cause -is [System.IO.IOException]) | Should Be $true
       (Get-Content -Path (Join-Path $repoViewDist "index.html") -Raw).Trim() | Should Be "old"
       @(Get-ChildItem -LiteralPath (Split-Path -Parent $repoViewDist) -Force).Count | Should Be 1
     }
@@ -641,6 +656,43 @@ exit /b 1
       if ($lock) {
         $lock.Dispose()
       }
+      if (Test-Path $root) {
+        Remove-Item -LiteralPath $root -Recurse -Force
+      }
+    }
+  }
+
+  It "runs only under PowerShell 7" {
+    { Assert-ReleasePowerShell -Version ([version]"5.1.26100.9818") } | Should Throw "needs PowerShell 7"
+    { Assert-ReleasePowerShell -Version ([version]"7.6.10") } | Should Not Throw
+  }
+
+  It "turns away a zip whose entry names use backslashes" {
+    Add-Type -AssemblyName System.IO.Compression
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $root = Join-Path ([System.IO.Path]::GetTempPath()) ("tw-zip-paths-" + [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $root -Force | Out-Null
+    $makeZip = {
+      param([string]$Path, [string[]]$Names)
+      $archive = [System.IO.Compression.ZipFile]::Open($Path, [System.IO.Compression.ZipArchiveMode]::Create)
+      try {
+        foreach ($name in $Names) { $archive.CreateEntry($name) | Out-Null }
+      }
+      finally {
+        $archive.Dispose()
+      }
+    }
+
+    try {
+      $good = Join-Path $root "good.zip"
+      $bad = Join-Path $root "bad.zip"
+      & $makeZip $good @("PrismaUI/views/TulliusWidgets/index.html", "SKSE/Plugins/TulliusWidgets.dll")
+      & $makeZip $bad @("PrismaUI\views\TulliusWidgets\index.html", "SKSE/Plugins/TulliusWidgets.dll")
+
+      { Assert-ZipEntryPathsUseForwardSlashes -Path $good } | Should Not Throw
+      { Assert-ZipEntryPathsUseForwardSlashes -Path $bad } | Should Throw "1 entries with"
+    }
+    finally {
       if (Test-Path $root) {
         Remove-Item -LiteralPath $root -Recurse -Force
       }

@@ -940,6 +940,35 @@ function Initialize-ReleasePackageStage {
   Copy-Item -LiteralPath $PluginDllPath -Destination (Join-Path $stagePluginDir "TulliusWidgets.dll") -Force
 }
 
+# Windows PowerShell 5.1 ships Microsoft.PowerShell.Archive 1.0.1, whose Compress-Archive writes '\'
+# into zip entry names (the v1.10.0 zip was packed that way). The zip format wants '/', and tools
+# outside Windows read such entries as file names with backslashes in them. PowerShell 7 packs '/'.
+function Assert-ReleasePowerShell {
+  param([version]$Version = $PSVersionTable.PSVersion)
+
+  if ($Version.Major -lt 7) {
+    throw "release-local.ps1 needs PowerShell 7 (pwsh); this is PowerShell $Version, whose Compress-Archive writes '\' into zip entry names. Run it with pwsh: see docs/local-release.ko.md."
+  }
+}
+
+function Assert-ZipEntryPathsUseForwardSlashes {
+  param([Parameter(Mandatory = $true)][string]$Path)
+
+  Add-Type -AssemblyName System.IO.Compression.FileSystem
+  $resolved = (Resolve-Path -LiteralPath $Path).ProviderPath
+  $archive = [System.IO.Compression.ZipFile]::OpenRead($resolved)
+  try {
+    $backslashed = @($archive.Entries | Where-Object { $_.FullName.Contains('\') } | ForEach-Object { $_.FullName })
+  } finally {
+    $archive.Dispose()
+  }
+
+  if ($backslashed.Count -gt 0) {
+    $examples = ($backslashed | Select-Object -First 3) -join ', '
+    throw "$Path has $($backslashed.Count) entries with '\' in their names (for example $examples). Pack it with PowerShell 7."
+  }
+}
+
 function Assert-TulliusWidgetsBuildOutputs {
   param(
     [string]$FrontendOutputPath = "dist/PrismaUI/views/TulliusWidgets",

@@ -9,6 +9,11 @@ $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path $scriptDir "release-local.lib.ps1")
+# The package at the end is made by release-local.ps1, which runs only under PowerShell 7: say so
+# now rather than after the builds.
+if ($CreateLocalPackage) {
+  Assert-ReleasePowerShell
+}
 $repoRoot = Split-Path -Parent $scriptDir
 $workRoot = $repoRoot
 $usesUncWorkRoot = $workRoot.StartsWith("\\")

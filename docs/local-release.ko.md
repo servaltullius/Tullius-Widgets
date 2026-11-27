@@ -9,6 +9,11 @@ CI를 사용하지 않고 로컬에서 빌드한 결과물만으로 ZIP 생성�
   - xmake 3.0.6 (CI `xmake-version`과 동일하게 유지)
   - Visual Studio 2026 C++ 도구 (MSVC, CI 이미지 `windows-2025-vs2026`과 동일)
   - GitHub CLI (`gh`) 로그인 완료
+  - PowerShell 7 (`pwsh`)
+    - `release-local.ps1`은 PowerShell 7에서만 돕니다. Windows PowerShell 5.1(`powershell.exe`)로 실행하면 아무것도 만들기 전에 멈춥니다.
+    - 5.1의 `Compress-Archive`는 zip 안 경로를 `\`로 씁니다. zip 표준은 `/`이고, Windows 밖의 도구는 이런 경로를 이름에 `\`가 든 파일 하나로 읽습니다. 게시된 v1.10.0 zip이 이렇게 만들어졌습니다.
+    - 스크립트는 zip을 만든 뒤에도 경로에 `\`가 있는지 검사하고, 있으면 게시하지 않고 멈춥니다.
+    - WSL에서는 `pwsh.exe`(Windows 쪽 PowerShell 7)로 실행합니다. `scripts/package.sh`도 `pwsh.exe`를 씁니다.
 
 ## 툴체인/패키지 버전 고정
 - xmake 버전과 Visual Studio 버전은 로컬과 CI(`.github/workflows/build-windows-package.yml`, `release.yml`)를 항상 함께 올립니다.
@@ -28,11 +33,17 @@ CI를 사용하지 않고 로컬에서 빌드한 결과물만으로 ZIP 생성�
 ./scripts/package.sh
 ```
 
-2. Windows PowerShell에서 전체 검증 또는 패키징만 하려면 아래를 실행합니다.
+2. Windows의 PowerShell 7(`pwsh`)에서 전체 검증 또는 패키징만 하려면 아래를 실행합니다.
 
 ```powershell
 pwsh -File .\scripts\verify-runtime-windows.ps1
 pwsh -File .\scripts\release-local.ps1 -NoPublish
+```
+
+WSL 셸에서 바로 패키징만 하려면 Windows 쪽 `pwsh.exe`를 부릅니다.
+
+```bash
+pwsh.exe -NoProfile -ExecutionPolicy Bypass -File scripts/release-local.ps1 -NoPublish
 ```
 
 3. 수동으로 네이티브 DLL만 빌드하려면 일반 Windows PowerShell에서 직접 `xmake`를 실행합니다. Developer Command Prompt(`VsDevCmd.bat`)는 쓰지 마세요. 그 PATH에서는 xmake 3.0.6이 도구를 확인하다 비정상 종료했습니다(0xC0000374, 2026-11-25).
@@ -98,4 +109,4 @@ pwsh -File .\scripts\release-local.ps1 -Repo servaltullius/Tullius-Widgets -Chan
 - Windows에서 `xmake`를 찾지 못하면 `C:\Program Files\xmake\xmake.exe` 설치 여부와 PATH를 확인하세요.
 - Visual Studio 탐지가 실패하면 Build Tools 또는 Community 설치 상태(C++ 데스크톱 개발 워크로드)를 확인하세요.
 - `xmake f`가 종료 코드 -1073740940(0xC0000374)으로 끝나면 Developer Command Prompt 등 VS 개발자 환경의 PATH에서 실행했는지 확인하세요. 일반 PowerShell에서는 정상입니다.
-- WSL에서 `./scripts/package.sh` 실행 시 `powershell.exe`가 없으면 Windows 연동이 불가능하므로, Windows 쪽 PowerShell에서 `release-local.ps1`를 직접 실행해야 합니다.
+- WSL에서 `./scripts/package.sh` 실행 시 Windows 쪽 PowerShell 7(`pwsh.exe`)이 없으면 Windows 스크립트로 넘기지 않고 WSL에서 `zip`으로 압축합니다. `zip`도 없으면 시작할 때 멈춥니다. Windows MSVC 빌드까지 하려면 PowerShell 7을 설치하거나, Windows의 `pwsh`에서 `release-local.ps1`를 직접 실행하세요.
