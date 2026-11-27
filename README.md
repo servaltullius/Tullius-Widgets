@@ -190,6 +190,8 @@ npm run e2e                                  # 브라우저 테스트(Playwright
 #### 게임 안 자체 시험
 브라우저 테스트와 같은 시나리오를 게임 화면 엔진(Ultralight) 안에서 돌리고, 결과를 파일로 남깁니다.
 
+개발용입니다. 릴리스 빌드에도 들어 있지만 표시 파일이 없으면 아무 일도 하지 않으며, 릴리스 노트와 Nexus 설명에는 적지 않습니다.
+
 1. `Data/SKSE/Plugins/TulliusWidgets.selftest` 파일을 만듭니다. MO2를 쓰면 이 모드 폴더의 `SKSE/Plugins/` 아래에 둡니다. 내용은 비어 있어도 됩니다.
 2. 게임을 켜고 세이브를 불러옵니다. 몇 초 뒤 시험이 저절로 돌고, 화면 아래쪽 띠에 진행과 결과가 나옵니다.
 3. 결과는 SKSE 로그 폴더(보통 `문서/My Games/Skyrim Special Edition/SKSE/`)의 `TulliusWidgets-selftest.json`에 남습니다. 요약 한 줄은 `TulliusWidgets.log`에도 남습니다.
